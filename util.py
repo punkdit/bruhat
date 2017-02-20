@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import sys
+
+
 def all_subsets(n):
 
     if n==0:
@@ -47,5 +50,11 @@ def choose(items, n):
 assert len(list(choose(range(4), 1))) == 4
 assert len(list(choose(range(4), 2))) == 6
 assert len(list(choose(range(4), 3))) == 4
+
+
+def write(s):
+    sys.stdout.write(str(s)+' ')
+    sys.stdout.flush()
+
 
 
