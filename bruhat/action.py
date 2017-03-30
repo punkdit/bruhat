@@ -4,10 +4,10 @@ import sys
 import string
 from random import randint, shuffle
 
-from util import factorial, all_subsets, write
-from argv import argv
-import isomorph
-from smap import SMap, tabulate
+from bruhat.util import factorial, all_subsets, write
+from bruhat.argv import argv
+from bruhat import isomorph
+from bruhat.smap import SMap, tabulate
 
 
 def mulclose(els, verbose=False, maxsize=None):
@@ -1309,7 +1309,7 @@ def main():
         G = Group(perms, items)
 
     elif argv.projective:
-        import geometry
+        from bruhat import geometry
         g = geometry.projective(3)
         items = range(14)
         perms = [f for f in g.get_symmetry()]

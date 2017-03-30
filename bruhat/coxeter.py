@@ -2,11 +2,13 @@
 
 import sys, os
 
-from argv import argv
+from bruhat.argv import argv
 
 """
 Coxeter groups:
 http://math.ucr.edu/home/baez/week62.html
+
+via group presentations / word rewriting.
 """
 
 

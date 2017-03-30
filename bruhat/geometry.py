@@ -8,7 +8,7 @@ import networkx as nx
 from solve import zeros2, enum2, row_reduce, span, shortstr, shortstrx, solve, rank, find_kernel, find_logops, identity2
 import isomorph
 from isomorph import Bag, Point, write
-from bruhat import BruhatMonoid
+from coxeter import BruhatMonoid
 from action import Perm, Group
 from util import all_subsets, factorial, choose
 

@@ -942,7 +942,7 @@ def test_monoid(G):
 
     m = G.matrix(desc)
 
-    from bruhat import BruhatMonoid
+    from coxeter import BruhatMonoid
     monoid = BruhatMonoid(desc, m, bruhat=True, build=True)
     #for w in monoid.words:
     #    print w,
