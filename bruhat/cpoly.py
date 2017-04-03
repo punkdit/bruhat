@@ -1,48 +1,113 @@
 #!/usr/bin/env python
 
 """
-Commutative polynomials.
+Commutative _polynomials.
 
 """
 
 import sys, os
+from fractions import Fraction
+from random import randint, shuffle, seed
 
 #from bruhat.action import Group
+from bruhat.gelim import fstr
+from bruhat.util import write
 
 
-
-def tadd(a, b):
+def tpl_add(a, b):
     "tuple add"
     c = tuple(x+y for (x,y) in zip(a, b))
     return c
 
+def tpl_sub(a, b):
+    "tuple sub"
+    c = tuple(x-y for (x,y) in zip(a, b))
+    return c
+
+def tpl_ge(a, b):
+    "component-wise tuple comparison"
+    for i, j in zip(a, b):
+        if i<j:
+            return False
+    return True
+
+def tpl_union(a, b):
+    "component-wise maximum"
+    c = tuple(max(ai, bi) for (ai, bi) in zip(a, b))
+    return c
+
+def tpl_compare(a, b):
+    if sum(a) > sum(b):
+        return True
+    if sum(a) == sum(b) and a>b:
+        return True
+    return False
+
+
+def is_scalar(x):
+    return isinstance(x, (int, long, Fraction))
+
 
 class Poly(object):
     """
-        Commutative polynomial in <rank> many variables x_1,...,x_<rank> .
+        Commutative _polynomial in <rank> many variables x_1,...,x_<rank> .
     """
 
     def __init__(self, cs, rank=None):
         coefs = {}
+        degree = 0
+        head = None
         for key, value in cs.items():
             assert rank is None or rank == len(key)
             rank = len(key)
-            assert long(value) == value
-            if value != 0:
-                coefs[key] = value
+            assert is_scalar(value)
+            if value == 0:
+                continue
+            if head is None or tpl_compare(key, head):
+                head = key
+            coefs[key] = Fraction(value)
+            degree = max(degree, sum(key))
+        if head is None:
+            head = (0,)*rank
         self.cs = coefs
         self.rank = rank
+        self.degree = degree
+        self.head = head
+        assert sum(head) == degree, str(self)
 
     @classmethod
     def identity(cls, rank):
         key = (0,)*rank
-        return cls({key : 1})
+        return cls({key : 1}, rank)
+
+    @classmethod
+    def zero(cls, rank):
+        return cls({}, rank)
+
+    def get_zero(self):
+        return Poly({}, self.rank)
+
+    def get_identity(self):
+        key = (0,)*self.rank
+        return Poly({key : 1}, self.rank)
+
+    def promote(self, x):
+        if is_scalar(x):
+            return Poly({(0,)*self.rank : x})
+        if isinstance(x, Poly):
+            return x
+        raise TypeError, repr(x)
+
+    def __nonzero__(self):
+        return len(self.cs)>0
 
     def __eq__(self, other):
+        other = self.promote(other)
         assert self.rank == other.rank
         return self.cs == other.cs
 
     def __ne__(self, other):
+        other = self.promote(other)
         assert self.rank == other.rank
         return self.cs != other.cs
 
@@ -58,33 +123,45 @@ class Poly(object):
         return self.cs.get(key, 0)
 
     def __add__(self, other):
+        if is_scalar(other):
+            return self + Poly({(0,)*self.rank : other})
         assert self.rank == other.rank
         cs = dict(self.cs)
         for key, value in other.cs.items():
             cs[key] = cs.get(key, 0) + value
-        return Poly(cs)
+        return Poly(cs, self.rank)
 
     def __sub__(self, other):
+        if is_scalar(other):
+            return self - Poly({(0,)*self.rank : other})
         assert self.rank == other.rank
         cs = dict(self.cs)
         for key, value in other.cs.items():
             cs[key] = cs.get(key, 0) - value
-        return Poly(cs)
+        return Poly(cs, self.rank)
+
+    def __neg__(self):
+        cs = {}
+        for key, value in self.cs.items():
+            cs[key] = -value
+        return Poly(cs, self.rank)
 
     def __rmul__(self, r):
         cs = {}
         for key, value in self.cs.items():
             cs[key] = r * value
-        return Poly(cs)
+        return Poly(cs, self.rank)
 
     def __mul__(self, other):
+        if is_scalar(other):
+            return self * Poly({(0,)*self.rank : other})
         assert self.rank == other.rank
         cs = {}
         for k1, v1 in self.cs.items():
           for k2, v2 in other.cs.items():
-            k = tadd(k1, k2)
+            k = tpl_add(k1, k2)
             cs[k] = cs.get(k, 0) + v1*v2
-        return Poly(cs)
+        return Poly(cs, self.rank)
 
     def __pow__(self, n):
         if n==0:
@@ -105,7 +182,8 @@ class Poly(object):
             names = ["x"]
         items = []
         cs = list(self.cs.items())
-        cs.sort(key = lambda (k,v):list(reversed(k)))
+        #cs.sort(key = lambda (k,v):list(reversed(k)))
+        cs.sort(key = lambda (k,v):(-sum(k, 0), list(reversed(k))))
         for k, val in cs:
             if val==0:
                 continue
@@ -125,11 +203,31 @@ class Poly(object):
             elif val==-1:
                 item = "-"+item
             else:
-                item = "%s*%s" % (val, item)
+                item = "%s*%s" % (fstr(val), item)
             items.append(item)
         s = ' + '.join(items)
         s = s.replace("+ -", "- ")
+        if not s:
+            s = "0"
         return s
+
+    __repr__ = __str__
+
+    @classmethod
+    def random(cls, rank, degree=3, terms=3):
+        cs = {}
+        for i in range(terms):
+            key = [0]*rank
+            remain = degree
+            for j in range(rank):
+                key[j] = randint(0, remain)
+                remain -= key[j]
+            shuffle(key)
+            key = tuple(key)
+            value = randint(-2, 2)
+            cs[key] = value
+        P = cls(cs, rank)
+        return P
 
     def is_symmetric(self):
         n = self.rank
@@ -154,14 +252,172 @@ class Poly(object):
 
         return True
 
+    def reduce1(P, Q):
+        "return R, S such that Q=R*P+S "
+        m0 = P.head
+        for m1 in Q.cs.keys():
+            if tpl_ge(m1, m0):
+                break
+        else:
+            return P.get_zero(), Q
+
+        #print "reduce1(%s, %s)" % (P, Q)
+        #print "reduce: P.head = m0 = ", m0
+        #print "reduce: m1 = ", m1
+        m2 = tpl_sub(m1, m0)
+        #print "reduce: m1-m0 = ", m2
+        m2 = Poly({m2:1})
+        #print "m2:", m2
+        R = (Q[m1]/P[m0]) * m2
+        S = Q - R * P
+        #if S.degree > Q.degree:
+        #    print "%s reduce %s" % (P, Q)
+        #    print "(%s).head = %s" % (P, P.head,)
+        #    print "\t (%s) = (%s)*(%s) + (%s)" % (Q, R, P, S)
+        assert S.degree <= Q.degree
+        return R, S
+
+    def reduce(P, Q):
+        "return R, S such that Q=R*P+S "
+        #print "reduce(%s, %s)" % (P, Q)
+        if P==0:
+            return 0, Q
+        R, S = P.reduce1(Q)
+        assert Q == R*P + S
+        while R and S:
+            R1, S1 = P.reduce1(S)
+            S = S1
+            R = R + R1
+            assert Q == R*P + S
+            if R1 == 0:
+                break
+            #print R1, S
+        return R, S
+
+    def __div__(self, other):
+        if is_scalar(other):
+            other = Fraction(1, other)
+            other = Poly({(0,)*self.rank : other})
+            return other * self
+        R, S = other.reduce(self)
+        return R
+    __truediv__ = __div__
+
+    def swap(self, i, j=None):
+        rank = self.rank
+        assert 0<=i<rank
+        if j is None:
+            j = i+1
+        assert 0<=j<rank
+        if i==j:
+            return self
+        cs = {}
+        for key, value in self.cs.items():
+            key = list(key)
+            key[i], key[j] = key[j], key[i]
+            key = tuple(key)
+            cs[key] = value
+        return Poly(cs, rank)
+
+    def basis(self, i):
+        key = [0 for j in range(self.rank)]
+        key[i] = 1
+        return Poly({tuple(key) : 1})
+
+    def delta(P, i):
+        "divided difference operator"
+        assert i+1<P.rank
+        Q = P - P.swap(i, i+1)
+        #print "delta", P, "=", Q
+        R = P.basis(i) - P.basis(i+1)
+        #print "divide by", R
+        S, T = R.reduce(Q)
+        #print "equals:", S
+        assert not T
+        return S
+
+    def normalized(P):
+        "divide by leading coefficient"
+        head = P.head
+        c = P[head]
+        if c != 1:
+            P = P / c
+        return P
+
+    def critical_pair(P, Q):
+        P = P.normalized()
+        Q = Q.normalized()
+        m = tpl_union(P.head, Q.head)
+        mi = tpl_sub(m, P.head)
+        mj = tpl_sub(m, Q.head)
+        mi = Poly({mi:1})
+        mj = Poly({mj:1})
+        S = mi * P - mj * Q
+        return S
+
+
+#class Ideal(object):
+#    def __init__(self, ps):
+
+
+def reduce_many(polys, P):
+
+    seen = set([P])
+    while 1:
+        for Q in polys:
+            _, P = Q.reduce(P)
+        if P in seen:
+            break
+        seen.add(P)
+        #write(str(len(seen)))
+
+    return P
+
+
+def grobner(polys):
+    "Build a grobner basis from polys."
+
+    polys = [p for p in polys if p]
+    
+    basis = set(polys)
+    pairs = set()
+    for i in range(len(polys)):
+      for j in range(i+1, len(polys)):
+        pairs.add((polys[i], polys[j]))
+
+    while pairs:
+        P, Q = pairs.pop()
+        S = P.critical_pair(Q)
+        if S==0:
+            continue
+
+        #write("(")
+        S = reduce_many(basis, S)
+        #write(")")
+        if S==0:
+            continue
+
+        S = S.normalized()
+
+        for P in basis:
+            pairs.add((P, S))
+        basis.add(S)
+        #write('.')
+
+    return basis
+
+
+
 
 def main():
 
+    seed(0) # deterministic
 
     I = Poly({(0,) : 1})
     x = Poly({(1,) : 1})
 
     assert Poly.identity(1) == I
+    assert x.get_identity() == I
 
     assert (I + x*x) * (I+x*x) == (I+x**2)**2
     assert (I + x*x) * (I+x*x) != (I+x)**2
@@ -174,6 +430,7 @@ def main():
     # ----------------
 
     I = Poly.identity(3)
+    zero = Poly.zero(3)
     x1 = Poly({(1,0,0) : 1})
     x2 = Poly({(0,1,0) : 1})
     x3 = Poly({(0,0,1) : 1})
@@ -187,6 +444,101 @@ def main():
     assert not ((x1+x2+x3)**3 + x1).is_symmetric()
     assert not (x1*x2*x3 + x1*x2).is_symmetric()
 
+    half = Fraction(1, 2)
+    P = half*x1**3 + x2**2
+    assert P.head == (3, 0, 0), P.head
+    assert P.normalized() == x1**3 + 2*x2**2
+
+    _, Q = P.reduce(P)
+    assert Q == zero
+
+    P = x1**2 * x2 + x1*x2 - 17
+    Q = x1**2 * x2**2 + x1*x2**2 - 3
+    _, R = P.reduce(Q)
+    assert R == 17*x2 - 3
+
+    assert (x1*x2 + x2) / x2 == (x1 + 1)
+    assert (x1**2 - x2**2) / (x1+x2) == (x1-x2)
+
+    # -------------------------------------
+    # 
+
+    for trial in range(20):
+        P = Poly.random(3)
+        Q = Poly.random(3)
+        #print P, "||", Q
+        R, S = P.reduce(Q)
+
+    # -------------------------------------
+    # 
+
+    P = x1**2*x2-x1**2
+    Q = x1*x2**2-x2**2
+    assert P.critical_pair(Q) == x1*x2**2 - x1**2*x2
+    assert P.critical_pair(Q) == -Q.critical_pair(P)
+    assert P.critical_pair(P) == 0
+    assert Q.critical_pair(Q) == 0
+
+
+    # -------------------------------------
+    # 
+
+    P = x1**2*x2-x1**2
+    Q = x1*x2**2-x2**2
+    polys = [P, Q]
+    basis = grobner(polys)
+    #print basis
+
+    for i in range(10):
+        polys = [Poly.random(3) for _ in range(2)]
+        basis = grobner(polys)
+        #print len(basis)
+
+    # -------------------------------------
+    # divided difference operator:
+
+    P = x1**2 * x2
+
+    assert (x1**2 * x2).delta(0) == x1*x2
+    assert (x1*x2).delta(0)      == 0
+    assert (x1**2 * x2).delta(1) == x1**2
+
+    assert (x1**2).delta(0)      == x1+x2
+    assert (x1**2).delta(1)      == 0
+    assert (x1+x2).delta(0)      == 0
+    assert (x1+x2).delta(1)      == 1
+    assert x1.delta(0)           == 1
+    assert x1.delta(1)           == 0
+
+    P = (3*x1**2*x3 + x2**2 + x2*x3)
+    Q = (2*x2**2*x3 + x1**2 + x2*x3**2)
+
+    rank = 3
+    for trial in range(100):
+
+        P = Poly.random(rank)
+        Q = Poly.random(rank)
+
+        for i in range(rank-2):
+
+            lhs = P.delta(i).delta(i+1).delta(i)
+            rhs = P.delta(i+1).delta(i).delta(i+1)
+            assert lhs == rhs
+
+
+        for i in range(rank-1):
+
+            assert P.delta(i).delta(i) == 0
+
+            lhs = (P*Q).delta(i)
+            rhs = P.delta(i)*Q + P.swap(i, i+1) * Q.delta(i)
+            assert lhs == rhs
+
+    print "OK"
+
+
+
+    
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1820 @@
+
+
+30/3/17
+=======
+
+Roughly speaking, given two first order differential operators
+A and B, AB and BA involve second order differentials, but AB-BA does not.
+
+See p210, on Jacobi's identity:
+"Jacobi and the Birth of Lie's Theory of Groups"
+Thomas Hawkins
+Archive for History of Exact Sciences
+Vol. 42, No. 3 (1991), pp. 187-278
+
+
+
+
+http://mathoverflow.net/questions/162419/categorification-of-the-integers
+http://mathoverflow.net/questions/219073/why-does-mcmahon-formula-look-like-the-inclusion-exclusion-principle
+
+
+
+"""
+so the first point i want to emphasize here is that from everything
+i've heard about the langlands program, it's supposed to be very
+ambitious; thus for example somewhere in the above discussion someone
+quotes the following statement from the paper "an elementary
+introduction to the langlands program" by stephen gelbart:
+
+"Herein lies the agony as well as the ecstasy of Langlands'
+program. To merely state the conjectures requires much of the
+machinery of class field theory, the structure theory of algebraic
+groups, the representation theory of real and p-adic groups, and (at
+least) the language of algebraic geometry. In other words, though the
+promised rewards are great, the initiation process is forbidding."
+
+we can turn gelbart's description here into a very rough superficial outline
+of what we'd be working on:
+
+1.  the galois-theoretic aspect of number theory (this is roughly what
+gelbart means by so-called "class field theory").
+
+2.  lots of kinds of group theory, including especially the study of
+group representations of lots of kinds, but from a very
+conceptual-geometric viewpoint.
+
+3.  algebraic geometry, but from a very conceptual and
+category-theoretic viewpoint unifying algebraic geometry with group
+theory and kleinian geometry and mathematical logic.
+
+4.  combining 1, 2, and 3 into the langlands program.
+
+"""
+    -- JD
+
+What is the Langlands Programme?
+https://golem.ph.utexas.edu/category/2010/08/what_is_the_langlands_programm.html
+
+
+
+
+"This should explain the S-duality, which corresponds
+to the transformation tau -> −1/tau ,
+and hence the geometric Langlands correspondence."
+ -- GAUGE THEORY AND LANGLANDS DUALITY
+    by Edward FRENKEL
+    http://de.arxiv.org/pdf/0906.2747.pdf
+
+
+"""
+I will finish with a personal recollection
+of my encounter with the physicist 
+Victor Weisskopf, whose lecture I attended
+in my first year of graduate school 
+when I was still contemplating a research
+career in mathematical physics. I asked 
+Weisskopf how much mathematics a
+physics student needs to know, 
+to which he answered with a smile: ‘More.’ 
+"""
+ -- Why everyone should know number theory
+    Minhyong Kim
+    https://arxiv.org/pdf/math/0210327.pdf
+
+
+
+https://ncatlab.org/johnbaez/show/Zeta+functions
+http://math.ucr.edu/home/baez/week300.html
+
+"""
+On top of all this, the composite of Schur functors
+is again a Schur functor. This gives Schur a
+fifth monoidal structure: the plethystic tensor product. Unlike the four
+previous monoidal structures, this one is not symmetric.
+Mathematicians often
+work with a decategorified version of Schur: its Grothendieck
+group, also known as the ring of symmetric functions. 
+"""
+    https://ncatlab.org/nlab/show/Schur+functor
+
+
+27/3/17
+=======
+
+
+
+No finite field F is algebraically closed, 
+because if a1, a2, ..., an are the elements of F, 
+then the polynomial (x − a1)(x − a2) ··· (x − an) + 1 
+has no zero in F
+
+
+The field F is algebraically closed if and only if, 
+for each natural number n, every linear map 
+from Fn into itself has some eigenvector.
+
+https://en.wikipedia.org/wiki/Algebraically_closed_field
+
+
+
+
+
+
+24/3/17
+=======
+
+In fact, most of these comrades who I gauged to
+be more brilliant than I have gone on to become
+distinguished mathematicians. Still from the perspective or thirty or thirty
+five years, I can state that their imprint upon the
+mathematics of our time has not been very profound. They’ve
+done all things, often beautiful things in a context that
+was already set out before them, which they had no
+inclination to disturb. Without being aware of it, they’ve remained
+prisoners of those invisible and despotic circles which delimit the
+universe of a certain milieu in a given era. To
+have broken these bounds they would have to rediscover in
+themselves that capability which was their birthright, as it was
+mine: The capacity to be alone.
+-- Grothendieck
+https://quomodocumque.wordpress.com/2010/07/05/the-capacity-to-be-alone/
+
+
+
+21/3/17
+=======
+
+
+E8 is the isometry group of a manifold called (O tensor O)P^2,
+the octooctonionic projective plane. But no one knows how to define
+this manifold except by using E8, and also it doesn't satisfy the
+projective plane axioms:
+http://math.ucr.edu/home/baez/octonions/octonions.html
+
+18/3/17
+=======
+
+time ./rota.py
+lines: set([(1, 2, 3), (3, 4, 7), (2, 4, 6), (1, 4, 5), (3, 5, 6), (1, 6, 7), (2, 5, 7)])
+bases: 168
+{8: 3888, 2: 10404, 4: 8424, 10: 1296, 6: 4212}
+
+
+number of solutions : number of configurations with that many solutions
+2: 10404 == 2^2 * 3^2 * 17^2
+4: 8424  == 2^3 * 3^4 * 13
+6: 4212  == 2^2 * 3^4 * 13
+8: 3888  == 2^4 * 3^5
+10: 1296 == 2^4 * 3^4
+
+
+./rota.py count_orbits
+G: 168
+H: 6
+A*A = 7
+A*A*A =
+    16
+    16
+    28
+    28
+    28
+    16
+    7
+    == 139 orbits
+
+
+# pairs of triangles:
+I*I = I+3N+3P
+
+# triples of triangles:
+I*I*I = I*(I+3N+3P) 
+      = I+3N+3P + 3I*N + 3I*P
+      = I+3N+3P + 3(4N+12P) + 3(28P)
+      = I+15N+123P == 139 orbits
+
+
+
+18/3/17
+=======
+
+Felix Leditzky
+to Quantum Information and Quantum Computer Scientists of the World Unite
+As most of you probably know, the arXiv recently updated
+its TeX engine to TexLive2016, and now expects the .bbl
+file holding your references to be generated by biblatex in version 2.8.
+Unfortunately the biblatex people (or whoever's responsible for that) keep
+changing the format of the .bbl file. If you try
+to upload an article to the arXiv and get one
+of the following errors 'Package keyval Error: family_i undefined.' or 
+'Package keyval Error: given_i undefined.',
+it might be that you're using an older (and now incompatible) version of biblatex such
+as 2.7 (which is e.g. the current version in an
+up-to-date ubuntu distribution). A simple fix is to do a
+search and replace in your .bbl file, changing every instance
+of 'family_i' and 'given_i' to 'familyi' and 'giveni', respectively.
+It cost me a good portion of my evening yesterday to
+figure that out, so I thought I'd share this here
+in case it saves someone some time and nerves.
+
+
+17/3/17
+=======
+
+alternating n=5:
+  | A  B      C        D        E        F        G        H         I     
+--+------------------------------------------------------------------------
+A | A  B      C        D        E        F        G        H         I     
+B | B  B+G    H        G+H      I        F+I      2*G+I    H+2*I     5*I   
+C | C  H      C+H      2*H      E+I      3*H      2*I      2*H+2*I   6*I   
+D | D  G+H    2*H      D+H+I    2*I      3*H+I    G+3*I    2*H+4*I   10*I  
+E | E  I      E+I      2*I      2*E+2*I  3*I      4*I      6*I       12*I  
+F | F  F+I    3*H      3*H+I    3*I      3*F+3*I  5*I      3*H+6*I   15*I  
+G | G  2*G+I  2*I      G+3*I    4*I      5*I      2*G+6*I  10*I      20*I  
+H | H  H+2*I  2*H+2*I  2*H+4*I  6*I      3*H+6*I  10*I     2*H+14*I  30*I  
+I | I  5*I    6*I      10*I     12*I     15*I     20*I     30*I      60*I  
+
+
+find idempotent elements of burnside ring:
+./idempotent.py 
+
+A-B-C-D+G+2H-I, B+C+D-G-2H+I
+
+
+
+15/3/17
+=======
+
+there's a kind of folklore about wikipedia that if you just randomly click on links there you eventually end up at the "Philosophy" page.
+the PageRank algorithm is a way to rigorously find out if this is really true.
+
+14/3/17
+=======
+
+The category(poset) of ideals I(A)I(A) of a commutative ring A is a closed symmetric monoidal category
+http://mathoverflow.net/questions/76443/enriched-categories-ideals-submodules-and-algebraic-geometry
+
+
+12/3/17
+=======
+
+"[I]f there is one thing in mathematics
+that fascinates me more than anything
+else (and doubtless always has), it is
+neither “number” nor “size”, but always
+form. And among the thousand-andone
+faces whereby form chooses to reveal
+itself to us, the one that fascinates
+me more than any other and continues
+to fascinate me, is the structure hidden
+in mathematical things."  Alexandre
+Grothendieck, Récoltes et Semailles, page P27
+http://www.ams.org/notices/200409/fea-grothendieck-part1.pdf
+
+
+What are the "atoms" of form?
+Are these atoms "real", in the way a physicist
+would use this word? 
+Why would they not be real, if one can experience them?
+
+Group theory, Kleinien geometry, the theory
+of relativity: these are all about "point of view".
+The consideration is this: that wich is true, must
+be true from all points of view.
+The problem with mathematical language is that it is
+inherently point-of-view creating.
+
+
+11/3/17
+=======
+
+Rota's Basis Conjecture
+-----------------------
+
+Let B_1,...,B_n be a list of n bases of an n-dimensional vector space V 
+(not necessarily distinct or disjoint). 
+Then there exists an n*n grid of vectors (v_ij) such that:
+
+1) the n vectors in row i are the members of the i'th basis B_i (in some order), and
+2) in each column of the matrix, the n vectors in that column form a basis of V.
+
+http://mathoverflow.net/questions/219638/proposals-for-polymath-projects/231153#231153
+https://polymathprojects.org/2017/02/23/rotas-basis-conjecture-polymath-12/
+https://polymathprojects.org/2017/03/06/rotas-basis-conjecture-polymath-12-2/
+
+
+Generalizations:
+    Other Dynkin series: B_n, ... etc. ??
+    Arbitrary Finite abelian groups (Z-modules)
+
+
+
+9/3/17
+======
+
+https://en.wikipedia.org/wiki/Catalan_number
+https://en.wikipedia.org/wiki/Associahedron
+
+From Klein to Hecke:
+https://golem.ph.utexas.edu/category/2007/10/geometric_representation_theor_4.html
+https://golem.ph.utexas.edu/category/2007/11/geometric_representation_theor_5.html
+
+Categorified Gram-Schmidt:
+https://ncatlab.org/nlab/show/Gram-Schmidt+process
+
+
+G-sets, Galois objects and the discrete Tannakian reconstruction:
+http://math.stackexchange.com/a/382664/360303
+
+G-sets are determined up to isomorphism by 
+the number of fixed points for every subgroup of G
+http://math.stackexchange.com/a/1891096/360303
+
+Orbit-stabilizer theorem:
+https://qchu.wordpress.com/2009/06/15/gila-ii-orbits-stabilizers-and-classifying-group-actions/
+
+Zippers
+http://chris-taylor.github.io/blog/2013/02/13/the-algebra-of-algebraic-data-types-part-iii/
+
+“The Derivative of a Regular Type is its Type of One-Hole Contexts”
+http://strictlypositive.org/diff.pdf
+
+Mathjax reference cheatsheet:
+http://meta.math.stackexchange.com/questions/5020/mathjax-basic-tutorial-and-quick-reference
+
+Self-referential Paradoxes, Incompleteness and Fixed Points
+https://topologicalmusings.wordpress.com/2010/07/11/self-referential-paradoxes-incompleteness-and-fixed-points/
+Yanofsky Paper:
+https://arxiv.org/pdf/math/0305282.pdf
+Trackbacks for 0305282:
+https://arxiv.org/tb/math/0305282
+Cantor’s ‘negative’ use of diagonalization to prove that infinite bit strings cannot be enumerated, versus Curry’s ‘positive’ use of diagonalization to get a fixed point for any lambda-term in the untyped lambda calculus:
+https://golem.ph.utexas.edu/category/2006/12/classical_vs_quantum_computati_8.html
+The fixed point theorem and the diagonal argument:
+http://math.ucr.edu/home/baez/qg-fall2006/f06week08b.pdf
+
+
+Categorification:
+https://www.google.com.au/search?q=euler+characteristic+categorification
+http://mathoverflow.net/questions/43579/examples-of-categorification
+
+Klein's j-invariant:
+https://en.wikipedia.org/wiki/J-invariant
+https://en.wikipedia.org/wiki/Monster_vertex_algebra
+
+Galois theory, James Dolan etc:
+LECTURES ON n-CATEGORIES AND COHOMOLOGY
+TALKS BY JOHN BAEZ, NOTES BY MICHAEL SHULMAN
+https://arxiv.org/pdf/math/0608420.pdf
+
+
+Git: Copy a file or directory from another repository preserving the history
+http://blog.neutrino.es/2012/git-copy-a-file-or-directory-from-another-repository-preserving-history/
+
+mkdir /tmp/mergepatchs
+cd ~/repo/org
+export reposrc=myfile.c #or mydir
+git format-patch -o /tmp/mergepatchs $(git log $reposrc|grep ^commit|tail -1|awk '{print $2}')^..HEAD $reposrc
+cd ~/repo/dest
+git am /tmp/mergepatchs/*.patch
+
+Markdown:
+http://daringfireball.net/projects/markdown/syntax#code
+https://pythonhosted.org/Markdown/
+https://github.com/mayoff/python-markdown-mathjax
+https://pypi.python.org/pypi/markdown2latex
+
+
+FastText, word2vec
+https://news.ycombinator.com/item?id=13771292
+https://blog.acolyer.org/2016/04/21/the-amazing-power-of-word-vectors/
+https://radimrehurek.com/gensim/index.html
+
+
+
+
+
+6/3/17
+======
+
+PGL(3,2) : symmetries of the Fano plane.
+
+G: 168
+subgroups: 179
+equ: [168]
+equ: [24, 24, 24, 24, 24, 24, 24]
+equ: [24, 24, 24, 24, 24, 24, 24]
+equ: [21, 21, 21, 21, 21, 21, 21, 21]
+equ: [12, 12, 12, 12, 12, 12, 12]
+equ: [12, 12, 12, 12, 12, 12, 12]
+equ: [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]
+equ: [7, 7, 7, 7, 7, 7, 7, 7]
+equ: [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]
+equ: [4, 4, 4, 4, 4, 4, 4]
+equ: [4, 4, 4, 4, 4, 4, 4]
+equ: [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+equ: [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+equ: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+equ: [1]
+total: 15
+
+    A subgroup 168  cosets 1           # Nothing
+    B subgroup 24   cosets 7           # Points
+    C subgroup 24   cosets 7           # Lines
+    D subgroup 21   cosets 8    z7*|z3 # three-colouring of the circular paths (see H)
+    E subgroup 12   cosets 14          # Point & orientation ?
+    F subgroup 12   cosets 14          # Line & orientation ?
+    G subgroup 8    cosets 21          # flag == size 2 line sets == size 2 point sets
+    H subgroup 7    cosets 24   z7     # length 14 oriented "circular paths" in the incidence system
+    I subgroup 6    cosets 28   s3     # anti-flag (non-incident point & line) == triangle (three points)
+    J subgroup 4    cosets 42   z4     # flag & orientation (?)
+    K subgroup 4    cosets 42   z2*z2  # ordered pair of distinct lines (C*C=C+K)
+    L subgroup 4    cosets 42   z2*z2  # ordered pair of distinct points (B*B=B+L)
+    M subgroup 3    cosets 56   z3     # oriented triangle
+    N subgroup 2    cosets 84   z2     # triples: (line, point1, point2), with no incidence
+    P subgroup 1    cosets 168  1      # Frames == (point1, point2, point3) with no incidence
+
+# Hecke algebra operators:
+G*G = G+K+L+2N+P
+in terms of Hecke generators L and P:
+    G is I, K is L, L is P, N is LP or PL, P is LPL=PLP.
+
+# pairs of triangles:
+I*I = I+3N+3P
+
+# triples of triangles:
+I*I*I = I*(I+3N+3P) 
+      = I+3N+3P + 3I*N + 3I*P
+      = I+3N+3P + 3(4N+12P) + 3(28P)
+      = I+15N+123P
+
+
+# Looking for F: (E is dual to F)
+    (0)(1)(2)(3)(4)(5)(6)(7)(8)(9)(10)(11)(12)(13)
+    (0)(1 2 3)(4 5 6)(7 8 9)(10)(11 12 13)
+    (0)(1 3 2)(4 6 5)(7 9 8)(10)(11 13 12)  <-- generator
+    (0 5)(1)(2)(3)(4 6)(7 11)(8 12)(9)(10)(13)
+    (0 4)(1)(2)(3)(5 6)(7 11)(8)(9 13)(10)(12)
+    (0 6)(1)(2)(3)(4 5)(7)(8 12)(9 13)(10)(11)
+    (0 6 5)(1 2 3)(4)(7 12 9)(8 13 11)(10)
+    (0 4 5)(1 3 2)(6)(7 13 12)(8 11 9)(10)
+    (0 4 6)(1 2 3)(5)(7 8 13)(9 11 12)(10)
+    (0 5 4)(1 2 3)(6)(7 12 13)(8 9 11)(10)
+    (0 5 6)(1 3 2)(4)(7 9 12)(8 11 13)(10)
+    (0 6 4)(1 3 2)(5)(7 13 8)(9 12 11)(10)  <-- generator
+    # Fixes a line (10), rotates the points on that line
+B*E = E+N
+C*F = F+N
+E*F = 2M+N
+
+# Looking for H:
+G*H = 3P # three ways for a flag to relate to an oriented "circle"
+
+# Looking for J = z4:
+    (0)(1)(2)(3)(4)(5)(6)(7)(8)(9)(10)(11)(12)(13)
+    (0 1)(2 3 5 4)(6)(7)(8 10 9 11)(12 13)
+    (0)(1)(2 5)(3 4)(6)(7)(8 9)(10 11)(12)(13)
+    (0 1)(2 4 5 3)(6)(7)(8 11 9 10)(12 13)
+    # fixes a flag, rotates the other 4 points/lines
+
+# Looking for M:
+    (0)(1)(2)(3)(4)(5)(6)(7)(8)(9)(10)(11)(12)(13)
+    (0)(1 2 3)(4 5 6)(7 8 9)(10)(11 12 13)
+    (0)(1 3 2)(4 6 5)(7 9 8)(10)(11 13 12)
+Fixes an anti-flag == triangle. so M == Oriented triangle!
+
+# Looking for D = H X| M
+    (0)(1)(2)(3)(4)(5)(6)(7)(8)(9)(10)(11)(12)(13)
+    (0)(1 3 2)(4 6 5)(7 9 8)(10)(11 13 12)
+    (0)(1 2 3)(4 5 6)(7 8 9)(10)(11 12 13)
+
+    (0 4 3)(1)(2 6 5)(7 11 10)(8 13 9)(12)
+    (0 3 4)(1)(2 5 6)(7 10 11)(8 9 13)(12)
+
+    (0 5 1)(2)(3 4 6)(7 9 11)(8 12 10)(13)
+    (0 1 5)(2)(3 6 4)(7 11 9)(8 10 12)(13)
+
+    (0 2 6)(1 4 5)(3)(7 8 12)(9 10 13)(11)
+    (0 6 2)(1 5 4)(3)(7 12 8)(9 13 10)(11)
+
+    (0 1 6)(2 5 3)(4)(7)(8 11 13)(9 10 12)
+    (0 6 1)(2 3 5)(4)(7)(8 13 11)(9 12 10)
+
+    (0 2 4)(1 3 6)(5)(7 10 13)(8)(9 12 11)
+    (0 4 2)(1 6 3)(5)(7 13 10)(8)(9 11 12)
+
+    (0 5 3)(1 2 4)(6)(7 12 13)(8 11 10)(9)
+    (0 3 5)(1 4 2)(6)(7 13 12)(8 10 11)(9)
+
+    (0 1 2 6 3 5 4)(7 10 12 13 9 11 8)
+    (0 3 1 5 2 4 6)(7 9 10 11 12 8 13)
+    (0 2 3 4 1 6 5)(7 12 9 8 10 13 11)
+    (0 6 4 2 5 1 3)(7 13 8 12 11 10 9)
+    (0 5 6 1 4 3 2)(7 11 13 10 8 9 12)
+    (0 4 5 3 6 2 1)(7 8 11 9 13 12 10)
+
+
+Fano plane incidence:
+    Point(idx=0, nbd=[0, 7, 9, 8])
+    Point(idx=1, nbd=[11, 10, 1, 7])
+    Point(idx=2, nbd=[10, 12, 8, 2])
+    Point(idx=3, nbd=[10, 3, 13, 9])
+    Point(idx=4, nbd=[11, 8, 13, 4])
+    Point(idx=5, nbd=[12, 9, 5, 11])
+    Point(idx=6, nbd=[7, 6, 13, 12])
+    -----
+    Line(idx=7, nbd=[0, 1, 6, 7])
+    Line(idx=8, nbd=[8, 2, 0, 4])
+    Line(idx=9, nbd=[0, 9, 5, 3])
+    Line(idx=10, nbd=[10, 2, 3, 1])
+    Line(idx=11, nbd=[11, 5, 1, 4])
+    Line(idx=12, nbd=[2, 6, 12, 5])
+    Line(idx=13, nbd=[6, 4, 13, 3])])
+
+
+
+
+  | A B     C     D     E      F      G          H     I       J       K        L        M      N      P    
+--+---------------------------------------------------------------------------------------------------------
+A | A B     C     D     E      F      G          H     I       J       K        L        M      N      P    
+B | B B+L   G+I   M     E+N    L+M    G+L+N      P     I+2N    J+N+P   K+3N     3L+P     M+2P   3N+2P  7P   
+C | C G+I   C+K   M     K+M    F+N    G+K+N      P     I+2N    J+N+P   3K+P     L+3N     M+2P   3N+2P  7P   
+D | D M     M     D+M   2M     2M     P          H+P   M+P     2P      2P       2P       2M+2P  4P     8P   
+E | E E+N   K+M   2M    2E+P   2M+N   K+N+P      2P    M+2N+P  N+3P    2K+3P    3N+2P    2M+4P  2N+6P  14P  
+F | F L+M   F+N   2M    2M+N   2F+P   L+N+P      2P    M+2N+P  N+3P    3N+2P    2L+3P    2M+4P  2N+6P  14P  
+G | G G+L+N G+K+N P     K+N+P  L+N+P  G+K+L+2N+P 3P    5N+P    J+2N+4P 3K+3N+3P 3L+3N+3P 7P     5N+8P  21P  
+H | H P     P     H+P   2P     2P     3P         3H+3P 4P      6P      6P       6P       8P     12P    24P  
+I | I I+2N  I+2N  M+P   M+2N+P M+2N+P 5N+P       4P    I+3N+3P 2N+6P   6N+4P    6N+4P    M+9P   4N+12P 28P  
+J | J J+N+P J+N+P 2P    N+3P   N+3P   J+2N+4P    6P    2N+6P   2J+10P  3N+9P    3N+9P    14P    2N+20P 42P  
+K | K K+3N  3K+P  2P    2K+3P  3N+2P  3K+3N+3P   6P    6N+4P   3N+9P   6K+9P    9N+6P    14P    6N+18P 42P  
+L | L 3L+P  L+3N  2P    3N+2P  2L+3P  3L+3N+3P   6P    6N+4P   3N+9P   9N+6P    6L+9P    14P    6N+18P 42P  
+M | M M+2P  M+2P  2M+2P 2M+4P  2M+4P  7P         8P    M+9P    14P     14P      14P      2M+18P 28P    56P  
+N | N 3N+2P 3N+2P 4P    2N+6P  2N+6P  5N+8P      12P   4N+12P  2N+20P  6N+18P   6N+18P   28P    4N+40P 84P  
+P | P 7P    7P    8P    14P    14P    21P        24P   28P     42P     42P      42P      56P    84P    168P 
+
+
+
+5/3/17
+======
+
+Burnside rings
+~~~~~~~~~~~~~~
+
+A_2 = S_3
+
+  | A    B    C    D    
+--+---------------------
+A | A    B    C    D    
+B | B    2*B  D    2*D  
+C | C    D    C+D  3*D  
+D | D    2*D  3*D  6*D  
+
+A_3 = S_4
+~~~~~~~~~
+
+                             # stabilizer subgroup # structure                   
+.b A subgroup 24 cosets  1   parabolic S_4         partition (4) "nothing"     
+.j B subgroup 12 cosets  2   even permutations     orientation (checkerboard)                    
+ i C subgroup  8 cosets  3   Z_2*Z_2*Z_2 ?         unordered pair of opposite edges
+ g D subgroup  6 cosets  4   parabolic S_3         partition (21) == vertex
+ h E subgroup  4 cosets  6   parabolic             partition (22) == edge                   
+.k F subgroup  4 cosets  6   Z_2*Z_2               3-coloring of edges
+ f G subgroup  4 cosets  6   C_4                   4-cycle 
+ d H subgroup  3 cosets  8   C_3                   oriented face                    
+ c I subgroup  2 cosets 12   parabolic S_2         partition (211)                    
+.e J subgroup  2 cosets 12   double swap (12)(34)  two relativly oriented disjoint edges
+.a K subgroup  1 cosets 24   parabolic I           partition (1111) "frame"
+
+James: 
+    and the solution path making the group solvable and thus making the
+    quartic formula possible is: b,j,k,e,a.  (that is, each step amounts
+    to a color-wheel decoration against the background of the accumulated
+    previous decorations.)
+
+
+subgroup I has "4 choose 2 == 6" conjugate subgroups
+subgroup J has 3 conjugate subgroups
+
+
+Burnside ring of parabolic subgroups
+  | A  D    E     I     K   
+--+-------------------------
+A | A  D    E     I     K   
+D | D  D+I  2I    2I+K  4K  
+E | E  2I   2E+K  2I+2K 6K  
+I | I  2I+K 2I+2K 2I+5K 12K 
+K | K  4K   6K    12K   24K 
+
+For example, I*I shows the ways that an ordered pair
+can relate to an ordered pair:
+https://golem.ph.utexas.edu/category/2007/11/geometric_representation_theor_5.html#c013224
+
+see also:
+https://ncatlab.org/nlab/show/Gram-Schmidt+process#categorified_gramschmidt_process
+
+
+  | A B  C   D    E     F  G     H     I     J     K   
+--+----------------------------------------------------
+A | A B  C   D    E     F  G     H     I     J     K   
+B | B 2B F   H    J     2F J     2H    K     2J    2K  
+C | C F  C+F I    E+J   3F G+J   K     I+K   3J    3K  
+D | D H  I   D+I  2I    K  K     H+K   2I+K  2K    4K  
+E | E J  E+J 2I   2E+K  3J J+K   2K    2I+2K 2J+2K 6K  
+F | F 2F 3F  K    3J    6F 3J    2K    3K    6J    6K  
+G | G J  G+J K    J+K   3J 2G+K  2K    3K    2J+2K 6K  
+H | H 2H K   H+K  2K    2K 2K    2H+2K 4K    4K    8K  
+I | I K  I+K 2I+K 2I+2K 3K 3K    4K    2I+5K 6K    12K 
+J | J 2J 3J  2K   2J+2K 6J 2J+2K 4K    6K    4J+4K 12K 
+K | K 2K 3K  4K   6K    6K 6K    8K    12K   12K   24K 
+
+
+
+B_2:
+  | A      B      C      D      E      F      G      H      
+--+---------------------------------------------------------
+A | A      B      C      D      E      F      G      H      
+B | B      2*B    G      G      2*E    H      2*G    2*H    
+C | C      G      2*C    G      H      2*F    2*G    2*H    
+D | D      G      G      2*D    H      H      2*G    2*H    
+E | E      2*E    H      H      2*E+H  2*H    2*H    4*H    
+F | F      H      2*F    H      2*H    2*F+H  2*H    4*H    
+G | G      2*G    2*G    2*G    2*H    2*H    4*G    4*H    
+H | H      2*H    2*H    2*H    4*H    4*H    4*H    8*H    
+
+
+./action.py  B_3 burnside compact
+  | A B  C  D  E   F    G  H  I     J     K     L     M     N     O     P     Q     R     S     T      U     V   W     X     Y     Z       a     b     c      d     e   f      g   
+--+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+A | A B  C  D  E   F    G  H  I     J     K     L     M     N     O     P     Q     R     S     T      U     V   W     X     Y     Z       a     b     c      d     e   f      g   
+B | B 2B G  G  H   Q    2G 2H R     U     U     V     R     V     a     a     2Q    2R    d     e      2U    2V  d     d     d     b       2a    2b    g      2d    2e  g      2g  
+C | C G  2C G  N   P    2G V  Y     Y     S     V     S     2N    a     2P    a     d     2S    f      d     2V  d     d     2Y    f       2a    g     g      2d    g   2f     2g  
+D | D G  G  2D L   O    2G V  W     X     W     2L    X     V     2O    a     a     d     d     c      d     2V  2W    2X    d     c       2a    g     2c     2d    g   g      2g  
+E | E H  N  L  E+H T    V  3H I+R   J+U   K+U   L+V   M+R   N+V   c     f     e     3R    S+d   T+e    3U    3V  W+d   X+d   Y+d   Z+b     g     3b    c+g    3d    3e  f+g    3g  
+F | F Q  P  O  T   F+T  a  e  e     c     f     c     2T    f     O+c   P+f   Q+e   2e    2f    2T+e   g     g   g     2c    g     c+f     a+g   2g    2c+g   2g    4e  2f+g   4g  
+G | G 2G 2G 2G V   a    4G 2V d     d     d     2V    d     2V    2a    2a    2a    2d    2d    g      2d    4V  2d    2d    2d    g       4a    2g    2g     4d    2g  2g     4g  
+H | H 2H V  V  3H  e    2V 6H 3R    3U    3U    3V    3R    3V    g     g     2e    6R    3d    3e     6U    6V  3d    3d    3d    3b      2g    6b    3g     6d    6e  3g     6g  
+I | I R  Y  W  I+R e    d  3R 2I+e  Y+b   W+b   W+d   R+e   Y+d   g     g     2e    2R+2e d+g   3e     2b+d  3d  2W+g  d+g   2Y+g  b+g     2g    2b+2g 3g     2d+2g 6e  3g     6g  
+J | J U  Y  X  J+U c    d  3U Y+b   2J+b  U+b   X+d   X+b   Y+d   2c    g     g     2b+d  d+g   c+g    2U+2b 3d  d+g   2X+g  2Y+g  2b+c    2g    4b+g  2c+2g  2d+2g 3g  3g     6g  
+K | K U  S  W  K+U f    d  3U W+b   U+b   2K+b  W+d   S+b   S+d   g     2f    g     2b+d  2S+g  f+g    2U+2b 3d  2W+g  d+g   d+g   2b+f    2g    4b+g  3g     2d+2g 3g  2f+2g  6g  
+L | L V  V  2L L+V c    2V 3V W+d   X+d   W+d   2L+2V X+d   3V    2c    g     g     3d    3d    c+g    3d    6V  2W+2d 2X+2d 3d    c+g     2g    3g    2c+2g  6d    3g  3g     6g  
+M | M R  S  X  M+R 2T   d  3R R+e   X+b   S+b   X+d   2M+e  S+d   2c    2f    2e    2R+2e 2S+g  2T+2e  2b+d  3d  d+g   2X+g  d+g   2Z+g    2g    2b+2g 2c+2g  2d+2g 6e  2f+2g  6g  
+N | N V  2N V  N+V f    2V 3V Y+d   Y+d   S+d   3V    S+d   2N+2V g     2f    g     3d    2S+2d f+g    3d    6V  3d    3d    2Y+2d f+g     2g    3g    3g     6d    3g  2f+2g  6g  
+O | O a  a  2O c   O+c  2a g  g     2c    g     2c    2c    g     2O+2c a+g   a+g   2g    2g    2c+g   2g    2g  2g    4c    2g    2c+g    2a+2g 4g    4c+2g  4g    4g  4g     8g  
+P | P a  2P a  f   P+f  2a g  g     g     2f    g     2f    2f    a+g   2P+2f a+g   2g    4f    2f+g   2g    2g  2g    2g    2g    2f+g    2a+2g 4g    4g     4g    4g  4f+2g  8g  
+Q | Q 2Q a  a  e   Q+e  2a 2e 2e    g     g     g     2e    g     a+g   a+g   2Q+2e 4e    2g    4e     2g    2g  2g    2g    2g    2g      2a+2g 4g    4g     4g    8e  4g     8g  
+R | R 2R d  d  3R  2e   2d 6R 2R+2e 2b+d  2b+d  3d    2R+2e 3d    2g    2g    4e    4R+4e 2d+2g 6e     4b+2d 6d  2d+2g 2d+2g 2d+2g 2b+2g   4g    4b+4g 6g     4d+4g 12e 6g     12g 
+S | S d  2S d  S+d 2f   2d 3d d+g   d+g   2S+g  3d    2S+g  2S+2d 2g    4f    2g    2d+2g 4S+2g 2f+2g  2d+2g 6d  2d+2g 2d+2g 2d+2g 2f+2g   4g    6g    6g     4d+4g 6g  4f+4g  12g 
+T | T e  f  c  T+e 2T+e g  3e 3e    c+g   f+g   c+g   2T+2e f+g   2c+g  2f+g  4e    6e    2f+2g 2T+5e  3g    3g  3g    2c+2g 3g    c+f+2g  4g    6g    2c+5g  6g    12e 2f+5g  12g 
+U | U 2U d  d  3U  g    2d 6U 2b+d  2U+2b 2U+2b 3d    2b+d  3d    2g    2g    2g    4b+2d 2d+2g 3g     4U+4b 6d  2d+2g 2d+2g 2d+2g 4b+g    4g    8b+2g 6g     4d+4g 6g  6g     12g 
+V | V 2V 2V 2V 3V  g    4V 6V 3d    3d    3d    6V    3d    6V    2g    2g    2g    6d    6d    3g     6d    12V 6d    6d    6d    3g      4g    6g    6g     12d   6g  6g     12g 
+W | W d  d  2W W+d g    2d 3d 2W+g  d+g   2W+g  2W+2d d+g   3d    2g    2g    2g    2d+2g 2d+2g 3g     2d+2g 6d  4W+2g 2d+2g 2d+2g 3g      4g    6g    6g     4d+4g 6g  6g     12g 
+X | X d  d  2X X+d 2c   2d 3d d+g   2X+g  d+g   2X+2d 2X+g  3d    4c    2g    2g    2d+2g 2d+2g 2c+2g  2d+2g 6d  2d+2g 4X+2g 2d+2g 2c+2g   4g    6g    4c+4g  4d+4g 6g  6g     12g 
+Y | Y d  2Y d  Y+d g    2d 3d 2Y+g  2Y+g  d+g   3d    d+g   2Y+2d 2g    2g    2g    2d+2g 2d+2g 3g     2d+2g 6d  2d+2g 2d+2g 4Y+2g 3g      4g    6g    6g     4d+4g 6g  6g     12g 
+Z | Z b  f  c  Z+b c+f  g  3b b+g   2b+c  2b+f  c+g   2Z+g  f+g   2c+g  2f+g  2g    2b+2g 2f+2g c+f+2g 4b+g  3g  3g    2c+2g 3g    2Z+b+2g 4g    4b+4g 2c+5g  6g    6g  2f+5g  12g 
+a | a 2a 2a 2a g   a+g  4a 2g 2g    2g    2g    2g    2g    2g    2a+2g 2a+2g 2a+2g 4g    4g    4g     4g    4g  4g    4g    4g    4g      4a+4g 8g    8g     8g    8g  8g     16g 
+b | b 2b g  g  3b  2g   2g 6b 2b+2g 4b+g  4b+g  3g    2b+2g 3g    4g    4g    4g    4b+4g 6g    6g     8b+2g 6g  6g    6g    6g    4b+4g   8g    8b+8g 12g    12g   12g 12g    24g 
+c | c g  g  2c c+g 2c+g 2g 3g 3g    2c+2g 3g    2c+2g 2c+2g 3g    4c+2g 4g    4g    6g    6g    2c+5g  6g    6g  6g    4c+4g 6g    2c+5g   8g    12g   4c+10g 12g   12g 12g    24g 
+d | d 2d 2d 2d 3d  2g   4d 6d 2d+2g 2d+2g 2d+2g 6d    2d+2g 6d    4g    4g    4g    4d+4g 4d+4g 6g     4d+4g 12d 4d+4g 4d+4g 4d+4g 6g      8g    12g   12g    8d+8g 12g 12g    24g 
+e | e 2e g  g  3e  4e   2g 6e 6e    3g    3g    3g    6e    3g    4g    4g    8e    12e   6g    12e    6g    6g  6g    6g    6g    6g      8g    12g   12g    12g   24e 12g    24g 
+f | f g  2f g  f+g 2f+g 2g 3g 3g    3g    2f+2g 3g    2f+2g 2f+2g 4g    4f+2g 4g    6g    4f+4g 2f+5g  6g    6g  6g    6g    6g    2f+5g   8g    12g   12g    12g   12g 4f+10g 24g 
+g | g 2g 2g 2g 3g  4g   4g 6g 6g    6g    6g    6g    6g    6g    8g    8g    8g    12g   12g   12g    12g   12g 12g   12g   12g   12g     16g   24g   24g    24g   24g 24g    48g 
+
+
+
+alternating n=4:
+
+A subgroup size = 12, number of cosets = 1
+B subgroup size = 4, number of cosets = 3
+C subgroup size = 3, number of cosets = 4
+D subgroup size = 2, number of cosets = 6
+E subgroup size = 1, number of cosets = 12
+
+  | A  B    C    D        E     
+--+-----------------------------
+A | A  B    C    D        E     
+B | B  3*B  E    3*D      3*E   
+C | C  E    C+E  2*E      4*E   
+D | D  3*D  2*E  2*D+2*E  6*E   
+E | E  3*E  4*E  6*E      12*E  
+
+
+alternating n=5:
+  | A  B      C        D        E        F        G        H         I     
+--+------------------------------------------------------------------------
+A | A  B      C        D        E        F        G        H         I     
+B | B  B+G    H        G+H      I        F+I      2*G+I    H+2*I     5*I   
+C | C  H      C+H      2*H      E+I      3*H      2*I      2*H+2*I   6*I   
+D | D  G+H    2*H      D+H+I    2*I      3*H+I    G+3*I    2*H+4*I   10*I  
+E | E  I      E+I      2*I      2*E+2*I  3*I      4*I      6*I       12*I  
+F | F  F+I    3*H      3*H+I    3*I      3*F+3*I  5*I      3*H+6*I   15*I  
+G | G  2*G+I  2*I      G+3*I    4*I      5*I      2*G+6*I  10*I      20*I  
+H | H  H+2*I  2*H+2*I  2*H+4*I  6*I      3*H+6*I  10*I     2*H+14*I  30*I  
+I | I  5*I    6*I      10*I     12*I     15*I     20*I     30*I      60*I  
+
+
+
+
+
+>>> from gelim import *
+>>> A = [[1,-1,0],[0,1,-1],[-1,0,1]]
+>>> C = [[2,-1,-1],[-2,3,-1],[-1,-3,4]]
+>>> A = array(A)
+>>> C = array(C)
+>>> D = pseudo_inverse(C.transpose())
+>>> dot(C, D)
+array([[Fraction(1, 1), Fraction(0, 1), Fraction(0, 1)],
+       [Fraction(0, 1), Fraction(1, 1), Fraction(0, 1)],
+       [Fraction(-9, 4), Fraction(-7, 4), Fraction(0, 1)]], dtype=object)
+
+
+
+
+
+24/2/17
+=======
+
+
+See:
+http://schmidt.ucg.ie/~goetz/pub/marks/node1.html
+
+time nice ./action.py alternating n=5
+equ: [60]
+equ: [12, 12, 12, 12, 12]
+equ: [10, 10, 10, 10, 10, 10]
+equ: [6, 6, 6, 6, 6, 6, 6, 6, 6, 6]
+equ: [5, 5, 5, 5, 5, 5]
+equ: [4, 4, 4, 4, 4]
+equ: [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+equ: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+equ: [1]
+total: 9
+
+A subgroup 60 cosets 1 action 1  = A_5
+B subgroup 12 cosets 5 action 60 = A_4
+C subgroup 10 cosets 6 action 60 = D_10
+D subgroup 6 cosets 10 action 60 = S_3
+E subgroup 5 cosets 12 action 60 = 5
+F subgroup 4 cosets 15 action 60 = 2x2
+G subgroup 3 cosets 20 action 60 = 3
+H subgroup 2 cosets 30 action 60 = 2
+I subgroup 1 cosets 60 action 60 = 1
+
+A*A = A A*B = B A*C = C A*D = D A*E = E A*F = F A*G = G A*H = H A*I = I
+
+B*B = B+G
+B*C = H
+B*D = G+H
+B*E = I
+B*F = F+I
+B*G = G+G+I
+B*H = H+I+I
+B*I = 5*I
+
+C*C = C+H
+C*D = H+H
+C*E = E+I
+C*F = H+H+H
+C*G = I+I
+C*H = H+H+I+I
+C*I = 6*I
+
+D*D = D+H+I
+D*E = I+I
+D*F = H+H+H+I
+D*G = G+I+I+I
+D*H = H+H+I+I+I+I
+D*I = 10*I
+
+E*E = E+E+I+I
+E*F = I+I+I
+E*G = I+I+I+I
+E*H = I+I+I+I+I+I
+E*I = 12*I
+
+F*F = F+F+F+I+I+I          
+F*G = I+I+I+I+I          
+F*H = H+H+H+I+I+I+I+I+I          
+F*I = 15*I
+
+G*G = G+G+I+I+I+I+I+I          
+G*H = I+I+I+I+I+I+I+I+I+I          
+G*I = 20*I
+
+H*H = H+H+I+I+I+I+I+I+I+I+I+I+I+I+I+I          
+H*I = 30*I
+
+I*I = 60*I
+
+
+
+
+20/2/17
+=======
+
+isomorphic groups
+https://rjlipton.wordpress.com/2011/10/08/an-annoying-open-problem/
+
+
+time ./action.py n=4
+equs: 8
+equ: [2, 2]
+equ: [1]
+equ: [4]
+equ: [4]
+equ: [2]
+equ: [4]
+equ: [2, 2]
+equ: [8]
+subgroup 2 cosets 4 action 4
+subgroup 4 cosets 2 action 2
+subgroup 2 cosets 4 action 8
+subgroup 4 cosets 2 action 2
+subgroup 8 cosets 1 action 1
+subgroup 2 cosets 4 action 8
+subgroup 4 cosets 2 action 2
+subgroup 2 cosets 4 action 8
+subgroup 1 cosets 8 action 8
+subgroup 2 cosets 4 action 8
+homs: 8
+A*A = A+A
+A*B = C
+A*C = C+C
+A*D = D+D
+A*E = E+E
+A*F = E
+A*G = C
+A*H = A
+B*B = B+B
+B*C = C+C
+B*D = E
+B*E = E+E
+B*F = E
+B*G = C
+B*H = B
+C*C = C+C+C+C
+C*D = E+E
+C*E = E+E+E+E
+C*F = E+E
+C*G = C+C
+C*H = C
+D*D = D+D+E
+D*E = E+E+E+E
+D*F = E+E
+D*G = E
+D*H = D
+E*E = E+E+E+E+E+E+E+E
+E*F = E+E+E+E
+E*G = E+E
+E*H = E
+F*F = E+F+F
+F*G = F+F
+F*H = F
+G*G = G+G
+G*H = G
+H*H = H
+
+
+from james:
+
+    octets:  e = frame
+    quartets:  d = corner, c = (long axis, short axis) pair, f = edge
+    duets:  g = long axis, b = orientation, a = short axis
+    solos:  h = nothing
+
+
+
+19/2/17
+=======
+
+./action.py 
+3 2 6 2 2 1
+
+[(0)(1)(2)]
+[(0 2 1)]
+[(0 1)(2)]
+[(0)(1 2)]
+[(0 2)(1)]
+[(0 1 2)]
+
+[(0 1)(2), (0 2 1)]
+[(0 2 1), (0)(1 2)]
+[(0)(1)(2), (0)(1 2)]
+[(0 1 2), (0)(1 2)]
+[(0 1)(2), (0 1 2)]
+[(0 2)(1), (0 1 2)]
+[(0 1)(2), (0)(1)(2)]
+[(0)(1)(2), (0 2)(1)]
+[(0 2)(1), (0 2 1)]
+
+[(0)(1)(2), (0 2 1), (0 1 2)]
+[(0 1)(2), (0 2)(1), (0)(1 2)]
+
+[(0)(1)(2), (0 2)(1), (0)(1 2), (0 1)(2), (0 1 2), (0 2 1)]
+
+
+18/2/17
+=======
+
+Klein's Erlangen program
+------------------------
+
+Erlangen Programme at Large: An Overview
+https://arxiv.org/abs/1106.1686
+
+A comparative review of recent researches in geometry
+Felix C. Klein
+https://arxiv.org/abs/0807.3161
+
+"What, precisely, does Klein's Erlangen Program state?"
+http://mathoverflow.net/questions/119015/what-precisely-does-kleins-erlangen-program-state
+
+Concrete Groups and Axiomatic Theories I/II
+Guest post by Todd Trimble
+https://golem.ph.utexas.edu/category/2007/10/concrete_groups_and_axiomatic.html
+https://golem.ph.utexas.edu/category/2007/11/concrete_groups_and_axiomatic_1.html
+
+
+From https://ncatlab.org/nlab/show/Klein+geometry :
+
+"""
+Then in (Klein 1872, end of section 5) it says:
+
+    Suppose in space some group or other, the principal group
+    for instance, be given. Let us then select a single
+    configuration, say a point, or a straight line, or even
+    an ellipsoid, etc., and apply to it all the transformations
+    of the principal group. We thus obtain an infinite manifoldness
+    with a number of dimensions in general equal to the
+    number of arbitrary parameters contained in the group, but reducing
+    in special cases, namely, when the configuration originally selected has
+    the property of being transformed into itself by an infinite
+    number of the transformations of the group. Every manifoldness generated
+    in this way may be called, with reference to the generating group, a body.
+
+This means in modern language, that if G is
+the given group acting on a given space X,
+and if S↪X is a given subspace
+(a configuration), then the “body” generated by this is the
+coset G/StabG(S) of G by the stabilizer subgroup
+StabG(X) of that configuration. See also there at Stabilizer
+of shapes – Klein geometry.
+
+The text goes on to argue that spaces of this
+form G/Stab_G(S) are of fundamental importance:
+
+    If now we desire to base our investigations upon the
+    group, selecting at the same time certain definite configurations as
+    space-elements, and if we wish to represent uniformly things which
+    are of like characteristics, we must evidently choose our space-elements
+    in such a way that their manifoldness either is itself
+    a body or can be decomposed into bodies.
+"""
+
+
+16/2/17
+=======
+
+Species:
+http://chris-taylor.github.io/blog/2013/02/13/the-algebra-of-algebraic-data-types-part-iii/
+
+
+
+
+
+15/2/17
+=======
+
+"""
+ What's the free symmetric 2-rig on one generator?
+It's the category of STRUCTURE TYPES! 
+""" - http://math.ucr.edu/home/baez/week191.html
+
+Alex Hoffnung, A categorification of the Hecke algebra, http://math.ucr.edu/~alex/hecke.pdf
+http://math.ucr.edu/home/baez/week284.html
+
+Categorify negative numbers as Euler char of a chain complex 0->A->B->0
+
+The open interval has euler char -1: 
+(0, 1) = (0, 1/2) u {1/2} u (1/2, 1)
+giving X = X + 1 + X, so X=-1.
+Schanuel: "Negative sets have Euler characteristic and dimension"
+http://math.ucr.edu/home/baez/week184.html
+
+
+ An Objective Representation of the Gaussian Integers
+Marcelo Fiore, Tom Leinster
+https://arxiv.org/abs/math/0211454
+"We analyse the free rig on a generator x subject
+to the equivalence x = 1 + x + x^2,
+showing that in it the non-constant polynomials form a ring.
+This ring can be identified with the Gaussian integers, which
+thus acquire objective meaning. "
+
+
+14/2/17
+=======
+
+The Cayley-Dickson Construction: Reals -> complex -> Quaternions -> Octonions -> ...
+http://math.ucr.edu/home/baez/octonions/node5.html
+
+
+
+
+
+12/2/17
+=======
+
+homomorphism of braid group B_3 into SL(2,Z):
+http://math.ucr.edu/home/baez/week233.html
+
+Mathieu groups are symmetry groups of steiner systems :
+http://math.ucr.edu/home/baez/week234.html
+
+
+Start to see the Bruhat order:
+./weyl.py B_2 representation
+weyl: 8
+
+[ 0  0 ]
+[ 0  0 ]
+A
+[ 1  0 ]
+[ 0  0 ]
+B
+[ 0  0 ]
+[ 0  1 ]
+AB
+[ 1  0 ]
+[ 1  1 ]
+BA
+[ 1  2 ]
+[ 0  1 ]
+ABA
+[ 2  2 ]
+[ 1  1 ]
+BAB
+[ 1  2 ]
+[ 1  2 ]
+BABA
+[ 2  2 ]
+[ 1  2 ]
+
+./weyl.py B_3 representation
+weyl: 48
+
+[ 0  0  0 ]
+[ 0  0  0 ]
+[ 0  0  0 ]
+A
+[ 1  0  0 ]
+[ 0  0  0 ]
+[ 0  0  0 ]
+B
+[ 0  0  0 ]
+[ 0  1  0 ]
+[ 0  0  0 ]
+C
+[ 0  0  0 ]
+[ 0  0  0 ]
+[ 0  0  1 ]
+AB
+[ 1  0  0 ]
+[ 1  1  0 ]
+[ 0  0  0 ]
+BA
+[ 1  1  0 ]
+[ 0  1  0 ]
+[ 0  0  0 ]
+BC
+[ 0  0  0 ]
+[ 0  1  0 ]
+[ 0  1  1 ]
+CA
+[ 1  0  0 ]
+[ 0  0  0 ]
+[ 0  0  1 ]
+CB
+[ 0  0  0 ]
+[ 0  1  2 ]
+[ 0  0  1 ]
+ABC
+[ 1  0  0 ]
+[ 1  1  0 ]
+[ 1  1  1 ]
+BAB
+[ 1  1  0 ]
+[ 1  1  0 ]
+[ 0  0  0 ]
+BCA
+[ 1  1  0 ]
+[ 0  1  0 ]
+[ 0  1  1 ]
+BCB
+[ 0  0  0 ]
+[ 0  2  2 ]
+[ 0  1  1 ]
+CAB
+[ 1  0  0 ]
+[ 1  1  2 ]
+[ 0  0  1 ]
+CBA
+[ 1  1  2 ]
+[ 0  1  2 ]
+[ 0  0  1 ]
+CBC
+[ 0  0  0 ]
+[ 0  1  2 ]
+[ 0  1  2 ]
+ABCA
+[ 1  1  0 ]
+[ 1  1  0 ]
+[ 1  1  1 ]
+ABCB
+[ 1  0  0 ]
+[ 2  2  2 ]
+[ 1  1  1 ]
+BCAB
+[ 1  1  0 ]
+[ 1  3  2 ]
+[ 0  1  1 ]
+BCBA
+[ 1  2  2 ]
+[ 0  2  2 ]
+[ 0  1  1 ]
+CABC
+[ 1  0  0 ]
+[ 1  1  2 ]
+[ 1  1  2 ]
+CBAB
+[ 1  1  2 ]
+[ 1  1  2 ]
+[ 0  0  1 ]
+CBCA
+[ 1  1  2 ]
+[ 0  1  2 ]
+[ 0  1  2 ]
+CBCB
+[ 0  0  0 ]
+[ 0  2  2 ]
+[ 0  1  2 ]
+ABCAB
+[ 1  1  0 ]
+[ 2  3  2 ]
+[ 1  1  1 ]
+ABCBA
+[ 2  2  2 ]
+[ 2  2  2 ]
+[ 1  1  1 ]
+BCABA
+[ 1  2  2 ]
+[ 1  3  2 ]
+[ 0  1  1 ]
+BCABC
+[ 1  1  0 ]
+[ 1  3  2 ]
+[ 1  2  2 ]
+BCBCA
+[ 1  2  2 ]
+[ 0  2  2 ]
+[ 0  1  2 ]
+CABCA
+[ 1  1  2 ]
+[ 1  1  2 ]
+[ 1  1  2 ]
+CABCB
+[ 1  0  0 ]
+[ 2  2  2 ]
+[ 1  1  2 ]
+CBCAB
+[ 1  1  2 ]
+[ 1  3  4 ]
+[ 0  1  2 ]
+ABCBAB
+[ 2  2  2 ]
+[ 2  3  2 ]
+[ 1  1  1 ]
+BCABCA
+[ 1  2  2 ]
+[ 1  3  2 ]
+[ 1  2  2 ]
+BCABCB
+[ 1  1  0 ]
+[ 2  3  2 ]
+[ 1  2  2 ]
+BCBCAB
+[ 1  2  2 ]
+[ 1  3  4 ]
+[ 0  1  2 ]
+CABCAB
+[ 1  1  2 ]
+[ 2  3  4 ]
+[ 1  1  2 ]
+CABCBA
+[ 2  2  2 ]
+[ 2  2  2 ]
+[ 1  1  2 ]
+CBCABC
+[ 1  1  2 ]
+[ 1  3  4 ]
+[ 1  2  3 ]
+BCABCAB
+[ 1  2  2 ]
+[ 2  4  4 ]
+[ 1  2  2 ]
+BCABCBA
+[ 2  2  2 ]
+[ 2  3  2 ]
+[ 1  2  2 ]
+BCBCABC
+[ 1  2  2 ]
+[ 1  3  4 ]
+[ 1  2  3 ]
+CABCABC
+[ 1  1  2 ]
+[ 2  3  4 ]
+[ 1  2  3 ]
+CABCBAB
+[ 2  2  2 ]
+[ 2  3  4 ]
+[ 1  1  2 ]
+ABCBCABC
+[ 2  2  2 ]
+[ 2  3  4 ]
+[ 1  2  3 ]
+BCABCABC
+[ 1  2  2 ]
+[ 2  4  4 ]
+[ 1  2  3 ]
+BCABCBAB
+[ 2  2  2 ]
+[ 2  4  4 ]
+[ 1  2  2 ]
+CABCABCAB
+[ 2  2  2 ]
+[ 2  4  4 ]
+[ 1  2  3 ]
+
+
+G_2:
+weyl: 12
+
+[ 0  0 ]
+[ 0  0 ]
+A
+[ 1  0 ]
+[ 0  0 ]
+B
+[ 0  0 ]
+[ 0  1 ]
+AB
+[ 1  0 ]
+[ 3  1 ]
+BA
+[ 1  1 ]
+[ 0  1 ]
+ABA
+[ 3  1 ]
+[ 3  1 ]
+BAB
+[ 1  1 ]
+[ 3  3 ]
+ABAB
+[ 3  1 ]
+[ 6  3 ]
+BABA
+[ 3  2 ]
+[ 3  3 ]
+ABABA
+[ 4  2 ]
+[ 6  3 ]
+BABAB
+[ 3  2 ]
+[ 6  4 ]
+ABABAB
+[ 4  2 ]
+[ 6  4 ]
+
+
+
+
+11/2/17
+=======
+
+Q1) find simple roots given list of all roots
+Use this to manipulate roots from symplectic.py in weyl.py
+Pick a fundamental chamber, simple roots correspond to mirrors
+that bound the chamber.
+
+
+Q2)
+find weyl group elements that fix Hamiltonian,
+or
+how to find a particular permutation of roots in the Weyl group
+
+Lemma: any fixed non-zero vector must lie in at least one of the mirrors
+
+Lemma: all order two elements come from reflections: 
+NOPE: take s_1 s_2, where s_1 and s_2 commute.
+
+
+
+10/2/17
+=======
+
+Try to find elements of Weyl group that fix the
+Hamiltonian (fail.)
+
+./symplectic.py compass l=3 build_roots
+ideal: 255 cartan: 15
+A_15 = sl_16
+build_roots 15 240
+32 (2, 2, 2, 2, 0, 0, 2, 2, 0, 2, 0, 2, 0, 0, 0)
+32 (2, 2, 2, -2, 0, 0, -2, -2, 0, 2, 0, -2, 0, 0, 0)
+32 (2, 2, -2, 2, 0, 0, -2, 2, 0, -2, 0, -2, 0, 0, 0)
+32 (2, 2, -2, -2, 0, 0, 2, -2, 0, -2, 0, 2, 0, 0, 0)
+...
+32 (0, 0, 0, -2, 0, -2, -2, -2, 0, 0, 0, -2, -2, -2, -2)
+eigs: 240
+roots: 240
+Hamiltonian: [16, 16, 0, 16, 16, 16, 0, 16, 16, 16, 16, 16, 16, 0, 16, 16, 16, 16, 16, 16, 16, 16, 0, 16, 16, 0, 16, 16, 16, 16, 0, 16, 0, 16, 0, 16, 0, 0, 0, 0, 0, 16, 16, 16, 0, 16, 0, 0, 16, 16, 16, 16, 16, 16, 16, 16, 0, 16, 16, 0, 16, 16, 0, 0, 0, 16, 16, 0, 16, 16, 16, 0, 0, 16, 16, 0, 16, 16, 16, 16, 16, 0, 0, 16, 16, 16, 16, 16, 0, 0, 0, 16, 0, 16, 16, 16, 0, 16, 16, 16, 16, 0, 16, 0, 16, 16, 16, 16, 0, 16, 0, 16, 16, 16, 16, 16, 16, 0, 0, 16, 0, 16, 16, 0, 0, 0, 16, 0, 16, 0, 16, 16, 0, 16, 0, 0, 16, 0, 16, 0, 16, 0, 16, 0, 16, 0, 16, 16, 16, 16, 0, 0, 16, 16, 0, 16, 16, 16, 0, 0, 0, 16, 16, 16, 16, 0, 0, 0, 16, 0, 0, 16, 0, 16, 0, 16, 0, 16, 16, 16, 16, 16, 0, 0, 16, 16, 16, 16, 0, 16, 0, 0, 0, 0, 16, 0, 0, 0, 16, 0, 16, 16, 0, 16, 0, 0, 0, 16, 0, 16, 0, 16, 16, 0, 0, 16, 16, 0, 0, 16, 0, 16, 16, 16, 0, 16, 0, 0, 16, 0, 0, 16, 16, 16, 16, 0, 16, 16, 0, 0]
+perms: 240
+Hamiltonian stabilizer gen: 0
+
+
+9/2/17
+======
+
+groups acting on:
+    polyhedra (eg. platonic solids)
+    polynomials (eg. symmetric polynomials)
+    quadratic forms (integer quadratic forms)
+
+
+(Humphreys p79)
+The Coxeter number:
+h=2N/n where N is the number of positive roots.
+
+
+
+From: Simon Burton <simon@arrowtheory.com>
+To: James Dolan <jdolan@math.ucr.edu>
+Subject: Re: "hecke algebra"
+Date: Thu, 9 Feb 2017 23:51:04 +1100
+X-Mailer: Sylpheed 3.4.1 (GTK+ 2.24.23; i686-pc-linux-gnu)
+
+On Wed, 8 Feb 2017 00:07:58 -0800
+James Dolan <jdolan@math.ucr.edu> wrote:
+
+> |Are there some other examples I could try to calculate ?
+> 
+> one source of further good examples is the projective n-plane over f_q
+> where n is an integer greater than or equal to 1 and q is a prime
+> power; generalizing the case of the fano plane which is n=2 and q=2.
+
+I've been going through some math books that I bought many years ago and
+now I find that I can start to make sense out of their contents.
+
+In particular, John Conway's book "The sensual quadratic form" (1997). In the
+first chapter he characterizes integer binary quadratic forms. It looks
+to me like he is using an infinite Coxeter group to do this, because
+the geometry involved looks like a polygon whose edges form an infinite tree.
+
+It seems the group underlying this is PGL(2, Z), which is the symmetry group of
+the two dimensional Z-module (aka lattice.)
+
+Another good book, and full of examples, is "Classical Invariant Theory" by
+Peter J. Olver (1999). He seems to be playing much the same game, but this time
+over the real or complex field. I'm guessing that this material is the genesis
+of algebraic geometry.
+
+Anyway, I'm noticing how these examples are "contravariant" whereas
+(so far) the geometric examples of group actions are "covariant". 
+By this I mean, in geometric representation theory 
+we have been looking at what objects
+stay invariant under a group action, whereas in the algebra examples above
+the polynomials *do* change under the group action, but we declare that
+these are all equivalent polynomials, and then go on to characterize
+this equivalence.
+
+These two styles of using group theory really are duals of each other
+in the category theory sense of "dual".
+
+Another example of what I'm calling a covariant 
+theory is the theory of symmetric functions: these are polynomials
+that are *fixed* by a group. I've also been reading a bit about how
+this theory is generalized to the other Coxeter groups.
+This is explained in chapter 3 of James Humphreys book 
+"Reflection Groups And Coxeter Groups", 1990.
+
+
+
+Ah! One other very important example of what I am calling a 
+"contravariant" theory is the ADE classification of 
+simple singularities of a complex analytic function, due to V.I. Arnold.
+This I understand very little of, but am quite interested as it relates
+to braids and weyl groups and much more.
+
+
+
+8/2/17
+======
+
+Look for anti-commuting pairs:
+
+B_3: None
+G_2: None
+
+B_2:
+weyl: 8
+A*B = -B*A
+
+
+B_4:
+weyl: 384
+AC*BADCDB = -BADCDB*AC
+ABAD*CDBC = -CDBC*ABAD
+...
+
+
+./weyl.py D_4 find_negi 
+weyl: 192
+AC*BADB = -BADB*AC
+ABCDB*BDBCB = -BDBCB*ABCDB
+...
+
+
+
+
+7/2/17
+======
+
+When the group has -I, it is the longest element:
+
+B_2:
+weyl:  A B AB BA ABA BAB BABA
+weyl: 8
+BABA = -I
+
+B_3:
+weyl: 48
+CABCABCAB = -I
+
+B_4:
+weyl: 384
+DCBABCDCBACDCDBC = -I
+
+
+D_4:
+weyl: 192
+BADBADCBDABC = -I
+
+G_2:
+weyl: 12
+ABABAB = -I
+
+
+./weyl.py F_4 find_negi
+
+F_4:
+weyl: 1152
+CBCDABCBDCABACDCBACBACBD = -I
+
+
+time ./geometry.py projective hecke n=4
+orbits: 7
+real 1439m56.663s
+user 1440m2.229s
+
+
+7/2/17
+======
+
+ $ ./geometry.py projective hecke
+[Point(0, 7), Point(0, 8), Point(0, 9), Point(0, 10), Point(0, 11), Point(0, 12), Point(0, 13)]
+[Point(1, 0), Point(1, 1), Point(1, 2), Point(1, 3), Point(1, 4), Point(1, 5), Point(1, 6)]
+Point(0, 7) [Point(1, 0), Point(1, 1), Point(1, 6)]
+Point(0, 8) [Point(1, 2), Point(1, 0), Point(1, 4)]
+Point(0, 9) [Point(1, 0), Point(1, 5), Point(1, 3)]
+Point(0, 10) [Point(1, 2), Point(1, 3), Point(1, 1)]
+Point(0, 11) [Point(1, 5), Point(1, 1), Point(1, 4)]
+Point(0, 12) [Point(1, 2), Point(1, 6), Point(1, 5)]
+Point(0, 13) [Point(1, 6), Point(1, 4), Point(1, 3)]
+flags: 21
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+group: 168
+orbits: 6
+...1.1.11............
+.........11.1.1......
+...............1.1.11
+..........11....11...
+.11....11............
+............11....1.1
+.111.1...............
+.............1111....
+.........1.1......11.
+....11..........11...
+......11..........11.
+1.1.........1.1......
+......1.1......11....
+1.1......11..........
+...11.............1.1
+....11....11.........
+11.................11
+......1.1....11......
+11.............1.1...
+...11.......11.......
+......11.1.1.........
+84
+1....................
+.1...................
+..1..................
+...1.................
+....1................
+.....1...............
+......1..............
+.......1.............
+........1............
+.........1...........
+..........1..........
+...........1.........
+............1........
+.............1.......
+..............1......
+...............1.....
+................1....
+.................1...
+..................1..
+...................1.
+....................1
+21
+.........11.1.11.1.11
+...1.1.11......1.1.11
+...1.1.1111.1.1......
+.11....11...11....1.1
+..........1111..111.1
+.11....11.11....11...
+.........1.1.1111.11.
+.111.1...1.1......11.
+.111.1.......1111....
+1.1...11....1.1...11.
+1.1.11......1.1.11...
+....1111........1111.
+1.111....11.......1.1
+...11.1.1......11.1.1
+1.1...1.111....11....
+11....1.1....11....11
+....111.1.11.11......
+11..11....11.......11
+...11.11.1.111.......
+11....11.1.1...1.1...
+11.11.......11.1.1...
+168
+...........1.1..1.1..
+....1.1.........1.1..
+....1.1....1.1.......
+1.....1.......1....1.
+.........1....11...1.
+1.....1..1.....1.....
+..........1.1....1..1
+1...1.....1.........1
+1...1.......1....1...
+.1......1....1......1
+.1.1.........1.1.....
+...1....1......1....1
+.1...1.....1.......1.
+.....1.1.........1.1.
+.1.....1...1.....1...
+..1....1....1.....1..
+...1...1.1..1........
+..11.....1........1..
+.....1..1.1...1......
+..1.....1.1.....1....
+..1..1........1.1....
+84
+....1.1..............
+...........1.1.......
+................1.1..
+.........1.....1.....
+1.....1..............
+..............1....1.
+1...1................
+............1....1...
+..........1.........1
+...1...........1.....
+........1...........1
+.1...........1.......
+.......1.........1...
+.1.........1.........
+.....1.............1.
+...1.....1...........
+..1...............1..
+.......1....1........
+..1.............1....
+.....1........1......
+........1.1..........
+42
+.11..................
+1.1..................
+11...................
+....11...............
+...1.1...............
+...11................
+.......11............
+......1.1............
+......11.............
+..........11.........
+.........1.1.........
+.........11..........
+.............11......
+............1.1......
+............11.......
+................11...
+...............1.1...
+...............11....
+...................11
+..................1.1
+..................11.
+42
+
+
+
+
+4/2/17
+======
+
+simon@bucket ~/home/github/spectrum2015 $ time ./weyl.py A_2
+constructing A_2
+S:
+[ 1 -1  0 ]
+[ 0  1 -1 ]
+T:
+[ 1  0  0 ]
+[ 1  1  0 ]
+W:
+[ 1  1 -2 ]
+W:
+[ 2 -1 -1 ]
+--------------------
+W:
+[ 2 -1 -1 ]
+K:
+ 
+W:
+[ 1  1 -2 ]
+K:
+ 
+
+simon@bucket ~/home/github/spectrum2015 $ time ./weyl.py A_3
+constructing A_3
+S:
+[ 1 -1  0  0 ]
+[ 0  1 -1  0 ]
+[ 0  0  1 -1 ]
+T:
+[ 1  0  0  0 ]
+[ 1  1  0  0 ]
+[ 1  1  1  0 ]
+W:
+[ 1  1 -2  0 ]
+[ 0  0  2 -2 ]
+W:
+[ 2 -1 -1  0 ]
+[ 0  1  1 -2 ]
+W:
+[ 2 -2  0  0 ]
+[ 0  2 -1 -1 ]
+--------------------
+W:
+[ 2 -1 -1  0 ]
+[ 0  1  1 -2 ]
+[ 2 -2  0  0 ]
+[ 0  2 -1 -1 ]
+K:
+ 
+W:
+[ 1  1 -2  0 ]
+[ 0  0  2 -2 ]
+[ 2 -2  0  0 ]
+[ 0  2 -1 -1 ]
+K:
+ 
+W:
+[ 1  1 -2  0 ]
+[ 0  0  2 -2 ]
+[ 2 -1 -1  0 ]
+[ 0  1  1 -2 ]
+K:
+ 
+
+simon@bucket ~/home/github/spectrum2015 $ time ./weyl.py B_2
+constructing B_2
+S:
+[-1  1 ]
+[ 0 -1 ]
+T:
+[-1  0 ]
+[-1 -1 ]
+W:
+[-1 -1 ]
+W:
+[-2  0 ]
+--------------------
+W:
+[-2  0 ]
+K:
+ 
+W:
+[-1 -1 ]
+K:
+ 
+
+simon@bucket ~/home/github/spectrum2015 $ time ./weyl.py B_3
+constructing B_3
+S:
+[-1  1  0 ]
+[ 0 -1  1 ]
+[ 0  0 -1 ]
+T:
+[-1  0  0 ]
+[-1 -1  0 ]
+[-1 -1 -1 ]
+W:
+[-1 -1  2 ]
+[ 0  0 -2 ]
+W:
+[-2  1  1 ]
+[ 0 -1 -1 ]
+W:
+[-2  2  0 ]
+[ 0 -2  0 ]
+--------------------
+W:
+[-2  1  1 ]
+[ 0 -1 -1 ]
+[-2  2  0 ]
+[ 0 -2  0 ]
+K:
+[-1 -1  1  1 ]
+W:
+[-1 -1  2 ]
+[ 0  0 -2 ]
+[-2  2  0 ]
+[ 0 -2  0 ]
+K:
+[ -1  -1 1/2   1 ]
+W:
+[-1 -1  2 ]
+[ 0  0 -2 ]
+[-2  1  1 ]
+[ 0 -1 -1 ]
+K:
+[-2/3   -1  1/3    1 ]
+
+
+
+
+30/1/17
+=======
+
+./weyl.py A_3 monoid 
+building A_3
+roots: 12
+A: {0:3, 1:4, 2:5, 3:0, 4:1, 5:2, 6:7, 7:6, 8:8, 9:10, 10:9, 11:11}
+B: {0:1, 1:0, 2:2, 3:6, 4:7, 5:8, 6:3, 7:4, 8:5, 9:9, 10:11, 11:10}
+C: {0:0, 1:2, 2:1, 3:3, 4:5, 5:4, 6:9, 7:10, 8:11, 9:6, 10:7, 11:8}
+
+ A B C AB AC BA BC CB ABC ACB BAB BCA BCB CBA ABAC ACBA ACBC BCAB BCBA ACBCA BCABC BCBAB BCBABC
+weyl: 24
+
+Bruhat monoid function representation:
+A: {0:3, 1:4, 2:5, 3:3, 4:4, 5:5, 6:7, 7:7, 8:8, 9:10, 10:10, 11:11}
+B: {0:1, 1:1, 2:2, 3:6, 4:7, 5:8, 6:6, 7:7, 8:8, 9:9, 10:11, 11:11}
+C: {0:0, 1:2, 2:2, 3:3, 4:5, 5:5, 6:9, 7:10, 8:11, 9:9, 10:10, 11:11}
+monoid: 22
+
+element & size of image:
+     I 12
+     A 7
+     B 7
+     C 7
+    AB 6
+    AC 4
+    BA 4
+    BC 6
+    CB 4
+   ABA 3
+   ABC 6
+   ACB 3
+   BCA 3
+   BCB 3
+   CBA 3
+  ABAC 3
+  ACBA 2
+  ACBC 3
+  BCAB 2
+  BCBA 2
+ ACBCA 2
+ BCABA 1
+
+
+
