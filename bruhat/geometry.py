@@ -797,6 +797,63 @@ def fano():
     return g
 
 
+def test_fano():
+    "find the 8 octonionic structures in the fano plane"
+
+    g = fano()
+
+    bags = []
+    for i in range(2):
+        bag = g.get_bag()
+        lines = [p for p in bag if p.desc=='l']
+        bags.append(bag)
+
+    # just hack it....
+    N = 3
+    cycles = [
+        (0, 2, 6),
+        (3, 2, 5),
+        (4, 5, 0),
+        (0, 1, 3),
+        (3, 6, 4),
+        (4, 2, 1),
+        (5, 1, 6)]
+
+    struct = []
+    for cycle in cycles:
+        items = []
+        for i in range(N):
+            items.append(tuple(cycle[(i+j)%N] for j in range(N)))
+        items.sort()
+        #print items
+        struct.append(items)
+    struct.sort()
+    
+    for cycle in cycles:
+        cycle = [bag[i] for i in cycle]
+        nbd = set(cycle[0].nbd)
+        for point in cycle:
+            nbd = nbd.intersection(point.nbd)
+        assert len(nbd)==1
+        
+    #print struct
+
+    count = 0
+    for f in isomorph.search(bags[0], bags[1]):
+
+        _struct = [[tuple(f[i] for i in cycle) for cycle in items] for items in struct ]
+        #print _struct
+        for items in _struct:
+            items.sort()
+        _struct.sort()
+        if struct==_struct:
+            count += 1
+
+    assert count == 21
+
+    return g
+
+
 def projective(n, dim=2):
     # Take n-dim F_2-vector space
     # points are subspaces of dimension 1

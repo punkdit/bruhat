@@ -1,4 +1,37 @@
 
+
+Point(desc=p, idx=0, nbd=[7, 13, 0, 11])
+Point(desc=p, idx=1, nbd=[8, 1, 12, 7])
+Point(desc=p, idx=2, nbd=[9, 13, 2, 8])
+Point(desc=p, idx=3, nbd=[10, 9, 3, 7])
+Point(desc=p, idx=4, nbd=[8, 4, 11, 10])
+Point(desc=p, idx=5, nbd=[5, 9, 11, 12])
+Point(desc=p, idx=6, nbd=[6, 12, 10, 13])
+
+Point(desc=l, idx=7, nbd=[3, 0, 1, 7])
+Point(desc=l, idx=8, nbd=[2, 4, 1, 8])
+Point(desc=l, idx=9, nbd=[2, 5, 9, 3])
+Point(desc=l, idx=10, nbd=[4, 3, 10, 6])
+Point(desc=l, idx=11, nbd=[11, 5, 4, 0])
+Point(desc=l, idx=12, nbd=[5, 12, 6, 1])
+Point(desc=l, idx=13, nbd=[2, 6, 13, 0])
+
+
+
+
+6/4/17
+======
+
+
+> the word “decoration” has a near-precise technical meaning in kleinian geometry
+
+this perhaps deserves it's own blog posting, but I am
+very curious as to how this works. From what I
+can see, there are two (dual) ways of decorating an
+object X. One way involves functions *out of* X (colouring
+X) and the other way involves functions *into* X (choosing a sub-part of X.) 
+
+
 4/4/17
 ======
 
@@ -517,9 +550,9 @@ total: 15
     A subgroup 168  cosets 1           # Nothing
     B subgroup 24   cosets 7           # Points
     C subgroup 24   cosets 7           # Lines
-    D subgroup 21   cosets 8    z7*|z3 # three-colouring of the circular paths (see H)
-    E subgroup 12   cosets 14          # Point & orientation ?
-    F subgroup 12   cosets 14          # Line & orientation ?
+    D subgroup 21   cosets 8           # Octonionic multiplication rule
+    E subgroup 12   cosets 14          # Point & orientation
+    F subgroup 12   cosets 14          # Line & orientation
     G subgroup 8    cosets 21          # flag == size 2 line sets == size 2 point sets
     H subgroup 7    cosets 24   z7     # length 14 oriented "circular paths" in the incidence system
     I subgroup 6    cosets 28   s3     # anti-flag (non-incident point & line) == triangle (three points)
