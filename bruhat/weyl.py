@@ -21,27 +21,12 @@ from operator import mul
 
 import numpy
 
-from action import Perm, Group, mulclose
-from gelim import solve, array, identity, dot, shortstr, eq, dotx, kernel
-from gelim import Subspace
-from argv import argv
+from bruhat.action import Perm, Group, mulclose
+from bruhat.gelim import solve, array, identity, dot, shortstr, eq, dotx, kernel
+from bruhat.gelim import Subspace
+from bruhat.argv import argv
+from bruhat.util import cross, factorial
 
-
-def cross(itemss):
-    if len(itemss)==0:
-        yield ()
-    else:
-        for head in itemss[0]:
-            for tail in cross(itemss[1:]):
-                yield (head,)+tail
-
-
-def factorial(n):
-    r = 1
-    for i in range(1, n+1):
-        r *= i
-    return r
- 
 
 def choose(m, n):
     return factorial(m) // factorial(n)

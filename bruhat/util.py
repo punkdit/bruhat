@@ -58,3 +58,12 @@ def write(s):
 
 
 
+
+def cross(itemss):
+    if len(itemss)==0:
+        yield ()
+    else:
+        for head in itemss[0]:
+            for tail in cross(itemss[1:]):
+                yield (head,)+tail
+

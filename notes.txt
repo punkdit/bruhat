@@ -1,4 +1,105 @@
 
+19/4/17
+=======
+
+Anton Kapustin: 
+https://www.youtube.com/watch?v=UQYQMLterRs&app=desktop
+    TQFT's classify gapped phases of quantum systems
+    Dijkgraaf-Witten 
+    2-Groups
+
+flat G-connection == G-bundle
+
+Dijkgraaf-Witten == Chern-Simons with a finite group
+https://ncatlab.org/nlab/show/Dijkgraaf-Witten+theory#relation_to_chernsimons_theory
+
+Extended TQFT assigns:
+    an element of U(1) to any closed n-dimensional manifold
+    a vector space to any closed (n-1)-dimensional manifold
+    a 2-vector space to any closed (n-2)-dimensional manifold
+    ...
+    an n-vector space assigned to the point.
+Also:
+    manifolds with boundary corresponds to (higher) linear operators 
+    between these (higher) vector spaces.
+
+The cobordism hypothesis states that this entire structure is contained in
+the assignment of the n-vector space to the point.
+
+Duality between algebra and geometry in physics:
+    Algebra                   Geometry
+    algebra of observables    space of states
+    Heisenberg picture        Schrödinger picture
+
+
+
+9/4/17
+======
+
+https://ncatlab.org/nlab/show/category+of+G-sets
+https://ncatlab.org/nlab/show/exponential+object
+https://ncatlab.org/nlab/show/internal+hom
+https://ncatlab.org/nlab/show/G-set
+
+
+
+langlands, schubert calculus, etc.
+---------------------------------
+
+https://golem.ph.utexas.edu/category/2010/08/what_is_the_langlands_programm.html
+http://mathoverflow.net/questions/7229/learning-about-schubert-varieties
+http://mathoverflow.net/questions/134413/schubert-calculus-as-lowbrow-as-possible?rq=1
+
+
+
+"""
+Grothendieck changed the landscape of mathematics
+with a viewpoint that is “cosmically general”,
+in the words of Hyman Bass of the University of
+Michigan. This viewpoint has been so thoroughly
+absorbed into mathematics that nowadays it is difficult
+for newcomers to imagine that the field was
+not always this way. Grothendieck left his deepest
+mark on algebraic geometry, where he placed emphasis
+on discovering relationships among mathematical
+objects as a way of understanding the objects
+themselves. 
+""" 
+@article{jackson2004comme,
+  title={Comme Appel{\'e} du N{\'e}ant—As if summoned from the void: The life of Alexandre Grothendieck},
+  author={Jackson, Allyn},
+  journal={Notices of the AMS},
+  volume={51},
+  number={4},
+  year={2004}
+}
+http://www.ams.org/notices/200409/fea-grothendieck-part1.pdf
+
+
+
+https://bartoszmilewski.com/2014/10/28/category-theory-for-programmers-the-preface/
+
+Homotopy type theory: The logic of space
+https://golem.ph.utexas.edu/category/2017/03/the_logic_of_space.html
+
+
+geometric representation theory links
+-------------------------------------
+
+
+a summary of the construction from klein to hecke:
+https://golem.ph.utexas.edu/category/2007/10/geometric_representation_theor_4.html
+
+double cosets:
+https://golem.ph.utexas.edu/category/2007/11/geometric_representation_theor_5.html#c013073
+
+Categorified gram-schmidt:
+https://ncatlab.org/nlab/show/Gram-Schmidt+process#categorified_gramschmidt_process_6
+
+
+
+7/4/17
+======
 
 Point(desc=p, idx=0, nbd=[7, 13, 0, 11])
 Point(desc=p, idx=1, nbd=[8, 1, 12, 7])
@@ -50,7 +151,15 @@ Generalizing this idea, we can define a ring of polynomials
 f^G for any subgroup G of GL(n) as those polynomials fixed
 by every element of G.
 
+Questions:
+    1. Find a set of generators of f^G. These are the "fundamental invariants."
+    2. The relations among the fundamental invariants are called "syzygies."
+    3. Write an arbitrary invariant as a polynomial in the fundamental invariants.
+    4. Relate geometric properties with invariants and vice-versa.
+
 http://www.home.uni-osnabrueck.de/wbruns/brunsw/Mel65.pdf
+http://www.math.iitb.ac.in/~jkv/invar.pdf
+
 
 
 Complex Reflection group
@@ -76,6 +185,9 @@ if and only if its ring of invariants is a polynomial ring
 (Chevalley–Shephard–Todd theorem).
 
 https://en.wikipedia.org/wiki/Complex_reflection_group
+
+"Reflection Groups and Invariant Theory" -- Richard Kane, 2001
+
 
 Truncated Braid Groups
 ----------------------
@@ -380,7 +492,7 @@ the PageRank algorithm is a way to rigorously find out if this is really true.
 14/3/17
 =======
 
-The category(poset) of ideals I(A)I(A) of a commutative ring A is a closed symmetric monoidal category
+The category(poset) of ideals I(A) of a commutative ring A is a closed symmetric monoidal category
 http://mathoverflow.net/questions/76443/enriched-categories-ideals-submodules-and-algebraic-geometry
 
 

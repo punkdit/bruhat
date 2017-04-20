@@ -703,10 +703,14 @@ class Group(object):
             orbits.append(orbit)
         return orbits
 
+    def restrict(self, items):
+        G = Group([perm.restrict(items) for perm in self.perms], items)
+        return G
+
     def components(self):
         orbits = self.orbits()
-        actions = [Group([perm.restrict(orbit) for perm in self.perms], orbit) for orbit in orbits]
-        return actions
+        groups = [self.restrict(orbit) for orbit in orbits]
+        return groups
 
     def shape_item(self): # HOTSPOT
         shape_item = []
@@ -863,10 +867,26 @@ class Group(object):
                 return False
         return True
 
+    def regular_rep(self):
+        items = range(len(self))
+        lookup = dict((v,k) for (k,v) in enumerate(self.perms))
+        perms = []
+        for perm in self:
+            _perm = {}
+            for i in items:
+                j = lookup[perm*self[i]]
+                _perm[i] = j
+            perms.append(Perm(_perm, items))
+        return Group(perms, items)
+
     @classmethod
     def product(cls, H, J):
         perms = list(set(H.perms+J.perms))
         return cls.generate(perms)
+    
+
+    # | | | | | |                                       | | | | 
+    # v v v v v v  probably should delete these methods v v v v 
 
     def choice(group, *ks):
         "choose k elements"
@@ -1316,6 +1336,30 @@ def main():
         perms = [Perm(f, items) for f in perms]
         G = Group(perms, items)
 
+    elif argv.fano:
+        from bruhat import geometry
+        g = geometry.fano()
+        keys = list(g.items)
+        keys.sort()
+        print keys
+        lookup = dict((v, k) for (k, v) in enumerate(keys))
+        points = keys[:7]
+        lines = keys[7:]
+        flags = []
+        for l in lines:
+            for p in l:
+                flags.append((p, l))
+        assert len(flags)==21
+        perms = []
+        for f in g.get_symmetry():
+            perm = {}
+            for i, flag in enumerate(flags):
+                glag = keys[f[lookup[flag[0]]]], keys[f[lookup[flag[1]]]]
+                perm[flag] = glag
+            perm = Perm(perm, flags)
+            perms.append(perm)
+        G = Group(perms, flags)
+
     else:
         return
 
@@ -1340,7 +1384,28 @@ def main():
     if argv.test_projective:
         test_projective(G)
 
-    if argv.subgroups or argv.cyclic_subgroups:
+    if argv.burnside:
+        burnside(G)
+
+    if argv.orbiplex:
+        Gs = G.components()
+        G = Gs[0]
+        #orbiplex(G)
+
+        if argv.regular_rep:
+            G = G.regular_rep()
+
+        if argv.subgroups:
+            Hs = conjugacy_subgroups(G)
+        else:
+            Hs = [G]
+
+        for H in Hs:
+            if len(H)==1:
+                continue
+            orbiplex(H)
+
+    elif argv.subgroups or argv.cyclic_subgroups:
         if argv.cyclic_subgroups:
             Hs = G.cyclic_subgroups()
         else:
@@ -1355,8 +1420,98 @@ def main():
             perms = [perm.perm for perm in H]
             print perms
 
-    if argv.burnside:
-        burnside(G)
+
+def uniqtuples(items, n):
+    if n==0:
+        yield ()
+        return # <-- return
+    assert n>0
+    if n > len(items):
+        return # <-- return
+    if len(items)==1:
+        assert n==1
+        yield (items[0],)
+        return # <-- return
+
+    #remain = list(items)
+    m = len(items)
+    for i in range(m):
+        item = items[i]
+        for tail in uniqtuples(items[:i] + items[i+1:], n-1):
+            yield (item,)+tail
+
+
+def orbiplex(G):
+
+    import numpy
+    from gelim import zeros, dotx, rank, nullity
+
+    print "orbiplex: |G|=%d" % len(G)
+    items = G.items
+
+    nchains = {} # map tuple -> index
+    dims = []
+    bdys = []
+    for n in range(4):
+
+        write("n=%d "%n)
+        #if n > len(items):
+        #    break
+
+        tpls = list(uniqtuples(items, n))
+    
+        perms = []
+        for perm in G:
+            _perm = {}
+            for key in tpls:
+                value = tuple(perm[i] for i in key)
+                _perm[key] = value
+            _perm = Perm(_perm, tpls)
+            perms.append(_perm)
+    
+        G2 = Group(perms, tpls)
+
+        orbits = list(G2.orbits())
+        d = len(orbits)
+        dims.append(d)
+        write("%d "%d)
+        for idx, orbit in enumerate(orbits):
+            for key in orbit:
+                nchains[key] = idx
+
+        if n==0:
+            continue # <------- continue
+
+        bdy = zeros(dims[-2], dims[-1])
+        for idx, orbit in enumerate(orbits):
+            key = iter(orbit).next()
+            c = 1
+            for m in range(n):
+                # all the keys should be the same...
+                dkey = key[:m] + key[m+1:]
+                jdx = nchains[dkey]
+                bdy[jdx, idx] += c
+                c *= -1
+        #print bdy
+        bdys.append(bdy)
+    write("\n")
+
+    #print
+    for i in range(len(bdys)-1):
+        A = bdys[i]
+        B = bdys[i+1]
+        C = dotx(A, B)
+        #print "C:"
+        #print C
+        assert numpy.abs(C).sum() == 0
+
+        #   B      A
+        #  ---> . ---> 
+        hom = rank(B) - nullity(A) 
+        assert hom>=0
+        if hom > 0:
+            print "homology:", hom
+
 
 
 def test_projective(G):
@@ -1384,11 +1539,11 @@ def test_projective(G):
         print perm.cycle_str()
 
 
-def burnside(G):
+def conjugacy_subgroups(G):
 
     # Find all conjugacy classes of subgroups
     Hs = G.subgroups()
-    print "subgroups:", len(Hs)
+    #print "subgroups:", len(Hs)
 
     equs = dict((H1, Equ(H1)) for H1 in Hs)
     for H1 in Hs:
@@ -1405,14 +1560,20 @@ def burnside(G):
     # get equivalance classes
     equs = list(set(equ.top for equ in equs.values()))
     equs.sort(key = lambda equ : (-len(equ.items[0]), equ.items[0].str()))
-    for equ in equs:
-        print "equ:", [len(H) for H in equ.items]
-    print "total:", len(equs)
+    #for equ in equs:
+    #    print "equ:", [len(H) for H in equ.items]
+    #print "total:", len(equs)
 
     #return
 
     Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
     #Hs.sort(key = lambda H : (-len(H), H.str()))
+    return Hs
+
+
+def burnside(G):
+
+    Hs = conjugacy_subgroups(G)
 
     letters = list(string.uppercase + string.lowercase)
     letters = letters + [l+"'" for l in letters] + [l+"''" for l in letters]
