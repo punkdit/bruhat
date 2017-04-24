@@ -151,6 +151,8 @@ def row_reduce(A, truncate=False, inplace=False, check=False, verbose=False):
         A = A.copy()
 
     if m*n==0:
+        if truncate and m:
+            A = A[:0, :]
         return A
 
     if verbose:

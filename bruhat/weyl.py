@@ -21,6 +21,7 @@ from operator import mul
 
 import numpy
 
+from bruhat import action
 from bruhat.action import Perm, Group, mulclose
 from bruhat.gelim import solve, array, identity, dot, shortstr, eq, dotx, kernel
 from bruhat.gelim import Subspace
@@ -111,6 +112,11 @@ class Weyl(object):
         weyl = list(weyl)
         weyl.sort(key = lambda g : (len(g.word), g.word))
         return weyl
+
+    def build_group(self):
+        perms = self.generate()
+        G = Group(perms, self.roots)
+        return G
 
     def build_simple(self):
         #print "build_simple"
@@ -241,6 +247,42 @@ class Weyl(object):
                 k += 1
                 assert k<10
         return m
+
+    def linrep(G, verbose=False):
+    
+        gen = G.gen
+        simple = G.simple
+        #print "simple:", simple
+    
+        # Simple vectors in the Euclidean (standard) basis.
+        S = array(simple)
+        #print shortstr(S)
+        #print shortstr(dot(S.transpose(), S))
+        I = identity(G.n)
+    
+        # T maps vectors in the Euclidean basis to vectors in the Simple basis.
+        Tt = solve(S, identity(G.n), check=True)
+        T = Tt.transpose()
+    
+        assert eq(dot(S, Tt), I)
+    
+        As = [] # As for generators
+    
+        for g in gen:
+    
+            # A is the matrix representation of g in the simple root basis.
+            #print "A:", [g(s) for s in simple]
+            rows = []
+            for s in simple:
+                r = g(s)
+                r = dot(T, r)
+                #print shortstr(r)
+                rows.append(r)
+            A = array(rows).transpose()
+            assert eq(dot(A, A), I)
+            As.append(A)
+    
+        return As
 
     @classmethod
     def build_A(cls, n, **kw):
@@ -633,6 +675,7 @@ class Weyl_G(Weyl):
 
 
 
+
 def representation(G, verbose=False):
 
     gen = G.gen
@@ -843,10 +886,10 @@ def find_negi(G):
             if XZ(root) != rscale(-1, ZX(root)):
                 break
         else:
-            if len(X.word)==len(Z.word) or 0:
+            if len(X.word)==len(Z.word) or 1:
                 x, z = X.word, Z.word
                 print "%s*%s = -%s*%s" % (x, z, z, x)
-                return
+                #return
 
 
     return
@@ -1206,6 +1249,14 @@ def main():
 
     if argv.find_negi:
         find_negi(G)
+
+    if argv.orbiplex:
+        G = G.build_group()
+        action.orbiplex(G)
+
+        #for G1 in G.components():
+        #    print "component items=%d" % len(G1.items)
+        #    action.orbiplex(G1)
 
 
 if __name__ == "__main__":

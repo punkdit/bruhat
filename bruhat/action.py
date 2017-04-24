@@ -1341,7 +1341,7 @@ def main():
         g = geometry.fano()
         keys = list(g.items)
         keys.sort()
-        print keys
+        #print keys
         lookup = dict((v, k) for (k, v) in enumerate(keys))
         points = keys[:7]
         lines = keys[7:]
@@ -1388,8 +1388,9 @@ def main():
         burnside(G)
 
     if argv.orbiplex:
-        Gs = G.components()
-        G = Gs[0]
+
+        #Gs = G.components()
+        #G = Gs[0]
         #orbiplex(G)
 
         if argv.regular_rep:
@@ -1433,7 +1434,6 @@ def uniqtuples(items, n):
         yield (items[0],)
         return # <-- return
 
-    #remain = list(items)
     m = len(items)
     for i in range(m):
         item = items[i]
@@ -1441,7 +1441,26 @@ def uniqtuples(items, n):
             yield (item,)+tail
 
 
-def orbiplex(G):
+def alltuples(items, n):
+    if n==0:
+        yield ()
+        return # <-- return
+    assert n>0
+    if n > len(items):
+        return # <-- return
+    if len(items)==1:
+        assert n==1
+        yield (items[0],)
+        return # <-- return
+
+    m = len(items)
+    for i in range(m):
+        item = items[i]
+        for tail in uniqtuples(items, n-1):
+            yield (item,)+tail
+
+
+def orbiplex(G, k=4):
 
     import numpy
     from gelim import zeros, dotx, rank, nullity
@@ -1452,9 +1471,10 @@ def orbiplex(G):
     nchains = {} # map tuple -> index
     dims = []
     bdys = []
-    for n in range(4):
+    k = argv.get("k", k)
+    for n in range(k):
 
-        write("n=%d "%n)
+        write("|C_%d| ="%n)
         #if n > len(items):
         #    break
 
@@ -1474,12 +1494,15 @@ def orbiplex(G):
         orbits = list(G2.orbits())
         d = len(orbits)
         dims.append(d)
-        write("%d "%d)
+        write("%d,"%d)
         for idx, orbit in enumerate(orbits):
             for key in orbit:
                 nchains[key] = idx
 
         if n==0:
+            # skip first guy ?
+            bdy = zeros(0, d)
+            bdys.append(bdy)
             continue # <------- continue
 
         bdy = zeros(dims[-2], dims[-1])
@@ -1494,9 +1517,19 @@ def orbiplex(G):
                 c *= -1
         #print bdy
         bdys.append(bdy)
-    write("\n")
 
-    #print
+        if n>len(items):
+            break
+
+    print
+
+    euler = 0
+    c = -1
+    for i, dim in enumerate(dims):
+        euler += c*dim
+        c *= -1
+    print "euler:", euler
+
     for i in range(len(bdys)-1):
         A = bdys[i]
         B = bdys[i+1]
@@ -1507,10 +1540,14 @@ def orbiplex(G):
 
         #   B      A
         #  ---> . ---> 
-        hom = rank(B) - nullity(A) 
+        im = rank(B)
+        ker = nullity(A)
+        hom = ker - im
         assert hom>=0
-        if hom > 0:
-            print "homology:", hom
+        if hom > 0: # and B.shape[0]*B.shape[1]:
+            print B.shape, A.shape
+            print "im=%d, ker=%d" % (im, ker)
+            print "H_%d = %d" % (i, hom)
 
 
 

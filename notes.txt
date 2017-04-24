@@ -1,3 +1,82 @@
+23/4/17
+=======
+
+two qubit paulis inside B_4 coxeter group inside 2 qubit cliffords:
+P_2 < B_4 < C_2
+
+C_2 also contains the reflection group, Shephard-Todd #28, of order 1152.
+
+The Invariants of the Clifford Groups
+Gabriele Nebe
+https://arxiv.org/pdf/math/0001038.pdf
+
+Quantum Error Correction via Codes over GF(4)
+A. R. Calderbank (1), E. M Rains (2), P. W. Shor (1), N. J. A. Sloane (1), 
+https://arxiv.org/abs/quant-ph/9608006v5
+
+http://home.lu.lv/~sd20008/papers/essays/Clifford%20group%20[presentation].pdf
+
+
+
+23/4/17
+=======
+
+"Unitary reflection groups for quantum fault tolerance"
+    Michel Planat and Maurice Kibler
+https://arxiv.org/pdf/0807.3650.pdf
+
+"Clifford groups of quantum gates, BN-pairs and smooth cubic surfaces"
+    Michel Planat and Patrick Sole
+https://arxiv.org/pdf/0811.2109.pdf
+
+"ON THE GEOMETRY AND INVARIANTS OF QUBITS, QUARTITS AND OCTITS"
+    M. PLANAT
+
+
+
+
+22/4/17
+=======
+
+The surface and what lies beneath.
+Algebra and geometry.
+
+
+https://al3x.svbtle.com/alexander-grothendieck
+
+
+21/4/17
+=======
+
+"Models of Quantum Algorithms in Sets and Relations"
+https://arxiv.org/pdf/1503.05857.pdf
+
+A _system_ is a finite set H.
+A _state_ of a system H is any subset of H.
+Write a state as a ket |psi>.
+Conjunction |psi v phi> is union of the subsets.
+
+tensor: Composite systems correspond to cartesian product.
+_Relations_
+product of relations 
+Converse relation is transpose.
+A relation R:H1->H2 is unitary iff bijection.
+Call these an "evolution" of the system H1 to H2.
+
+A state is also a column vector: a relation from
+the singleton to H.
+An effect is a row vector: a relation from H to
+the singleton.
+
+Spans of finite sets over the rig of truth values.
+
+In terms of physics, the truth values represent
+"possible" and "impossible".
+
+Born rule: <psi|phi> is a relation with a single entry.
+
+
+
 
 19/4/17
 =======
