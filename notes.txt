@@ -1,3 +1,31 @@
+
+
+24/4/17
+=======
+
+Krohn-Rhodes theorem on decomposing finite semi-groups.
+https://en.wikipedia.org/wiki/Krohn%E2%80%93Rhodes_theory
+
+
+Theorem:
+--------
+n can be written as the sum of two squares, n=a^2 + b^2
+iff the prime factors of n of the form 3 mod 4
+occur with even multiplicity in n.
+
+Theorem:
+--------
+n can be written as the sum of three squares iff it is
+not of the form 4^m(8k+7).
+
+Theorem (Lagrange 1770):
+-------
+Any number (>0) can be written as the sum of 4 squares.
+
+
+
+
+
 23/4/17
 =======
 

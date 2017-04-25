@@ -1,0 +1,338 @@
+#!/usr/bin/env python
+
+"""
+Construct the five platonic solids, their incidence geometry and
+symmetry group.
+"""
+
+import sys, os
+
+from bruhat.argv import argv
+from bruhat.util import write
+from bruhat.geometry import Geometry
+
+
+
+EPSILON = 1e-8
+
+
+class Vector(object):
+    def __init__(self, *cs):
+        self.cs = cs
+        self.n = len(cs)
+        self._hash = hash(self.__str__())
+
+    def __str__(self):
+        cs = ["%.4f"%c for c in self.cs]
+        return "(%s)"%(','.join(cs))
+
+    def __hash__(self):
+        return self._hash
+        
+    def __eq__(self, other):
+        return self.__str__() == other.__str__()
+        #for i in range(self.n):
+        #    if abs(self.cs[i] - other.cs[i]) > EPSILON:
+        #        return False
+        #return True
+        
+    def __ne__(self, other):
+        return self.__str__() != other.__str__()
+        return not (self==other)
+
+    def reflect(self, i):
+        cs = list(self.cs)
+        cs[i] = -cs[i]
+        return Vector(*cs)
+
+
+class Item(object):
+
+    items = None
+    def __init__(self, verts):
+        self.verts = list(verts)
+        self.s_verts = set(verts)
+        self._hash = hash(tuple(self.verts))
+
+        if self.__class__.items is not None:
+            self.__class__.items.append(self)
+
+    @classmethod
+    def push(cls):
+        cls.items = []
+
+    @classmethod
+    def pop(cls):
+        items = cls.items
+        cls.items = None
+        return items
+
+    def __eq__(self, other):
+        return self.verts == other.verts
+
+    def __ne__(self, other):
+        return self.verts != other.verts
+
+    def __hash__(self):
+        #return hash(tuple(self.verts))
+        return self._hash
+
+    def reflect_x(self):
+        verts = [v.reflect(0) for v in self.verts]
+        return self.__class__(verts)
+
+    def reflect_y(self):
+        verts = [v.reflect(1) for v in self.verts]
+        return self.__class__(verts)
+
+    def reflect_z(self):
+        verts = [v.reflect(2) for v in self.verts]
+        return self.__class__(verts)
+
+    def intersection(self, other):
+        return (self.s_verts).intersection((other.s_verts))
+
+    def contains(self, other):
+        return (self.s_verts).issuperset((other.s_verts))
+
+
+class Edge(Item):
+    pass
+
+class Face(Item):
+    pass
+
+class Vertex(Item):
+    pass
+
+
+def make_cube():
+    Face.push()
+
+    vs = []
+    
+    for i in [-1, 1]:
+        vs = [
+            Vector(i, -1, -1),
+            Vector(i, -1, +1),
+            Vector(i, +1, +1),
+            Vector(i, +1, -1)]
+        Face(vs)
+    
+    for j in [-1, 1]:
+        vs = [
+            Vector(-1, j, -1),
+            Vector(-1, j, +1),
+            Vector(+1, j, +1),
+            Vector(+1, j, -1)]
+        Face(vs)
+    
+    for k in [-1, 1]:
+        vs = [
+            Vector(-1, -1, k),
+            Vector(-1, +1, k),
+            Vector(+1, +1, k),
+            Vector(+1, -1, k)]
+        Face(vs)
+
+    return Face.pop()
+
+
+def make_dodecahedron():
+    Face.push()
+    phi = 0.5*(1 + 5**0.5) # golden ratio
+
+    f0 = Face([
+        Vector(+1/phi, +phi, 0),
+        Vector(-1/phi, +phi, 0),
+        Vector(-1, 1, 1),
+        Vector(0, 1/phi, phi),
+        Vector(+1, 1, 1)])
+    f1 = f0.reflect_z()
+    f2 = f0.reflect_y()
+    f3 = f1.reflect_y()
+
+    f0 = Face([
+        Vector(+1/phi, +phi, 0),
+        Vector(+1, 1, 1),
+        Vector(phi, 0, 1/phi),
+        Vector(phi, 0, -1/phi),
+        Vector(1, 1, -1)])
+    f1 = f0.reflect_x()
+    f2 = f0.reflect_y()
+    f3 = f1.reflect_y()
+
+    f0 = Face([
+        Vector(+1, 1, 1),
+        Vector(phi, 0, 1/phi),
+        Vector(+1, -1, 1),
+        Vector(0, -1/phi, phi),
+        Vector(0, +1/phi, phi)])
+    f1 = f0.reflect_x()
+    f2 = f0.reflect_z()
+    f3 = f1.reflect_z()
+
+    return Face.pop()
+
+
+def make_icosahedron():
+    Face.push()
+    phi = 0.5*(1 + 5**0.5) # golden ratio
+
+    f0 = Face([
+        Vector(0,    1, phi),
+        Vector(0,   -1, phi),
+        Vector(phi,  0, 1)])
+    f1 = f0.reflect_x()
+    f2 = f0.reflect_z()
+    f3 = f1.reflect_z()
+
+    f0 = Face([
+        Vector( 1,  phi, 0),
+        Vector(-1,  phi, 0),
+        Vector( 0,  1,   phi)])
+    f1 = f0.reflect_z()
+    f2 = f0.reflect_y()
+    f3 = f1.reflect_y()
+
+    f0 = Face([
+        Vector(phi, 0, 1),
+        Vector(phi, 0, -1),
+        Vector(1,   phi, 0)])
+
+    f1 = f0.reflect_y()
+    f2 = f0.reflect_x()
+    f3 = f1.reflect_x()
+
+    f0 = Face([
+        Vector(0,    1, phi),
+        Vector(1,   phi,  0),
+        Vector(phi,  0, 1)])
+    f1 = f0.reflect_x()
+    f2 = f0.reflect_y()
+    f3 = f0.reflect_z()
+
+    f0 = Face([
+        Vector(0,   -1,-phi),
+        Vector(-1,  -phi,  0),
+        Vector(-phi,  0,-1)])
+    f1 = f0.reflect_x()
+    f2 = f0.reflect_y()
+    f3 = f0.reflect_z()
+
+    return Face.pop()
+
+
+
+def make_octahedron():
+    Face.push()
+
+    f0 = Face([
+        Vector(1, 0, 0),
+        Vector(0, 1, 0),
+        Vector(0, 0, 1)])
+
+    f1 = f0.reflect_x()
+    f2 = f1.reflect_y()
+    f3 = f2.reflect_x()
+
+    f0 = f0.reflect_z()
+    f1 = f0.reflect_x()
+    f2 = f1.reflect_y()
+    f3 = f2.reflect_x()
+
+    return Face.pop()
+
+
+def make_simplex():
+    Face.push()
+
+    v0 = Vector(1, 1, 1)
+    v1 = Vector(1, -1, -1)
+    v2 = Vector(-1, -1, 1)
+    v3 = Vector(-1, 1, -1)
+
+    Face([v0, v1, v2])
+    Face([v0, v1, v3])
+    Face([v0, v2, v3])
+    Face([v1, v2, v3])
+
+    return Face.pop()
+
+
+def make_geometry(name, faces):
+    print "make_geometry", name
+    print "faces:", len(faces)
+
+    edges = []
+    n = len(faces)
+    for i in range(n):
+      for j in range(i+1, n):
+        #items = set(faces[i].verts).intersection(faces[j].verts)
+        items = faces[i].intersection(faces[j])
+        assert len(items)<=2
+        if len(items) == 2:
+            edge = Edge(items)
+            edges.append(edge)
+    print "edges:", len(edges)
+
+    verts = set()
+    n = len(edges)
+    for i in range(n):
+      for j in range(i+1, n):
+        #items = set(edges[i].verts).intersection(edges[j].verts)
+        items = edges[i].intersection(edges[j])
+        assert len(items)<=1
+        if len(items) == 1:
+            vert = Vertex(items)
+            verts.add(vert)
+    print "verts:", len(verts)
+
+    items = faces + edges + list(verts)
+    tpmap = {}
+    for face in faces:
+        tpmap[face] = "face"
+    for edge in edges:
+        tpmap[edge] = "edge"
+    for vert in verts:
+        tpmap[vert] = "vert"
+    incidence = []
+    for item in items:
+      for jtem in items:
+        if tpmap[item] != tpmap[jtem]:
+            if item.contains(jtem):
+                incidence.append((item, jtem))
+    for item in items:
+        incidence.append((item, item))
+    geometry = Geometry(incidence, tpmap)
+
+    count = 0
+    for f in geometry.get_symmetry():
+        write('.')
+        count += 1
+    print
+    print "symmetry:", count
+
+    return geometry
+    
+
+
+def main():
+
+    for name in "simplex cube octahedron dodecahedron icosahedron".split():
+        faces = eval("make_%s"%name)()
+        make_geometry(name, faces)
+        print
+
+
+if __name__ == "__main__":
+
+    if argv.profile:
+       import cProfile as profile
+       profile.run("main()")
+
+    else:
+       main()
+
+
+    
