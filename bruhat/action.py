@@ -4,7 +4,7 @@ import sys
 import string
 from random import randint, shuffle
 
-from bruhat.util import factorial, all_subsets, write
+from bruhat.util import factorial, all_subsets, write, uniqtuples
 from bruhat.argv import argv
 from bruhat import isomorph
 from bruhat.smap import SMap, tabulate
@@ -1420,44 +1420,6 @@ def main():
             print "subgroup order=%d:"%len(H)
             perms = [perm.perm for perm in H]
             print perms
-
-
-def uniqtuples(items, n):
-    if n==0:
-        yield ()
-        return # <-- return
-    assert n>0
-    if n > len(items):
-        return # <-- return
-    if len(items)==1:
-        assert n==1
-        yield (items[0],)
-        return # <-- return
-
-    m = len(items)
-    for i in range(m):
-        item = items[i]
-        for tail in uniqtuples(items[:i] + items[i+1:], n-1):
-            yield (item,)+tail
-
-
-def alltuples(items, n):
-    if n==0:
-        yield ()
-        return # <-- return
-    assert n>0
-    if n > len(items):
-        return # <-- return
-    if len(items)==1:
-        assert n==1
-        yield (items[0],)
-        return # <-- return
-
-    m = len(items)
-    for i in range(m):
-        item = items[i]
-        for tail in uniqtuples(items, n-1):
-            yield (item,)+tail
 
 
 def orbiplex(G, k=4):

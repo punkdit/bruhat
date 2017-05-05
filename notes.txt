@@ -1,4 +1,117 @@
 
+6/5/17
+======
+
+Applying distributivity to computing the determinant of a matrix.
+What is the optimal solution ?
+How close is Dodgson condensation to being optimal?
+
+3x3 determinant:
+    (1*a*e*i + 1*b*f*g + 1*c*d*h + -1*a*f*h + -1*b*d*i + -1*c*e*g)
+    12 mul
+    5 add
+
+dodgson:
+((a*e + -1*b*d)*(e*i + -1*f*h) + -1*(b*f + -1*c*e)*(d*h + -1*e*g))*(1/(e))
+    10 mul
+    1 div
+    5 add
+
+optimal:
+    a*e*i + b*f*g + c*d*h + -a*f*h + -b*d*i + -c*e*g)
+    a*(e*i - f*h) + b*(f*g - d*i) + c*(d*h - e*g)
+    9 mul
+    5 add
+
+
+./dist.py
+
+4x4 determinant
+    72 mul
+random factorization:
+    41 mul
+recursive:
+    24 mul
+dodgson:
+    42 mul
+
+5x5 determinant:
+    480 mul
+random factorization:
+    212 mul
+recursive:
+    120 mul
+dodgson:
+    170 mul
+
+6x6 determinant:
+    3600 mul
+recursive:
+    680 mul
+dodgson:
+    682 mul
+
+
+
+
+
+6/5/17
+======
+
+Representation theory of finite monoids
+Benjamin Steinberg, 2016
+
+Mobius inversion for posets is a generalization of
+the inclusion-exclusion principle.
+
+
+
+
+1/5/17
+======
+
+Intransitive dice
+https://gowers.wordpress.com/2017/04/28/a-potential-new-polymath-project-intransitive-dice/
+
+Folding Dynkin diagrams:
+https://mathoverflow.net/questions/111469/dual-versions-of-folding-symmetric-ade-dynkin-diagrams/111496#111496
+
+ADE classifications:
+http://math.ucr.edu/home/baez/hazewinkel_et_al.pdf
+
+https://mathoverflow.net/questions/25983/intuitive-crutches-for-higher-dimensional-thinking
+
+https://mathoverflow.net/questions/81667/sums-of-four-squares-and-the-modular-invariant
+
+https://mathoverflow.net/questions/184454/extended-tqft-versus-tqft-with-defects
+
+https://mathoverflow.net/questions/165140/characterize-spin-cobordism-invariants-in-dimer-models
+
+https://ncatlab.org/nlab/show/Tannaka+duality
+
+
+Lawvere, Theories and models, toposes, 
+synthetic differential geometry,
+doctrines...
+http://math.ucr.edu/home/baez/week200.html
+
+
+25/4/17
+=======
+
+
+When two systems, of which we know the states by
+their respective representatives, enter into temporary physical interaction due to
+known forces between them, and when after a time of
+mutual influence the systems separate again, then they can no
+longer be described in the same way as before, viz.
+by endowing each of them with a representative of its
+own. I would not call that one but rather the
+characteristic trait of quantum mechanics, the one that enforces its
+entire departure from classical lines of thought.
+    - Erwin Schrödinger, 1935
+
+
 
 24/4/17
 =======

@@ -52,6 +52,40 @@ assert len(list(choose(range(4), 2))) == 6
 assert len(list(choose(range(4), 3))) == 4
 
 
+def allperms(items):
+    items = tuple(items)
+    if len(items)<=1:
+        yield items
+        return
+    n = len(items)
+    for i in range(n):
+        for rest in allperms(items[:i] + items[i+1:]):
+            yield (items[i],) + rest
+
+assert list(allperms("abc")) == [
+    ('a', 'b', 'c'), 
+    ('a', 'c', 'b'), 
+    ('b', 'a', 'c'), 
+    ('b', 'c', 'a'), 
+    ('c', 'a', 'b'), 
+    ('c', 'b', 'a')]
+
+
+def allsignedperms(items):
+    items = tuple(items)
+    if len(items)<=1:
+        yield +1, items
+        return
+    n = len(items)
+    sign = 1
+    for i in range(n):
+        for _sign, rest in allsignedperms(items[:i] + items[i+1:]):
+            yield sign*_sign, (items[i],) + rest
+        sign *= -1
+
+assert list(allsignedperms("ab")) == [(1, ('a', 'b')), (-1, ('b', 'a'))]
+
+
 def write(s):
     sys.stdout.write(str(s)+' ')
     sys.stdout.flush()
@@ -66,4 +100,42 @@ def cross(itemss):
         for head in itemss[0]:
             for tail in cross(itemss[1:]):
                 yield (head,)+tail
+
+def uniqtuples(items, n):
+    if n==0:
+        yield ()
+        return # <-- return
+    assert n>0
+    if n > len(items):
+        return # <-- return
+    if len(items)==1:
+        assert n==1
+        yield (items[0],)
+        return # <-- return
+
+    m = len(items)
+    for i in range(m):
+        item = items[i]
+        for tail in uniqtuples(items[:i] + items[i+1:], n-1):
+            yield (item,)+tail
+
+
+def alltuples(items, n):
+    if n==0:
+        yield ()
+        return # <-- return
+    assert n>0
+    if n > len(items):
+        return # <-- return
+    if len(items)==1:
+        assert n==1
+        yield (items[0],)
+        return # <-- return
+
+    m = len(items)
+    for i in range(m):
+        item = items[i]
+        for tail in uniqtuples(items, n-1):
+            yield (item,)+tail
+
 

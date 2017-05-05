@@ -8,8 +8,10 @@ symmetry group.
 import sys, os
 
 from bruhat.argv import argv
-from bruhat.util import write
+from bruhat.util import write, uniqtuples
 from bruhat.geometry import Geometry
+from bruhat import isomorph
+from action import Group, Perm
 
 
 
@@ -260,8 +262,9 @@ def make_simplex():
     return Face.pop()
 
 
-def make_geometry(name, faces):
+def make_geometry(name):
     print "make_geometry", name
+    faces = eval("make_%s"%name)()
     print "faces:", len(faces)
 
     edges = []
@@ -306,30 +309,88 @@ def make_geometry(name, faces):
         incidence.append((item, item))
     geometry = Geometry(incidence, tpmap)
 
-    count = 0
-    for f in geometry.get_symmetry():
-        write('.')
-        count += 1
-    print
-    print "symmetry:", count
-
     return geometry
     
 
 
-def main():
+def test():
 
     for name in "simplex cube octahedron dodecahedron icosahedron".split():
-        faces = eval("make_%s"%name)()
-        make_geometry(name, faces)
+        make_geometry(name)
         print
+    print "OK"
+
+
+
+def orbiplex(G, k=4):
+
+    #import numpy
+    #from gelim import zeros, dotx, rank, nullity
+
+    print "orbiplex: |G|=%d" % len(G)
+    items = G.items
+
+    k = argv.get("k", k)
+    for n in range(k):
+
+        write("|C_%d| ="%n)
+        #if n > len(items):
+        #    break
+
+        tpls = list(uniqtuples(items, n))
+
+        perms = []
+        for perm in G:
+            _perm = {}
+            for key in tpls:
+                value = tuple(perm[i] for i in key)
+                _perm[key] = value
+            _perm = Perm(_perm, tpls)
+            perms.append(_perm)
+
+        G2 = Group(perms, tpls)
+
+        orbits = list(G2.orbits())
+        d = len(orbits)
+        write("%d,"%d)
+
+
+def main():
+    name = argv.next() or "icosahedron"
+    geometry = make_geometry(name)
+
+    graph = geometry.get_bag()
+    graph1 = geometry.get_bag()
+    #print graph
+    n = len(graph)
+    items = [i for i in range(n) if graph[i].desc=="vert"]
+    #print items
+
+    perms = []
+    for f in isomorph.search(graph, graph1):
+        #print f
+        f = dict((i, f[i]) for i in items)
+        perm = Perm(f, items)
+        perms.append(perm)
+        write('.')
+    print
+    print "symmetry:", len(perms)
+    assert len(set(perms)) == len(perms)
+
+    G = Group(perms, items)
+
+    orbiplex(G)
+
 
 
 if __name__ == "__main__":
 
     if argv.profile:
        import cProfile as profile
-       profile.run("main()")
+       profile.run("test()")
+
+    elif argv.test:
+        test()
 
     else:
        main()
