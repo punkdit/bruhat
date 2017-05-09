@@ -1,6 +1,52 @@
 
+8/5/17
+======
+
+
+
+A beginner’s guide to forcing
+Timothy Y. Chow
+
+In the roaring 60-ties, Barry Mazur launched the seemingly crazy idea of viewing the affine spectrum of the integers as a 3-dimensional manifold and prime numbers themselves as knots in this 3-manifold...
+http://www.neverendingbooks.org/mazurs-dictionary
+
+http://math.ucr.edu/home/baez/week257.html
+étale cohomology, Galois theory and covering spaces
+Weil conjectures
+
+"Galois Groups and Fundamental Groups"
+Tamas Szamuely
+Cambridge University Press, 16 Jul. 2009
+
+
+Braid Order: History and Connection with Knots
+http://www.math.unicaen.fr/~dehornoy/Talks/DyfShort.pdf
+Left self-distributivity
+    x*(y*z) = (x*y)*(x*z)
+gives rep of B_n:
+    x*y = y               B_n -> S_n
+    x*y = x*y*x^{-1}      B_n -> Aut(F_n)           (Artin)
+    x*y = (1-t)*x + t*y   B_n -> GL_n(Z[t,t^{-1}])  (Burau)
+set theory: large cardinals, self-similarity, elementary embedding
+
+A Course in Computational Algebraic Number Theory
+Henri Cohen
+1993
+
+https://mathoverflow.net/questions/71743/what-is-the-precise-relationship-between-langlands-and-tannakian-formalism
+
+The Tannakian Formalism and the Langlands Conjectures
+David Kazhdan, Michael Larsen, Yakov Varshavsky
+https://arxiv.org/abs/1006.3864
+
+
 6/5/17
 ======
+
+How the Alternating Sign Matrix Conjecture Was Solved
+David Bressoud and James Propp
+http://www.ams.org/notices/199906/fea-bressoud.pdf
+
 
 Applying distributivity to computing the determinant of a matrix.
 What is the optimal solution ?
@@ -72,6 +118,10 @@ the inclusion-exclusion principle.
 
 Intransitive dice
 https://gowers.wordpress.com/2017/04/28/a-potential-new-polymath-project-intransitive-dice/
+
+https://math.stackexchange.com/questions/397654/generalized-nontransitive-dice?noredirect=1&lq=1
+Say your graph has nn nodes. Start out with nn identical 2-sided dice. Each having 0 on both sides will work fine.
+Pick an arbitrary edge in the graph, specifying that DaDa should beat DbDb. All the dice currently have kk sides, and satisfy the requirements for previously added edges, and unconnected dice are even*. Find mm, the maximum of all the faces on the dice. To DaDa, add two faces with m+3m+3. To DbDb, add two faces of m+2m+2. To all other dice, add two faces, one of m+1m+1 and one of m+4m+4. Repeat this procedure for all edges in the graph, winding up with 2e+22e+2-sided dice.
 
 Folding Dynkin diagrams:
 https://mathoverflow.net/questions/111469/dual-versions-of-folding-symmetric-ade-dynkin-diagrams/111496#111496
