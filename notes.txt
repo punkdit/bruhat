@@ -1,4 +1,182 @@
 
+3/6/17
+======
+
+Groups and groupoids discussion:
+https://mathoverflow.net/questions/108978/has-any-attempt-been-made-to-classify-finite-groupoids/
+
+
+
+1/6/17
+======
+
+Cauchy's theorem : if a prime p divides |G| then there
+is a g in G of order p.
+Proof: look at ordered p-tuples of group elements
+(g_1,..,g_p) such that 
+g_1 g2 ... g_p = 1.
+There are |G|^{p-1} such tuples, which is a multple of p
+when p divides |G|. 
+Consider the action of Z/pZ on these p-tuples.
+All the orbits of this action have size 1 or p 
+(corresponding to the two subgroups of Z/pZ.)
+The fixed points of this action are the constant p-tuples, ie g^p=1.
+We have at least one fixed point for example when g=1.
+Therefore there must be another fixed point.
+
+Proof by J.H.Mckay:
+https://mathoverflow.net/questions/206961/proof-of-cauchys-theorem-from-group-theory-generalizable#comment513102_206961
+
+
+Module over a ring:
+https://mathoverflow.net/a/7956/39775
+Module over R as a homomorphism from R to the endomorphism ring of an abelian group
+"Vector spaces are fields acting on abelian groups." - Qiachu Yuan
+
+
+24/5/17
+=======
+
+"Normalizer of parabolic subgroups in unitary reflection groups"
+Krishnasamy Muraleedaran
+Phd Thesis
+School of Mathematics and Statistics, Faculty of Science, University of Sydney
+https://www.cambridge.org/core/journals/bulletin-of-the-australian-mathematical-society/article/normalizer-of-parabolic-aubgroups-in-unitary-reflection-groups/5A08F4F9C78726ED37A0DAECBB193417
+Find normalizer of unitary reflection group G (acting on
+the vector space V) in the unitary group U(V) of V.
+
+Supervisor:
+http://www.maths.usyd.edu.au/u/don/details.html#pubs
+
+
+
+
+24/5/17
+=======
+
+from Toby Bartels:
+https://plus.google.com/110399830759499718267
+
+A (linear) isometry is precisely a linear operator T that satisfies
+$T^* T = I$, while a co-isometry is precisely what
+satisfies $T T^* = I$; a unitary operator is thus
+precisely whatever is both.  Also, an isometry or co-isometry is
+unitary iff it is invertible; thus, since an isometry is
+necessary injective, a unitary operator is precisely a surjective isometry;
+while a co-isometry is necessarily surjective, so a unitary operator
+is precisely an injective co-isometry.
+
+Projection onto a closed subspace is not just a good
+example of a co-isometry but in some ways the canonical
+example.  To be specific, if T: H -> K is
+a co-isometry, then there is a unitary transformation U from K
+to the closed subspace (ker T)^⊥ of H, and U
+T is projection onto that subspace.  (U itself can be described
+by saying that U* is the inclusion of (ker T)^⊥
+followed by T, or equivalently that U* is the restriction
+of T to (ker T)^⊥.)  Similarly, the canonical example of
+an isometry is inclusion of a subspace; if T: H
+-> K is an isometry, then there is a unitary
+transformation U from H to the subspace im T of
+K, and T U* is the inclusion map of this
+subspace.  (U itself is T followed by projection onto im
+T, or equivalently T with the codomain restricted to im T.)
+
+
+
+15/5/17
+=======
+
+"MARKOV CHAINS, R-TRIVIAL MONOIDS AND REPRESENTATION THEORY"
+ARVIND AYYER, ANNE SCHILLING, BENJAMIN STEINBERG, AND NICOLAS M. THIERY
+https://arxiv.org/pdf/1401.4250.pdf
+
+A two-sided ideal of a monoid M is a non-empty subset I
+such that MIM \subseteq I.
+If I, J are ideals then IJ\subseteq I\cap J and so I\cap J is
+non-empty.
+Therefore every finite monoid has a unique minimal ideal.
+
+Column monomial matrices are exactly the linear operators
+induced by set mappings f:X->X.
+
+Lemma 2.2: Every stochastic matrix is a convex combination of column
+monomial matrices.
+
+(This is very far from unique!)
+
+Therefore:
+
+Theorem 2.3. Every finite state Markov chain has a random mapping
+representation.
+
+Lemma 3.3: If M is a monoid whose minimal ideal b0 is a left zero
+semigroup and if π is a probability on M with support contained in
+b0, then π ∗ P = π for any probability P on M. In particular, π is
+idempotent.
+
+
+
+15/5/17
+=======
+
+
+https://mathoverflow.net/a/15629/39775
+
+If a group G acts transitively on a set X,
+and H is the stabilizer of x∈X, then gHg−1 is
+the stabilizer of gx. Thus a normal subgroup has the
+property that it leaves one x∈X invariant, then it leaves
+every x∈X invariant.
+
+The normalizer of H in G is the stabilizer subgroup of the conjugation
+action of G on the set of conjugates of H.
+
+
+13/5/17
+=======
+
+Coupling from the past
+http://dbwilson.com/exact/
+
+
+Oskar's dice & fano plane
+http://www.mathpuzzle.com/MAA/39-Tournament%20Dice/mathgames_07_11_05.html
+
+HYPERPLANE ARRANGEMENTS AND DESCENT ALGEBRAS
+FRANCO V SALIOLA
+http://lacim.uqam.ca/~saliola/maths/publications/LectureNotes/DesAlgLectureNotes.pdf
+
+
+https://mathoverflow.net/questions/37115/why-arent-representations-of-monoids-studied-so-much
+
+http://www.hedonisticlearning.com/posts/quotient-types-for-programmers.html
+Complex numbers = R[X,Y] / (X^2+1, X^2-Y)
+
+
+
+Models of Quantum Algorithms in Sets and Relations
+https://arxiv.org/pdf/1503.05857.pdf
+
+https://en.wikipedia.org/wiki/Dagger_compact_category
+
+https://ncatlab.org/nlab/show/dagger-compact+category
+
+https://ncatlab.org/nlab/show/cobordism+hypothesis
+
+https://ncatlab.org/nlab/show/extended+topological+quantum+field+theory
+
+https://ncatlab.org/nlab/show/Dijkgraaf-Witten+theory
+
+https://en.wikipedia.org/wiki/Category_of_relations
+
+
+https://ncatlab.org/jamesdolan/published/Algebraic+Geometry
+
+
+
+
+
 8/5/17
 ======
 
