@@ -1,4 +1,79 @@
 
+
+10/7/17
+=======
+
+"""
+    my vague ideas about the latter at the moment are so far mainly:
+    
+    1 write programs to (in some sense) calculate the spectrums of some
+    number rings.
+    
+    2 write programs to (in some sense) calculate the ideal class groups
+    of some number rings.
+    
+    3 write programs to do calculations with and draw pictures of sl(2,z)
+    and its action on the upper half-plane and related objects.
+
+...
+
+    a couple of other vague ideas for small projects:
+    
+    1: write down explicit instructions for compass+straightedge
+    construciton of regular pentagon.
+    
+    2: write down explicit quadratic polynomial p with coefficients in
+    Q(sqrt(5)), whose roots generate the real part of the 20th cyclotomic
+    field.
+
+""" - jd
+
+
+9/7/17
+======
+
+There's no way to know if you have an entangled pair.
+Similarly, if I give you a number, there is no way to know
+if it is random.
+
+
+4/7/17
+======
+
+Concrete mathematics versus abstract mathematics
+
+permutations        --- groups         ( Cayley theorem )
+  ???               --- categories     ( Yoneda embedding )
+n-tuples of numbers --- vector spaces  ( every vector space has a base )
+matrices            --- algebras        ???
+                    --- C*-algebras     ???
+
+submanifolds of Rn  --- manifolds      ( Nash embedding theorems )
+
+
+3/7/17
+======
+
+http://olivernash.org/2012/02/05/on-kleins-icosahedral-solution-of-the-quintic/index.html
+https://mathoverflow.net/questions/9474/do-there-exist-modern-expositions-of-kleins-icosahedron
+
+http://people.reed.edu/~jerry/Quintic/quintic.html
+
+https://www.akalin.com/quintic-unsolvability
+
+
+
+30/6/17
+=======
+
+https://mathoverflow.net/questions/96720/non-trivial-consequences-of-lobs-theorem
+
+"Robust Cooperation in the Prisoner's Dilemma: Program Equilibrium via Provability Logic."
+
+"Löb’s Theorem as a Limitation on Mechanism"
+MICHAEL DETLEFSEN
+
+
 3/6/17
 ======
 
