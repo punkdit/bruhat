@@ -38,6 +38,27 @@ def sieve(n, ps=None):
     return ps
 
 
+class Sieve(object):
+    def __init__(self):
+        self.ps = []
+        self.ms = []
+        self.n = 2
+
+    def pull(self):
+        n = self.n
+        ps = self.ps
+        ms = self.ms
+
+        
+
+        self.n = n
+        
+
+
+#class Form(object):
+#    def __init__(self, 
+
+
 def main():
     for i in [1, 4, 6, 8, 9]:
         assert not isprime_slow(i), i
@@ -51,7 +72,7 @@ def main():
     for i in range(2, N):
         assert isprime_slow(i) == (i in ps)
 
-    N = 1000000
+    N = 10000000
     ps = sieve(N)
 
 

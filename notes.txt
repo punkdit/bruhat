@@ -2183,6 +2183,7 @@ to braids and weyl groups and much more.
 8/2/17
 ======
 
+
 Look for anti-commuting pairs:
 
 B_3: None
@@ -2211,6 +2212,14 @@ ABCDB*BDBCB = -BDBCB*ABCDB
 
 7/2/17
 ======
+
+Calculation of longest element:
+https://arxiv.org/pdf/1108.1048v2.pdf Table 1,
+
+Also Humphreys, "when is -I in W?":
+http://people.math.umass.edu/~jeh/pub/longest.pdf
+
+http://mathoverflow.net/questions/54926/longest-element-of-weyl-groups
 
 When the group has -I, it is the longest element:
 

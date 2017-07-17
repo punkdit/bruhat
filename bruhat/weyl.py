@@ -886,7 +886,7 @@ def find_negi(G):
             if XZ(root) != rscale(-1, ZX(root)):
                 break
         else:
-            if len(X.word)==len(Z.word) or 1:
+            if len(X.word)==len(Z.word)==G.n:
                 x, z = X.word, Z.word
                 print "%s*%s = -%s*%s" % (x, z, z, x)
                 #return

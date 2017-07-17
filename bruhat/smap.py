@@ -40,6 +40,15 @@ class SMap(object):
             lines.append(line)
         return '\n'.join(lines)
 
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return self.data == other.data
+
+    def __ne__(self, other):
+        return self.data != other.data
+
 
 
 def tabulate(table, rows, cols, space):
@@ -155,12 +164,12 @@ def install_flprint():
 def test():
     install_flprint()
 
-    for i in range(10):
-        #flprint('hi\nthere...\n')
-        print "hi\nthere!",
-        print "hi\nthere!\nworld!",
-        if i == 2:
-            print
+#    for i in range(10):
+#        #flprint('hi\nthere...\n')
+#        print "hi\nthere!",
+#        print "hi\nthere!\nworld!",
+#        if i == 2:
+#            print
 
 
 if __name__=="__main__":

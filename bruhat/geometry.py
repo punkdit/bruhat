@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""
+Working with abstract incidence geometries.
+"""
+
 import os, sys
 
 import numpy
