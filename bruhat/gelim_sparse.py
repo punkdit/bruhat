@@ -1,16 +1,14 @@
 #!/usr/bin/env python
 
 """
-Gaussian elimination over the rationals.
+Gaussian elimination over the rationals. Sparse version.
 """
+
+from __future__ import print_function
 
 import sys, os
 from random import randint, seed
 from fractions import Fraction
-
-
-import numpy
-from numpy import dot
 
 from smap import SMap
 from argv import argv
@@ -82,26 +80,279 @@ def shortstrx(*items, **kw):
     return smap
 
 
-def zeros(m, n):
-    A = numpy.empty((m, n), dtype=object)
-    A[:] = 0
-    return A
+class Vec(object):
+    def __init__(self, n, data=None):
+        self.n = n
+        if data is None:
+            data = {}
+        self.data = data
+
+    def __str__(self):
+        return "Vec(%d, %s)"%(self.n, self.data)
+    __repr__ = __str__
+
+    def copy(self):
+        return Vec(self.n, dict(self.data))
+
+    def dot(A, B):
+        assert A.n==B.n
+        r = 0
+        for idx, value in A.data.items():
+            r += value*B.data.get(idx, 0)
+        return r
+
+    def __len__(self):
+        return self.n
+
+    def __getitem__(self, i):
+        return self.data.get(i, 0)
+
+    def __setitem__(self, i, v):
+        self.data[i] = v
+
+    def __eq__(self, other):
+        assert self.n == other.n
+        fail
+
+    def __ne__(self, other):
+        assert self.n == other.n
+        fail
+
+    def __rmul__(self, r):
+        data = dict((i, r*value) for (i, value) in self.data.items())
+        return Vec(self.n, data)
+
+    def __add__(A, B):
+        A = A.copy()
+        for (i, v) in B.data.items():
+            A.data[i] = A.data.get(i, 0) + v
+        return A
+
+    def __sub__(A, B):
+        A = A.copy()
+        for (i, v) in B.data.items():
+            A.data[i] = A.data.get(i, 0) - v
+        return A
+
+    def is_zero(A):
+        for v in A.data.values():
+            if v != 0:
+                return False
+        return True
+
+
+class Sparse(object):
+    def __init__(self, m, n, data=None):
+        self.shape = m, n # rows, cols
+        if data is None:
+            data = {}
+        self.data = data
+        self.rows = [[] for i in range(m)] # nonzero col idx for each row
+        self.cols = [[] for i in range(n)] # nonzero row idx for each col
+        self.check()
+
+    def __str__(self):
+        return "Sparse(%d, %d, %s)"%(self.shape[0], self.shape[1], self.data)
+    __repr__ = __str__
+
+    def copy(self):
+        A = Sparse(*self.shape)
+        A.data.update(self.data)
+        A.rows = [list(idxs) for idxs in self.rows]
+        A.cols = [list(idxs) for idxs in self.cols]
+        A.check() # XX
+        return A
+
+    def check(self):
+        for key, value in self.data.items():
+            row, col = key
+            assert col in self.rows[row]
+            assert row in self.cols[col]
+        data = self.data
+        for row, cols in enumerate(self.rows):
+            for col in cols:
+                assert data.get((row, col), 0) != 0
+        for col, rows in enumerate(self.cols):
+            for row in rows:
+                assert data.get((row, col), 0) != 0
+
+    def __len__(self):
+        return self.shape[0]
+
+    def __setitem__(self, idx, value):
+        row, col = idx
+        if isinstance(row, slice):
+            assert row == slice(None)
+            assert isinstance(value, Vec)
+            for i, x in value.data.items():
+                self[i, col] = x # recurse
+            return
+        if isinstance(col, slice):
+            assert col == slice(None)
+            assert isinstance(value, Vec)
+            for j, x in value.data.items():
+                self[row, j] = x # recurse
+            return
+        n, m = self.shape
+        assert 0<=row<n
+        assert 0<=col<m
+        if value != 0:
+            self.data[idx] = value
+            if col not in self.rows[row]:
+                self.rows[row].append(col)
+            if row not in self.cols[col]:
+                self.cols[col].append(row)
+        elif idx in self.data:
+            del self.data[idx]
+            if col in self.rows[row]:
+                self.rows[row].remove(col)
+            if row in self.cols[col]:
+                self.cols[col].remove(row)
+        self.check() # XXXX REMOVE ME XXXXXXXX
+
+    def __getitem__(self, idx):
+        row, col = idx
+        if isinstance(row, slice) and isinstance(col, slice):
+            assert row.step == None, "not implemented"
+            row = slice(row.start or 0, row.stop or self.shape[0])
+            assert col.step == None, "not implemented"
+            col = slice(col.start or 0, col.stop or self.shape[1])
+            A = Sparse(row.stop - row.start, col.stop-col.start)
+            for key, value in self.data.items():
+                i, j = key
+                if row.start <= i < row.stop and col.start <= j < col.stop:
+                    A[i-row.start, j-col.start] = value
+            return A
+        elif isinstance(row, slice):
+            # return col A[:, col]
+            assert row.step == None, "not implemented"
+            row = slice(row.start or 0, row.stop or self.shape[0])
+            idxs = self.cols[col]
+            data = dict((i, self.data[i, col]) for i in idxs if row.start<=i<row.stop)
+            A = Vec(self.shape[0], data)
+        elif isinstance(col, slice):
+            # return row A[row, :]
+            assert col.step == None, "not implemented"
+            col = slice(col.start or 0, col.stop or self.shape[1])
+            idxs = self.rows[row]
+            data = dict((j, self.data[row, j]) for j in idxs if col.start<=j<col.stop)
+            A = Vec(self.shape[1], data)
+        else:
+            A = self.data.get(idx, 0)
+        return A
+
+    @classmethod
+    def identity(cls, m):
+        I = cls(m, m)
+        for i in range(m):
+            I[i, i] = 1
+        return I
+
+    def __eq__(self, other):
+        assert self.shape==other.shape
+        return self.data==other.data
+
+    def __ne__(self, other):
+        assert self.shape==other.shape
+        return self.data!=other.data
+
+    def __add__(self, other):
+        A = self.copy()
+        for key, value in other.data.items():
+            A[key] = A[key] + value
+        return A
+
+    def __sub__(self, other):
+        A = self.copy()
+        for key, value in other.data.items():
+            A[key] = A[key] - value
+        return A
+
+    def __rmul__(self, r):
+        A = Sparse(*self.shape)
+        for key, value in self.data.items():
+            A[key] = r*value
+        return A
+
+    def __neg__(self):
+        return (-1)*self
+
+    def dot(self, other):
+        #data = {}
+        shape = self.shape[0], other.shape[1]
+        A = Sparse(*shape)
+        for key, value in self.data.items():
+            i, j = key
+            for k in other.rows[j]:
+                A[i, k] = A[i, k] + value * other.data[j, k]
+        return A
+    __mul__ = dot
+
+    def is_zero(self):
+        return not self.data
+
+    def concatenate(A, B):
+        assert A.shape[1]==B.shape[1]
+        C = Sparse(A.shape[0]+B.shape[0], A.shape[1])
+        for idx, value in A.data.items():
+            C[idx] = value
+        offset = A.shape[0]
+        for idx, value in B.data.items():
+            row, col = idx
+            C[row+offset, col] = value
+        return C
+
+    def transpose(A):
+        B = Sparse(A.shape[1], A.shape[0])
+        for idx, value in A.data.items():
+            i, j = idx
+            B[j, i] = value
+        return B
 
 
 def array(items):
-    return numpy.array(items, dtype=object)
+    assert items
+    m = len(items)
+    n = len(items[0])
+    A = Sparse(m, n)
+    for i, row in enumerate(items):
+        for j, value in enumerate(row):
+            A[i, j] = value
+    return A
 
 
-def identity(m):
-    I = zeros(m, m)
-    for i in range(m):
-        I[i, i] = 1
-    return I
+def test_sparse():
+
+    m, n = 5, 5
+    A = Sparse(m, n)
+    A[1, 2] = 3
+
+    B = Sparse.identity(m)
+
+    assert A==A
+    assert A!=B
+    assert (A*B) == A
+
+    I = Sparse.identity(2)
+    A = array([[1, 1], [1, 0]])
+    B = array([[0, 1], [1, 1]])
+    C = array([[1, 2], [0, 1]])
+    assert A*B == C
+
+    Z = array([[1, 0], [0, -1]])
+    X = array([[0, 1], [1, 0]])
+
+    assert (Z*Z)==I
+    assert (A-B)==Z
+    assert B+Z==A
 
 
-def eq(A, B):
-    r = numpy.abs(A-B).sum()
-    return r==0
+test_sparse()
+
+#zeros = lambda n, m : Sparse((n, m))
+zeros = Sparse
+eq = lambda A, B : A==B
+identity = Sparse.identity
 
 
 def dotx(*items):
@@ -109,9 +360,11 @@ def dotx(*items):
     A = items[idx]
     while idx+1 < len(items):
         B = items[idx+1]
-        A = dot(A, B)
+        A = A.dot(B)
         idx += 1 
     return A
+
+dot = lambda A, B : A.dot(B)
 
 
 def compose(*items):
@@ -169,7 +422,8 @@ def row_reduce(A, truncate=False, inplace=False, check=False, verbose=False):
 
         assert i<=j 
         if i and check:
-            assert (A[i:,:j]!=0).sum() == 0
+#            assert (A[i:,:j]!=0).sum() == 0
+            assert A[i:,:j].is_zero()
 
         # first find a nonzero entry in this col
         for i1 in range(i, m):
@@ -199,7 +453,8 @@ def row_reduce(A, truncate=False, inplace=False, check=False, verbose=False):
     if truncate:
         m = A.shape[0]-1
         #print( "sum:", m, A[m, :], A[m, :].sum())
-        while m>=0 and (A[m, :]!=0).sum()==0:
+#        while m>=0 and (A[m, :]!=0).sum()==0:
+        while m>=0 and A[m, :].is_zero():
             m -= 1
         A = A[:m+1, :]
 
@@ -238,7 +493,8 @@ def plu_reduce(A, truncate=False, check=False, verbose=False):
 
         assert i<=j
         if i and check:
-            assert U[i:,:j].max() == 0 # XX rm
+#            assert U[i:,:j].max() == 0 # XX rm
+            assert U[i:,:j].is_zero()
 
         # first find a nonzero entry in this col
         for i1 in range(i, m):
@@ -258,7 +514,7 @@ def plu_reduce(A, truncate=False, check=False, verbose=False):
 
         if check:
             A1 = dot(P, dot(L, U))
-            assert eq(A1, A)
+            assert eq(A1, A), (A1, A)
 
         r = U[i, j]
         assert r != 0
@@ -290,7 +546,8 @@ def plu_reduce(A, truncate=False, check=False, verbose=False):
     if truncate:
         m = U.shape[0]-1
         #print( "sum:", m, U[m, :], U[m, :].sum())
-        while m>=0 and U[m, :].sum()==0:
+#        while m>=0 and U[m, :].sum()==0:
+        while m>=0 and U[m, :].is_zero():
             m -= 1
         U = U[:m+1, :]
 
@@ -306,7 +563,8 @@ def u_inverse(U, check=False, verbose=False):
     #items = []
     leading = []
     for row in range(m):
-        cols = numpy.where(U[row, :])[0]
+        #cols = numpy.where(U[row, :])[0]
+        cols = U.rows[row]
         if not len(cols):
             break
         col = cols[0]
@@ -435,7 +693,8 @@ def kernel(A, check=False, verbose=False):
             print()
 
         # look for a row
-        while i<m and (A[i, j:]!=0).sum()==0:
+#        while i<m and (A[i, j:]!=0).sum()==0:
+        while i<m and A[i, j:].is_zero():
             i += 1
 
         if i==m:
@@ -465,7 +724,8 @@ def kernel(A, check=False, verbose=False):
         print()
 
     j = K.shape[1] - 1
-    while j>=0 and (A[:, j]!=0).sum() == 0:
+#    while j>=0 and (A[:, j]!=0).sum() == 0:
+    while j>=0 and A[:, j].is_zero():
         j -= 1
     j += 1
 
@@ -473,7 +733,8 @@ def kernel(A, check=False, verbose=False):
     K = K[:, j:]
     if check:
         B = dot(A0, K)
-        assert numpy.abs(B).sum()==0
+        #assert numpy.abs(B).sum()==0
+        assert B.is_zero(), repr(B)
 
     return K.transpose()
 
@@ -519,7 +780,8 @@ class Subspace(object):
     def intersect(self, other):
         W1 = self.W
         W2 = other.W
-        W = numpy.concatenate((W1, W2))
+        #W = numpy.concatenate((W1, W2))
+        W = W1.concatenate(W2)
         #print( "intersect")
         #print( shortstr(W))
         #print()
@@ -550,23 +812,29 @@ def test():
     A = zeros(m, n)
     U = zeros(m, n)
 
-    for i in range(m):
-      for j in range(i, n):
-        a = randint(-3, 3)
-        if i==j and a==0:
-            a = 1
-        U[i, j] = Fraction(a, randint(1, 3))
+    for trial in range(100):
+        A = rand(m, n)
+        row_reduce(A, check=True)
 
-    V = u_inverse(U)
+    for trial in range(100):
+        for i in range(m):
+          for j in range(i, n):
+            a = randint(-3, 3)
+            if i==j and a==0:
+                a = 1
+            U[i, j] = Fraction(a, randint(1, 3))
+    
+        V = u_inverse(U, check=True)
 
-    L = identity(m)
-    for i in range(m):
-        for j in range(i):
-            L[i, j] = Fraction(randint(-3, 3), randint(1, 3))
-    V = l_inverse(L)
-
-    A = rand(m, n)
-    P, L, U = plu_reduce(A, check=True, verbose=False)
+        
+        L = identity(m)
+        for i in range(m):
+            for j in range(i):
+                L[i, j] = Fraction(randint(-3, 3), randint(1, 3))
+        V = l_inverse(L, check=True)
+    
+        A = rand(m, n)
+        P, L, U = plu_reduce(A, check=True, verbose=False)
 
     #m, n = 2, 3
     #while 1:
@@ -592,7 +860,8 @@ def test():
     A[0, 0] = 1
     A[1, 1] = 1
     A[2, 2] = 1
-    A = numpy.concatenate((A, A))
+    #A = numpy.concatenate((A, A))
+    A = A.concatenate(A)
     A = A.transpose()
     #print( "A:")
     #print( shortstr(A))
@@ -613,7 +882,8 @@ def test():
         #print( "kernel: A, K, A*K")
         #print( shortstr(A, K, dot(A, K)))
         B = dot(A, K.transpose())
-        assert numpy.abs(B).sum()==0
+        #assert numpy.abs(B).sum()==0
+        assert B.is_zero()
 
         if K.shape[1]>1:
             break
