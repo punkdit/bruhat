@@ -140,6 +140,23 @@ class Vec(object):
                 return False
         return True
 
+assert Fraction(0, 1) == 0
+
+def mkslice(slc, n):
+    assert slc.step == None, "not implemented"
+    stop = slc.stop
+    if stop is None:
+        stop = n
+    elif stop < 0:
+        stop = stop%n
+    start = slc.start
+    if start is None:
+        start = 0
+    elif start < 0:
+        start = start%n
+    slc = slice(start, stop)
+    return slc
+
 
 class Sparse(object):
     def __init__(self, m, n, data=None):
@@ -181,15 +198,29 @@ class Sparse(object):
 
     def __setitem__(self, idx, value):
         row, col = idx
+        if isinstance(row, slice) and isinstance(col, slice):
+            assert 0, "not implemented"
         if isinstance(row, slice):
             assert row == slice(None)
             assert isinstance(value, Vec)
+            for i in list(self.cols[col]):
+                self[i, col] = 0 # recurse
+            assert not self.cols[col]
             for i, x in value.data.items():
                 self[i, col] = x # recurse
             return
         if isinstance(col, slice):
             assert col == slice(None)
             assert isinstance(value, Vec)
+            #print("__setitem__", row, col, value)
+            #print(shortstr(self))
+            #print("rows:", self.rows[row])
+            for j in list(self.rows[row]):
+                #print("clear", row, j)
+                self[row, j] = 0 # recurse
+            #print(" =>")
+            #print(shortstr(self))
+            assert not self.rows[row], self.rows[row]
             for j, x in value.data.items():
                 self[row, j] = x # recurse
             return
@@ -211,12 +242,12 @@ class Sparse(object):
         self.check() # XXXX REMOVE ME XXXXXXXX
 
     def __getitem__(self, idx):
+        if type(idx) != tuple:
+            idx = (idx, slice(None))
         row, col = idx
         if isinstance(row, slice) and isinstance(col, slice):
-            assert row.step == None, "not implemented"
-            row = slice(row.start or 0, row.stop or self.shape[0])
-            assert col.step == None, "not implemented"
-            col = slice(col.start or 0, col.stop or self.shape[1])
+            row = mkslice(row, self.shape[0])
+            col = mkslice(col, self.shape[1])
             A = Sparse(row.stop - row.start, col.stop-col.start)
             for key, value in self.data.items():
                 i, j = key
@@ -225,15 +256,13 @@ class Sparse(object):
             return A
         elif isinstance(row, slice):
             # return col A[:, col]
-            assert row.step == None, "not implemented"
-            row = slice(row.start or 0, row.stop or self.shape[0])
+            row = mkslice(row, self.shape[0])
             idxs = self.cols[col]
             data = dict((i, self.data[i, col]) for i in idxs if row.start<=i<row.stop)
             A = Vec(self.shape[0], data)
         elif isinstance(col, slice):
             # return row A[row, :]
-            assert col.step == None, "not implemented"
-            col = slice(col.start or 0, col.stop or self.shape[1])
+            col = mkslice(col, self.shape[1])
             idxs = self.rows[row]
             data = dict((j, self.data[row, j]) for j in idxs if col.start<=j<col.stop)
             A = Vec(self.shape[1], data)
@@ -290,6 +319,16 @@ class Sparse(object):
 
     def is_zero(self):
         return not self.data
+
+    def get_rows(self, col):
+        rows = self.cols[col]
+        rows.sort()
+        return list(rows)
+
+    def get_cols(self, row):
+        cols = self.rows[row]
+        cols.sort()
+        return list(cols)
 
     def concatenate(A, B):
         assert A.shape[1]==B.shape[1]
@@ -384,14 +423,24 @@ def compose(*items):
 
 
 def swap_row(A, j, k):
+    #print("swap_row", j, k)
+    #print(shortstr(A))
+    #print(" =>")
     row = A[j, :].copy()
     A[j, :] = A[k, :]
     A[k, :] = row
+    #print(shortstr(A))
+    #print()
 
 def swap_col(A, j, k):
+    #print("swap_col", j, k)
+    #print(shortstr(A))
+    #print(" =>")
     col = A[:, j].copy()
     A[:, j] = A[:, k]
     A[:, k] = col
+    #print(shortstr(A))
+    #print()
 
 
 def row_reduce(A, truncate=False, inplace=False, check=False, verbose=False):
@@ -514,7 +563,13 @@ def plu_reduce(A, truncate=False, check=False, verbose=False):
 
         if check:
             A1 = dot(P, dot(L, U))
-            assert eq(A1, A), (A1, A)
+            if not eq(A1, A):
+                print("FAIL:")
+                print("A")
+                print(shortstr(A))
+                print("A1")
+                print(shortstr(A1))
+                assert 0
 
         r = U[i, j]
         assert r != 0
@@ -560,16 +615,23 @@ def u_inverse(U, check=False, verbose=False):
 
     m, n = U.shape
 
+    if verbose:
+        print("u_inverse")
+        print(shortstr(U))
+
     #items = []
     leading = []
     for row in range(m):
         #cols = numpy.where(U[row, :])[0]
-        cols = U.rows[row]
+        cols = U.get_cols(row)
+        #print("row %d, cols %s"%(row, cols))
         if not len(cols):
             break
         col = cols[0]
+        assert U[row, col]
         leading.append(col)
 
+    #print("leading:", leading)
     assert sorted(leading) == leading
     assert len(set(leading)) == len(leading)
 
@@ -827,12 +889,14 @@ def test():
         V = u_inverse(U, check=True)
 
         
+    for trial in range(100):
         L = identity(m)
         for i in range(m):
             for j in range(i):
                 L[i, j] = Fraction(randint(-3, 3), randint(1, 3))
         V = l_inverse(L, check=True)
     
+    for trial in range(100):
         A = rand(m, n)
         P, L, U = plu_reduce(A, check=True, verbose=False)
 
