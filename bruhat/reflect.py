@@ -428,6 +428,78 @@ def toric(X, Z):
     print("codespace:", len(S))
 
 
+def multi_toric(Xs, Zs):
+
+    n = 8
+    N = Xs[0].n
+    I = Op.identity(N)
+    for X in Xs:
+      for Z in Zs:
+        assert X*X == I
+        assert Z*Z == I
+        assert Z*X == -X*Z
+
+    print("toric: dim=%d"%(N**n))
+    II = Op.identity(N**n)
+
+    plaqs = [(0, 1, 2, 5), (0, 2, 3, 7), (4, 5, 6, 1), (6, 7, 3, 4)]
+    stars = [(0, 1, 3, 4), (1, 2, 3, 6), (0, 4, 5, 7), (2, 5, 6, 7)]
+
+    for a in plaqs:
+      for b in stars:
+        assert len(set(a).intersection(set(b))) % 2 == 0
+
+    ops = []
+    for idxs in stars:
+        for X in Xs:
+            op = [I] * n
+            for idx in idxs:
+                op[idx] = X
+            op = tensor(*op)
+            assert op*op == II
+            ops.append(op)
+
+    for idxs in plaqs:
+        for Z in Zs:
+            op = [I] * n
+            for idx in idxs:
+                op[idx] = Z
+            op = tensor(*op)
+            assert op*op == II
+            ops.append(op)
+
+    for A in ops:
+      for B in ops:
+        assert A*B == B*A
+
+    v = numpy.zeros(N**n)
+    v[0] = 1.
+    for A in ops:
+        v = v + A(v)
+    assert(abs(norm(v)) > 0.1)
+    v /= norm(v)
+    #print(v)
+
+    spaces = []
+    for A in ops:
+        S = A.get_stab()
+        #print("get_stab:", len(S))
+        spaces.append(S)
+
+        u = A(v)
+        r = numpy.dot(u, v)
+        err = norm(u - r*v)
+        assert abs(r-1.) < EPSILON
+        assert err < EPSILON
+        #print(r, err, end=' ')
+    #print()
+    
+    S = spaces[0]
+    for S1 in spaces[1:]:
+        print("codespace:", len(S))
+        S = S.intersect(S1)
+    print("codespace:", len(S))
+
 def tensor(*ops):
     return ops[0].tensor(*ops[1:])
 
@@ -536,23 +608,38 @@ def main():
         ops.add(h)
     print("ops:", len(ops))
 
-#    for A in ops:
-#        for B in errors:
-#            if A*B==B*A or A*B==-B*A:
-#                continue
-#            #print("?", end=" ")
+    assert len([g for g in G if g==g.transpose() and order(g)==2])==75
 
-    for g in ops:
+    ops = list(ops)
+    X = ops[0]
+    H = [g for g in ops if order(g*X) in [1, 2, 4]]
+    assert len(H)==8
+
+    Xs = [g for g in H if order(g*X) in [1, 2]]
+    Zs = [g for g in H if order(g*X)==4]
+    assert len(Xs)==4
+    assert len(Zs)==4
+
+    #multi_toric(Xs, Zs)
+
+    print("syndromes:")
+    bag = set()
+    for E in errors:
+    #for E in G:
+        #print(code.get_syndrome(E))
+        syndrome = ''
+        for op in Xs+Zs:
+            #s = str(order(op*E))
+            bag.add(op*E*op*E)
+            #syndrome += s
+        #print(syndrome)
+    print(len(bag))
+
+
+def show_table(H):
+    for g in H:
         assert order(g)==2
-        for h in ops:
-            a = (g*h == h*g)
-            b = (g*h == -h*g)
-            if not a and not b:
-                s = '  '
-            elif a:
-                s = '+ '
-            elif b:
-                s = '- '
+        for h in H:
             i = order(g*h)
             if i==2:
                 s = '+ '
@@ -566,6 +653,8 @@ def main():
         print()
 
     return
+
+def scrap():
 
     for (X, Z) in pairs:
         ok = False
