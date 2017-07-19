@@ -5,11 +5,13 @@ from __future__ import print_function
 import sys, os
 
 import numpy
-from numpy import kron as tensor
 from numpy.linalg import norm
 
 from bruhat.argv import argv 
 from bruhat.util import cross, factorial
+from bruhat import sparse
+from bruhat.sparse import Subspace
+
 
 EPSILON = 1e-8
 
@@ -85,6 +87,13 @@ class Op(object):
         signs = [-sign for sign in self.signs]
         return Op(self.perm, signs)
 
+    def __rmul__(self, r):
+        assert r==1 or r==-1
+        if r==1:
+            return self
+        else:
+            return -self
+
     def __eq__(self, other):
         return self.perm==other.perm and self.signs==other.signs
 
@@ -117,7 +126,18 @@ class Op(object):
             A[i, idx] = self.signs[i]
         return A
 
-    def stab(self):
+    def eq_phase(self, other):
+        assert self.n == other.n
+        if self.perm != other.perm:
+            return None
+        phase = self.signs[0] * other.signs[0]
+        for a, b in zip(self.signs, other.signs):
+            if a*b != phase:
+                return None
+        return phase
+
+    def get_stab(self):
+        "Get the stabilized subspace (+1 eigenspace)"
         n = self.n
         found = [0]*n
         orbits = []
@@ -136,39 +156,81 @@ class Op(object):
                 if j==i:
                     break
                 orbit.append(j)
-            if parity == 1:
-                orbit.sort()
-                orbit = tuple(orbit)
-                orbits.append(orbit)
-        return orbits
+            if parity != 1:
+                continue
+            orbit.sort()
+            orbit = tuple(orbit)
+            orbits.append(orbit)
+        A = sparse.zeros(len(orbits), n)
+        for i, orbit in enumerate(orbits):
+            for j in orbit:
+                A[i, j] = 1
+        S = Subspace(A)
+        return S
 
 
-def test():
+class Tensor(object):
 
-    perms = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 1, 0], [2, 0, 1]]
-    signss = [(a, b, c) for a in [-1, 1] for b in [-1, 1] for c in [-1, 1]]
-    ops = [Op(perm, signs) for perm in perms for signs in signss]
+    def __init__(self, ops):
+        assert ops
+        self.ops = list(ops)
+        self.n = len(ops)
+        self.shape = tuple(op.n for op in ops)
 
-    for A in ops:
-      for B in ops:
+    def __mul__(self, other):
+        assert self.n == other.n
+        assert self.shape == other.shape
+        ops = [A*B for A, B in zip(self.ops, other.ops)]
+        return Tensor(ops)
 
-        assert (A==B) == (hash(A)==hash(B))
-        assert (A!=B) != (A==B)
+    def tensor(self, other):
+        ops = self.ops + other.ops
+        return Tensor(ops)
 
-        lhs = (A*B).todense()
-        rhs = ((numpy.dot(A.todense(), B.todense())))
-        assert numpy.allclose(lhs, rhs)
+    def __rmul__(self, phase):
+        assert phase==1 or r==-1
+        ops = [phase*self.ops[0]] + self.ops[1:]
+        return Tensor(ops)
 
-        lhs = (A.tensor(B)).todense()
-        rhs = ((tensor(A.todense(), B.todense())))
-        assert numpy.allclose(lhs, rhs)
+    def __neg__(self):
+        return (-1)*self
 
-    for A in ops:
-        assert numpy.allclose(A.transpose().todense(), A.todense().transpose()), str(A)
+    def __eq__(self, other):
+        phase = +1
+        for A, B in zip(self.ops, other.ops):
+            r = A.eq_phase(B)
+            if r is None:
+                return False
+            phase *= r
+        return (phase==1)
 
+    def __ne__(self, other):
+        return not (self==other)
 
-test()
+    def get_canonical(self):
+        "put the phase in the first operator"
+        ops = list(self.ops)
+        phase = 1
+        for i in range(1, self.n):
+            op = self.ops[i]
+            r = op.signs[0]
+            if r == -1:
+                phase *= -1
+                ops[i] = -op
+        ops[0] = phase*self.ops[0]
+        return Tensor(ops)
 
+    _hash = None
+    def __hash__(self):
+        if self._hash is not None:
+            return self._hash
+        op = self.get_canonical()
+        self._hash = hash(tuple(op.ops))
+        return self._hash
+
+    def todense(self):
+        A = self.ops[0].tensor(*self.ops[1:])
+        return A.todense()
 
 
 def build_Bn(n):
@@ -193,16 +255,124 @@ def build_Bn(n):
     return gen
 
 
+def test():
+
+    from numpy import kron as tensor
+    perms = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 1, 0], [2, 0, 1]]
+    signss = [(a, b, c) for a in [-1, 1] for b in [-1, 1] for c in [-1, 1]]
+    ops = [Op(perm, signs) for perm in perms for signs in signss]
+
+    for A in ops:
+      for B in ops:
+
+        assert (A==B) == (hash(A)==hash(B))
+        assert (A!=B) != (A==B)
+
+        lhs = (A*B).todense()
+        rhs = ((numpy.dot(A.todense(), B.todense())))
+        assert numpy.allclose(lhs, rhs)
+
+        lhs = (A.tensor(B)).todense()
+        rhs = ((tensor(A.todense(), B.todense())))
+        assert numpy.allclose(lhs, rhs)
+
+    for A in ops:
+        assert numpy.allclose(A.transpose().todense(), A.todense().transpose()), str(A)
+
+    ops = mulclose(build_Bn(2))
+    tops = []
+    for A in ops:
+      for B in ops:
+        C = Tensor([A, B])
+        tops.append(C)
+
+    #print(len(tops))
+    for A in tops:
+        assert A.get_canonical() == A
+
+    for A in tops:
+      for B in tops:
+        assert (A==B) == numpy.allclose(A.todense(), B.todense())
+        assert (A==B) == (A.get_canonical()==B.get_canonical())
+        assert (A==B) == (hash(A)==hash(B))
+
+    print("OK")
+
+
+
+
+
+class Toric(object):
+    def __init__(self, l, X, Z):
+        assert l >= 2
+
+        N = X.n
+        I = Op.identity(N)
+        assert X*X == I
+        assert Z*Z == I
+        assert Z*X == -X*Z
+
+        keys = []
+        lookup = {}
+        for i in range(l):
+          for j in range(l):
+            for k in range(2):
+                key = (i, j, k)
+                idx = len(keys)
+                keys.append(key)
+                for di in (-l, 0, l):
+                  for dj in (-l, 0, l):
+                    lookup[i+di, j+dj, k] = idx
+
+        n = 2*(l**2) # qubits
+
+        II = Tensor([I]*n)
+
+        ops = []
+        for i in range(l):
+          for j in range(l):
+
+            # plaqs
+            op = [I]*n
+            for idx in [lookup[i, j, 0], lookup[i, j+1, 0], lookup[i, j, 1], lookup[i+1, j, 1]]:
+                op[idx] = Z
+            op = Tensor(op)
+            assert op*op==II
+            ops.append(op)
+        
+            # stars
+            op = [I]*n
+            for idx in [lookup[i, j, 0], lookup[i-1, j, 0], lookup[i, j, 1], lookup[i, j-1, 1]]:
+                op[idx] = X
+            op = Tensor(op)
+            assert op*op==II
+            ops.append(op)
+
+        for A in ops:
+          for B in ops:
+            assert A*B==B*A
+
+        if l==2:
+            assert len(mulclose(ops))==64
+        
+
 def toric(X, Z):
 
     n = 8
     N = X.n
     I = Op.identity(N)
+    assert X*X == I
+    assert Z*Z == I
+    assert Z*X == -X*Z
+    ZZ = tensor(Z, Z)
+    XX = tensor(X, X)
+    assert ZZ*XX == XX*ZZ
 
     print("toric: dim=%d"%(N**n))
+    II = Op.identity(N**n)
 
-    plaqs = [(0, 1, 2, 5), (0, 2, 3, 7), (4, 5, 6, 1)] #, (6, 7, 3, 4)]
-    stars = [(0, 1, 3, 4), (1, 2, 3, 6), (0, 4, 5, 7)] #, (2, 5, 6, 7)]
+    plaqs = [(0, 1, 2, 5), (0, 2, 3, 7), (4, 5, 6, 1), (6, 7, 3, 4)]
+    stars = [(0, 1, 3, 4), (1, 2, 3, 6), (0, 4, 5, 7), (2, 5, 6, 7)]
 
     for a in plaqs:
       for b in stars:
@@ -214,6 +384,7 @@ def toric(X, Z):
         for idx in idxs:
             op[idx] = Z
         op = tensor(*op)
+        assert op*op == II
         ops.append(op)
 
     for idxs in stars:
@@ -221,6 +392,7 @@ def toric(X, Z):
         for idx in idxs:
             op[idx] = X
         op = tensor(*op)
+        assert op*op == II
         ops.append(op)
 
     for A in ops:
@@ -235,17 +407,25 @@ def toric(X, Z):
     v /= norm(v)
     #print(v)
 
+    spaces = []
     for A in ops:
-        orbits = A.stab()
-        print(A.n)
-        for orbit in orbits:
-            print("\t", orbit)
+        S = A.get_stab()
+        print("get_stab:", len(S))
+        spaces.append(S)
+
         u = A(v)
         r = numpy.dot(u, v)
         err = norm(u - r*v)
-        print(r, err, end=' ')
-    print()
+        assert abs(r-1.) < EPSILON
+        assert err < EPSILON
+        #print(r, err, end=' ')
+    #print()
     
+    S = spaces[0]
+    for S1 in spaces[1:]:
+        print("codespace:", len(S))
+        S = S.intersect(S1)
+    print("codespace:", len(S))
 
 
 def tensor(*ops):
@@ -267,8 +447,12 @@ def main():
     X, Z = build_Bn(2)
     I = Op.identity(2)
 
-    #toric(X, Z)
-    #return
+    l = argv.get("l", 2)
+    if argv.B2:
+        #toric(X, Z)
+        code = Toric(l, X, Z)
+        print("OK")
+        return
 
     #print(I)
     #print(X)
@@ -302,10 +486,10 @@ def main():
     assert len(mulclose(gen)) == n # slow...
     G = mulclose(gen, n)
 
-    print("orders:")
-    for g in G:
-        print(order(g), end=' ')
-    print()
+#    print("orders:")
+#    for g in G:
+#        print(order(g), end=' ')
+#    print()
 
     if 0:
         for g in G:
@@ -339,60 +523,91 @@ def main():
             continue
 
         if (gh == -hg) and i<j:
-
-            #assert order(g)==2
-            print(order(g), end=' ')
-            #print(g)
-            #print(h)
-            #print((g == g.transpose()), end=' ')
-            #print((h == h.transpose()))
             if (g == g.transpose()) and (h == h.transpose()) and i < j:
+                assert order(g)==2
                 pairs.append((g, h))
 
-        #print(".", end='')
-    #print()
     #print(c_comm, c_anti, total)
-
     print("pairs:", len(pairs))
-    for (g, h) in pairs:
-        ok = False
-        for E in errors:
-            if g*E != E*g or h*E != E*h:
-                break
-        else:
-            print("fail")
-            continue
-        toric(g, h)
-        break
-
-    return
-
+    
     ops = set()
     for (g, h) in pairs:
         ops.add(g)
         ops.add(h)
-    print(len(ops))
+    print("ops:", len(ops))
+
+#    for A in ops:
+#        for B in errors:
+#            if A*B==B*A or A*B==-B*A:
+#                continue
+#            #print("?", end=" ")
 
     for g in ops:
+        assert order(g)==2
         for h in ops:
             a = (g*h == h*g)
             b = (g*h == -h*g)
-            if a==b==False:
+            if not a and not b:
                 s = '  '
             elif a:
                 s = '+ '
             elif b:
                 s = '- '
+            i = order(g*h)
+            if i==2:
+                s = '+ '
+            elif i==4:
+                s = '- '
+            elif i==1:
+                s = '  '
+            else:
+                s = '%d '%i
             print(s, end=' ')
         print()
 
-    
-    h = tensor(*([g]*8))
-    print(h.n)
+    return
 
+    for (X, Z) in pairs:
+        ok = False
+        for E in errors:
+#            if X*E != E*X or Z*E != E*Z:
+            if X*E == -E*X or Z*E == -E*Z:
+                break
+        else:
+            print("fail")
+            continue
+        #toric(X, Z)
+
+        code = Toric(l, X, Z)
+
+        print("syndromes:")
+        for E in errors:
+            #print(code.get_syndrome(E))
+            print("  ", end='')
+            for op in [X, Z]:
+                if op*E==E*op:
+                    s = '.'
+                if op*E==-E*op:
+                    s = '-'
+                else:
+                    s = '?'
+                print(s, end='')
+        print()
+
+        #return
+
+    
 
 if __name__ == "__main__":
 
-    main()
+    if argv.test:
+        test()
+
+    elif argv.profile:
+        import cProfile as profile
+        profile.run("main()")
+
+    else:
+        main()
 
 

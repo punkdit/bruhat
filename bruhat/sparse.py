@@ -239,7 +239,7 @@ class Sparse(object):
                 self.rows[row].remove(col)
             if row in self.cols[col]:
                 self.cols[col].remove(row)
-        self.check() # XXXX REMOVE ME XXXXXXXX
+        #self.check()
 
     def __getitem__(self, idx):
         if type(idx) != tuple:
@@ -746,6 +746,8 @@ def kernel(A, check=False, verbose=False):
 
     i = 0 # row
     for j in range(n): # col
+        #if j%10==0:
+        #    write("(%d/%d)"%(j, n))
 
         if verbose:
             print( "A, K (i=%d, j=%d)" % (i, j))
@@ -755,8 +757,8 @@ def kernel(A, check=False, verbose=False):
             print()
 
         # look for a row
-#        while i<m and (A[i, j:]!=0).sum()==0:
-        while i<m and A[i, j:].is_zero():
+        #while i<m and A[i, j:].is_zero():
+        while i<m and max(A.get_cols(i) or [-1]) < j:
             i += 1
 
         if i==m:
@@ -764,12 +766,22 @@ def kernel(A, check=False, verbose=False):
 
         if A[i, j] == 0:
             k = j
-            while A[i, k]==0:
-                k += 1
+            #while A[i, k]==0:
+            #    k += 1
+            for k in A.get_cols(i):
+                if k >= j:
+                    break
+            else:
+                assert 0
             swap_col(A, j, k)
             swap_col(K, j, k)
 
-        for k in range(j+1, n):
+        #for k in range(j+1, n):
+        #    if A[i, k]==0:
+        #        continue
+        for k in A.get_cols(i):
+            if k<=j:
+                continue
             r = -Fraction(A[i, k], A[i, j])
             A[:, k] += r * A[:, j]
             K[:, k] += r * K[:, j]
@@ -786,7 +798,6 @@ def kernel(A, check=False, verbose=False):
         print()
 
     j = K.shape[1] - 1
-#    while j>=0 and (A[:, j]!=0).sum() == 0:
     while j>=0 and A[:, j].is_zero():
         j -= 1
     j += 1
@@ -814,8 +825,9 @@ def nullity(A, **kw):
 class Subspace(object):
     """ Subspace represented as the rowspace of a matrix.
     """
-    def __init__(self, W):
-        assert rank(W) == len(W)
+    def __init__(self, W, check=False):
+        if check:
+            assert rank(W) == len(W)
         self.W = W
         self.m = W.shape[0]
         self.n = W.shape[1] # dimension
