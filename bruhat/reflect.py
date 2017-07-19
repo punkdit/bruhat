@@ -591,13 +591,12 @@ def main():
         elif (gh == hg):
             c_comm += 1
 
-        if (g) in P2 or (h) in P2:
-            continue
+#        if (g) in P2 or (h) in P2:
+#            continue
 
         if (gh == -hg) and i<j:
-            if (g == g.transpose()) and (h == h.transpose()) and i < j:
-                assert order(g)==2
-                pairs.append((g, h))
+            #assert order(g)==2 # not !
+            pairs.append((g, h))
 
     #print(c_comm, c_anti, total)
     print("pairs:", len(pairs))
@@ -607,6 +606,8 @@ def main():
         ops.add(g)
         ops.add(h)
     print("ops:", len(ops))
+
+    return
 
     assert len([g for g in G if g==g.transpose() and order(g)==2])==75
 

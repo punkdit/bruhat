@@ -114,6 +114,8 @@ Subgroup of 8 operators:
 Looks like four copies of P_1
 
 
+
+
 10/7/17
 =======
 
