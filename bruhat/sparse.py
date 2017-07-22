@@ -180,6 +180,14 @@ class Sparse(object):
         A.check() # XX
         return A
 
+    def todense(self):
+        import numpy
+        A = numpy.empty(self.shape, dtype=object)
+        A[:] = 0
+        for key, value in self.data.items():
+            A[key] = value
+        return A
+
     def check(self):
         for key, value in self.data.items():
             row, col = key
@@ -285,6 +293,14 @@ class Sparse(object):
         assert self.shape==other.shape
         return self.data!=other.data
 
+    def __hash__(self):
+        m, n = self.shape
+        data = []
+        for i in range(m):
+          for j in self.rows[i]:
+            data.append((i, j, self.data[i, j]))
+        return hash(tuple(data))
+
     def __add__(self, other):
         A = self.copy()
         for key, value in other.data.items():
@@ -317,6 +333,24 @@ class Sparse(object):
         return A
     __mul__ = dot
 
+    def tensor(A, B):
+        data = {}
+
+    def tensor(self, other, *rest):
+        if rest:
+            head, tail = rest[0], rest[1:]
+            return self.tensor(other.tensor(head), *tail)
+
+        m1, n1 = self.shape
+        m2, n2 = other.shape
+
+        A = Sparse(m1*m2, n1*n2)
+        for k1, v1 in self.data.items():
+          for k2, v2 in other.data.items():
+            A[k1[0]*m2 + k2[0], k1[1]*n2 + k2[1]] = v1*v2
+
+        return A
+
     def is_zero(self):
         return not self.data
 
@@ -329,6 +363,22 @@ class Sparse(object):
         cols = self.rows[row]
         cols.sort()
         return list(cols)
+
+    def eq_phase(A, B):
+        r = None
+        m, n = A.shape
+        assert A.shape == B.shape
+        for i, (idxs, jdxs) in enumerate(zip(A.rows, B.rows)):
+            if idxs != jdxs:
+                return None
+            if not idxs:
+                continue
+            if r is None:
+                r = A[i, idxs[0]] * B[i, jdxs[0]]
+            for j in idxs:
+                if r != A[i, j] * B[i, j]:
+                    return None
+        return r
 
     def concatenate(A, B):
         assert A.shape[1]==B.shape[1]

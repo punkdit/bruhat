@@ -10,6 +10,8 @@ from numpy.linalg import norm
 from bruhat.argv import argv 
 from bruhat.util import cross, factorial, write
 from bruhat import sparse
+
+from bruhat.sparse import Sparse as Op
 from bruhat.sparse import Subspace
 
 
@@ -37,145 +39,6 @@ def mulclose(gen, maxsize=None, verbose=False):
     return els
 
 
-class Op(object):
-    """
-        B_n operator: a signed perumutation matrix.
-    """
-    def __init__(self, perm, signs):
-        self.perm = list(perm)
-        self.signs = list(signs)
-        self.n = len(self.perm)
-        assert len(self.signs)==self.n
-        self._hash = hash(str((self.perm, self.signs)))
-
-    @classmethod
-    def identity(cls, n):
-        perm = range(n)
-        signs = [1]*n
-        return cls(perm, signs)
-
-    def __str__(self):
-        return str((self.todense()))
-
-    def __call__(self, v):
-        assert len(v) == self.n
-        u = numpy.zeros(self.n, dtype=v.dtype)
-        for i, idx in enumerate(self.perm):
-            sign = self.signs[i]
-            u[i] = v[idx]
-        return u
-
-    def __mul__(self, other):
-        assert isinstance(other, Op)
-        perm = []
-        signs = []
-        for i, idx in enumerate(self.perm):
-            perm.append(other.perm[idx])
-            signs.append(self.signs[i] * other.signs[idx])
-        return Op(perm, signs)
-
-    def __pow__(A, n):
-        assert n>=1
-        B = A
-        while n>1:
-            B = B*A
-            n -= 1
-        return B
-
-    def transpose(self):
-        n = self.n
-        perm = [None]*n
-        signs = [None]*n
-        for row, col in enumerate(self.perm):
-            signs[col] = self.signs[row]
-            perm[col] = row
-        return Op(perm, signs)
-
-    def __neg__(self):
-        signs = [-sign for sign in self.signs]
-        return Op(self.perm, signs)
-
-    def __rmul__(self, r):
-        assert r==1 or r==-1
-        if r==1:
-            return self
-        else:
-            return -self
-
-    def __eq__(self, other):
-        return self.perm==other.perm and self.signs==other.signs
-
-    def __ne__(self, other):
-        return self.perm!=other.perm or self.signs!=other.signs
-
-    def __hash__(self):
-        return self._hash
-
-    def tensor(self, other, *rest):
-        if rest:
-            head, tail = rest[0], rest[1:]
-            return self.tensor(other.tensor(head), *tail)
-
-        m, n = self.n, other.n
-        perm = []
-        signs = []
-        for i in range(m):
-          for j in range(n):
-            #k = i*n + j
-            k = self.perm[i]*n + other.perm[j]
-            perm.append(k)
-            signs.append(self.signs[i] * other.signs[j])
-        return Op(perm, signs)
-
-    def todense(self):
-        assert self.n < 2**10
-        A = numpy.zeros((self.n, self.n))
-        for i, idx in enumerate(self.perm):
-            A[i, idx] = self.signs[i]
-        return A
-
-    def eq_phase(self, other):
-        assert self.n == other.n
-        if self.perm != other.perm:
-            return None
-        phase = self.signs[0] * other.signs[0]
-        for a, b in zip(self.signs, other.signs):
-            if a*b != phase:
-                return None
-        return phase
-
-    def get_stab(self):
-        "Get the stabilized subspace (+1 eigenspace)"
-        n = self.n
-        found = [0]*n
-        orbits = []
-        perm = self.perm
-        signs = self.signs
-        for i in range(n):
-            if found[i]:
-                continue
-            parity = 1
-            j = i
-            orbit = [i]
-            while 1:
-                found[j] = 1
-                parity *= signs[j]
-                j = perm[j]
-                if j==i:
-                    break
-                orbit.append(j)
-            if parity != 1:
-                continue
-            orbit.sort()
-            orbit = tuple(orbit)
-            orbits.append(orbit)
-        A = sparse.zeros(len(orbits), n)
-        for i, orbit in enumerate(orbits):
-            for j in orbit:
-                A[i, j] = 1
-        S = Subspace(A)
-        return S
-
 
 class Tensor(object):
 
@@ -183,7 +46,9 @@ class Tensor(object):
         assert ops
         self.ops = list(ops)
         self.n = len(ops)
-        self.shape = tuple(op.n for op in ops)
+        for op in ops:
+            assert op.shape[0] == op.shape[1]
+        self.shape = tuple(len(op) for op in ops)
 
     def __mul__(self, other):
         assert self.n == other.n
@@ -229,7 +94,9 @@ class Tensor(object):
         phase = 1
         for i in range(1, self.n):
             op = self.ops[i]
-            r = op.signs[0]
+            #r = op.signs[0]
+            idxs = op.get_cols(0)
+            r = op[idxs[0], 0]
             if r == -1:
                 phase *= -1
                 ops[i] = -op
@@ -249,6 +116,30 @@ class Tensor(object):
         return A.todense()
 
 
+
+def build_An(n):
+    "Return list of generators for orthogonal reflection group A_n"
+    assert n>=2
+
+    gen = []
+
+    # basis-swaps, "_controlled bitflips"
+    for i in range(n-1):
+        perm = list(range(n))
+        perm[i], perm[i+1] = perm[i+1], perm[i]
+        X = Op(n, n)
+        for j in range(n):
+            if j == i:
+                X[j, j+1] = 1
+            elif j == i+1:
+                X[j, j-1] = 1
+            else:
+                X[j, j] = 1
+        gen.append(X)
+
+    return gen
+
+
 def build_Bn(n):
     "Return list of generators for orthogonal reflection group B_n"
     assert n>=2
@@ -259,13 +150,46 @@ def build_Bn(n):
     for i in range(n-1):
         perm = list(range(n))
         perm[i], perm[i+1] = perm[i+1], perm[i]
-        X = Op(perm, [1]*n)
+        X = Op(n, n)
+        for j in range(n):
+            if j == i:
+                X[j, j+1] = 1
+            elif j == i+1:
+                X[j, j-1] = 1
+            else:
+                X[j, j] = 1
         gen.append(X)
 
     # sign-swap, "_controlled phase-flip"
-    signs = [1]*n
-    signs[n-1] = -1
-    Z = Op(range(n), signs)
+    Z = Op.identity(n)
+    Z[n-1, n-1] = -1
+    gen.append(Z)
+
+    return gen
+
+
+def build_Dn(n):
+    "Return list of generators for orthogonal reflection group D_n"
+    assert n>=2
+
+    gen = []
+
+    for i in range(n-1):
+        perm = list(range(n))
+        perm[i], perm[i+1] = perm[i+1], perm[i]
+        X = Op(n, n)
+        for j in range(n):
+            if j == i:
+                X[j, j+1] = 1
+            elif j == i+1:
+                X[j, j-1] = 1
+            else:
+                X[j, j] = 1
+        gen.append(X)
+
+    Z = Op.identity(n)
+    Z[n-1, n-1] = -1
+    Z[n-2, n-2] = -1
     gen.append(Z)
 
     return gen
@@ -273,10 +197,22 @@ def build_Bn(n):
 
 def test():
 
+    for n in [2, 3, 4]:
+
+        ops = build_An(n)
+        assert len(mulclose(ops))==factorial(n)
+    
+        ops = build_Bn(n)
+        assert len(mulclose(ops))==2**n*factorial(n)
+    
+        ops = build_Dn(n)
+        assert len(mulclose(ops))==2**(n-1)*factorial(n)
+    
+
     from numpy import kron as tensor
-    perms = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 1, 0], [2, 0, 1]]
-    signss = [(a, b, c) for a in [-1, 1] for b in [-1, 1] for c in [-1, 1]]
-    ops = [Op(perm, signs) for perm in perms for signs in signss]
+
+    def allclose(A, B):
+        return numpy.abs(A - B).sum()==0
 
     for A in ops:
       for B in ops:
@@ -286,14 +222,14 @@ def test():
 
         lhs = (A*B).todense()
         rhs = ((numpy.dot(A.todense(), B.todense())))
-        assert numpy.allclose(lhs, rhs)
+        assert allclose(lhs, rhs)
 
         lhs = (A.tensor(B)).todense()
         rhs = ((tensor(A.todense(), B.todense())))
-        assert numpy.allclose(lhs, rhs)
+        assert allclose(lhs, rhs)
 
     for A in ops:
-        assert numpy.allclose(A.transpose().todense(), A.todense().transpose()), str(A)
+        assert allclose(A.transpose().todense(), A.todense().transpose()), str(A)
 
     ops = mulclose(build_Bn(2))
     tops = []
@@ -308,13 +244,11 @@ def test():
 
     for A in tops:
       for B in tops:
-        assert (A==B) == numpy.allclose(A.todense(), B.todense())
+        assert (A==B) == allclose(A.todense(), B.todense())
         assert (A==B) == (A.get_canonical()==B.get_canonical())
         assert (A==B) == (hash(A)==hash(B))
 
     print("OK")
-
-
 
 
 
