@@ -3,6 +3,8 @@
 from __future__ import print_function
 
 import sys, os
+from fractions import Fraction
+from random import shuffle
 
 import numpy
 from numpy.linalg import norm
@@ -118,7 +120,7 @@ class Tensor(object):
 
 
 def build_An(n):
-    "Return list of generators for orthogonal reflection group A_n"
+    "Return list of generators for orthogonal reflection group A_{n-1}"
     assert n>=2
 
     gen = []
@@ -251,217 +253,6 @@ def test():
     print("OK")
 
 
-
-class Toric(object):
-    def __init__(self, l, X, Z):
-        assert l >= 2
-
-        N = X.n
-        I = Op.identity(N)
-        assert X*X == I
-        assert Z*Z == I
-        assert Z*X == -X*Z
-
-        keys = []
-        lookup = {}
-        for i in range(l):
-          for j in range(l):
-            for k in range(2):
-                key = (i, j, k)
-                idx = len(keys)
-                keys.append(key)
-                for di in (-l, 0, l):
-                  for dj in (-l, 0, l):
-                    lookup[i+di, j+dj, k] = idx
-
-        n = 2*(l**2) # qubits
-
-        II = Tensor([I]*n)
-
-        ops = []
-        for i in range(l):
-          for j in range(l):
-
-            # plaqs
-            op = [I]*n
-            for idx in [lookup[i, j, 0], lookup[i, j+1, 0], lookup[i, j, 1], lookup[i+1, j, 1]]:
-                op[idx] = Z
-            op = Tensor(op)
-            assert op*op==II
-            ops.append(op)
-        
-            # stars
-            op = [I]*n
-            for idx in [lookup[i, j, 0], lookup[i-1, j, 0], lookup[i, j, 1], lookup[i, j-1, 1]]:
-                op[idx] = X
-            op = Tensor(op)
-            assert op*op==II
-            ops.append(op)
-
-        for A in ops:
-          for B in ops:
-            assert A*B==B*A
-
-        if l==2:
-            assert len(mulclose(ops))==64
-        
-
-def toric(Xs, Zs):
-
-    n = 8
-    N = Xs[0].n
-    I = Op.identity(N)
-
-#    assert X*X == I
-#    assert Z*Z == I
-#    assert Z*X == -X*Z
-#    ZZ = tensor(Z, Z)
-#    XX = tensor(X, X)
-#    assert ZZ*XX == XX*ZZ
-
-    X1, X2 = Xs
-    Z1, Z2 = Zs
-    assert X1*X2 == X2*X1
-    assert Z1*Z2 == Z2*Z1
-    assert X1*Z2 == Z2*X1
-    assert Z1*X2 == X2*Z1
-    assert X1*Z1 == -Z1*X1
-    assert X2*Z2 == -Z2*X2
-
-    print("toric: dim=%d"%(N**n))
-    II = Op.identity(N**n)
-
-    plaqs = [(0, 1, 2, 5), (0, 2, 3, 7), (4, 5, 6, 1), (6, 7, 3, 4)]
-    stars = [(0, 1, 3, 4), (1, 2, 3, 6), (0, 4, 5, 7), (2, 5, 6, 7)]
-
-    for a in plaqs:
-      for b in stars:
-        assert len(set(a).intersection(set(b))) % 2 == 0
-
-    ops = []
-    for idxs in plaqs:
-        for Z in Zs:
-            op = [I] * n
-            for idx in idxs:
-                op[idx] = Z
-            op = tensor(*op)
-            #assert op*op == II
-            ops.append(op)
-
-    for idxs in stars:
-        for X in Xs:
-            op = [I] * n
-            for idx in idxs:
-                op[idx] = X
-            op = tensor(*op)
-            #assert op*op == II
-            ops.append(op)
-
-    for A in ops:
-      for B in ops:
-        assert A*B == B*A
-
-    v = numpy.zeros(N**n)
-    v[0] = 1.
-    for A in ops:
-        v = v + A(v)
-    assert(abs(norm(v)) > 0.1)
-    v /= norm(v)
-    #print(v)
-
-    spaces = []
-    for A in ops:
-        S = A.get_stab()
-        print("get_stab:", len(S))
-        spaces.append(S)
-
-        u = A(v)
-        r = numpy.dot(u, v)
-        err = norm(u - r*v)
-        assert abs(r-1.) < EPSILON
-        assert err < EPSILON
-        #print(r, err, end=' ')
-    #print()
-    
-    S = spaces[0]
-    for S1 in spaces[1:]:
-        print("codespace:", len(S))
-        S = S.intersect(S1)
-    print("codespace:", len(S))
-
-
-def multi_toric(Xs, Zs):
-
-    n = 8
-    N = Xs[0].n
-    I = Op.identity(N)
-    for X in Xs:
-      for Z in Zs:
-        assert X*X == I
-        assert Z*Z == I
-        assert Z*X == -X*Z
-
-    print("toric: dim=%d"%(N**n))
-    II = Op.identity(N**n)
-
-    plaqs = [(0, 1, 2, 5), (0, 2, 3, 7), (4, 5, 6, 1), (6, 7, 3, 4)]
-    stars = [(0, 1, 3, 4), (1, 2, 3, 6), (0, 4, 5, 7), (2, 5, 6, 7)]
-
-    for a in plaqs:
-      for b in stars:
-        assert len(set(a).intersection(set(b))) % 2 == 0
-
-    ops = []
-    for idxs in stars:
-        for X in Xs:
-            op = [I] * n
-            for idx in idxs:
-                op[idx] = X
-            op = tensor(*op)
-            assert op*op == II
-            ops.append(op)
-
-    for idxs in plaqs:
-        for Z in Zs:
-            op = [I] * n
-            for idx in idxs:
-                op[idx] = Z
-            op = tensor(*op)
-            assert op*op == II
-            ops.append(op)
-
-    for A in ops:
-      for B in ops:
-        assert A*B == B*A
-
-    v = numpy.zeros(N**n)
-    v[0] = 1.
-    for A in ops:
-        v = v + A(v)
-    assert(abs(norm(v)) > 0.1)
-    v /= norm(v)
-    #print(v)
-
-    spaces = []
-    for A in ops:
-        S = A.get_stab()
-        #print("get_stab:", len(S))
-        spaces.append(S)
-
-        u = A(v)
-        r = numpy.dot(u, v)
-        err = norm(u - r*v)
-        assert abs(r-1.) < EPSILON
-        assert err < EPSILON
-        #print(r, err, end=' ')
-    #print()
-    
-    S = spaces[0]
-    for S1 in spaces[1:]:
-        print("codespace:", len(S))
-        S = S.intersect(S1)
-    print("codespace:", len(S))
-
 def tensor(*ops):
     return ops[0].tensor(*ops[1:])
 
@@ -475,6 +266,7 @@ def order(g):
     #print(n, end=' ')
     return n
 
+
 def inverse(g):
     n = order(g)
     if n==1:
@@ -482,171 +274,84 @@ def inverse(g):
     return g**(n-1)
 
 
+def posproj(g, I):
+    assert (g*g) == I
+    p = Fraction(1, 2) * (I + g)
+    assert (p*p) == p
+    return p
+
+
+def negproj(g, I):
+    assert (g*g) == I
+    p = Fraction(1, 2) * (I - g)
+    assert (p*p) == p
+    return p
+    
+
+def search(projs, n):
+
+    i = len(projs)
+    for p in projs:
+      for q in projs:
+        pq = p*q
+        if pq == (q*p):
+            yield [p, q]
+
+
 def main():
 
-    X, Z = build_Bn(2)
-    I = Op.identity(2)
 
-    l = argv.get("l", 2)
-    if argv.B2:
-        #toric(X, Z)
-        code = Toric(l, X, Z)
-        print("OK")
+    desc = argv.next() or "B2"
+    n = int(desc[-1:])
+
+    if desc[0] == "A":
+        gen = build_An(n)
+    elif desc[0] == "B":
+        gen = build_Bn(n)
+    elif desc[0] == "D":
+        gen = build_Dn(n)
+    else:
+        print("no group desc found matching %s"%desc)
         return
 
-    #print(I)
-    #print(X)
-    #print(Z)
+    I = Op.identity(n)
+    zero = Op(n)
 
-    II = Op.identity(4)
+    G = mulclose(gen)
+    print(len(G))
 
-    P2 = [X.tensor(I), Z.tensor(I), I.tensor(X), I.tensor(Z)]
-    P2 = mulclose(P2)
-    
-    assert len(P2)==32
-    assert II in P2
-
-    errors = []
-    for A in P2:
-        if A == II or A == -II or -A in errors:
+    projs = []
+    for g in G:
+        if g==I:
             continue
-        errors.append(A)
-    assert len(errors)==15
+        if g*g==I:
+            projs.append(posproj(g, I))
 
-    if 0:
-        G = mulclose(P2)
-        for g in G:
-            A = g.todense()
-            vals = numpy.linalg.eigvals(A)
-            print(vals) # all +1, -1
+    assert(len(set(projs))==len(projs))
 
-    d = argv.get("d", 4)
-    gen = build_Bn(d)
-    n = (2**d) * factorial(d)
-    assert len(mulclose(gen)) == n # slow...
-    G = mulclose(gen, n)
+    #for H in search(projs):
+    #    print("found")
 
+    pairs = []
+    for p in projs:
+      for q in projs:
+        if p*q != q*p:
+            pairs.append((p, q))
+    print("pairs:", len(pairs))
+    shuffle(pairs)
 
-    H = [g for g in G if g not in P2]
-
-    for ops in all_quads(H):
-        X1, X2, Z1, Z2 = ops
-        ss = set()
-        print("quad") # no quads found ...
-        for E in errors:
-            #s = tuple(order(E*A) for A in ops)
-            #ss.append(s)
-            ss.add(tuple(E*A*inverse(E)*inverse(A) for A in ops))
-            #ss.add(tuple(order(E*A) for A in ops))
-        #print(len(set(ss)))
-        if len(set(ss))==len(errors):
-            write("/")
-            toric([X1, X2], [Z1, Z2])
-        else:
-            write("\\")
+    for (p1, q1) in pairs:
+      for (p2, q2) in pairs:
+        A = tensor(p1, p2)
+        B = tensor(q1, q2)
+        if A*B == B*A:
+            write(".")
+    print()
+      
 
 
-def all_quads(H):
-    n = len(H)
-    quads = []
-    for i1 in range(n):
-      for j1 in range(i1+1, n):
-        X1 = H[i1]
-        Z1 = H[j1]
-#        if order(X1*Z1)!=4:
-#            continue
-        if X1*Z1 != -Z1*X1:
-            continue
-
-        for i2 in range(j1+1, n):
-            X2 = H[i2]
-#            if order(X1*X2)!=2:
-#                continue
-#            if order(Z1*X2)!=2:
-#                continue
-            if X1*X2 != X2*X1:
-                continue
-            if Z1*X2 != X2*Z1:
-                continue
-
-            for j2 in range(i2+1, n):
-                Z2 = H[j2]
-#                if order(X1*Z2)!=2:
-#                    continue
-#                if order(Z1*Z2)!=2:
-#                    continue
-#                if order(X2*Z2)!=4:
-#                    continue
-                if Z1*Z2 != Z2*Z1:
-                    continue
-                if X1*Z2 != Z2*X1:
-                    continue
-                if X2*Z2 != -Z2*X2:
-                    continue
-                yield (X1, X2, Z1, Z2)
-
-
-def show_table(H):
-    for g in H:
-        assert order(g)==2
-        for h in H:
-            i = order(g*h)
-            if i==2:
-                s = '+ '
-            elif i==4:
-                s = '- '
-            elif i==1:
-                s = '  '
-            else:
-                s = '%d '%i
-            print(s, end=' ')
-        print()
-
-    return
-
-def scrap():
-
-    for (X, Z) in pairs:
-        ok = False
-        for E in errors:
-#            if X*E != E*X or Z*E != E*Z:
-            if X*E == -E*X or Z*E == -E*Z:
-                break
-        else:
-            print("fail")
-            continue
-        #toric(X, Z)
-
-        code = Toric(l, X, Z)
-
-        print("syndromes:")
-        for E in errors:
-            #print(code.get_syndrome(E))
-            print("  ", end='')
-            for op in [X, Z]:
-                if op*E==E*op:
-                    s = '.'
-                if op*E==-E*op:
-                    s = '-'
-                else:
-                    s = '?'
-                print(s, end='')
-        print()
-
-        #return
-
-    
 
 if __name__ == "__main__":
 
-    if argv.test:
-        test()
-
-    elif argv.profile:
-        import cProfile as profile
-        profile.run("main()")
-
-    else:
-        main()
-
+    main()
 

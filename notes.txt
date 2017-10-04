@@ -1,4 +1,729 @@
 
+4/10/17
+=======
+
+p-adic numbers
+--------------
+
+Let p be a prime number.
+Z_p is the inverse limit of the finite rings Z/p^kZ
+It has no zero divisors, so we can form the field of
+fractions, denoted as Q_p, the field of p-adic numbers.
+
+https://en.wikipedia.org/wiki/P-adic_number
+
+
+ Topology and Abstract Algebra as Two Roads of Mathematical Comprehension
+Hermann Weyl
+The American Mathematical Monthly
+Vol. 102, No. 5 (May, 1995), pp. 453-460
+
+"Grothendieck and the Concept of Space"
+http://www.ias.ac.in/article/fulltext/reso/020/06/0500-0505
+A beginner guide to Grothendieck
+
+Feynman Diagrams in Algebraic Combinatorics
+Abdelmalek Abdesselam
+https://arxiv.org/abs/math/0212121
+We show, in great detail, how the perturbative tools
+of quantum field theory allow one to rigorously obtain:
+a ``categorified'' Faa di Bruno type formula for multiple
+composition, an explicit formula for reversion and a
+proof of Lagrange-Good inversion, all in the setting
+of multivariable power series. We took great pains to
+offer a self-contained presentation that, we hope, will
+provide any mathematician who wishes, an easy access
+to the wonderland of quantum field theory.
+
+on the analogy between knots and prime numbers:
+http://math.ucr.edu/home/baez/week257.html
+"I want to know why the integers resemble a 3-dimensional space - and how prime numbers give something like "knots" in this space!"
+
+https://mathoverflow.net/questions/10879/intuition-for-group-cohomology
+
+https://mathoverflow.net/questions/139388/example-of-an-unnatural-isomorphism
+
+https://mathoverflow.net/questions/21024/what-is-the-exterior-derivative-intuitively
+
+"On the Visualisation of Differential Forms" Dan Piponi
+https://github.com/dpiponi/forms/raw/master/forms.pdf
+
+https://mathoverflow.net/questions/12511/what-is-yonedas-lemma-a-generalization-of
+
+    Dedekind completions (for posets)
+    a completion of a poset S is the set of its downwardly
+    closed subsets, ordered by inclusion. S is order-embedded
+    in this lattice by sending each element x to the ideal it generates.
+    
+    the Yoneda Lemma in the case of one-object categories,
+    i.e. monoids. Let M be a monoid, and write M~ for
+    its left regular representation. Then for any left M-set
+    X, there's a natural bijection between elements of X
+    and maps M~→X of M-sets.
+    
+    "Tannaka duality is essentially applying Yoneda twice.
+    So a special case of Tannaka duality that doesn't require
+    the Yoneda lemma would be Pontryagin duality."
+
+https://mathoverflow.net/questions/64365/natural-transformations-as-categorical-homotopies
+
+
+
+
+1/10/17
+=======
+
+The lattice of flow diagrams, by Dana Scott, 1970
+
+
+Wikipedia as a graph: 
+Exploring Wikipedia with Gremlin Graph Traversals
+March 7, 2012
+https://markorodriguez.com/2012/03/07/exploring-wikipedia-with-gremlin-graph-traversals/
+
+Wikipedia graph mining: dynamic structure of collective memory
+http://blog.miz.space/research/2017/08/14/wikipedia-collective-memory-dynamic-graph-analysis-graphx-spark-scala-time-series-network/
+
+https://dumps.wikimedia.org/enwiki/20170920/
+
+
+30/9/17
+=======
+
+"A universe of processes and some of its guises" Bob Coecke
+https://arxiv.org/abs/1009.3786
+Evil & Dagger compact
+"Strict dagger compact (closed) categories appeared in the work of Baez and Dolan [15]
+as a special case for n = 1 and k = 3 of k-tuply monoidal n-categories with duals."
+[15] Higher-dimensional Algebra and Topological Quantum Field Theory
+     John C. Baez, James Dolan
+     https://arxiv.org/abs/q-alg/9503002
+
+
+
+
+
+
+25/9/17
+=======
+
+Book Review of Jean Bricmont’s
+“Making Sense of Quantum Mechanics”
+Springer, 2016
+Michael K.-H. Kiessling
+
+Advocates de-broglie-bohm theory.
+
+"Denials of an objective reality are, in the opinion of the author, and also of the
+reviewer, aberrations of human thought, plain and simple. "
+
+ugh
+
+
+23/9/17
+=======
+
+https://www.washingtonpost.com/news/speaking-of-science/wp/2017/09/21/scientists-just-discovered-the-first-animal-without-a-brain-that-sleeps/
+
+
+22/9/17
+=======
+
+Higher Teichmüller Spaces: from SL(2,R) to other Lie groups
+Marc Burger, Alessandra Iozzi, Anna Wienhard
+https://arxiv.org/abs/1004.2894
+
+
+
+
+
+20/9/17
+=======
+
+G-set references:
+"Equivariant Cohomology Theories" Glen E. Bredon
+"Categories of sets with a group action" Joris Weimar
+"Notes on the theory of representations of finite groups, 
+  Part I: The Burnside ring of a finite group and some AGN-applications"
+  Andreas W. M. Dress
+
+
+
+
+
+18/9/17
+=======
+
+
+Elliptic curves (over C)
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Definition (1) 
+solution set of
+y^2 = (x-a)(x-b)(x-c)
+
+Definition (2)
+Complex numbers modulo a lattice.
+This is a torus.
+
+
+
+
+18/9/17
+=======
+
+https://ncatlab.org/johnbaez/show/Zeta+functions
+
+
+Modular forms
+~~~~~~~~~~~~~
+
+Modular group SL(2, Z).
+A *modular form* of weight k for the modular group is 
+    1. holomorphic function f:H->C
+    2. f((az+b)/(cz+d)) = (cz+d)^k f(z)
+    3. holomorphic as z->i \infty
+
+A *modular function* is
+    1. meromorphic f:H->C
+    2. f((az+b)/(cz+d)) = f(z)
+    3. meromorphic at the cusp (i \infty)
+
+The space of modular forms of weight 2k has
+dimension 1 for 2k = 4, 6, 8, 10, 14.
+No (non-trivial) modular forms for odd weight.
+No (non-trivial) modular forms weight k=2.
+
+
+??? 
+A modular function is a meromorphic function on H^/SL(2, Z),
+where H^ includes the cusp i\infty (and all the other cusps..right?).
+
+
+Eisenstein series for the modular group:
+
+G_{2k}(z) = sum_{m, n \in Z, Z != 0}
+    1 / (m + n z)^2k.
+
+Defines a modular form of weight 2k, with k>=2 an integer.
+Use weight 2k to get even weight otherwise
+sumation cancels out to zero.
+Sum does not converge for k==1.
+
+Any modular form can be written as a polynomial in G_4 and G_6.
+Specifically, there's a recurrence relation for the G's.
+
+With E_2k = G_2k / (2 zeta(2k) )
+
+we have the fourier series, q=e^{2\pi i z}:
+
+    E_4 = 1 + 240 sum_n ( sigma_3(n) q^n )
+    E_6 = 1 - 504 sum_n ( sigma_5(n) q^n )
+
+where sigma_a(n) is the sum of the a'th powers of
+the divisors of n.
+
+Lambert series:
+
+    sum_n ( sigma_a(n) q^n ) = sum_n ( n^a q^n / (1-q^n) )
+        for |q|<=1 and any a.
+
+A *cusp form* has zero coefficient for the q^0 term.
+
+Ramanujan identities involve differentiating E_2, E_4, and E_6 :
+
+q E_2' = (E_2^2 - E_4)/12
+q E_4' = (E_2 E_4 - E_6)/3
+q E_6' = (E_2 E_6 - E_4^2)/2.
+
+
+j-invariant
+~~~~~~~~~~~
+
+Klein's j-invariant (or j function)
+is the unique modular function $j$ such that:
+    j(exp(2\pi i/3)) = 0, and
+    j(i) = 1728.
+
+Rational functions of $j$ give all
+modular functions.
+
+$j$ is a bijection between isomorphism classes
+of elliptic curves (moduli space) and \Complex.
+
+Moonshine
+~~~~~~~~~
+
+The q-expansion of $j$:
+
+    j(q) = q^{-1} + 744 + 196884q + 21493760q^2 + ...
+
+the coefficient of q^n
+is the dimension of grade-n part of the moonshine module,
+the first example being the Griess algebra,
+which has dimension 196884.
+
+The monster group was investigated in the 1970s
+by mathematicians Jean-Pierre Serre, Andrew Ogg and John
+G. Thompson; they studied the quotient of the hyperbolic
+plane by subgroups of SL2(R), particularly, the normalizer
+Γ0(p)+ of Γ0(p) in SL(2,R). They found that the Riemann
+surface resulting from taking the quotient of the hyperbolic
+plane by Γ0(p)+ has genus zero if and only if p is 2,
+3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 41, 47, 59 or 71.
+When Ogg heard about the monster group later on, and
+noticed that these were precisely the prime factors of
+the size of M, he published a paper offering a bottle
+of Jack Daniel's whiskey to anyone who could explain this fact.
+
+"“Moonshine” of Finite Groups", book by Koichiro Harada
+
+"moonshine beyond the monster: the bridge connecting algebra,
+modular forms, and physics" book by Terry Gannon
+
+"The algebraic meaning of genus-zero"
+T. Gannon
+https://arxiv.org/abs/math/0512248
+
+Congruence
+subgroups Γ0(p), for p prime,
+are used for defining genus zero surfaces if p−1 divides 24 
+
+The Monster vertex algebra is conjectured (by Edward Frenkel and
+collaborators) to be the unique holomorphic 
+vertex operator algebra
+with charge 24 and partition function j − 744 (where
+j is again the modular invariant).
+
+
+
+More generally
+~~~~~~~~~~~~~~
+
+Automorphic form:
+    1. well behaved function f:G->C where G is a lie group
+    2. invariant under a discrete subgroup gamma in G,
+        up to a factor of automorphy.
+    3. conditions on growth at infty
+
+Example: Siegel modular form.
+https://arxiv.org/pdf/math/0605346.pdf
+
+
+A weirdo
+~~~~~~~~
+
+"Drawing quantum contextuality with 'dessins d'enfants'"
+Michel Planat
+https://arxiv.org/abs/1404.6986
+
+A Moonshine Dialogue in Mathematical Physics
+Michel Planat
+www.mdpi.com/2227-7390/3/3/746/pdf
+
+
+16/9/17
+=======
+
+Still looking for a deterministic theory:
+"Free Will in the Theory of Everything"
+https://arxiv.org/abs/1709.02874
+'...this solution will give room neither for "Divine Intervention", nor for "Free Will"'
+ugh
+
+
+https://mathoverflow.net/questions/546/galois-groups-vs-fundamental-groups
+"coverings of manifolds as analogous to field extensions"
+"Galois groups are fundamental groups with generic base-points."
+
+"Groupoids: Unifying Internal and External Symmetry
+A Tour through Some Examples"
+Alan Weinstein
+http://www.ams.org/notices/199607/weinstein.pdf
+
+
+12/9/17
+=======
+
+https://mathoverflow.net/questions/24604/why-are-modular-forms-interesting
+
+Bernoulli numbers EGF:
+B^-: x/(exp(x)-1) 
+B^+: x/(1-exp(-x)) 
+In terms of Riemann zeta function:
+B+(n) = -n zeta(1-n) for n>=1.
+https://mathoverflow.net/questions/60478/hirzebruchs-motivation-of-the-todd-class
+f(x) = x/(1-exp(-x))
+is the only power series with constant term 1
+satisfying:
+coefficient of x^n in (f(x))^(n+1) is 1, for all n.
+
+https://mathoverflow.net/questions/2795/why-are-characters-so-well-behaved
+
+
+
+12/9/17
+=======
+
+"The influence of Grothendieck on modern mathematics is virtually unpar-
+alleled. If you ask who was the most important mathematician of the second
+half of the twentieth century, many mathematicians will say without hesita-
+tion: Grothendieck. Not only did he almost singlehandedly create modern al-
+gebraic geometry, he also transformed the way we think about mathematics as
+a whole."
+Frenkel, in LOVE AND MATH, p157-158
+
+"Though he was by no means a sloppy type, he was gifted with the special capability
+of making many mistakes, mostly in the right direction. I envied him for this, and
+tried in vain to imitate him, but found it quite difficult to make good mistakes."
+Goro Shimura, in "Yutaka Taniyama and his time."
+
+Drinfeld: Feb 14, 1954 ( Water )
+supervisor: Yuri Manin ( Fire ) !
+collaborator: Alexander Beilinson ( Metal )
+
+Boris Feigin: Nov 20, 1953 ( Earth )
+
+Israel Gelfand: Sep 2, 1913 ( Metal )
+students:
+    Endre Szemerédi, b. 1940 ( Metal )
+    Alexandre Kirillov, b. 1936 ( Water )
+    Joseph Bernstein, b. 1945 ( Water )
+    Edward Frenkel: b. 1968 ( Earth )
+
+Beilinson & Bernstein collaboration
+
+
+
+11/9/17
+=======
+
+
+https://mathoverflow.net/questions/225445/sophisticated-treatments-of-topics-in-school-mathematics
+
+Langlands paradise:
+https://mathoverflow.net/questions/31538/non-abelian-class-field-theory-and-fundamental-groups
+
+
+"Algebra is the offer made by the devil to the mathematician. The devil says: I will give you this powerful machine, it will answer any question you like. All you need to do is give me your soul: give up geometry and you will have this marvelous machine." — Sir Michael Atiyah, 2002
+https://golem.ph.utexas.edu/category/2015/11/weil_venting.html
+
+
+
+10/9/17
+=======
+
+Group actions, galois correspondence: 
+    contravariant relation between algebra and geometry
+    sending products to sums (?) is this like a categorified exponential ?
+
+8/9/17
+======
+
+Symmetric monoidal, Dagger categories
+
+MONADS ON DAGGER CATEGORIES
+http://www.tac.mta.ca/tac/volumes/31/35/31-35.pdf
+
+Categories for the practising physicist
+https://arxiv.org/pdf/0905.3010.pdf
+FdHilb, Rel, 2Cob
+
+"Interacting quantum observables: categorical algebra and diagrammatics"
+Bob Coecke and Ross Duncan
+http://iopscience.iop.org/article/10.1088/1367-2630/13/4/043016/pdf
+
+Toy quantum categories
+Spekken's toy quantum theory
+https://arxiv.org/abs/0808.1037
+
+"FINITE DIMENSIONAL HILBERT SPACES ARE COMPLETE FOR
+DAGGER COMPACT CLOSED CATEGORIES" PETER SELINGER
+https://arxiv.org/pdf/1207.6972.pdf
+Abstract. We show that an equation follows from the axioms of dagger compact closed
+categories if and only if it holds in finite dimensional Hilbert spaces.
+Theorem 2.1:
+A well-typed equation between morphisms in the language of dagger
+compact closed categories follows from the axioms of dagger compact closed categories if and
+only if it holds, up to graph isomorphism, in the graphical language.
+(See: http://www.mscs.dal.ca/~selinger/papers/dagger.pdf )
+6. Generalizations
+...the results also hold if one replaces k by the ring of Gaussian integers
+k = Z[i].
+In elementary terms: if a certain equation fails to hold in dagger compact closed
+categories, then one can always find a counterexample in matrices with entries of the form
+a+bi, where a, b ∈ Z. Moreover, i = √ −1 
+can be replaced by √ d for any non-square integer d
+
+See also David Ellerman papers
+
+
+1/9/17
+======
+
+\Gamma(1) := PSL(2, Z)
+
+for integer $n>1$
+\Gamma(n) := Kernel of PSL(2, Z) -> PSL(2, Z/n)
+
+for odd prime,
+Genus of surface H/Gamma(p) = (1+(p**2-1)*(p-6)/24.)
+for p==3, 5, genus = 0
+for p==7 genus = 3
+for p==11 genus = 26
+
+
+Orbits of PSL(2,C) acting on 4-tuples of C^ are classified by cross-ratio.
+
+29/8/17
+=======
+
+Slides for Magnitude homology talk by Tom Leinster
+http://www.maths.ed.ac.uk/~tl/sapporo/sapporo_talk.pdf
+
+
+
+27/8/17
+=======
+
+I don't see why "understanding" is equivalent to mere pattern recognition. Even using this word "recognition", what does that mean? It's another word like "understand". These algorithms are just pattern patterning. They don't even know they are patterning, that is a meta-property assigned in (or by) a context.
+
+26/8/17
+=======
+
+
+"What Do Fermat's Last Theorem and Electro-magnetic Duality Have in Common?"
+Edward Frenkel, UCB & KITP
+video: http://online.itp.ucsb.edu/online/bblunch/frenkel/
+
+
+
+Langlands:
+number theory <-> harmonic analysis
+
+Tanayama-shimura-weil conjecture:
+    p+1+a_p = number of solutions of elliptic curve over Z/pZ
+
+    <=> 
+
+    modular form:
+    f_E(tau) = \sum_n a_n q^n 
+    with q=e^{2 pi i tau} and a_{mn}=a_n a_m
+
+
+Langlands correspondence:
+n-dim reps of Gal(Qbar/Q)  <--> automorphic reps of GL_n
+
+more generally:
+Gal(Qbar/Q)->LG  <--> automorphic reps of G
+
+
+Langlands dual group 
+
+LG     | G
+-----------
+GL_n   | GL_n
+SLn/Zn | SLn
+Sp2n   | SO_{2n+1}
+
+
+Categorical langlands correspondence
+S-duality
+4-dim supersymmetric theory
+(LG, -1/tau) <-> (G, tau)
+duality between weak vs strong coupling
+Kapustin-Witten
+Categorical equivalence between 
+category of A-branes and category of B-branes
+
+
+
+
+26/8/17
+=======
+
+programming with modules:
+    "On the Criteria To Be Used in Decomposing Systems into Modules"
+    D.L. Parnas
+    1972
+
+
+"NP-complete Problems and Physical Reality"
+Scott Aaronson
+https://arxiv.org/abs/quant-ph/0502072
+
+The angle addition formula tan(a+b)=...
+gives a formal group law:
+F(x, y)=(x+y)/(1-x*y)
+https://mathoverflow.net/a/225449/39775
+
+
+
+23/8/17
+=======
+
+Doctrines of algebraic geometry
+https://ncatlab.org/johnbaez/show/Doctrines+of+algebraic+geometry
+
+https://ncatlab.org/davidcorfield/show/intuitions+about+cohomology
+
+Mathematical Components
+Libraries of formalized mathematics for Coq
+http://math-comp.github.io/math-comp/
+
+
+Nice article introducing group theory:
+https://www.quantamagazine.org/symmetry-algebra-and-the-monster-20170817/
+
+https://mathoverflow.net/questions/30156/demystifying-complex-numbers
+
+https://mathoverflow.net/questions/225445/sophisticated-treatments-of-topics-in-school-mathematics
+
+Very good list here:
+https://mathoverflow.net/questions/7957/books-well-motivated-with-explicit-examples
+
+https://mathoverflow.net/questions/24526/good-papers-books-essays-about-the-thought-process-behind-mathematical-research
+
+
+
+
+
+20/8/17
+=======
+
+Klein quartic curve:
+http://math.ucr.edu/home/baez/klein.html
+
+Subgroups of PSL(2,Z/7) and structure for klein's quartic:
+http://library.msri.org/books/Book35/files/karcher.pdf
+page 32-33:
+    List of subgroups, assuming one fixed pairs of pants decomposition.
+    Order 2: Rotation around the midpoint of a short edge interchanges the adjacent
+    black and white hexagons; every white hexagon has a black image. There
+    are 21 of these subgroups.
+    Order 3: Cyclic rotation of one pair of pants into itself; cyclic permutation of
+    the other pants. There are 28 of these subgroups.
+    Order 6: The two symmetries just given combine to the full isotropy group of
+    one pair of pants. The decomposition into hexagons by short edges is not
+    determined. There are 28 of these subgroups.
+    Order 4: From the construction of the pants we know the cyclic group generated
+    by two step translations of a closed geodesic made of short edges. The
+    uncolored tiling is preserved. There are 21 of these subgroups.
+    Order 4: The 180◦-rotations around the twelve vertices of our pant hexagons
+    form a Klein Four-group that preserves the colored tiling. There are 14 of
+    these subgroups.
+    Order 8: Extend the cyclic translation subgroup of order 4 by the 180◦ rotation
+    around the midpoint of one of the translated short edges. This is the isotropy
+    group of an eight step closed geodesic. There are 21 of these subgroups.
+    Order 12: The full invariance group of the colored tessellation contains in addition
+    to the above Klein group the order 3 rotations of each of the pants.
+    There are 14 of these subgroups.
+    Order 24: All the above combine to the full invariance group of the uncolored
+    tiling, abstractly this is the permutation group S4. There are 14 of these
+    subgroups.
+    Order 7: We know this as the invariance group of one heptagon. There are 8
+    of these subgroups.
+    Order 21: The invariance group of the tiling by 14 big triangles; no black and
+    white triangles are interchanged; the isotropy of one triangle has order 3.
+    There are 8 of these subgroups.
+
+
+Structure and Symmetry
+----------------------
+
+What is structure?
+This is any kind of regularity or pattern that we can observe.
+
+
+
+14/8/17
+=======
+
+How complex systems fail
+Richard Irvin Cook
+
+
+
+12/8/17
+=======
+
+Mathematicians search for meaning,
+physicists search for reality.
+
+Meaning is intimately connected with subjectivity,
+or point of view. 
+
+The statement "there are three things" immediately illustrates
+this: how many ways are there to view three things?
+
+
+
+"The point of the proof of Fermat's conjecture is to
+open up new _possibilities_ for mathematics."
+From essay "The Phenomenology of Mathematical Proof"
+published in book "Indiscrete Thoughts" by Gian-Carlo Rota
+
+
+https://www.physicsforums.com/threads/repost-of-carrying-and-cocycles-by-james-dolan-part-one.182195/
+
+Universal coalgebra: a theory of systems
+J.J.M.M. Rutten
+http://homepages.cwi.nl/~janr/papers/files-of-papers/universal_coalgebra.pdf
+
+AN INTRODUCTION TO TANNAKA DUALITY AND
+QUANTUM GROUPS
+by
+André JOYAL and Ross STREET
+http://maths.mq.edu.au/~street/CT90Como.pdf
+
+
+11/8/17
+=======
+
+Elliptic curves and rational tangles
+
+http://math.ucr.edu/home/baez/week233.html
+http://blog.sigfpe.com/2008/08/untangling-with-continued-fractions_23.html
+http://math.ucr.edu/home/baez/week237.html
+
+Klein quartic has 168 symmetries.
+
+
+elliptic curves, string theory, and the number 24.
+http://math.ucr.edu/home/baez/week125.html
+https://groups.google.com/forum/#!msg/bionet.info-theory/C8zSOtRUzOE/Ikz2KVw9kEgJ
+
+https://golem.ph.utexas.edu/category/2008/02/modular_forms.html
+
+Tim Silverman:
+https://golem.ph.utexas.edu/category/2008/06/farey_sequences_and_the_sternb.html
+https://golem.ph.utexas.edu/category/2010/10/test.html
+https://golem.ph.utexas.edu/category/2010/10/pictures_of_modular_curves_ii.html
+https://golem.ph.utexas.edu/category/2010/11/pictures_of_modular_curves_iii.html
+https://golem.ph.utexas.edu/category/2010/11/pictures_of_modular_curves_iv.html
+https://golem.ph.utexas.edu/category/2010/11/pictures_of_modular_curves_v.html
+https://golem.ph.utexas.edu/category/2010/12/pictures_of_modular_curves_vi.html
+https://golem.ph.utexas.edu/category/2010/12/pictures_of_modular_curves_vii.html
+https://golem.ph.utexas.edu/category/2010/12/pictures_of_modular_curves_vii_1.html
+https://golem.ph.utexas.edu/category/2011/01/pictures_of_modular_curves_ix.html
+https://golem.ph.utexas.edu/category/2011/01/pictures_of_modular_curves_x.html
+https://golem.ph.utexas.edu/category/2011/01/pictures_of_modular_curves_xi.html
+
+
+Levin-Wen models and tensor categories (tri-categories).
+https://golem.ph.utexas.edu/category/2011/03/liang_kong_on_levinwen_models.html
+" The idea assembling the possible defects of an d d-dimensional 
+TQFT into a d+1 d+1-dimensional TQFT is developed in 
+Section 6.7 of my recent paper with Scott Morrison  "
+
+Mobius inversion:
+https://golem.ph.utexas.edu/category/2011/05/mbius_inversion_for_categories.html
+
+Baez & Dolan:
+https://ncatlab.org/johnbaez/show/Zeta+functions
+
+
+
 20/7/17
 =======
 

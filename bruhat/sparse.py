@@ -159,7 +159,9 @@ def mkslice(slc, n):
 
 
 class Sparse(object):
-    def __init__(self, m, n, data=None):
+    def __init__(self, m, n=None, data=None):
+        if n is None:
+            n = m
         self.shape = m, n # rows, cols
         if data is None:
             data = {}
