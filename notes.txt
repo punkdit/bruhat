@@ -1,6 +1,216 @@
 
+27/10/17
+========
+
+Theta series
+
+sum of 2 squares:
+[1, 4, 4, 0, 4, 8, 0, 0, 4, 4, 8, 0, 0, 8, 0, 0, 4, 8, 4, 0, 8, 0, 0, 0, 0, 12, 8, 0, 0, 8, 0, 0, 4, 0, 8, 0, 4, 8]
+
+sum of 3 squares:
+[1, 6, 12, 8, 6, 24, 24, 0, 12, 30, 24, 24, 8, 24, 48, 0, 6, 48, 36, 24, 24, 48]
+
+sum of 4 squares:
+[1, 8, 24, 32, 24, 48, 96, 64, 24, 104, 144, 96, 96, 112, 192, 192, 24, 144, 312, 160]
+
+sum of 8 squares:
+[1, 16, 112, 448, 1136, 2016, 3136, 5504, 9328, 12112]
+
+
+
+
+
+26/10/17
+========
+
+https://mathoverflow.net/questions/268482/publishing-conjectures
+
+https://mathoverflow.net/questions/52241/formal-group-laws-and-l-series
+    Let E be an elliptic curve, let 
+    L(s)=∑a_n n^−s denote its L-function, and set
+    f(x)=∑a_n x^n/n.
+    Then Honda has observed that
+    F(X,Y)=f^{-1}(f(X)+f(Y))
+    defines a formal group law.
+
+
+
+
+23/10/17
+========
+
+From HN:
+Money as a medium, from McLuhan's Understanding Media, as an encouragement to think of cryptocurrency as a medial paradigm shift...
+“Money talks” because money is a metaphor, a transfer,
+and a bridge. Like words and language, money is a storehouse
+of communally achieved work, skill, and experience. Money,
+however, is also a specialist technology like writing;
+and as writing intensifies the visual aspect of speech
+and order, and as the clock visually separates time from
+space, so money separates work from the other social
+functions. Even today money is a language for translating
+the work of the farmer into the work of the barber, doctor,
+engineer, or plumber. As a vast social metaphor, bridge,
+or translator, money—like writing—speeds up exchange
+and tightens the bonds of interdependence in any community.
+It gives great spatial expansion and control to political
+organizations, just as writing does, or the calendar.
+
+
+18/10/17
+========
+
+"The Crash of ’87, From the Wall Street Players Who Lived It"
+https://www.bloomberg.com/news/features/2017-10-16/black-monday-at-30-wall-street-remembers-the-1987-stock-market-crash
+"Academics described stock price movements using a lognormal
+distribution, but those underestimated the likelihood
+of very large changes. In the short-term version of our
+price model for individual stocks, Black Monday was an
+outlier, but not anywhere near the impossible extreme
+of the lognormal model. There were several features of
+our model which each said such a move was much more likely
+than people thought." 
+- EDWARD THORP, managing partner at Princeton Newport Partners
+
+
+16/10/17
+========
+
+
+https://mathematicalgarden.wordpress.com/2014/08/27/arithmetic-gas/
+    REFERENCES
+    Bakas and Bowick, Curiosities of arithmetic gases, 1991
+    Julia, Thermodynamic limit in number theory, 1993
+    Schumayer and Hutchinson, Physics of the Riemann Hypothesis, 201
+
+
+15/10/17
+========
+
+Abelian Sandpile Model
+http://doc.sagemath.org/html/en/thematic_tutorials/sandpile.html
+
+
+
+5/10/17
+=======
+
+Denote the multiplicative group of a ring R as R^\times.
+
+Chinese remainder theorem:
+(Z/mnZ)^\times = (Z/mZ)^\times \times (Z/nZ)^\times
+
+The size of (Z/nZ)^\times is \phi(n) Euler's totient function.
+For m, n coprime:
+    \phi(mn) = \phi(m)\phi(n)
+
+Generators of multiplicative group of Z/pZ ... no simple answer.
+
+
+
 4/10/17
 =======
+
+Domain theory
+-------------
+
+"Domain Theory" Samson Abramsky and Achim Jung
+http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.353.463&rep=rep1&type=pdf
+
+A *pointed* poset is a poset with a bottom: _|_ .
+
+Definition 2.1.8. Let P be a poset. A subset A of P is directed, if it is nonempty and
+each pair of elements of A has an upper bound in A.
+
+Eg. chains (totally ordered non-empty subsets)
+Eg. finite subsets of a set.
+
+Definition 2.1.13. A poset D in which every directed subset has a supremum we call a
+directed-complete partial order, or dcpo for short
+
+
+Eg. The points of a locale form a dcpo in the specialization order, see [Vic89, Joh82].
+
+Proposition 2.1.15. A partially ordered set D is a dcpo if and only if each chain in D
+has a supremum. (uses axiom of choice)
+
+Proposition 2.1.16. A pointed poset P is a dcpo if and only if every monotone map
+on P has a least fixpoint.
+
+Definition 2.1.17. Let D and E be dcpo’s. A function f : D → E is (Scott-) continuous
+if it is monotone and if for each directed subset A of D we have f(↑A) = ↑f(A).
+We denote the set of all continuous functions from D to E, ordered pointwise, by [D −→ E].
+
+Proposition 2.1.18. Let D and E be dcpo’s. Then [D −→ E] is again a dcpo. Directed
+suprema in [D −→ E] are calculated pointwise.
+
+
+Definition 3.1.15. Let D and E be dcpo’s and let e: D → E and p: E → D be
+continuous functions. We say that (e, p) is a continuous embedding projection pair (or
+e-p-pair) if p ◦ e = idD and e ◦ p ⊑ idE.
+
+Either of e or p determines the other.
+
+Proposition 3.2.2. The cartesian product of dcpo’s is a dcpo. Suprema and infima are
+calculated coordinatewise.
+
+3.2.2 continuous functions on DCPO's:
+    apply : [D −→ E] × D → E, <f, x> |-> f(x).
+    curry : [D × E −→ F] -> [D −→ [E −→ F]].
+    composition : [D −→ E]×[E −→ F] to [D −→ F]
+
+Therefore DCPO is cartesian closed.
+
+Definition 3.3.6
+    A diagram { (D_n), e_mn : D_n -> D_m with n<=m } is an 
+    *expanding sequence* if:
+    1. each e_mn is an embedding (the associated projection is called p_nm.)
+    2. e_nn = id
+    3. e_kn = e_km o e_mn
+
+Theorem 3.3.7
+    limit (equals colimit) of expanding sequence {D_n, p_nm} ( {D_n, e_mn} ). 
+    Call this the bilimit of D_n.
+
+
+4. Cartesian closed categories of domains
+
+5. Recursive domain equations
+
+5.2 Construction of solutions
+
+I is the one-point dcpo as discussed in Section 3.2.1
+Let D stand for any category of pointed domains, closed under bilimits.
+
+Solve:
+    X ~= F(X)
+
+Take (bi-)limit of the sequence I, F(I), F(F(I)), ...
+
+Main Lemma 5.2.2.
+Let F be a continuous functor on D^e (subcategory of D with embeddings only).
+For each embedding e:A->F(A) consider the colimit <D, e_n> of the
+expanding sequence 
+
+   e       F(e)          F(F(e))
+A --> F(A) ----> F(F(A)) -------> ...
+
+Then D is isomorphic to F(D) via the maps
+
+fold    = lim_n e_{n+1} o F(e_n)^*  :  F(D) -> D
+unfold  = lim_n F(e_n) o e_{n+1}^*  :  D -> F(D)
+
+(where f^* is the upper adjoint of f).
+
+Also:
+    F(e_n)  = unfold o e_{n+1}
+    F(e_n)* = e_{n+1}^* o fold.
+
+
+Starting with the initial embedding e:I->F(I) gives
+the *canonical* solution to X~=F(X).
+
+
 
 p-adic numbers
 --------------
@@ -12,6 +222,18 @@ fractions, denoted as Q_p, the field of p-adic numbers.
 
 https://en.wikipedia.org/wiki/P-adic_number
 
+Semantic domains & p-adic numbers?
+Fail: Eg. no hom from GF(4)->GF(2).
+GF(4) = Z/2Z[X]/(X^2+X+1) = {0, 1, X, X+1}.
+No hom because GF has no solution to X^2+X+1.
+
+semantics of the while command are a fixed point:
+http://www.cs.cornell.edu/courses/cs6110/2013sp/lectures/lec20-sp12.pdf
+http://www.cs.cornell.edu/courses/cs6110/2013sp/lectures/lec20-sp13.pdf
+
+
+links
+-----
 
  Topology and Abstract Algebra as Two Roads of Mathematical Comprehension
 Hermann Weyl
@@ -37,9 +259,12 @@ to the wonderland of quantum field theory.
 
 on the analogy between knots and prime numbers:
 http://math.ucr.edu/home/baez/week257.html
-"I want to know why the integers resemble a 3-dimensional space - and how prime numbers give something like "knots" in this space!"
+"I want to know why the integers resemble a 3-dimensional
+space - and how prime numbers give something like "knots"
+in this space!"
 
 https://mathoverflow.net/questions/10879/intuition-for-group-cohomology
+"A theta function is a section of a line bundle on an elliptic curve."
 
 https://mathoverflow.net/questions/139388/example-of-an-unnatural-isomorphism
 
