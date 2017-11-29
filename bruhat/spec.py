@@ -19,6 +19,8 @@ def isprime_slow(n):
 
     return True
 
+isprime = isprime_slow
+
 
 def sieve(n, ps=None):
     items = [0]*n

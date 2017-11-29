@@ -235,33 +235,31 @@ def main():
             if area != n:
                 continue
             items = lattice_shape(Point(i0, i1), Point(j0, j1), N)
-            #if round(N*N/len(items)) == n:
-            if 1:
-                items.sort(key = lambda p:p.coords)
-                icon = str(items)
-                if icon not in uniq:
-                    print("%s*A + %s*B, %s*A + %s*B" % (i0, i1, j0, j1))
-                    print(area)
-                    lattice_draw(items)
-                    uniq.add(icon)
+            items.sort(key = lambda p:p.coords)
+            icon = str(items)
+            if icon not in uniq:
+                print("%s*A + %s*B, %s*A + %s*B" % (i0, i1, j0, j1))
+                print(area)
+                lattice_draw(items)
+                uniq.add(icon)
     print("count =", len(uniq))
 
 
-def main1():
+def main():
 
     assert sigma(0, 4) == 3
     assert sigma(1, 6) == 12
 
     print(eisenstein(1, 20))
-    print(eisenstein(2, 20))
+    print(eisenstein(2, 40))
     print(eisenstein(4, 20))
 
     print()
 
     print([i//4 for i in nsquares(2, 20)][1:])
     #print([i//4 for i in nsquares(3, 20)][1:])
-    print([i//8 for i in nsquares(4, 20)][1:])
-    print([i//16 for i in nsquares(8, 20)][1:])
+    print([i//8 for i in nsquares(4, 40)][1:])
+    #print([i//16 for i in nsquares(8, 20)][1:])
 
 
 if __name__ == "__main__":
