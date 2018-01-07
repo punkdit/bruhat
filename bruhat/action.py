@@ -1280,6 +1280,36 @@ def test_action():
         assert len(G.components()) == 1
 
 
+def get_P2():
+
+    # Pauli group
+    items = "+00 -00 +01 -01 +10 -10 +11 -11".split()
+    #          0   1   2   3   4   5   6   7
+    II = Perm((0, 1, 2, 3, 4, 5, 6, 7), items)
+    XI = Perm((4, 5, 6, 7, 0, 1, 2, 3), items)
+    IX = Perm((2, 3, 0, 1, 6, 7, 4, 5), items)
+    ZI = Perm((0, 1, 2, 3, 5, 4, 7, 6), items)
+    IZ = Perm((0, 1, 3, 2, 4, 5, 7, 6), items)
+    w2 = Perm((1, 0, 3, 2, 5, 4, 7, 6), items)
+    assert XI*XI==II
+    assert ZI*ZI==II
+    assert IX*IX==II
+    assert IZ*IZ==II
+    assert ZI*XI != XI*ZI
+    assert ZI*XI == w2*XI*ZI
+    assert ZI*XI*ZI*XI == w2
+    assert IZ*IX != IX*IZ
+    assert IZ*IX == w2*IX*IZ
+    assert IZ*IX*IZ*IX == w2
+
+    assert ZI*IX == IX*ZI
+
+    P2 = Group.generate([XI, ZI, IX, IZ])
+    assert len(P2)==32
+
+    return P2
+
+
 def main():
 
     n = argv.get("n", 3)
@@ -1315,6 +1345,9 @@ def main():
             Perm({0:1, 1:0, 2:3, 3:2, 4:4, 5:5, 6:7, 7:6}, items)]
         perms = mulclose(gen)
         G = Group(perms, items)
+
+    elif argv.P2:
+        G = get_P2()
 
     elif argv.B_3:
         items = range(18)
@@ -1559,9 +1592,9 @@ def conjugacy_subgroups(G):
     # get equivalance classes
     equs = list(set(equ.top for equ in equs.values()))
     equs.sort(key = lambda equ : (-len(equ.items[0]), equ.items[0].str()))
-    #for equ in equs:
-    #    print "equ:", [len(H) for H in equ.items]
-    #print "total:", len(equs)
+    for equ in equs:
+        print "equ:", [len(H) for H in equ.items]
+    print "total:", len(equs)
 
     #return
 
