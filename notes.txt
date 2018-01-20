@@ -1,8 +1,292 @@
 
+19/1/18
+=======
+
+Hodge Laplacians on Graphs
+Lek-Heng Lim
+    Abstract. This is an elementary introduction to the Hodge Laplacian on a
+    graph, a higher-order generalization of the graph Laplacian. We will discuss
+    basic properties including cohomology and Hodge theory. At the end we will
+    also discuss the nonlinear Laplacian on a graph, a nonlinear generalization of
+    the graph Laplacian as its name implies. These generalized Laplacians will be
+    constructed out of coboundary operators, i.e., discrete analogues of exterior
+    derivatives. The main feature of our approach is simplicity — this article
+    requires only knowledge of linear algebra and graph theory.
+https://www.stat.uchicago.edu/~lekheng/work/psapm.pdf
+
+
+https://aeon.co/essays/we-should-look-closely-at-what-adam-smith-actually-believed
+
+
+18/1/18
+=======
+
+"F_1 for everyone"
+Oliver Lorscheid
+https://arxiv.org/pdf/1801.05337.pdf
+    This text serves as an introduction to F1-geometry for the general mathematician.
+    We explain the initial motivations for F1-geometry in detail, provide an
+    overview of the different approaches to F1 and describe the main achievements of the
+    field.
+
+
+17/1/18
+=======
+
+Towers of generalized divisible quantum codes
+Jeongwan Haah
+Sep 27 2017 quant-ph arXiv:1709.08658v1
+    A divisible binary classical code is one in which every
+    code word has weight divisible by a fixed integer. If
+    the divisor is 2ν for a positive integer ν, then one
+    can construct a Calderbank-Shor-Steane (CSS) code, where
+    X-stabilizer space is the divisible classical code,
+    that admits a transversal gate in the ν-th level of
+    Clifford hierarchy. We consider a generalization of the
+    divisibility by allowing a coefficient vector of odd
+    integers with which every code word has zero dot product
+    modulo the divisor. In this generalized sense, we construct
+    a CSS code with divisor 2ν+1 and code distance d
+    from any CSS code of code distance d and divisor 2ν
+    where the transversal X is a nontrivial logical operator.
+    The encoding rate of the new code is approximately d
+    times smaller than that of the old code. In particular,
+    for large d and ν≥2, our construction yields a CSS
+    code of parameters [[O(dν−1),Ω(d),d]]
+    admitting a transversal gate at the ν-th level of Clifford
+    hierarchy. For our construction we introduce a conversion
+    from magic state distillation protocols based on Clifford
+    measurements to those based on codes with transversal
+    T-gates. Our tower contains, as a subclass, generalized
+    triply even CSS codes that have appeared in so-called
+    gauge fixing or code switching methods.
+
+Eilenberg–MacLane spaces
+https://en.wikipedia.org/wiki/Cohomology#Eilenberg%E2%80%93MacLane_spaces
+    There is a related description of the first cohomology
+    with coefficients in any abelian group A, say for a CW
+    complex X. Namely, H1(X,A) is in one-to-one correspondence
+    with the set of isomorphism classes of Galois covering
+    spaces of X with group A, also called principal A-bundles
+    over X. For X connected, it follows that H1(X,A) is isomorphic
+    to Hom(π1X,A), where π1X is the fundamental group of
+    X. For example, H1(X,Z/2) classifies the double covering
+    spaces of X, with the element 0 ∈ H1(X,Z/2) corresponding
+    to the trivial double covering, the disjoint union of
+    two copies of X.
+
+
+Isospectral drums and simple groups
+Koen Thas
+https://arxiv.org/abs/1507.01968
+    For M a Riemannian manifold, one defines the
+    zeta function:
+    zeta(s) = sum_i \lambda_i^{-s}, Re(s)>=0
+    where 0 < \lambda_1 <= lambda_2 <= ...
+    are the nonzero eigenvalues of the Laplacian of M.
+
+
+"ZETA FUNCTIONS OF GRAPHS"
+Graph theory meets number theory in this stimulating book. Ihara zeta functions of
+finite graphs are reciprocals of polynomials, sometimes in several variables. Analogies
+abound with number-theoretic functions such as Riemann or Dedekind zeta functions.
+For example, there is a Riemann hypothesis (which may be false) and a prime number
+theorem for graphs. Explicit constructions of graph coverings use Galois theory to
+generalize Cayley and Schreier graphs. Then non-isomorphic simple graphs with the
+same zeta function are produced, showing that you cannot “hear” the shape of a graph.
+The spectra of matrices such as the adjacency and edge adjacency matrices of a
+graph are essential to the plot of this book, which makes connections with quantum
+chaos and random matrix theory and also with expander and Ramanujan graphs, of
+interest in computer science. Pitched at beginning graduate students, the book will also
+appeal to researchers. Many well-chosen illustrations and exercises, both theoretical
+and computer-based, are included throughout.
+Audrey Terras
+
+Zeta Functions of Finite Graphs and Coverings, Part II
+H.M.Stark A.A.Terras
+Galois theorem (roughly):
+    let Y be an (unramified) normal covering of X
+    with Galois group G=G(Y/X).
+    Then intermediate graphs correspond bijectively to
+    subgroups of G, and subgroup inclusion H1<=H2 corresponds to
+    covering Y>=Y1>=Y2>=X.
+
+    A ``prime'' [C] in X is an equivalence class of primitive
+    closed backtrackless, tailless cycles C such that C!=D^m, m>=2 and D a
+    path in X. For brevity, we will sometimes refer to primitive closed
+    backtrackless tailless cycles C as prime cycles.
+
+Quantum Algorithms and Covering Spaces
+Tobias J. Osborne, Simone Severini
+https://arxiv.org/abs/quant-ph/0403127
+    We follow [CY99] closely for most of this section. The principle
+    result of this section is that the spectrum of a graph X covered by anothe
+    graph Y is contained in the spectrum of Y . The eigenvectors of X also induce
+    eigenvectors in Y ."
+    Lemma 3.2 (Godsil and McKay [GM80]). The graph Y is a covering space
+    for X if and only if PA(Y ) = A(X)P.
+
+CY99:
+    Coverings, heat kernels and spanning trees
+    Fan Chung S.-T. Yau
+
+    4. Eigenvalues of a graph and its covering
+      ...the multiplicities of eigenvalues of G˜ and
+      G are related through the relations of their heat kernels.
+
+    5. The heat kernel of k-trees
+
+    6. The heat kernel of the k-tree and the heat kernel of a k-regular graph
+
+    7. number of spanning trees in a k-regular graph and
+        the zeta function of the graph...
+        zeta(s) = sum_i \lambda_i^{-s}, Re(s)>=0 (see above)
+        
+
+
+Algebraic graph theory, 2nd edition, Biggs
+
+
+16/1/18
+=======
+
+https://www.perimeterinstitute.ca/videos/semisimple-hopf-algebras-and-fusion-categories
+Hopf Algebra: (H, m, u, d, e)
+    (H, m, u) : algebra
+    (H, d, e) : coalgebra
+    S:H->H antipode
+Example: G finite group
+    1) H = O(G) = algebra of functions G->C
+        pointwise addition and multiplication
+        d:H->H \tensor H = O(H\tensor H)
+           d(f)(x, y) = f(xy)
+        e:H->C, e(f)=f(1), 
+        S:H->H, S(f)(g) = f(g^{-1})
+    2) H = C[G] = group algebra
+        m(|g>, |h>) = |gh>
+        d(|g>) = |g>\tensor|g>
+        e(|g>) = 1
+        S(|g>) = |g^{-1}>
+
+
+
+
+15/1/18
+=======
+
+Quantum Techniques for Stochastic Mechanics
+John C. Baez and Jacob D. Biamonte
+p132:
+"""
+both the Desargues graph
+and the dodecahedron graph are double covers of the Petersen graph.
+For a labeled graph, each double cover corresponds uniquely to an
+element of the Z/2Z cohomology of the graph (for an unlabeled
+graph, some of the double covers defined in this way may turn out
+to be isomorphic). Cohomology over Z/2Z takes any cycle as input
+and returns either 0 or 1, in a consistent way (the output of a Z/2Z
+sum of cycles is the sum of the outputs on each cycle). The double
+cover has two copies of everything in the base (Petersen) graph, and
+as you follow all the way around a cycle in the base, the element of
+cohomology tells you whether you come back to the same copy (for
+0) or the other copy (for 1) in the double cover, compared to where
+you started.
+One well-defined double cover for any graph is the one which simply
+switches copies for every single edge (this corresponding to the ele-
+ment of cohomology which is 1 on all odd cycles and 0 on all even
+cycles). This always gives a double cover which is a bipartite graph,
+and which is connected if and only if the base graph is connected
+and not bipartite.
+"""
+https://johncarlosbaez.wordpress.com/2011/10/23/a-math-puzzle-coming-from-chemistry/#comment-8696
+http://math.ucr.edu/home/baez/week293.html
+
+
+13/1/18
+=======
+
+https://aeon.co/essays/has-the-time-come-for-a-quantum-revolution-in-economics
+
+"But here ‘revolution’ doesn’t seem to be quite the right
+word, because the revolution already happened a century
+ago. What we need is a recognition. As Marshall McLuhan
+wrote in Laws of Media: The New Science (1992): ‘I do
+not think that philosophers in general have yet come
+to terms with this declaration from quantum physics:
+the days of the Universe as Mechanism are over.’ Nowhere
+is that more true than in economics."
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+"extended" 3D gauge color code: add one qubit at infinity
+to turn logop into a stabilizer, then the
+stabilizers are doubly even, when original code has:
+    n = 15, 39, 65, not 175, not 369, 671,  ...
+
+these are the 3D color code stabilizers, these are
+not self-dual (dual is the faces)
+
+
+12/1/18
+=======
+
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+"Representation Theory" Constantin Teleman, 2005
+https://math.berkeley.edu/~teleman/math/RepThry.pdf
+
+The character is a ring homomorphism from R_G to the class
+functions on G. It takes the involution V <--> V∗
+to complex conjugation.
+
+14 Induced Representations
+15 Induced characters and Frobenius Reciprocity
+16 Mackey theory
+...
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+https://www.quora.com/What-is-virtual-representation
+
+We can force this subtraction to always make sense by
+considering a weaker notion of equivalence of representations
+than isomorphism. The Grothendieck group K0(G) of
+representations of G is the free abelian group on isomorphism
+classes of representations of G, modulo the relation that
+
+[V]=[U]+[W] if V≅U⊕W
+
+When X is a representation, we write [X] for its
+class in the Grothendieck group. Because of this definition,
+there are symbols such as −[X] in K0(G). But
+there is no guarantee that there is any representation
+YY such that [Y]=−[X] (in fact, for nice enough
+groups and X,Y≠0, this never happens).
+
+To answer the original question: a virtual representation
+is an element of K0(G) that is not (necessarily)
+the class of a representation of G.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+9/1/18
+======
+
+https://www.washingtonpost.com/outlook/thinking-big-thoughts-about-the-boundaries-of-science/2018/01/05/4efb4538-ce17-11e7-81bc-c55a220c8cbe_story.html?utm_term=.9cc27b8c229d
 
 
 7/1/18
 ======
+
+http://www.science4all.org/article/homotopy-type-theory/
+
 
 https://golem.ph.utexas.edu/category/2011/10/spectra_of_operators_and_rings.html
     There are many uses of the word ‘spectrum’ in mathematics,
@@ -1266,7 +1550,13 @@ Ebeling:
 
 Runge, Bernhard. "Codes and Siegel modular forms." 
 Discrete Mathematics 148.1-3 (1996): 175-204.
-
+    It is proved that the ring of Siegel modular forms in
+    any genus is determined by doubly even self-dual codes
+    and the theta relations. The (higher) weight polynomials
+    of such codes are proved to be the generators of the
+    ring of invariants of a polynomial ring in 2g variables
+    under a certain specified finite group. Moreover codes
+    are uniquely determined by their weight polynomials.
 
 LOCAL EQUIVALENCE OF STABILIZER STATES AND CODES
 Maarten VAN DEN NEST
@@ -3860,6 +4150,8 @@ https://radimrehurek.com/gensim/index.html
 
 6/3/17
 ======
+
+https://mathoverflow.net/questions/20567/what-is-the-oriented-fano-plane
 
 PGL(3,2) : symmetries of the Fano plane.
 

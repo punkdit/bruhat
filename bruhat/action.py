@@ -129,7 +129,7 @@ def quotient_rep(items, relation=None):
         under the equivalance relation.
     """
     hom = quotient(items, relation)
-    hom = dict((item, items[0]) for (item, items) in hom.items()) # confused ?
+    hom = dict((item, items[0]) for (item, items) in hom.items()) # _confused ?
     return hom
 
 
@@ -146,13 +146,17 @@ class Perm(object):
     A permutation of a list of items.
     """
     def __init__(self, perm, items, word=''):
+        #print "Perm.__init__", perm, items
         #if isinstance(perm, list):
         #    perm = tuple(perm)
         if perm and isinstance(perm, (list, tuple)) and isinstance(perm[0], (int, long)):
             perm = list(items[i] for i in perm)
+        #print "\t", perm
         if not isinstance(perm, dict):
             perm = dict((perm[i], items[i]) for i in range(len(perm)))
+        #print "\t", perm
         self.perm = perm # map item -> item
+        #print "\t", perm
         set_items = set(items)
         self.set_items = set_items
         self.items = list(items)
@@ -171,6 +175,12 @@ class Perm(object):
         perm = dict((item, item) for item in items)
         return Perm(perm, items, *args, **kw)
 
+    def is_identity(self):
+        for k, v in self.perm.items():
+            if k != v:
+                return False
+        return True
+
     def restrict(self, items, *args, **kw):
         perm = dict((i, self.perm[i]) for i in items)
         return Perm(perm, items, *args, **kw)
@@ -183,6 +193,14 @@ class Perm(object):
                 return False
         return True
 
+    def intersection(self, other):
+        assert self.items == other.items
+        items = []
+        for i in self.items:
+            if self.perm[i] == other.perm[i]:
+                items.append(i)
+        return items
+
     def _X_str__(self):
         #return str(dict((i, self.perm[i]) for i in range(self.n)))
         #return str(dict((i, self.perm[i]) for i in range(self.n)))
@@ -194,6 +212,32 @@ class Perm(object):
         items = ["%s:%s"%(key, perm[key]) for key in keys]
         s = "{%s}"%(', '.join(items))
         self._str = s
+        return s
+
+    def cycles(self):
+        remain = set(self.set_items)
+        cycles = []
+        while remain:
+            item = iter(remain).next()
+            orbit = [item]
+            item1 = self*item
+            while item1 != item:
+                orbit.append(item1)
+                item1 = self*item1
+                assert len(orbit) <= len(self.items)
+            assert orbit
+            cycles.append(orbit)
+            n = len(remain)
+            for item in orbit:
+                remain.remove(item)
+            assert len(remain) < n
+        return cycles
+
+    def sign(self):
+        s = 1
+        for orbit in self.cycles():
+            if len(orbit)%2 == 0:
+                s *= -1
         return s
 
     def cycle_str(self):
@@ -221,6 +265,11 @@ class Perm(object):
         return ''.join(s)
 #    __repr__ = __str__
 
+    def get_idxs(self):
+        lookup = dict((v, k) for (k, v) in enumerate(self.items))
+        idxs = [lookup[self.perm[i]] for i in self.items]
+        return idxs
+
     def str(self): # HOTSPOT
         if self._str_cache:
             return self._str_cache
@@ -235,6 +284,7 @@ class Perm(object):
         return s
 
     def __str__(self):
+        # this is the *index* action, not the real permutation action
         return "Perm(%s)"%self.str()
     __repr__ = __str__
 
@@ -1338,6 +1388,9 @@ def main():
     elif argv.A_3:
         G = Group.symmetric(range(4), check=True)
 
+    elif argv.A_4:
+        G = Group.symmetric(range(5), check=True)
+
     elif argv.B_2:
         items = range(8)
         gen = [
@@ -1392,6 +1445,14 @@ def main():
             perm = Perm(perm, flags)
             perms.append(perm)
         G = Group(perms, flags)
+
+    elif argv.schrier:
+        schrier()
+        return
+
+    elif argv.desargues:
+        desargues()
+        return
 
     else:
         return
@@ -1601,6 +1662,270 @@ def conjugacy_subgroups(G):
     Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
     #Hs.sort(key = lambda H : (-len(H), H.str()))
     return Hs
+
+
+def todot(graph, filename="graph.dot"):
+
+    lookup = dict((node, i) for (i, node) in enumerate(graph.nodes()))
+    f = open(filename, "w")
+    if "Di" in graph.__class__.__name__:
+        f.write("digraph the_graph\n")
+        link = "->"
+    else:
+        f.write("graph the_graph\n")
+        link = "--"
+    f.write("{\n")
+    for edge in graph.edges():
+        i = lookup[edge[0]]
+        j = lookup[edge[1]]
+        f.write("    n%d %s n%d;\n" % (i, link, j))
+    f.write("}\n")
+    f.close()
+
+
+def schrier():
+
+    import networkx as nx
+
+    # --------------- group ----------------
+    n = argv.get("n", 5)
+    check = argv.get("check", True)
+
+    items = range(n)
+    sigmas = []
+    for i in range(n-1):
+        perm = dict((item, item) for item in items)
+        perm[items[i]] = items[i+1]
+        perm[items[i+1]] = items[i]
+        sigmas.append(perm)
+    sigmas = [Perm(perm, items) for perm in sigmas]
+    G = Group.generate(sigmas, check=check)
+
+#    # Pauli group
+#    items = range(4)
+#    X = Perm((3, 1, 2, 0), items)
+#    Z = Perm((2, 3, 0, 1), items)
+#    I = Perm((0, 1, 2, 3), items)
+#    w = Perm((3, 2, 1, 0), items)
+#    assert X*X==I
+#    assert Z*Z==I
+#    assert Z*X != X*Z
+#    assert Z*X*Z*X == w
+#    G = Group.generate([X, Z])
+#    assert len(G)==8
+
+    # --------- subgroups ----------------
+#    Hs = conjugacy_subgroups(G)
+
+    s0 = sigmas[0]
+    s1 = sigmas[1]
+    s2 = sigmas[2]
+    s3 = sigmas[3]
+#    gen = [Perm(p, items) for p in 
+#        [[1, 2, 0, 3, 4],
+#         [1, 0, 2, 3, 4],
+#         [0, 1, 2, 4, 3]]]
+    gen = [s0, s1, s3]
+    H = Group.generate(gen, check=check)
+    assert len(H) == 12
+    H = Group([g for g in H if g.sign()==1], items, check=check)
+    assert len(H) == 6
+    Hs = [H]
+
+#    gen = [X*Z, w]
+#    H = Group.generate(gen, check=check)
+#    print "len(H):", len(H)
+#    Hs = [H]
+
+#    s0 = sigmas[0]
+#    s1 = sigmas[1]
+#    gen = [s0]
+#    H = Group.generate(gen, check=check)
+#    print "len(H):", len(H)
+#    Hs = [H]
+
+    # ---------- generators for schrier graph --------
+#    print "\n"*5
+#    gen = [
+#        Perm([0,3,4,1,2], items), 
+#        Perm([2,3,4,0,1], items), 
+#        Perm([1,3,4,0,2], items)]
+    gen = [ [3,0,4,1,2], [3,2,4,0,1], [1,3,4,0,2], ]
+    gen = [ Perm(dict(enumerate(perm)), items) for perm in gen]
+    for g in gen:
+        print g.get_idxs()
+        assert g.sign()==-1 # Not
+        print (g*g).get_idxs()
+        print
+
+#    _gen = []
+#    for g in gen:
+#        for _g in G:
+#            if _g==g:
+#                _gen.append(_g)
+#                break
+#    gen = _gen
+
+#    #gen = [X, Z]
+#    #gen = [s0, s1]
+#
+#    #return
+#    gen = list(sigmas)
+
+    cls = nx.MultiGraph
+    for perm in gen:
+        print perm
+        if not (perm*perm).is_identity():
+            cls = nx.MultiDiGraph
+
+    cosets = G.left_cosets(H)
+
+    print "H:", len(H),
+    print "cosets:", len(cosets)
+    graph = cls()
+    edges = set()
+    hom = G.left_action(cosets)
+    for ii, i in enumerate(cosets):
+        #print "coset:", i
+        strs = []
+        for g in i:
+            idxs = g.get_idxs()
+            strs.append(''.join(str(idx) for idx in idxs))
+        strs.sort()
+        print "%2d"%ii, ' '.join(strs)
+        print "   ",
+        graph.add_node(i, name=strs[0])
+        for g in gen:
+            j = hom.send_perms[g][i]
+            #print "j:", j
+            assert j in cosets
+            if cls == nx.MultiGraph and (j, i) in edges:
+                continue
+            edges.add((i, j))
+            print "(%s -> %s)" % (cosets.index(i), cosets.index(j)),
+            graph.add_edge(i, j)
+        print
+    todot(graph)
+
+
+def desargues():
+    
+    import networkx as nx
+
+    # --------------- group ----------------
+    n = 5
+    check = argv.get("check", True)
+
+    items = range(n)
+    sigmas = []
+    for i in range(n-1):
+        perm = dict((item, item) for item in items)
+        perm[items[i]] = items[i+1]
+        perm[items[i+1]] = items[i]
+        sigmas.append(perm)
+    sigmas = [Perm(perm, items) for perm in sigmas]
+    G = Group.generate(sigmas, check=check)
+
+    configs = [(tuple(g.get_idxs()), parity) for g in G for parity in (+1, -1)]
+    configs.sort()
+    #print configs
+
+    for g in G:
+        #if g.get_idxs() != [3, 0, 4, 1, 2]:
+        #if g.get_idxs() != [1, 3, 4, 0, 2]:
+        if g.get_idxs() != [3, 2, 4, 0, 1]:
+            continue
+        print g, g.sign()
+        assert g.sign() == -1
+        perm = {}
+        for config in configs:
+            _config = (tuple(g(i) for i in config[0]), g.sign()*config[1])
+            print '   ', config, "->", _config
+
+    return
+
+    # --------- subgroups ----------------
+#    Hs = conjugacy_subgroups(G)
+
+    s0 = sigmas[0]
+    s1 = sigmas[1]
+    s2 = sigmas[2]
+    s3 = sigmas[3]
+#    gen = [Perm(p, items) for p in 
+#        [[1, 2, 0, 3, 4],
+#         [1, 0, 2, 3, 4],
+#         [0, 1, 2, 4, 3]]]
+    gen = [s0, s1, s3]
+    H = Group.generate(gen, check=check)
+    assert len(H) == 12
+    H = Group([g for g in H if g.sign()==1], items, check=check)
+    assert len(H) == 6
+    Hs = [H]
+
+    # ---------- generators for schrier graph --------
+#    print "\n"*5
+#    gen = [
+#        Perm([0,3,4,1,2], items), 
+#        Perm([2,3,4,0,1], items), 
+#        Perm([1,3,4,0,2], items)]
+    gen = [ [0,3,4,1,2], [2,3,4,0,1], [1,3,4,0,2], ]
+    gen = [ Perm(dict(enumerate(perm)), items) for perm in gen]
+    for g in gen:
+        print g.get_idxs()
+        #assert g.sign()==-1 # Not
+        print (g*g).get_idxs()
+        print
+    return
+
+#    _gen = []
+#    for g in gen:
+#        for _g in G:
+#            if _g==g:
+#                _gen.append(_g)
+#                break
+#    gen = _gen
+
+#    #gen = [X, Z]
+#    #gen = [s0, s1]
+#
+#    #return
+#    gen = list(sigmas)
+
+    cls = nx.MultiGraph
+    for perm in gen:
+        print perm
+        if not (perm*perm).is_identity():
+            cls = nx.MultiDiGraph
+
+    cosets = G.left_cosets(H)
+
+    print "H:", len(H),
+    print "cosets:", len(cosets)
+    graph = cls()
+    edges = set()
+    hom = G.left_action(cosets)
+    for ii, i in enumerate(cosets):
+        #print "coset:", i
+        strs = []
+        for g in i:
+            idxs = g.get_idxs()
+            strs.append(''.join(str(idx) for idx in idxs))
+        strs.sort()
+        print "%2d"%ii, ' '.join(strs)
+        print "   ",
+        graph.add_node(i, name=strs[0])
+        for g in gen:
+            j = hom.send_perms[g][i]
+            #print "j:", j
+            assert j in cosets
+            if cls == nx.MultiGraph and (j, i) in edges:
+                continue
+            edges.add((i, j))
+            print "(%s -> %s)" % (cosets.index(i), cosets.index(j)),
+            graph.add_edge(i, j)
+        print
+    todot(graph)
+
 
 
 def burnside(G):
