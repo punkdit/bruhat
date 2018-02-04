@@ -10,42 +10,66 @@ from bruhat import isomorph
 from bruhat.smap import SMap, tabulate
 
 
-def mulclose(els, verbose=False, maxsize=None):
-    els = set(els)
-    changed = True
-    while changed:
+#def mulclose(els, verbose=False, maxsize=None):
+#    els = set(els)
+#    changed = True
+#    while changed:
+#        if verbose:
+#            print "mulclose:", len(els)
+#        changed = False
+#        _els = list(els)
+#        for A in _els:
+#            for B in _els:
+#                C = A*B 
+#                if C not in els:
+#                    els.add(C)
+#                    if maxsize and len(els)>=maxsize:
+#                        return list(els)
+#                    changed = True
+#    return els
+#
+#
+#def mulclose_fast(els, bdy=None):
+#    els = set(els)
+#    if bdy is None:
+#        bdy = [(i, j) for i in els for j in els]
+#
+#    while bdy:
+#        _bdy = []
+#        for i, j in bdy:
+#            k = i*j
+#            if k not in els:
+#                _bdy.append((k, k))
+#                for kk in els:
+#                    _bdy.append((k, kk))
+#                    #_bdy.append((kk, k)) # i don't think we need this
+#                els.add(k)
+#        bdy = _bdy
+#    return els
+
+
+
+def mulclose_fast(gen, verbose=False, maxsize=None):
+    els = set(gen)
+    bdy = list(els)
+    changed = True 
+    while bdy:
         if verbose:
             print "mulclose:", len(els)
-        changed = False
-        _els = list(els)
-        for A in _els:
-            for B in _els:
-                C = A*B 
-                if C not in els:
+        _bdy = []
+        for A in gen:
+            for B in bdy:
+                C = A*B  
+                if C not in els: 
                     els.add(C)
+                    _bdy.append(C)
                     if maxsize and len(els)>=maxsize:
                         return list(els)
-                    changed = True
-    return els
-
-
-def mulclose_fast(els, bdy=None):
-    els = set(els)
-    if bdy is None:
-        bdy = [(i, j) for i in els for j in els]
-
-    while bdy:
-        _bdy = []
-        for i, j in bdy:
-            k = i*j
-            if k not in els:
-                _bdy.append((k, k))
-                for kk in els:
-                    _bdy.append((k, kk))
-                    #_bdy.append((kk, k)) # i don't think we need this
-                els.add(k)
         bdy = _bdy
-    return els
+    return els 
+
+
+mulclose = mulclose_fast
 
 
 def identity(items):
@@ -180,6 +204,15 @@ class Perm(object):
             if k != v:
                 return False
         return True
+
+    def order(self):
+        i = 1
+        g = self
+        while not g.is_identity():
+            g = self*g
+            i += 1
+            assert i <= len(self.items)
+        return i
 
     def restrict(self, items, *args, **kw):
         perm = dict((i, self.perm[i]) for i in items)
@@ -1446,8 +1479,8 @@ def main():
             perms.append(perm)
         G = Group(perms, flags)
 
-    elif argv.schrier:
-        schrier()
+    elif argv.schreier:
+        schreier()
         return
 
     elif argv.desargues:
@@ -1664,7 +1697,7 @@ def conjugacy_subgroups(G):
     return Hs
 
 
-def todot(graph, filename="graph.dot"):
+def todot(graph, names={}, filename="graph.dot"):
 
     lookup = dict((node, i) for (i, node) in enumerate(graph.nodes()))
     f = open(filename, "w")
@@ -1678,12 +1711,14 @@ def todot(graph, filename="graph.dot"):
     for edge in graph.edges():
         i = lookup[edge[0]]
         j = lookup[edge[1]]
-        f.write("    n%d %s n%d;\n" % (i, link, j))
+        i = names.get(edge[0], "n%s"%i)
+        j = names.get(edge[1], "n%s"%j)
+        f.write("    %s %s %s;\n" % (i, link, j))
     f.write("}\n")
     f.close()
 
 
-def schrier():
+def schreier():
 
     import networkx as nx
 
@@ -1744,14 +1779,20 @@ def schrier():
 #    print "len(H):", len(H)
 #    Hs = [H]
 
-    # ---------- generators for schrier graph --------
+    # ---------- generators for schreier graph --------
 #    print "\n"*5
 #    gen = [
 #        Perm([0,3,4,1,2], items), 
 #        Perm([2,3,4,0,1], items), 
 #        Perm([1,3,4,0,2], items)]
     gen = [ [3,0,4,1,2], [3,2,4,0,1], [1,3,4,0,2], ]
+    gen = [ [1, 3, 4, 0, 2] ]
+    gen = [ [3, 1, 4, 2, 0]]
+    gen = [ [3, 4, 1, 0, 2]]
+    gen = [ [4, 1, 3, 0, 2]]
+    gen = [ [4, 3, 1, 2, 0]]
     gen = [ Perm(dict(enumerate(perm)), items) for perm in gen]
+    gen = list(sigmas)
     for g in gen:
         print g.get_idxs()
         assert g.sign()==-1 # Not
@@ -1782,9 +1823,27 @@ def schrier():
 
     print "H:", len(H),
     print "cosets:", len(cosets)
+
     graph = cls()
     edges = set()
     hom = G.left_action(cosets)
+
+#    for g in gen:
+#      for h in gen:
+#        if g is h:
+#            continue
+#        perm = hom.send_perms[g]
+#        qerm = hom.send_perms[h]
+#        print perm.intersection(qerm)
+#        idxs = perm.get_idxs()
+#        jdxs = qerm.get_idxs()
+#        for i in range(len(idxs)):
+#            if idxs[i]==jdxs[i]:
+#                print i
+#        #print len(idxs), len(set(idxs))
+#    return
+
+    names = {}
     for ii, i in enumerate(cosets):
         #print "coset:", i
         strs = []
@@ -1795,6 +1854,7 @@ def schrier():
         print "%2d"%ii, ' '.join(strs)
         print "   ",
         graph.add_node(i, name=strs[0])
+        names[i] = strs[0]
         for g in gen:
             j = hom.send_perms[g][i]
             #print "j:", j
@@ -1805,7 +1865,7 @@ def schrier():
             print "(%s -> %s)" % (cosets.index(i), cosets.index(j)),
             graph.add_edge(i, j)
         print
-    todot(graph)
+    todot(graph, names)
 
 
 def desargues():
@@ -1862,7 +1922,7 @@ def desargues():
     assert len(H) == 6
     Hs = [H]
 
-    # ---------- generators for schrier graph --------
+    # ---------- generators for schreier graph --------
 #    print "\n"*5
 #    gen = [
 #        Perm([0,3,4,1,2], items), 

@@ -1,4 +1,137 @@
 
+4/2/18
+======
+
+PUZZLES AND (EQUIVARIANT) COHOMOLOGY OF GRASSMANNIANS
+ALLEN KNUTSON AND TERENCE TAO
+https://arxiv.org/abs/math/0112150
+
+Hilbert's 15th Problem: Schubert Calculus | Infinite Series
+https://www.youtube.com/watch?v=U8sq3BplCfI
+
+"Spectral gaps of frustration-free spin systems with boundary"
+Marius Lemm, Evgeny Mozgunov
+https://arxiv.org/pdf/1801.08915.pdf
+"""
+A central question concerning a quantum many-body system is whether it
+is gapped or gapless. (By definition, a system is “gapped” if the difference
+between the two lowest eigenvalues of the Hamiltonian remains uniformly
+bounded away from zero in the thermodynamic limit. Otherwise, it is gapless.)
+    The importance of this concept stems from the fact that ground states
+of gapped systems enjoy many useful properties. For instance, they display
+exponential decay of correlations [28]. In one dimension, more is known: The
+ground states satisfy an area law for the entanglement entropy [2, 17] and
+can be well approximated in polynomial time [3, 21]. Moreover, the closing
+of the spectral gap (as a parameter in the Hamiltonian is varied) indicates a
+quantum phase transition, and is therefore related to topological order, e.g.,
+via the Lieb-Schultz-Mattis theorem [16, 23]. To summarize, the existence of
+a spectral gap is a fortunate occurrence that has far-reaching consequences
+for low-temperature physics. (It is also rare in a probabilistic sense [24].)
+    It is well-known that the existence of a spectral gap may depend on the
+imposed boundary conditions, and this fact is at the core of our work.
+    In general, the question whether a quantum spin system is gapped or
+gapless is difficult: In 1D, the Haldane conjecture [14, 15] (“antiferromagnetic,
+integer-spin Heisenberg chains are gapped”) remains open after 30
+years of investigation. In 2D, the “gapped versus gapless” dichotomy is in
+fact undecidable in general [10], even among the class of translation-invariant,
+nearest-neighbor Hamiltonians
+"""
+
+
+Reconstructing quantum theory from diagrammatic postulates
+John H. Selby, Carlo Maria Scandolo, Bob Coecke
+Feb 02 2018 quant-ph arXiv:1802.00367v1
+
+
+
+3/2/18
+======
+
+"A negative times a negative is a ... ?"
+https://www.youtube.com/watch?v=ij-EK-MZv2Q
+
+2/2/18
+======
+
+
+https://medium.com/@yonatanzunger/asking-the-right-questions-about-ai-7ed2d9820c48
+
+
+30/1/18
+=======
+
+Ergodic Theory and Virtual Groups
+GEORGE W. MACKEY, 1966
+
+CATEGORIES AND GROUPOIDS
+P. J. HIGGINS 1971
+http://www.tac.mta.ca/tac/reprints/articles/7/tr7.pdf
+"covering morphisms of groupoids"
+
+
+THE ORIGIN OF REPRESENTATION THEORY
+KEITH CONRAD, 1991
+group determinant
+
+
+
+29/1/18
+=======
+
+desargues_graph
+autos: 240
+spec: -3.000000 -2.000000 -2.000000 -2.000000 -2.000000 -1.000000 -1.000000 -1.000000 -1.000000 -1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 2.000000 2.000000 2.000000 2.000000 3.000000
+
+petersen_graph
+autos: 120
+spec: -2.000000 -2.000000 -2.000000 -2.000000 1.000000 1.000000 1.000000 1.000000 1.000000 3.000000
+
+dodecahedral_graph
+autos: 120
+spec: -2.236068 -2.236068 -2.236068 -2.000000 -2.000000 -2.000000 -2.000000 -0.000000 -0.000000 -0.000000 0.000000 1.000000 1.000000 1.000000 1.000000 1.000000 2.236068 2.236068 2.236068 3.000000
+
+icosahedral_graph
+autos: 120
+spec: -2.236068 -2.236068 -2.236068 -1.000000 -1.000000 -1.000000 -1.000000 -1.000000 2.236068 2.236068 2.236068 5.000000
+
+sqrt(5) == 2.23606...
+
+
+27/1/18
+=======
+
+https://www.thenewatlantis.com/publications/quantum-poetics
+
+
+23/1/18
+=======
+
+An Introduction to the Cohomology of Groups
+Peter J. Webb
+http://www-users.math.umn.edu/~webb/oldteaching/Year2010-11/8246CohomologyNotes.pdf
+
+For H^2(G, A)
+when G=C_2 x C_2 and A=C_2
+there are eight equivalence classes of
+extensions:
+    1 of C_2 x C_2 x C_2
+    3 of C_4 x C_2
+    3 of D_8
+    1 of Q_8  <--- quaternion group
+
+https://mathoverflow.net/questions/11306/character-table-does-not-determine-group-vs-tannaka-duality
+    From the example D4, Q, we see that the character
+    table of a group doesn't determine the group up to isomorphism.
+    On the other hand, Tannaka duality says that a group
+    G is determined by its representation ring R(G).
+
+https://groupprops.subwiki.org/wiki/Dihedral_group:D8
+https://groupprops.subwiki.org/wiki/Quaternion_group
+
+https://mathoverflow.net/questions/6950/why-is-the-standard-definition-of-cocycle-the-one-that-always-comes-up
+
+
+
 19/1/18
 =======
 
