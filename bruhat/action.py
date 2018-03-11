@@ -1119,14 +1119,37 @@ class Action(object):
         send_perms = {}
         for g in self.src:
             perm = {}
+            h1 = self.send_perms[g]
+            h2 = other.send_perms[g]
             for a1, a2 in items:
-                h1 = self.send_perms[g]
-                h2 = other.send_perms[g]
                 perm[(a1, a2)] = h1(a1), h2(a2)
             perm = Perm(perm, items)
             perms.append(perm)
             send_perms[g] = perm
         return Action(self.src, send_perms, items)
+
+    def hecke(self, other):
+        import numpy
+        assert self.src == other.src
+        m, n = (len(self.items), len(other.items))
+        marked = set((i, j) for i in range(m) for j in range(n))
+        assert marked
+        while len(marked):
+            H = numpy.zeros((m, n), dtype=numpy.float64)
+            i, j = iter(marked).next()
+            marked.remove((i, j))
+            H[i, j] = 1
+            ai = self.items[i]
+            aj = other.items[j]
+            for g in self.src:
+                bi = self.send_perms[g][ai]
+                bj = other.send_perms[g][aj]
+                ii = self.items.index(bi)
+                jj = other.items.index(bj)
+                if H[ii, jj] == 0:
+                    H[ii, jj] = 1
+                    marked.remove((ii, jj))
+            yield H
 
     def orbits(self):
         #print "orbits"
@@ -1483,6 +1506,10 @@ def main():
         schreier()
         return
 
+    elif argv.mathieu:
+        mathieu()
+        return
+
     elif argv.desargues:
         desargues()
         return
@@ -1511,8 +1538,17 @@ def main():
     if argv.test_projective:
         test_projective(G)
 
+    if argv.conjugacy_subgroups:
+        conjugacy_subgroups(G)
+        return
+
     if argv.burnside:
         burnside(G)
+        return
+
+    if argv.hecke:
+        hecke(G)
+        return
 
     if argv.orbiplex:
 
@@ -1670,6 +1706,10 @@ def conjugacy_subgroups(G):
     # Find all conjugacy classes of subgroups
     Hs = G.subgroups()
     #print "subgroups:", len(Hs)
+    #for H in Hs:
+    #  for K in Hs:
+    #    print (int(H.is_subgroup(K)) or "."),
+    #  print
 
     equs = dict((H1, Equ(H1)) for H1 in Hs)
     for H1 in Hs:
@@ -1687,13 +1727,14 @@ def conjugacy_subgroups(G):
     equs = list(set(equ.top for equ in equs.values()))
     equs.sort(key = lambda equ : (-len(equ.items[0]), equ.items[0].str()))
     for equ in equs:
-        print "equ:", [len(H) for H in equ.items]
-    print "total:", len(equs)
-
-    #return
+        #print "equ:", [len(H) for H in equ.items]
+        for H in equ.items:
+            H.conjugates = list(equ.items)
+    #print "total:", len(equs)
 
     Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
     #Hs.sort(key = lambda H : (-len(H), H.str()))
+
     return Hs
 
 
@@ -1987,8 +2028,48 @@ def desargues():
     todot(graph)
 
 
+def mathieu():
 
-def burnside(G):
+    # https://en.wikipedia.org/wiki/Mathieu_group
+    # http://math.ucr.edu/home/baez/week234.html
+
+    # Generate M_12
+    # http://www.neverendingbooks.org/monsieur-mathieu
+    items = range(12)
+    "(1,2)(3,4)(5,8)(7,6)(9,12)(11,10)"
+    "(0,1)(2,3)(4,7)(6,5)(8,11)(10,9)"
+    a = Perm({0:1, 1:0, 2:3, 3:2, 4:7, 7:4, 6:5, 5:6, 8:11, 11:8, 10:9, 9:10}, items)
+    b = Perm({0:1, 1:2, 2:0, 3:4, 4:5, 5:3, 6:6, 7:8, 8:9, 9:7, 10:10, 11:11}, items)
+    perms = mulclose([a, b])
+    M12 = Group(perms, items)
+    # M12 sharply 5-transitive, simple sporadic
+    assert len(M12)==95040
+
+    # M11 sharply 4-transitive, simple sporadic
+    perms = [a for a in perms if a(11)==11]
+    M11 = Group(perms, items) # remove 11 ?
+    assert len(M11)==7920
+
+    # M10 sharply 3-transitive, = Alt(6) ?
+    perms = [a for a in perms if a(10)==10]
+    M10 = Group(perms, items) # remove 10 ?
+    assert len(M10)==720
+
+    # M9 sharply 2-transitive
+    perms = [a for a in perms if a(9)==9]
+    M9 = Group(perms, items) # remove 9 ?
+    assert len(M9)==72
+
+    # M8 sharply 1-transitive = Quaternion group
+    perms = [a for a in perms if a(8)==8]
+    M8 = Group(perms, items) # remove 8 ?
+    assert len(M8)==8
+
+
+def hecke(G):
+
+    import numpy
+    from solve import shortstr
 
     Hs = conjugacy_subgroups(G)
 
@@ -2008,7 +2089,81 @@ def burnside(G):
         homs.append(hom)
         assert len(hom.components())==1 # transitive
         #print hom.tgt.perms
-        print "%s subgroup size = %d, number of cosets = %d" %(hom.name, len(H), len(cosets))
+        print "%s subgroup order = %d, number of cosets = %d" %(
+            hom.name, len(H), len(cosets))
+
+    for i in range(len(homs)):
+      for j in range(i, len(homs)):
+        A = homs[i]
+        B = homs[j]
+        print "%s * %s" % (A.name, B.name)
+        for H in A.hecke(B):
+            print shortstr(H)
+            print "sum:", H.sum()
+            print
+#        C = A.pushout(B)
+#        assert C.src is G
+#
+#        #print C.items
+#        print C.send_perms.keys()
+
+
+def burnside(G):
+
+    Hs = conjugacy_subgroups(G)
+
+    letters = list(string.uppercase + string.lowercase)
+    letters.remove("O")
+    letters.remove("o")
+    letters = letters + [l+"'" for l in letters] + [l+"''" for l in letters]
+    assert len(letters) >= len(Hs)
+    letters = letters[:len(Hs)]
+
+    homs = []
+    for i, H in enumerate(Hs):
+        cosets = G.left_cosets(H)
+        assert len(G) == len(cosets)*len(H)
+
+        hom = G.left_action(cosets)
+        assert hom.src is G
+        hom.name = letters[i]
+        H.name = hom.name
+        homs.append(hom)
+        assert len(hom.components())==1 # transitive
+        #print hom.tgt.perms
+        print "%s subgroup order = %d, number of cosets = %d, conjugates = %d" %(
+            hom.name, len(H), len(cosets), len(H.conjugates))
+
+    if argv.make_dot:
+        arrows = []
+        names = [H.name for H in Hs]
+        parents = dict((name, []) for name in names)
+        children = dict((name, []) for name in names)
+        for H in Hs:
+          for K in Hs:
+            # Look for K a subgroup of H
+            if len(K) >= len(H):
+                continue
+            for K1 in K.conjugates:
+              if H.is_subgroup(K1):
+                arrows.append((K.name, H.name))
+                parents[K.name].append(H.name)
+                children[H.name].append(K.name)
+                break
+        print "digraph"
+        print "{"
+        print "    rankdir = BT;"
+        arrows = list(arrows)
+        arrows.sort()
+        for src, tgt in arrows:
+            factor = False
+            for p in parents[src]:
+                if tgt in parents[p]:
+                    break
+            else:
+                print "    %s -> %s;" % (src, tgt)
+        print "}"
+        return
 
     if 0:
         # We don't need to do this again: isomorphic homs all
@@ -2080,7 +2235,9 @@ def burnside(G):
     print
     print tabulate(table, rows, cols, space)
     print
-    print latex_table(table, rows, cols)
+    print "$$"
+    print latex_table(table, rows, cols, upper=argv.get("upper"))
+    print "$$"
 
 
 r"""
@@ -2093,19 +2250,24 @@ n & \text{Left} & \text{Center} & \text{Right} \\
 \end{array}
 """
 
-def latex_table(table, rows, cols):
+def latex_table(table, rows, cols, upper=False):
     lines = []
     m, n = len(rows), len(cols)
     lines.append(r"\begin{array}{r|%s}"%('r'*n))
-    lines.append(r"* & %s \\" % (' & '.join(cols)))
+    lines.append(r"\times & %s \\" % (' & '.join(cols)))
     lines.append(r"\hline")
     for i in range(m):
         row = rows[i]
-        line = r"%s & %s \\" % (row, ' & '.join(table[row, col] for col in cols))
+        if upper:
+            line = [(table[row, col] if col>=row else " ") for col in cols]
+        else:
+            line = [table[row, col] for col in cols]
+        line = r"%s & %s \\" % (row, ' & '.join(line))
         line = line.replace("*", '')
         lines.append(line)
     lines.append(r"\end{array}")
     s = '\n'.join(lines)
+    s = s.replace("+", "\\thinplus ")
     return s
 
 

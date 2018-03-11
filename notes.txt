@@ -1,4 +1,530 @@
 
+8/3/18
+======
+
+Improved implementation of reflection operators
+Anirban Narayan Chowdhury, Yigit Subasi, Rolando D. Somma
+https://arxiv.org/abs/1803.02466
+
+
+7/3/18
+======
+
+Fantastic Quantum Theories and Where to Find Them
+Stefano Gogioso
+    Real quantum theory
+    Relational quantum theory
+    Hyperbolic quantum theory: R[X]/(X^2-1)
+    Parity quantum theory: Z_2
+    Finite-field quantum theory (quadratic extension of finite field)
+    p-adic quantum theory
+    Tropical quantum theory
+
+The time-reverse of any causal theory is eternal noise
+Bob Coecke, Stefano Gogioso, John H. Selby
+https://arxiv.org/abs/1711.05511
+
+
+"Classical simulation of a topological quantum computer"
+Bernard Field and Tapio Simula
+https://arxiv.org/abs/1802.06176
+
+
+https://mathoverflow.net/questions/153740/why-we-need-to-study-representations-of-matrix-groups
+
+https://mathoverflow.net/questions/99230/modern-proof-for-the-baker-campbell-hausdorff-formula
+
+https://mathoverflow.net/questions/272498/analogies-supporting-heuristic-weyl-groups-algebraic-groups-over-field-with-o
+    Analogies supporting heuristic: Weyl groups = algebraic
+    groups over field with one element?
+
+
+3/3/18
+======
+
+Group theory, group actions, number theory, etc.
+http://www.math.uconn.edu/~kconrad/blurbs/
+
+Algebraic groups over the field with one element
+Oliver Lorscheid
+https://arxiv.org/abs/0907.3824
+
+2/3/18
+======
+
+http://www.cs.bham.ac.uk/~mhe/agda-new/UnivalenceFromScratch.html
+
+
+28/2/18
+=======
+
+https://golem.ph.utexas.edu/category/2007/11/concrete_groups_and_axiomatic_1.html
+Concrete Groups and Axiomatic Theories II
+Todd Trimble
+    the logician Alfred Tarski was also interested in applying
+    Klein’s Erlanger Programm to logic, in his “What are Logical Notions?”
+    From the Wikipedia article:
+    Tarski’s proposal was to demarcate the logical notions
+    by considering all possible one-to-one transformations
+    (automorphisms) of a domain onto itself.
+
+
+
+27/2/18
+=======
+
+https://golem.ph.utexas.edu/category/2010/07/what_is_a_theory.html
+    Over at the nForum John just asked me an interesting
+    question, which I think deserves a wider discussion.
+    It’s about the relationship between logical theories
+    and their walking models, a.k.a. “syntactic categories.”
+    In particular, which is more deserving of the name “theory”?
+    I’m going to present my point of view, but I’d love to
+    hear others as well.
+
+
+
+25/2/18
+=======
+
+Hopf monoids and generalized permutahedra
+arXiv:1709.07504
+
+https://golem.ph.utexas.edu/category/2018/01/more_secrets_of_the_associahed.html
+
+https://upload.wikimedia.org/wikipedia/commons/6/62/Symmetric_group_4%3B_Cayley_graph_1%2C2%2C6_%283D%29.svg
+
+"Algebraic and geometric structures in combinatorics"
+Federico Ardila
+http://math.sfsu.edu/federico/Talks/JMM2018.pdf
+
+
+"Modular Miracles", 2001, John Stillwell
+    The general quintic equation can be solved by j.
+
+http://www.neverendingbooks.org/quiver-superpotentials
+    a (transitive) permutation representation of the modular
+    group Γ=PSL_2(Z) is determined by the conjugacy
+    class of a cofinite subgroup Λ⊂Γ, or equivalently,
+    to a dessin d’enfant.
+
+
+https://blog.jupyter.org/jupyterlab-is-ready-for-users-5a6f039b8906
+
+https://aeon.co/essays/the-financial-world-and-the-magical-elixir-of-confidence
+
+
+
+
+24/2/18
+=======
+
+Cartesian Bicategories
+https://golem.ph.utexas.edu/category/2018/02/cartesian_bicategories.html
+A relation r from x to y to a category C is a jointly monic C-span:
+
+   r_0   r_1
+x <--- r ---> y
+
+jointly monic: if a,b:u-->r such that r_0a=r_0b and r_1a=r_1b
+then a=b.
+
+
+23/2/18
+=======
+
+(Mac Lane, categories for the working mathematician, p186.)
+connection between cut elimination and coherence theorems:
+    Deductive Systems and Categories
+    I. Syntactic Calculus and Residuated Categories (1968)
+    by JOACHIM LAMBEK
+
+
+
+https://mathoverflow.net/questions/16026/the-finite-subgroups-of-sl2-c
+McKay correspondence, ADE dynkin diagrams and finite subgroups of SL(2, C).
+
+Spectral graph theory: Interpretability of eigenvalues and -vectors
+https://mathoverflow.net/questions/24978/spectral-graph-theory-interpretability-of-eigenvalues-and-vectors
+
+https://mathoverflow.net/questions/77278/introductory-text-on-galois-representations
+
+"The Arithmetic of Elliptic Curves" by Joe Silverman
+
+https://mathoverflow.net/questions/731/points-in-algebraic-geometry-why-shift-from-m-spec-to-spec
+    The basic reason in my mind for using Spec is because it makes the category of affine schemes equivalent to the category of commutative rings. 
+https://sbseminar.wordpress.com/2009/08/06/algebraic-geometry-without-prime-ideals/
+
+https://mathoverflow.net/questions/6394/lecture-notes-on-representations-of-finite-groups
+
+https://mathoverflow.net/questions/80724/taylors-theorem-and-the-symmetric-group
+
+https://mathoverflow.net/questions/22923/computing-the-galois-group-of-a-polynomial
+
+
+
+HARMONIC ANALYSIS AS THE EXPLOITATION
+OF SYMMETRY-A HISTORICAL SURVEY (1978)
+BY GEORGE W. MACKEY 
+http://www.maths.ed.ac.uk/~jmf/Teaching/Projects/Poincare/S0273-0979-1980-14783-7.pdf
+
+
+
+22/2/18
+=======
+
+
+
+Burnside ring of parabolic subgroups of A_3
+(this is a subring of the usual Burnside ring)
+
+  | A  D    E     I     K   
+--+-------------------------
+A | A  D    E     I     K   
+D | D  D+I  2I    2I+K  4K  
+E | E  2I   2E+K  2I+2K 6K  
+I | I  2I+K 2I+2K 2I+5K 12K 
+K | K  4K   6K    12K   24K 
+
+
+A subgroup order = 24, number of cosets = 1
+D subgroup order = 6, number of cosets = 4
+E subgroup order = 4, number of cosets = 6
+I subgroup order = 2, number of cosets = 12
+K subgroup order = 1, number of cosets = 24
+
+D*D = D+I
+
+.111
+1.11
+11.1
+111.
+sum: 12.0 <---- I
+
+1...
+.1..
+..1.
+...1
+sum: 4.0 <---- D
+
+A * D
+1111
+sum: 4.0
+
+
+
+Row reduce:
+  | A     D    E           I         K   
+--+----------------------------------------
+  | A     D      E         I         K   
+  | D-A   I      2I-E      I+K      3K  
+  | E-A   2I-D   2E+K-E    I+2K     5K  
+  | I-A   2I+K-D 2I+2K-E   I+5K     11K 
+  | K-A   4K-D   6K-E      12K-I     23K 
+
+
+  | A     D         E           I         K   
+--+----------------------------------------
+  | A     D         E         I         K   
+  | D-A   I         *2I-E      I+K      3K   *<-- work from here
+  | E-A   I-D       E+K       I+2K     5K  
+  | I-A   K-D       2I+2K-E   I+5K     11K 
+  | K-A   4K-D-3I   6K-E      12K-I     23K 
+
+wah...
+
+
+17/2/18
+=======
+
+
+> Hi Simon,
+> 
+> Since the two of us are both interested in the categorified Gram-Schmidt
+> process, I thought it might be nice to work out on the side some things
+> which we've learned from Jim (maybe you've done this already).
+
+Yes, I'm very keen. I did a bunch of calculations of Burnside rings of
+finite groups. Actually I wrote programs that did the calculations.
+This was quite interesting, and closely related to this Gram-Schmidt
+process.
+
+One concrete question I have is regarding the dihedral group of order 8, 
+which I will call B_2.
+The treatment on the nLab focuses on the symmetric groups and the G-sets
+coming from parabolic subgroups. There are other (stabilizer)
+subgroups apart from these, and I found with B_2 that I could just use
+all of the subgroups (up to conjugacy) when building the M matrix.
+
+Then after row reduction, this matrix ends up with some zero rows, but
+still manages to record the irreducibles in each permutation representation.
+
+Maybe I'm not being very clear, so let me give some details.
+
+There are 8 subgroups of B_2 up to conjugacy, and
+here they are labelled A through H, along with a description of the 
+corresponding "structure" stabilized:
+
+    A order = 8, stabilizes nothing
+    B order = 4, stabilizes a short axis
+    C order = 4, stabilizes a long axis
+    D order = 4, stabilizes an orientation
+    E order = 2, stabilizes a corner
+    F order = 2, stabilizes an edge
+    G order = 2, stabilizes an opposite (unordered) pair of flags
+    H order = 1, stabilizes a flag.
+
+This description is with respect to the usual action on a square.
+A flag is an incident corner and edge.
+Each of E and F are conjugate to another subgroup, I think this
+has something to do with the stabilizer of a corner also stabilizing
+the opposite corner.
+The subgroups E and F are the only subgroups that have conjugate subgroups. 
+
+We can multiply (tensor) the corresponding permutation representations,
+and there's a boatload of ways of describing this multiplication,
+double cosets being one of them. James likes to talk about "geometric
+relationships". 
+
+So here is the multiplication table for B_2:
+
+  | A B  C  D  E    F    G  H  
+--+----------------------------
+A | A B  C  D  E    F    G  H  
+B | B 2B G  G  2E   H    2G 2H 
+C | C G  2C G  H    2F   2G 2H 
+D | D G  G  2D H    H    2G 2H 
+E | E 2E H  H  2E+H 2H   2H 4H 
+F | F H  2F H  2H   2F+H 2H 4H 
+G | G 2G 2G 2G 2H   2H   4G 4H 
+H | H 2H 2H 2H 4H   4H   4H 8H 
+
+If we just count the double cosets we get this:
+
+  | A B  C  D  E  F  G  H  
+--+-------------------------
+A | 1  1  1  1  1  1  1  1  
+B | 1  2  1  1  2  1  2  2  
+C | 1  1  2  1  1  2  2  2  
+D | 1  1  1  2  1  1  2  2  
+E | 1  2  1  1  3  2  2  4  
+F | 1  1  2  1  2  3  2  4  
+G | 1  2  2  2  2  2  4  4  
+H | 1  2  2  2  4  4  4  8  
+
+After row reduction:
+
+  | A  B  C  D  E  F  G  H  
+--+-------------------------
+V | 1  1  1  1  1  1  1  1  
+W | .  1  .  .  1  .  1  1  
+X | .  .  1  .  .  1  1  1  
+Y | .  .  .  1  .  .  1  1  
+Z | .  .  .  .  1  1  .  2  
+
+I got rid of the zero rows,
+and the leftover rows are labelled by the irreducible representations.
+
+As we see from the H column, B_2 has four 1-dimensional
+irreducible representations, and one 2-dimensional irreducible representation.
+
+I guess my second question is, how can we just blithly add and
+subtract double cosets...? 
+
+> As a computational side note: if the permutation representation P attached
+> to a conjugacy class c is written as G/Stab(c) (quotienting by a stabilizer
+> subgroup), and similar Q is given as G/Stab(d), then the vector space <P,
+> Q> can be represented as having a basis Stab(c) \ G / Stab(d)  consisting
+> of double cosets.
+
+This seems to have something to do with my question. Perhaps I just
+need to do some more examples. My understanding of the usual representation
+theory is not great, but it seems that the way they would normally
+"kill off" a part of a reducible representation involves a summation
+over the elements of the group while multiplying by a character
+Something like that. (i really don't understand this very well.)
+So I'm wondering if that is going on here aswell, "under the hood".
+
+
+
+
+16/2/18
+=======
+
+
+
+15/2/18
+=======
+
+"Deep Reinforcement Learning Doesn't Work Yet"
+https://www.alexirpan.com/2018/02/14/rl-hard.html
+
+"Observable Notebooks"
+https://beta.observablehq.com/
+https://news.ycombinator.com/item?id=16274686
+Bezier curves
+https://beta.observablehq.com/@dhotson/drawing-better-looking-curves
+https://news.ycombinator.com/item?id=16364621
+
+
+How to Draw a Group
+Alexander Zvonkin
+    Abstract
+    A map is at the same time a group. To represent a map (that
+    is, a graph drawn on the sphere or on another surface) we usually
+    use a pair of permutations on the set of the \ends" of edges. These
+    permutations generate a group which we call a cartographic group.
+    The main motivation for the study of the cartographic group is the
+    so-called theory of \dessins d'enfants" of Grothendieck, which relates
+    the theory of maps to Galois theory [24].
+    In the present paper we address the questions of identifying the
+    cartographic group for a given map, and of constructing the maps
+    with a given cartographic group
+https://pdfs.semanticscholar.org/5dae/5d297c649206ca9640aa38e75bfafaa5e898.pdf
+
+Monsieur Mathieu
+http://www.neverendingbooks.org/monsieur-mathieu
+
+http://www.neverendingbooks.org/the-dedekind-tessellation#more-18
+    "Dedekind showed that the union of any back and white
+    region is a fundamental domain for the action of the modular group."
+
+http://www.neverendingbooks.org/the-mathieu-groupoid-1
+http://www.neverendingbooks.org/the-15-puzzle-groupoid-2
+
+http://www.neverendingbooks.org/iguanodon-series-of-simple-groups
+
+    L2(7),M12,A16,M24,A28,A40,A48,A60,...
+    Here, L2(7) is the simple group of order 168 (the
+    automorphism group of the Klein quartic), M12 and
+    M24 are the sporadic Mathieu groups and the An are
+    the alternating simple groups.
+    
+    I’ve stumbled upon this series playing around with Farey
+    sequences and their associated ‘dessins d’enfants’ (I’ll
+    come back to the details of the construction another
+    time) and have dubbed this sequence the Iguanodon series
+    because the shape of the doodle leading to its first few terms...
+
+
+http://www.neverendingbooks.org/the-inguanodon-dissected
+http://www.neverendingbooks.org/more-iguanodons-via-kfareysage
+http://www.neverendingbooks.org/farey-symbols-of-sporadic-groups
+    In the inguanodon post Ive added yet another construction
+    of the Mathieu groups M12 and M24 starting from
+    (half of) the Farey sequences and the associated cuboid
+    tree diagram obtained by demanding that all edges are odd.
+
+
+
+
+12/2/18
+=======
+
+https://mathoverflow.net/questions/133211/can-the-unsolvability-of-quintics-be-seen-in-the-geometry-of-the-icosahedron
+
+    Theorem: The group of rotations of the icosahedron is
+    of order 60, simple, and isomorphic to the alternating
+    group A5. Therefore, A5 is simple.
+
+    icosahedron has 12 vertices, 30 edges and 20 faces.
+
+    The compound of 5 octahedra: Consider the construction
+    of three orthogonal golden rectangles inscribed in the
+    icosahedron. The six short sides are edges of the icosahedron,
+    and we can paint them with the same color. Observe that,
+    whenever an edge e is chosen, there is a unique way
+    to build the rectangles in such a way that the edge e
+    is one of the short sides, so in this way the 30 edges
+    can be painted with 5 different colors. The midpoints
+    of the edges of each color are the vertices of an octahedron,
+    so we have formed a compound of 5 octahedra.
+
+
+
+
+https://mathoverflow.net/questions/24971/practical-applications-of-algebraic-number-theory
+
+Tsfasman's survey "Global fields, codes and sphere packings"
+Lind's theorem on realizability of any Perron–Frobenius integer as the leading eigenvalues of a positive integer matrix.
+Characters and cyclotomic fields in finite geometry, and T. Beth, D. Jungnickel
+
+https://mathoverflow.net/questions/284041/why-is-the-definition-of-the-higher-homotopy-groups-the-right-one
+
+     ...obstructions in the cohomology groups...
+
+     ... note that in the special case Y=BG we are classifying
+    principal G-bundles on X, which is a very large and
+    important generalization of classifying covering spaces
+    (which correspond to G=Sn for n-sheeted covers)
+
+    ... classify CW-complexes, at least up to homotopy equivalence.
+    You build CW-complexes by attaching cells.
+    To attach a cell, you just have to specify the attaching
+    map, i.e., the continuous map from the boundary of the
+    cell to the skeleton you've already constructed.
+    The boundary of a cell is a sphere.
+    The homotopy type of the space you get by attaching a
+    cell depends only on the homotopy class of the attaching map.
+
+
+
+
+https://arxiv.org/abs/1512.00906
+Butcher series: A story of rooted trees and numerical methods for evolution equations
+    Butcher series appear when Runge-Kutta methods for ordinary
+    differential equations are expanded in power series of
+    the step size parameter. Each term in a Butcher series
+    consists of a weighted elementary differential, and the
+    set of all such differentials is isomorphic to the set
+    of rooted trees, as noted by Cayley in the mid 19th century.
+    A century later Butcher discovered that rooted trees
+    can also be used to obtain the order conditions of Runge-Kutta
+    methods, and he found a natural group structure, today
+    known as the Butcher group. It is now known that many
+    numerical methods also can be expanded in Butcher series;
+    these are called B-series methods. A long-standing problem
+    has been to characterize, in terms of qualitative features,
+    all B-series methods. Here we tell the story of Butcher
+    series, stretching from the early work of Cayley, to
+    modern developments and connections to abstract algebra,
+    and finally to the resolution of the characterization
+    problem. This resolution introduces geometric tools and
+    perspectives to an area traditionally explored using
+    analysis and combinatorics.
+
+    ...
+    "Many areas of inquiry show a tendency to divide adherents into ‘lumpers’ and ‘splitters’.
+    For example, in taxonomy, lumpers prefer to name few species, splitters many.
+    Lumpers emphasize similarity, splitters emphasize difference."
+
+
+
+11/2/18
+=======
+
+https://mathoverflow.net/questions/79868/what-does-mellin-inversion-really-mean
+For any complex s,
+The function f(t)=t^s is a character on R^{\times}=GL(1,R).
+
+mellin transform == multiplicative fourier transform 
+
+10/2/18
+=======
+
+https://www.wired.com/story/greedy-brittle-opaque-and-shallow-the-downsides-to-deep-learning/
+Deep Learning: A Critical Appraisal
+Gary Marcus
+https://arxiv.org/pdf/1801.00631.pdf
+
+
+
+8/2/18
+======
+
+./equiv.py cayley n=4 all_subgroups
+
+
 4/2/18
 ======
 
@@ -1089,6 +1615,8 @@ Lecture Notes in Math. (Springer-Verlag, New York) 342 (Algebraic KTheory II)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 https://ncatlab.org/johnbaez/show/Schur+functors+I
+    This is a paper that John Baez and Todd Trimble are writing...
+
     Classically, a Schur functor is a specific sort of functor
     F:FinVect→FinVect
     F: \Fin\Vect \to \Fin\Vect
@@ -4465,11 +4993,11 @@ A_3 = S_4
 .b A subgroup 24 cosets  1   parabolic S_4         partition (4) "nothing"     
 .j B subgroup 12 cosets  2   even permutations     orientation (checkerboard)                    
  i C subgroup  8 cosets  3   Z_2*Z_2*Z_2 ?         unordered pair of opposite edges
- g D subgroup  6 cosets  4   parabolic S_3         partition (21) == vertex
+ g D subgroup  6 cosets  4   parabolic S_3         partition (31) == vertex
  h E subgroup  4 cosets  6   parabolic             partition (22) == edge                   
 .k F subgroup  4 cosets  6   Z_2*Z_2               3-coloring of edges
- f G subgroup  4 cosets  6   C_4                   4-cycle 
- d H subgroup  3 cosets  8   C_3                   oriented face                    
+ f G subgroup  4 cosets  6   Z_4                   4-cycle 
+ d H subgroup  3 cosets  8   Z_3                   oriented face                    
  c I subgroup  2 cosets 12   parabolic S_2         partition (211)                    
 .e J subgroup  2 cosets 12   double swap (12)(34)  two relativly oriented disjoint edges
 .a K subgroup  1 cosets 24   parabolic I           partition (1111) "frame"
