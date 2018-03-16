@@ -2138,7 +2138,6 @@ def burnside(G):
         arrows = []
         names = [H.name for H in Hs]
         parents = dict((name, []) for name in names)
-        children = dict((name, []) for name in names)
         for H in Hs:
           for K in Hs:
             # Look for K a subgroup of H
@@ -2148,7 +2147,6 @@ def burnside(G):
               if H.is_subgroup(K1):
                 arrows.append((K.name, H.name))
                 parents[K.name].append(H.name)
-                children[H.name].append(K.name)
                 break
         print "digraph"
         print "{"

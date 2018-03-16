@@ -1,4 +1,53 @@
 
+17/3/18
+=======
+
+https://quantumcomputing.stackexchange.com/questions/1/can-a-turing-machine-simulate-a-quantum-computer
+
+    "Randomness isn't a real "thing" to begin with; it's
+    merely ignorance. And we can always produce ignorance."
+
+    "anyone who claims that the universe is fundamentally
+    non-deterministic is claiming that they know for certain
+    that no one will ever discover a way to predict certain
+    things. Since they can't actually prove such a proposition,
+    since it's literally impossible to somehow know that
+    for sure, they'd be making an entirely meaningless claim,
+    on-par with any other unfalsifiable dogma. Such dogma
+    isn't in the realm of science or reason."
+
+
+Obituary for a Flea
+Jasper van Heugten, Sander Wolters
+(Submitted on 18 Oct 2016)
+https://arxiv.org/abs/1610.06093
+    The Landsman-Reuvers proposal to solve the measurement
+    problem from within quantum theory is extensively analysed.
+    In favor of proposals of this kind, it is shown that
+    the standard reasoning behind objections to solving the
+    measurement problem from within quantum theory rely on
+    counterfactual reasoning or mathematical idealisations.
+    Subsequently, a list of objections/challenges to the
+    proposal are made. Part of these objections are equally
+    important for all attempts at solving the measurement
+    problem, such as the problem of interpreting small numbers
+    in the density matrix, the problem of reproducing the
+    Born rule, the use of pure states as a tool to alleviate
+    the interpretational issues of quantum states, and the
+    necessity of introducing classical certainties which
+    are not strictly present in quantum theory. The additional
+    objections that are particular to the proposal, such
+    as the physical interpretation/origin of the flea perturbation,
+    the use of potentials to solve a dynamical problem, slow
+    collapse times, the inability to handle unequal probabilities,
+    and the dictatorial role of the flea perturbation, lead
+    us to believe that the Landsman-Reuvers proposal is lacking
+    in both physical grounding and theoretical promise. Finally,
+    an overview is given of the challenges that were encountered
+    in this attempt to solve the measurement problem from
+    within quantum theory.
+
+
 8/3/18
 ======
 
@@ -12,6 +61,7 @@ https://arxiv.org/abs/1803.02466
 
 Fantastic Quantum Theories and Where to Find Them
 Stefano Gogioso
+https://arxiv.org/abs/1703.10576
     Real quantum theory
     Relational quantum theory
     Hyperbolic quantum theory: R[X]/(X^2-1)
