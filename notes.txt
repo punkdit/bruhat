@@ -1,4 +1,11 @@
 
+19/3/18
+=======
+
+https://people.maths.bris.ac.uk/~matyd/GroupNames/163/GL(3,2).html
+https://groupprops.subwiki.org/wiki/Alternating_group:A5
+https://groupprops.subwiki.org/wiki/Projective_special_linear_group:PSL(3,2)
+
 17/3/18
 =======
 
