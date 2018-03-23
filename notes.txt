@@ -1,4 +1,96 @@
 
+22/3/18
+=======
+
+The Practice of Mathematics
+Robert P. Langlands
+http://www.math.ias.edu/practice
+
+Robert Langlands, Mathematical Visionary, Wins the Abel Prize
+https://www.quantamagazine.org/robert-langlands-mathematical-visionary-wins-the-abel-prize-20180320/
+
+a directory of all known zeta functions
+http://empslocal.ex.ac.uk/people/staff/mrwatkin//zeta/directoryofzetafunctions.htm
+
+http://math.ucr.edu/home/baez/week216.html
+    A number field is like a funny sort of "branched covering
+    space" of the set of ordinary primes. Sitting over each
+    ordinary prime there are one or more prime ideals in
+    our number field:
+    
+                        2+i                  3+2i
+      --- 1+i --- 3 ---     --- 7 --- 11 ---      ---   GAUSSIAN INTEGERS 
+                        2-i                  3-2i           
+    
+    
+      -----2------3------5------7-----11------13-----      INTEGERS
+    
+    And, the ζ function records the details of how this works!
+
+
+http://math.ucr.edu/home/baez/week186.html
+                         DYNKIN DIAGRAM
+                          /             \
+                         /               \
+           pick a field /                 \ 
+                       /                   \
+                      /                     \
+                     /       Weyl group      \
+           SIMPLE ALGEBRAIC ----------> COXETER GROUP 
+                 GROUP                        | 
+                    |                         | 
+              FLAG VARIETY             COXETER COMPLEX 
+                     \                       /
+                      \                     /
+                       \                   /
+                        \                 /
+                         \               /
+                          \             /
+                           \           /
+                           q-POLYNOMIAL
+ value at a prime power q /   |  |  |  \degree
+                         /    |  |  |   \
+    number of points in /     |  |  |  dimension of flag variety =
+  flag variety over F_q       |  |  |  length of longest word in Coxeter group
+                              |  |  |
+                              |  |  |
+                value at q = 1|  |  |ith coefficient
+                              |  |  |
+         number of Coxeter group | number of Coxeter group 
+                        elements | elements of length i =
+               = number of cells | number of i-cells  
+                 in flag variety | in flag variety = 
+       = Euler characteristic of | rank of (2i)th homology group of
+             flag variety over C | flag variety over C
+                                 |
+                                 |
+                                 |value at q = -1
+                                 |
+              Euler characteristic of flag variety over R
+
+
+21/3/18
+=======
+
+"Synthesis of Logical Clifford Operators via Symplectic Geometry"
+Narayanan Rengaswamy, Robert Calderbank, Swanand Kadhe, and Henry D. Pfister
+https://arxiv.org/pdf/1803.06987.pdf
+
+Indeterminism in Physics, Classical Chaos and Bohmian Mechanics.
+Are Real Numbers Really Real?
+Nicolas Gisin
+https://arxiv.org/pdf/1803.06824.pdf
+    I argue that the mathematical
+    real numbers are not physically real. Moreover, a better
+    terminology for the so-called real
+    numbers is “random numbers”, as their series of bits
+    are truly random. I propose an alternative classical
+    mechanics that uses only finite-information numbers.
+    This alternative classical mechanics is
+    non-deterministic, despite the use of deterministic equations,
+    in a way similar to quantum theory
+
+
 19/3/18
 =======
 

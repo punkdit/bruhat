@@ -1454,6 +1454,16 @@ def main():
             Perm({0:1, 1:0, 2:3, 3:2, 4:4, 5:5, 6:7, 7:6}, items)]
         perms = mulclose(gen)
         G = Group(perms, items)
+        assert len(G)==8
+
+    elif argv.Q_8:
+        items = range(8)
+        gen = [
+            Perm({0:1, 1:3, 3:6, 6:0, 2:5, 5:7, 7:4, 4:2}, items),
+            Perm({0:2, 2:3, 3:7, 7:0, 1:4, 4:6, 6:5, 5:1}, items)]
+        perms = mulclose(gen)
+        G = Group(perms, items)
+        assert len(G)==8
 
     elif argv.P2:
         G = get_P2()

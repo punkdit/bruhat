@@ -69,14 +69,22 @@ def zelim(A, verbose=False):
     assert A.shape == (n, n)
     
     row = 0
-    col = 0
     
     while row+1 < n:
     
         #print A
         #print "row = %d, col = %d" % (row, col)
-        assert A[row, :col].sum() == 0
+        #assert A[row, :col].sum() == 0
+        while row<n and A[row].sum() == 0:
+            row += 1
     
+        if row==n:
+            break
+
+        col = 0
+        while A[row, col] == 0:
+            col += 1
+
         val0 = A[row, col]
         assert val0
         for row1 in range(row + 1, n):
@@ -87,11 +95,10 @@ def zelim(A, verbose=False):
             r = val1 // val0
             A[row1] -= r*A[row]
             assert A.min() >= 0
-        print
-        print shortstr(A)
+        #print
+        #print shortstr(A)
     
         row += 1
-        col += 1
     
     
     A = numpy.array([row for row in A if row.sum()])
@@ -111,8 +118,9 @@ def zelim(A, verbose=False):
     return A
 
 
+tables = {}
 
-table = """
+tables["D_8"] = """
   | A B  C  D  E    F    G  H  
 --+----------------------------
 A | A B  C  D  E    F    G  H  
@@ -124,14 +132,20 @@ F | F H  2F H  2H   2F+H 2H 4H
 G | G 2G 2G 2G 2H   2H   4G 4H 
 H | H 2H 2H 2H 4H   4H   4H 8H 
 """ # D_8
-A = parse(table, perm=argv.get("perm"))
-print shortstr(A)
-A = zelim(A)
-print
-print shortstr(A)
+
+tables["Q_8"] = """
+  | A B  C  D  E  F  
+--+------------------
+A | A B  C  D  E  F  
+B | B 2B E  E  2E 2F 
+C | C E  2C E  2E 2F 
+D | D E  E  2D 2E 2F 
+E | E 2E 2E 2E 4E 4F 
+F | F 2F 2F 2F 4F 8F 
+"""
 
 
-table = """
+tables["S_3"] = """
   | A B  C   D  
 --+-------------
 A | A B  C   D  
@@ -140,10 +154,7 @@ C | C D  C+D 3D
 D | D 2D 3D  6D 
 """ # S_3
 
-A = parse(table)
-A = zelim(A)
-
-A = parse("""
+tables["S_4"] = """
   | A B  C   D    E     F  G     H     I     J     K   
 --+----------------------------------------------------
 A | A B  C   D    E     F  G     H     I     J     K   
@@ -157,10 +168,9 @@ H | H 2H K   H+K  2K    2K 2K    2H+2K 4K    4K    8K
 I | I K  I+K 2I+K 2I+2K 3K 3K    4K    2I+5K 6K    12K 
 J | J 2J 3J  2K   2J+2K 6J 2J+2K 4K    6K    4J+4K 12K 
 K | K 2K 3K  4K   6K    6K 6K    8K    12K   12K   24K 
-""") # S_4
-A = zelim(A)
+"""
 
-A = parse("""
+tables["PS_4"] = """
   | A  D    E     I     K    
 --+-------------------------
 A | A  D    E     I     K    
@@ -168,10 +178,9 @@ D | D  D+I  2I    2I+K  4K
 E | E  2I   2E+K  2I+2K 6K   
 I | I  2I+K 2I+2K 2I+5K 12K  
 K | K  4K   6K    12K   24K  
-""") # parabolics of S_4
-A = zelim(A)
+""" # parabolics of S_4
 
-A = parse("""
+tables["A_5"] = """
   | A B    C     D     E     F     G     H      I   
 --+-------------------------------------------------
 A | A B    C     D     E     F     G     H      I   
@@ -183,10 +192,9 @@ F | F F+I  3H    3H+I  3I    3F+3I 5I    3H+6I  15I
 G | G 2G+I 2I    G+3I  4I    5I    2G+6I 10I    20I 
 H | H H+2I 2H+2I 2H+4I 6I    3H+6I 10I   2H+14I 30I 
 I | I 5I   6I    10I   12I   15I   20I   30I    60I 
-""") # alternating n=5
-A = zelim(A)
+""" # alternating n=5
 
-A = parse("""
+tables["GL32"] = """
   | A B     C     D     E      F      G          H     I       J        K       L        M      N      P    
 --+--------------------------------------------------------------------------------------------------------
 A | A B     C     D     E      F      G          H     I       J        K       L        M      N      P    
@@ -204,6 +212,10 @@ L | L L+3N  3L+P  2P    3N+2P  2L+3P  3L+3N+3P   6P    6N+4P   9N+6P    3N+9P   
 M | M M+2P  M+2P  2M+2P 2M+4P  2M+4P  7P         8P    M+9P    14P      14P     14P      2M+18P 28P    56P  
 N | N 3N+2P 3N+2P 4P    2N+6P  2N+6P  5N+8P      12P   4N+12P  6N+18P   2N+20P  6N+18P   28P    4N+40P 84P  
 P | P 7P    7P    8P    14P    14P    21P        24P   28P     42P      42P     42P      56P    84P    168P 
-""")
+"""
+
+table = tables[argv.next()]
+A = parse(table, perm=argv.perm)
 A = zelim(A)
+print shortstr(A)
 
