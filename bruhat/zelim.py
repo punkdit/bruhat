@@ -216,6 +216,8 @@ P | P 7P    7P    8P    14P    14P    21P        24P   28P     42P      42P     
 
 table = tables[argv.next()]
 A = parse(table, perm=argv.perm)
+print (A)
+print
 A = zelim(A)
 print shortstr(A)
 

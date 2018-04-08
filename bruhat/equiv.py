@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+"""
+Here we demonstrate the galois connection between
+spectra and symmetry groups of graphs.
+"""
+
+
 import sys, os
 
 import os, sys
@@ -158,12 +164,14 @@ def cayley(gen):
 
     G = Group.generate(gen)
     lookup = dict((g, i) for (i, g) in enumerate(G))
-    graph = nx.Graph()
+    graph = nx.Graph() # undirected graph, must have gen closed under inverse
     for i, g in enumerate(G):
         graph.add_node(i)
 
+    #for g in gen:
+    #    assert (g*g).is_identity()
     for g in gen:
-        assert (g*g).is_identity()
+        assert g.inverse() in gen # undirected graph!
 
     edges = set()
     for g in G:
@@ -203,6 +211,45 @@ def main():
 
         graph = cayley(gen)
 
+    elif name == "transpositions":
+
+        n = argv.get("n", 3)
+        items = range(n)
+        gen = []
+        for i in range(n-1):
+            for j in range(i+1, n):
+                perm = dict((item, item) for item in items)
+                perm[items[i]] = items[j]
+                perm[items[j]] = items[i]
+                gen.append(perm)
+        gen = [Perm(perm, items) for perm in gen]
+
+        print "gen:", len(gen)
+        graph = cayley(gen)
+
+    elif name == "cycles":
+
+        n = argv.get("n", 3)
+        items = range(n)
+        gen = []
+        for i in range(n):
+          for j in range(i+1, n):
+            for k in range(j+1, n):
+                perm = dict((item, item) for item in items)
+                perm[items[i]] = items[j]
+                perm[items[j]] = items[k]
+                perm[items[k]] = items[i]
+                gen.append(perm)
+                perm = dict((item, item) for item in items)
+                perm[items[i]] = items[k]
+                perm[items[k]] = items[j]
+                perm[items[j]] = items[i]
+                gen.append(perm)
+        gen = [Perm(perm, items) for perm in gen]
+
+        print "gen:", len(gen)
+        graph = cayley(gen)
+
     else:
     
         builder = getattr(small, name, None)
@@ -222,15 +269,18 @@ def main():
 
 
     print "|nodes|=%d, edges=|%d|"%(len(graph.nodes()), len(graph.edges()))
+
+    if argv.spec:
+        print "spec:",
+        spec = nx.adjacency_spectrum(graph)
+        spec = [x.real for x in spec]
+        spec.sort()
+        print ' '.join("%5f"%x for x in spec)
+        print
+        return
+
     G = get_autos(graph)
     print "|G|=%d"%len(G)
-
-#    for g in G:
-#        #print g.order(),
-#        if g.order() == 4:
-#            H = Group.generate([g])
-#            break
-#    #print
 
     if argv.all_subgroups:
         Hs = list(G.subgroups())
@@ -242,7 +292,7 @@ def main():
         print "|H|=%d"%len(H)
 
         A = build_orbigraph(graph, H)
-        print A
+        print shortstr(A)
 
         spec = numpy.linalg.eigvals(A)
 
@@ -255,12 +305,6 @@ def main():
     return
 
 
-    print "spec:",
-    spec = nx.adjacency_spectrum(graph)
-    spec = [x.real for x in spec]
-    spec.sort()
-    print ' '.join("%5f"%x for x in spec)
-    print
 
 
 if __name__ == "__main__":

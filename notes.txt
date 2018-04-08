@@ -1,4 +1,90 @@
 
+5/4/18
+======
+
+From: https://en.wikipedia.org/wiki/Cayley_graph
+    Every group character \chi of the group
+    G induces an eigenvector of the adjacency matrix of 
+    \Gamma (G,S). The associated eigenvalue is 
+    \lambda_{\chi }=\sum_{s\in S}\chi(s)
+Really??? I think this is only true for abelian G.
+TODO: edit wikipedia
+
+
+4/4/18
+======
+
+UNIFICATION OF COUPLINGS
+Dimopoulos, Savas, Stuart A. Raby, and Frank Wilczek.
+"Unification of couplings." Physics Today 44.1 (1991): 25-33.
+http://frankwilczek.com/Wilczek_Easy_Pieces/172_Unification_of_Couplings.pdf
+
+On the unification of couplings in the minimal
+supersymmetric standard model
+M. Carena, S. Pokorski and C.E.M. Wagner
+Nuclear Physics B, 1993
+
+
+25/3/18
+=======
+
+simon@hero:~/home/github/bruhat/bruhat$ ./equiv.py cycles n=5 spec
+gen: 20
+|nodes|=60, edges=|600|
+spec: -4.000000 -4.000000 -4.000000 -4.000000 -4.000000
+-4.000000 -4.000000 -4.000000 -4.000000 -4.000000 -4.000000
+-4.000000 -4.000000 -4.000000 -4.000000 -4.000000 -4.000000
+-4.000000 -4.000000 -4.000000 -4.000000 -4.000000 -4.000000
+-4.000000 -4.000000 -0.000000 -0.000000 -0.000000 -0.000000
+-0.000000 -0.000000 -0.000000 0.000000 0.000000 0.000000
+0.000000 0.000000 0.000000 0.000000 0.000000 0.000000
+0.000000 0.000000 5.000000 5.000000 5.000000 5.000000
+5.000000 5.000000 5.000000 5.000000 5.000000 5.000000
+5.000000 5.000000 5.000000 5.000000 5.000000 5.000000 20.000000
+
+
+simon@hero:~/home/github/bruhat/bruhat$ ./equiv.py transpositions n=4 spec
+gen: 6
+|nodes|=24, edges=|72|
+spec: -6.000000 -2.000000 -2.000000 -2.000000 -2.000000 -2.000000 -2.000000 -2.000000 -2.000000 -2.000000 -0.000000 -0.000000 0.000000 0.000000 2.000000 2.000000 2.000000 2.000000 2.000000 2.000000 2.000000 2.000000 2.000000 6.000000
+
+
+
+24/3/18
+=======
+
+Theorem:
+a graph is a cayley graph iff 
+there exists a vertex-trasitive group action with trivial point stabilizer.
+
+Theorem:
+The irreducible representations of S_n are in bijection
+with the partitions of n. (Young diagrams)
+proof: conjugacy classes of S_n are determined by
+cycle structure.
+
+
+
+Row reduction on the double-cosets of Q_8:
+./zelim.py Q_8
+111111
+.1..11
+..1.11
+...111
+.....4
+
+@book{book:4759,
+   title =     {The Representation Theory of the Symmetric Groups},
+   author =    {G. D. James (auth.)},
+   publisher = {Springer-Verlag Berlin Heidelberg},
+   isbn =      {9780387089485,0-387-08948-9},
+   year =      {1978},
+   series =    {Lecture Notes in Mathematics 682},
+   edition =   {1},
+   volume =    {}
+}
+
+
 22/3/18
 =======
 
