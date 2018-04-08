@@ -1,7 +1,16 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
+
+"""
+generate pdf visualizations of small symmetric networkx graphs.
+Use the automorphisms of the graph to layout nodes in
+concentric circles.
+"""
+
+from __future__ import print_function
 
 import sys, os
 from random import gauss, random, seed
+from math import sin, cos, pi
 
 #import numpy
 
@@ -9,6 +18,8 @@ from random import gauss, random, seed
 import networkx as nx
 from networkx.generators import small, classic
 
+
+from equiv import get_autos
 from argv import argv
 
 
@@ -32,7 +43,7 @@ def draw_graph(graph, pts, name):
     #W = 10.
     #H = 10.
 
-    R = 10.
+    R = 1.
     r = 0.2
 
     c = pyx.canvas.canvas()
@@ -54,7 +65,71 @@ def draw_graph(graph, pts, name):
     c.writePDFfile(name)
     
 
+def pos_rand(graph):
 
+    nodes = list(graph.nodes())
+
+    pts = {}
+    for key in nodes:
+        pts[key] = 10*random(), 10*random()
+
+    return pts
+
+
+def pos_circ(graph):
+
+    G = get_autos(graph)
+
+    print("autos:", len(G))
+
+    if len(G.orbits()) == 1:
+        print("transitive graph")
+
+    best_g = None
+    best_orbit = []
+    for g in G:
+        if g.is_identity():
+            continue
+        #print(g)
+        for orbit in g.orbits():
+            if len(orbit) > len(best_orbit):
+                best_orbit = orbit
+                best_g = g
+        #print(g.orbits())
+
+    orbits = best_g.orbits()
+    print(orbits)
+
+    pts = {} # here we go
+
+    dR = 1.
+    orbits.sort(key = lambda o:len(o))
+
+    R = 0.
+    if len(orbits[0])>1:
+        R = dR
+
+    for orbit in orbits:
+        theta = 2*pi*random()
+        dtheta = 2*pi/len(orbit)
+        for node in orbit:
+            pts[node] = R*sin(theta), R*cos(theta)
+            theta += dtheta
+        R += dR
+
+    #pts = pos_rand(graph)
+    return pts
+
+"""
+bull_graph chvatal_graph complete_graph cubical_graph
+cycle_graph desargues_graph diamond_graph dodecahedral_graph
+empty_graph frucht_graph heawood_graph house_graph house_x_graph
+icosahedral_graph krackhardt_kite_graph make_small_graph
+make_small_undirected_graph moebius_kantor_graph nx octahedral_graph
+pappus_graph path_graph petersen_graph sedgewick_maze_graph
+tetrahedral_graph truncated_cube_graph truncated_tetrahedron_graph
+tutte_graph
+"""
 
 def main():
 
@@ -80,12 +155,12 @@ def main():
     print(list(graph.nodes()))
     print(list(graph.edges()))
 
-
-    nodes = list(graph.nodes())
-
-    pts = {}
-    for key in nodes:
-        pts[key] = random(), random()
+    if argv.pos_rand:
+        pts = pos_rand(graph)
+    elif argv.pos_circ:
+        pts = pos_circ(graph)
+    else:
+        pts = pos_circ(graph)
 
     draw_graph(graph, pts, "output")
 
