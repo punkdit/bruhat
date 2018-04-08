@@ -270,6 +270,11 @@ def main():
 
     print "|nodes|=%d, edges=|%d|"%(len(graph.nodes()), len(graph.edges()))
 
+    if argv.visualize:
+        from visualize import draw_graph
+        draw_graph(graph)
+        return
+
     if argv.spec:
         print "spec:",
         spec = nx.adjacency_spectrum(graph)
