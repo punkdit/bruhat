@@ -9,7 +9,7 @@ concentric circles.
 from __future__ import print_function
 
 import sys, os
-from random import gauss, random, seed
+from random import gauss, random, seed, shuffle
 from math import sin, cos, pi
 
 #import numpy
@@ -43,7 +43,7 @@ def draw_graph(graph, pts, name):
     #W = 10.
     #H = 10.
 
-    R = 1.
+    R = 1.5
     r = 0.2
 
     c = pyx.canvas.canvas()
@@ -76,6 +76,16 @@ def pos_rand(graph):
     return pts
 
 
+def metric(graph, pts):
+    "sum of edge lengths"
+    score = 0.
+    for a, b in graph.edges():
+        x0, y0 = pts[a]
+        x1, y1 = pts[b]
+        score += ((x1-x0)**2 + (y1-y0)**2)**0.5
+    return score
+
+
 def pos_circ(graph):
 
     G = get_autos(graph)
@@ -100,17 +110,38 @@ def pos_circ(graph):
     orbits = best_g.orbits()
     print(orbits)
 
-    pts = {} # here we go
 
-    dR = 1.
-    orbits.sort(key = lambda o:len(o))
+    best_pts = None
+    best_score = 999999.*len(graph.edges())
 
+    for trial in range(1000):
+
+        shuffle(orbits)
+        orbits.sort(key = lambda o:len(o))
+        #thetas = [0.]*len(orbits)
+        thetas = [2*pi*random() for _ in orbits]
+        pts = pos_orbits(graph, orbits, thetas)
+        score = metric(graph, pts)
+        #print("score:", score)
+        if score < best_score:
+            best_pts = pts
+            best_score = score
+
+    return best_pts
+
+
+def pos_orbits(graph, orbits, thetas):
+
+    assert len(thetas) == len(orbits)
+    dR = 1.5
     R = 0.
     if len(orbits[0])>1:
         R = dR
 
-    for orbit in orbits:
-        theta = 2*pi*random()
+    pts = {} # here we go
+    for idx, orbit in enumerate(orbits):
+        #theta = 2*pi*random()
+        theta = thetas[idx]
         dtheta = 2*pi/len(orbit)
         for node in orbit:
             pts[node] = R*sin(theta), R*cos(theta)
