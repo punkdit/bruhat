@@ -1237,6 +1237,10 @@ def main():
     if G is None:
         return
 
+    if argv.show:
+        for g in G.gen:
+            print g
+
     if argv.longest_element:
         g = G.longest_element()
         print g

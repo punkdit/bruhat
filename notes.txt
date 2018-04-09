@@ -1,4 +1,96 @@
 
+9/4/18
+======
+
+A Construction of Representations of Weyl Groups
+T.A. Springer, 1978
+
+    Let g be a complex semi-simple Lie algebra and A\in g a
+    nilpotent element. Let G
+    be the adjoint complex Lie group defined by g and denote
+    by B_A^G the variety of Borel subgroups of G whose 
+    Lie algebra contains A. Fix a maximal torus T of G
+    and let W be its Weyl group. In this paper we shall construct
+    representations of W in the graded cohomology H*(B_A^G, Q)
+
+
+8/4/18
+======
+
+Why are the characters of the symmetric group integer-valued?
+https://mathoverflow.net/questions/10635/
+    The quickest answer is because all of the irreducible
+    representations of the symmetric group can be constructed
+    over the field of rational numbers. See the wikipedia
+    article on Young symmetrizers for example 
+    http://en.wikipedia.org/wiki/Young_symmetrizer
+    
+    More generally, one can say that representations of any
+    finite Weyl group can be constructed over the rational
+    numbers. This is explained in one of Springer's papers:
+    http://www.ams.org/mathscinet-getitem?mr=491988
+    
+    Another reason is that one write down an explicit combinatorial
+    formula for the values of these characters. This is the
+    Murnaghan-Nakayama rule and can be found in many sources.
+    One such source is Stanley's Enumerative Combinatorics
+    volume 2, Section 7.17, and Section 7.18 for its connection
+    to the symmetric group.
+
+    This points to an unusual property of symmetric groups
+    and other Weyl groups which is much stronger than the
+    fact that their characters take values in $\mathbb{Z}$:
+    the representing matrices can actually be written over
+    $\mathbb{Q}$. Of course, the price of this stronger statement
+    is doing more work than just showing that character values
+    (always algebraic integers) are rational
+
+On Klein’s Icosahedral Solution of the Quintic
+Oliver Nash
+    From one point of view, the exceptional geometry of the
+    quintic is a result of the exceptional isomorphism:
+    A5 ~= P SL(2, 5)
+    Corresponding to the exact sequence defining the level-5
+    principal congruence subgroup of the modular group:
+    0 → Γ(5) → P SL(2, Z) → P SL(2, 5) → 0
+    there is a factorization of the modular quotient:
+    j : H ∗ j5 −→ X(5) Iˆ −→ X(1)
+
+
+http://projects.thestar.com/math-the-canadian-who-reinvented-mathematics/
+“A motive is supposed to come with a product of l-adic
+Galois representations, whose Frobenius eigenvalues would
+be related to Hecke eigenvalues by reciprocity?” Arthur
+wrote. “But could we not argue that the latter are closely
+related to quantum mechanics-like spectra, being ‘momentum
+observables’ in the sense that they commute with the
+Laplacian/Hamiltonian?” -- Jim Arthur
+
+
+PROBLEMS IN THE THEORY OF AUTOMORPHIC FORMS
+ROBERT P. LANGLANDS
+https://publications.ias.edu/sites/default/files/problems-in-the-theory-of-automorphic-forms.pdf
+
+
+
+7/4/18
+======
+
+Numerical and analytical bounds on threshold error rates for hypergraph-product codes
+Alexey A. Kovalev, Sanjay Prabhakar, Ilya Dumer, Leonid P. Pryadko
+    we analyze numerically the low-disorder
+    portion of the phase diagram of the two random-bond
+    Ising models corresponding to the ML decoding of (3, 4)
+    QHP codes with i.i.d. bit-flip errors. For a CSS code with
+    generators G = Gx and H = Gz, the corresponding Ising
+    models have the free energies Fe(G; K) and Fe(H∗ ; K),
+    see Eqs. (4) and (15), where e is the binary error vector
+    whose non-zero bits indicate the flipped bonds, and
+    K = 1/T is the inverse temperature. These models, respectively,
+    correspond to the numerator and the denominator
+    of the conditional ML decoding probability (5).
+
+
 5/4/18
 ======
 
@@ -3524,7 +3616,12 @@ http://www.maths.ed.ac.uk/~tl/sapporo/sapporo_talk.pdf
 27/8/17
 =======
 
-I don't see why "understanding" is equivalent to mere pattern recognition. Even using this word "recognition", what does that mean? It's another word like "understand". These algorithms are just pattern patterning. They don't even know they are patterning, that is a meta-property assigned in (or by) a context.
+I don't see why "understanding" is equivalent to mere
+pattern recognition. Even using this word "recognition",
+what does that mean? It's another word like "understand".
+These algorithms are just pattern patterning. They don't
+even know they are patterning, that is a meta-property
+assigned in (or by) a context.
 
 26/8/17
 =======

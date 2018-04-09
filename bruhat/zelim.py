@@ -120,6 +120,21 @@ def zelim(A, verbose=False):
 
 tables = {}
 
+tables["D_12"] = """
+  | A B  C  D  E   F  G     H     I  J   
+--+--------------------------------------
+A | A B  C  D  E   F  G     H     I  J   
+B | B 2B F  F  G   2F 2G    J     J  2J  
+C | C F  2C F  H   2F J     2H    J  2J  
+D | D F  F  2D I   2F J     J     2I 2J  
+E | E G  H  I  E+I J  G+J   H+J   3I 3J  
+F | F 2F 2F 2F J   4F 2J    2J    2J 4J  
+G | G 2G J  J  G+J 2J 2G+2J 3J    3J 6J  
+H | H J  2H J  H+J 2J 3J    2H+2J 3J 6J  
+I | I J  J  2I 3I  2J 3J    3J    6I 6J  
+J | J 2J 2J 2J 3J  4J 6J    6J    6J 12J 
+"""
+
 tables["D_8"] = """
   | A B  C  D  E    F    G  H  
 --+----------------------------
@@ -143,7 +158,6 @@ D | D E  E  2D 2E 2F
 E | E 2E 2E 2E 4E 4F 
 F | F 2F 2F 2F 4F 8F 
 """
-
 
 tables["S_3"] = """
   | A B  C   D  
@@ -212,6 +226,44 @@ L | L L+3N  3L+P  2P    3N+2P  2L+3P  3L+3N+3P   6P    6N+4P   9N+6P    3N+9P   
 M | M M+2P  M+2P  2M+2P 2M+4P  2M+4P  7P         8P    M+9P    14P      14P     14P      2M+18P 28P    56P  
 N | N 3N+2P 3N+2P 4P    2N+6P  2N+6P  5N+8P      12P   4N+12P  6N+18P   2N+20P  6N+18P   28P    4N+40P 84P  
 P | P 7P    7P    8P    14P    14P    21P        24P   28P     42P      42P     42P      56P    84P    168P 
+"""
+
+tables["B_3"] = """
+  | A B  C  D  E   F    G  H  I     J     K     L     M     N     P     Q     R     S     T     U      V     W   X     Y     Z     a       b     c     d      e     f   g      h   
+--+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+A | A B  C  D  E   F    G  H  I     J     K     L     M     N     P     Q     R     S     T     U      V     W   X     Y     Z     a       b     c     d      e     f   g      h   
+B | B 2B G  G  H   R    2G 2H S     V     V     W     S     W     b     b     2R    2S    e     f      2V    2W  e     e     e     c       2b    2c    h      2e    2f  h      2h  
+C | C G  2C G  N   Q    2G W  Z     Z     T     W     T     2N    b     2Q    b     e     2T    g      e     2W  e     e     2Z    g       2b    h     h      2e    h   2g     2h  
+D | D G  G  2D L   P    2G W  X     Y     X     2L    Y     W     2P    b     b     e     e     d      e     2W  2X    2Y    e     d       2b    h     2d     2e    h   h      2h  
+E | E H  N  L  E+H U    W  3H I+S   J+V   K+V   L+W   M+S   N+W   d     g     f     3S    T+e   U+f    3V    3W  X+e   Y+e   Z+e   a+c     h     3c    d+h    3e    3f  g+h    3h  
+F | F R  Q  P  U   F+U  b  f  f     d     g     d     2U    g     P+d   Q+g   R+f   2f    2g    2U+f   h     h   h     2d    h     d+g     b+h   2h    2d+h   2h    4f  2g+h   4h  
+G | G 2G 2G 2G W   b    4G 2W e     e     e     2W    e     2W    2b    2b    2b    2e    2e    h      2e    4W  2e    2e    2e    h       4b    2h    2h     4e    2h  2h     4h  
+H | H 2H W  W  3H  f    2W 6H 3S    3V    3V    3W    3S    3W    h     h     2f    6S    3e    3f     6V    6W  3e    3e    3e    3c      2h    6c    3h     6e    6f  3h     6h  
+I | I S  Z  X  I+S f    e  3S 2I+f  Z+c   X+c   X+e   S+f   Z+e   h     h     2f    2S+2f e+h   3f     2c+e  3e  2X+h  e+h   2Z+h  c+h     2h    2c+2h 3h     2e+2h 6f  3h     6h  
+J | J V  Z  Y  J+V d    e  3V Z+c   2J+c  V+c   Y+e   Y+c   Z+e   2d    h     h     2c+e  e+h   d+h    2V+2c 3e  e+h   2Y+h  2Z+h  2c+d    2h    4c+h  2d+2h  2e+2h 3h  3h     6h  
+K | K V  T  X  K+V g    e  3V X+c   V+c   2K+c  X+e   T+c   T+e   h     2g    h     2c+e  2T+h  g+h    2V+2c 3e  2X+h  e+h   e+h   2c+g    2h    4c+h  3h     2e+2h 3h  2g+2h  6h  
+L | L W  W  2L L+W d    2W 3W X+e   Y+e   X+e   2L+2W Y+e   3W    2d    h     h     3e    3e    d+h    3e    6W  2X+2e 2Y+2e 3e    d+h     2h    3h    2d+2h  6e    3h  3h     6h  
+M | M S  T  Y  M+S 2U   e  3S S+f   Y+c   T+c   Y+e   2M+f  T+e   2d    2g    2f    2S+2f 2T+h  2U+2f  2c+e  3e  e+h   2Y+h  e+h   2a+h    2h    2c+2h 2d+2h  2e+2h 6f  2g+2h  6h  
+N | N W  2N W  N+W g    2W 3W Z+e   Z+e   T+e   3W    T+e   2N+2W h     2g    h     3e    2T+2e g+h    3e    6W  3e    3e    2Z+2e g+h     2h    3h    3h     6e    3h  2g+2h  6h  
+P | P b  b  2P d   P+d  2b h  h     2d    h     2d    2d    h     2P+2d b+h   b+h   2h    2h    2d+h   2h    2h  2h    4d    2h    2d+h    2b+2h 4h    4d+2h  4h    4h  4h     8h  
+Q | Q b  2Q b  g   Q+g  2b h  h     h     2g    h     2g    2g    b+h   2Q+2g b+h   2h    4g    2g+h   2h    2h  2h    2h    2h    2g+h    2b+2h 4h    4h     4h    4h  4g+2h  8h  
+R | R 2R b  b  f   R+f  2b 2f 2f    h     h     h     2f    h     b+h   b+h   2R+2f 4f    2h    4f     2h    2h  2h    2h    2h    2h      2b+2h 4h    4h     4h    8f  4h     8h  
+S | S 2S e  e  3S  2f   2e 6S 2S+2f 2c+e  2c+e  3e    2S+2f 3e    2h    2h    4f    4S+4f 2e+2h 6f     4c+2e 6e  2e+2h 2e+2h 2e+2h 2c+2h   4h    4c+4h 6h     4e+4h 12f 6h     12h 
+T | T e  2T e  T+e 2g   2e 3e e+h   e+h   2T+h  3e    2T+h  2T+2e 2h    4g    2h    2e+2h 4T+2h 2g+2h  2e+2h 6e  2e+2h 2e+2h 2e+2h 2g+2h   4h    6h    6h     4e+4h 6h  4g+4h  12h 
+U | U f  g  d  U+f 2U+f h  3f 3f    d+h   g+h   d+h   2U+2f g+h   2d+h  2g+h  4f    6f    2g+2h 2U+5f  3h    3h  3h    2d+2h 3h    d+g+2h  4h    6h    2d+5h  6h    12f 2g+5h  12h 
+V | V 2V e  e  3V  h    2e 6V 2c+e  2V+2c 2V+2c 3e    2c+e  3e    2h    2h    2h    4c+2e 2e+2h 3h     4V+4c 6e  2e+2h 2e+2h 2e+2h 4c+h    4h    8c+2h 6h     4e+4h 6h  6h     12h 
+W | W 2W 2W 2W 3W  h    4W 6W 3e    3e    3e    6W    3e    6W    2h    2h    2h    6e    6e    3h     6e    12W 6e    6e    6e    3h      4h    6h    6h     12e   6h  6h     12h 
+X | X e  e  2X X+e h    2e 3e 2X+h  e+h   2X+h  2X+2e e+h   3e    2h    2h    2h    2e+2h 2e+2h 3h     2e+2h 6e  4X+2h 2e+2h 2e+2h 3h      4h    6h    6h     4e+4h 6h  6h     12h 
+Y | Y e  e  2Y Y+e 2d   2e 3e e+h   2Y+h  e+h   2Y+2e 2Y+h  3e    4d    2h    2h    2e+2h 2e+2h 2d+2h  2e+2h 6e  2e+2h 4Y+2h 2e+2h 2d+2h   4h    6h    4d+4h  4e+4h 6h  6h     12h 
+Z | Z e  2Z e  Z+e h    2e 3e 2Z+h  2Z+h  e+h   3e    e+h   2Z+2e 2h    2h    2h    2e+2h 2e+2h 3h     2e+2h 6e  2e+2h 2e+2h 4Z+2h 3h      4h    6h    6h     4e+4h 6h  6h     12h 
+a | a c  g  d  a+c d+g  h  3c c+h   2c+d  2c+g  d+h   2a+h  g+h   2d+h  2g+h  2h    2c+2h 2g+2h d+g+2h 4c+h  3h  3h    2d+2h 3h    2a+c+2h 4h    4c+4h 2d+5h  6h    6h  2g+5h  12h 
+b | b 2b 2b 2b h   b+h  4b 2h 2h    2h    2h    2h    2h    2h    2b+2h 2b+2h 2b+2h 4h    4h    4h     4h    4h  4h    4h    4h    4h      4b+4h 8h    8h     8h    8h  8h     16h 
+c | c 2c h  h  3c  2h   2h 6c 2c+2h 4c+h  4c+h  3h    2c+2h 3h    4h    4h    4h    4c+4h 6h    6h     8c+2h 6h  6h    6h    6h    4c+4h   8h    8c+8h 12h    12h   12h 12h    24h 
+d | d h  h  2d d+h 2d+h 2h 3h 3h    2d+2h 3h    2d+2h 2d+2h 3h    4d+2h 4h    4h    6h    6h    2d+5h  6h    6h  6h    4d+4h 6h    2d+5h   8h    12h   4d+10h 12h   12h 12h    24h 
+e | e 2e 2e 2e 3e  2h   4e 6e 2e+2h 2e+2h 2e+2h 6e    2e+2h 6e    4h    4h    4h    4e+4h 4e+4h 6h     4e+4h 12e 4e+4h 4e+4h 4e+4h 6h      8h    12h   12h    8e+8h 12h 12h    24h 
+f | f 2f h  h  3f  4f   2h 6f 6f    3h    3h    3h    6f    3h    4h    4h    8f    12f   6h    12f    6h    6h  6h    6h    6h    6h      8h    12h   12h    12h   24f 12h    24h 
+g | g h  2g h  g+h 2g+h 2h 3h 3h    3h    2g+2h 3h    2g+2h 2g+2h 4h    4g+2h 4h    6h    4g+4h 2g+5h  6h    6h  6h    6h    6h    2g+5h   8h    12h   12h    12h   12h 4g+10h 24h 
+h | h 2h 2h 2h 3h  4h   4h 6h 6h    6h    6h    6h    6h    6h    8h    8h    8h    12h   12h   12h    12h   12h 12h   12h   12h   12h     16h   24h   24h    24h   24h 24h    48h 
 """
 
 table = tables[argv.next()]

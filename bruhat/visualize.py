@@ -82,11 +82,24 @@ def pos_rand(graph):
 
     nodes = list(graph.nodes())
 
-    pts = {}
-    for key in nodes:
-        pts[key] = 10*random(), 10*random()
+    # try random arrangements, save the best.
+    best_score = 1e100
+    trials = argv.get("trials", 1000)
+    for trial in range(trials):
 
-    return pts
+        pts = {}
+        for key in nodes:
+            pts[key] = 10*random(), 10*random()
+
+        score = metric(graph, pts)
+        #print("score:", score)
+        if score < best_score:
+            best_pts = pts
+            best_score = score
+
+    metric(graph, best_pts, verbose=True)
+    print("best_score:", best_score)
+    return best_pts
 
 
 def metric(graph, pts, verbose=False):
@@ -212,9 +225,10 @@ def pos_circ(graph):
         g = choice(best_gs)
         orbits = list(g.orbits())
         shuffle(orbits)
-        orbits.sort(key = lambda o:len(o))
+        #orbits.sort(key = lambda o:len(o))
         #thetas = [0.]*len(orbits)
         thetas = [2*pi*random() for _ in orbits]
+        thetas[0] = 0.
         pts = pos_orbits(graph, orbits, thetas)
         score = metric(graph, pts)
         #print("score:", score)

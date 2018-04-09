@@ -10,44 +10,6 @@ from bruhat import isomorph
 from bruhat.smap import SMap, tabulate
 
 
-#def mulclose(els, verbose=False, maxsize=None):
-#    els = set(els)
-#    changed = True
-#    while changed:
-#        if verbose:
-#            print "mulclose:", len(els)
-#        changed = False
-#        _els = list(els)
-#        for A in _els:
-#            for B in _els:
-#                C = A*B 
-#                if C not in els:
-#                    els.add(C)
-#                    if maxsize and len(els)>=maxsize:
-#                        return list(els)
-#                    changed = True
-#    return els
-#
-#
-#def mulclose_fast(els, bdy=None):
-#    els = set(els)
-#    if bdy is None:
-#        bdy = [(i, j) for i in els for j in els]
-#
-#    while bdy:
-#        _bdy = []
-#        for i, j in bdy:
-#            k = i*j
-#            if k not in els:
-#                _bdy.append((k, k))
-#                for kk in els:
-#                    _bdy.append((k, kk))
-#                    #_bdy.append((kk, k)) # i don't think we need this
-#                els.add(k)
-#        bdy = _bdy
-#    return els
-
-
 
 def mulclose_fast(gen, verbose=False, maxsize=None):
     els = set(gen)
@@ -1477,6 +1439,25 @@ def main():
                 10:9, 11:11, 12:12, 13:13, 14:16, 15:17, 16:14, 17:15}, items),
             Perm({0:0, 1:1, 2:2, 3:3, 4:5, 5:4, 6:7, 7:6, 8:9, 9:8,
                 10:11, 11:10, 12:12, 13:13, 14:14, 15:15, 16:17, 17:16}, items)]
+        perms = mulclose(gen)
+        G = Group(perms, items)
+
+    elif argv.D_4:
+        items = range(24)
+        gen = [
+            Perm({0:0, 1:2, 2:1, 3:3, 4:12, 5:13, 6:14, 7:15, 8:16,
+                9:17, 10:18, 11:19, 12:4, 13:5, 14:6, 15:7, 16:8, 17:9,
+                18:10, 19:11, 20:20, 21:21, 22:22, 23:23}, items),
+            Perm({0:4, 1:5, 2:6, 3:7, 4:0, 5:1, 6:2, 7:3, 8:8, 9:9,
+                10:10, 11:11, 12:12, 13:14, 14:13, 15:15, 16:20, 17:21,
+                18:22, 19:23, 20:16, 21:17, 22:18, 23:19}, items),
+            Perm({0:0, 1:1, 2:2, 3:3, 4:8, 5:9, 6:10, 7:11, 8:4,
+                9:5, 10:6, 11:7, 12:16, 13:17, 14:18, 15:19, 16:12, 17:13,
+                18:14, 19:15, 20:20, 21:22, 22:21, 23:23}, items),
+            Perm({0:0, 1:1, 2:2, 3:3, 4:9, 5:8, 6:11, 7:10, 8:5,
+                9:4, 10:7, 11:6, 12:17, 13:16, 14:19, 15:18, 16:13, 17:12,
+                18:15, 19:14, 20:23, 21:21, 22:22, 23:20}, items)
+        ]
         perms = mulclose(gen)
         G = Group(perms, items)
 
