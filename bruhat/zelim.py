@@ -120,6 +120,19 @@ def zelim(A, verbose=False):
 
 tables = {}
 
+tables["D_8"] = """
+  | A B  C  D  E    F    G  H  
+--+----------------------------
+A | A B  C  D  E    F    G  H  
+B | B 2B G  G  2E   H    2G 2H 
+C | C G  2C G  H    2F   2G 2H 
+D | D G  G  2D H    H    2G 2H 
+E | E 2E H  H  2E+H 2H   2H 4H 
+F | F H  2F H  2H   2F+H 2H 4H 
+G | G 2G 2G 2G 2H   2H   4G 4H 
+H | H 2H 2H 2H 4H   4H   4H 8H 
+""" # D_8
+
 tables["D_12"] = """
   | A B  C  D  E   F  G     H     I  J   
 --+--------------------------------------
@@ -135,18 +148,22 @@ I | I J  J  2I 3I  2J 3J    3J    6I 6J
 J | J 2J 2J 2J 3J  4J 6J    6J    6J 12J 
 """
 
-tables["D_8"] = """
-  | A B  C  D  E    F    G  H  
---+----------------------------
-A | A B  C  D  E    F    G  H  
-B | B 2B G  G  2E   H    2G 2H 
-C | C G  2C G  H    2F   2G 2H 
-D | D G  G  2D H    H    2G 2H 
-E | E 2E H  H  2E+H 2H   2H 4H 
-F | F H  2F H  2H   2F+H 2H 4H 
-G | G 2G 2G 2G 2H   2H   4G 4H 
-H | H 2H 2H 2H 4H   4H   4H 8H 
-""" # D_8
+tables["D_16"] = """
+  | A B  C  D  E    F    G  H  I     J     K   
+--+--------------------------------------------
+A | A B  C  D  E    F    G  H  I     J     K   
+B | B 2B G  G  2E   H    2G 2H 2I    K     2K  
+C | C G  2C G  H    2F   2G 2H K     2J    2K  
+D | D G  G  2D H    H    2G 2H K     K     2K  
+E | E 2E H  H  2E+H 2H   2H 4H 2I+K  2K    4K  
+F | F H  2F H  2H   2F+H 2H 4H 2K    2J+K  4K  
+G | G 2G 2G 2G 2H   2H   4G 4H 2K    2K    4K  
+H | H 2H 2H 2H 4H   4H   4H 8H 4K    4K    8K  
+I | I 2I K  K  2I+K 2K   2K 4K 2I+3K 4K    8K  
+J | J K  2J K  2K   2J+K 2K 4K 4K    2J+3K 8K  
+K | K 2K 2K 2K 4K   4K   4K 8K 8K    8K    16K 
+"""
+
 
 tables["Q_8"] = """
   | A B  C  D  E  F  
@@ -193,6 +210,25 @@ E | E  2I   2E+K  2I+2K 6K
 I | I  2I+K 2I+2K 2I+5K 12K  
 K | K  4K   6K    12K   24K  
 """ # parabolics of S_4
+
+tables["PS_5"] = """
+  | A B    C       D       E        F      G    
+--+---------------------------------------------
+A | A B    C       D       E        F      G    
+B | B B+D  D+E     2D+F    E+2F     3F+G   5G   
+C | C D+E  C+E+F   D+3F    2E+2F+G  4F+3G  10G  
+D | D 2D+F D+3F    2D+4F+G 6F+2G    6F+7G  20G  
+E | E E+2F 2E+2F+G 6F+2G   2E+4F+5G 6F+12G 30G  
+F | F 3F+G 4F+3G   6F+7G   6F+12G   6F+27G 60G  
+G | G 5G   10G     20G     30G      60G    120G 
+""" # parabolics of S_5
+
+
+tables["PD_4"] = """
+""" # parabolics of Weyl D_4
+
+
+
 
 tables["A_5"] = """
   | A B    C     D     E     F     G     H      I   
@@ -266,10 +302,21 @@ g | g h  2g h  g+h 2g+h 2h 3h 3h    3h    2g+2h 3h    2g+2h 2g+2h 4h    4g+2h 4h
 h | h 2h 2h 2h 3h  4h   4h 6h 6h    6h    6h    6h    6h    6h    8h    8h    8h    12h   12h   12h    12h   12h 12h   12h   12h   12h     16h   24h   24h    24h   24h 24h    48h 
 """
 
-table = tables[argv.next()]
-A = parse(table, perm=argv.perm)
-print (A)
-print
-A = zelim(A)
-print shortstr(A)
+
+def process(table):
+    A = parse(table, perm=argv.perm)
+    print (A)
+    print
+    A = zelim(A)
+    print shortstr(A)
+
+
+if __name__ == "__main__":
+    table = tables[argv.next()]
+    A = parse(table, perm=argv.perm)
+    print (A)
+    print
+    A = zelim(A)
+    print shortstr(A)
+
 

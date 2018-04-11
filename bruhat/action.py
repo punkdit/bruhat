@@ -557,7 +557,14 @@ class Group(object):
 
     @classmethod
     def generate(cls, perms, *args, **kw):
-        items = perms[0].items
+        items = kw.get("items")
+        if items is not None:
+            del kw["items"]
+        else:
+            assert perms
+            items = perms[0].items
+        if not perms:
+            perms = [Perm.identity(items)]
         perms = list(mulclose(perms, *args))
         return cls(perms, items, **kw)
 
@@ -1692,10 +1699,12 @@ def test_projective(G):
         print perm.cycle_str()
 
 
-def conjugacy_subgroups(G):
+def conjugacy_subgroups(G, Hs=None):
 
     # Find all conjugacy classes of subgroups
-    Hs = G.subgroups()
+
+    if Hs is None:
+        Hs = G.subgroups()
     #print "subgroups:", len(Hs)
     #for H in Hs:
     #  for K in Hs:
@@ -1712,6 +1721,8 @@ def conjugacy_subgroups(G):
                 continue
             else:
                 #print len(H1), "~", len(H2)
+                if H2 not in equs:
+                    equs[H2] = Equ(H2)
                 equs[H1].merge(equs[H2])
 
     # get equivalance classes
@@ -2099,9 +2110,10 @@ def hecke(G):
 #        print C.send_perms.keys()
 
 
-def burnside(G):
+def burnside(G, Hs):
 
-    Hs = conjugacy_subgroups(G)
+    if Hs is None:
+        Hs = conjugacy_subgroups(G)
 
     letters = list(string.uppercase + string.lowercase)
     letters.remove("O")

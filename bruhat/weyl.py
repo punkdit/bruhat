@@ -76,7 +76,7 @@ def mulclose_pri(els, verbose=False, maxsize=None):
 
 class Weyl(object):
     def __init__(self, roots, gen, simple=None, name=None, check=True):
-        assert self.__class__ != Weyl
+        #assert self.__class__ != Weyl # hmmm... do we need this?
         self.roots = roots # list of tuples
         self.gen = gen # list of Weyl group generators (Perm's)
         self.identity = Perm.identity(roots, '')

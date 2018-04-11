@@ -353,5 +353,9 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    if argv.test:
+        test()
+
+    else:
+        main()
 
