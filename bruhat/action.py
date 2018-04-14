@@ -2110,7 +2110,7 @@ def hecke(G):
 #        print C.send_perms.keys()
 
 
-def burnside(G, Hs):
+def burnside(G, Hs=None):
 
     if Hs is None:
         Hs = conjugacy_subgroups(G)

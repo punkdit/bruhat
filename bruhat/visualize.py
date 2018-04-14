@@ -46,6 +46,8 @@ def draw_graph(graph, pts=None, name="output"):
     if pts is None:
         pts = pos_circ(graph)
 
+    directed = isinstance(graph, (nx.DiGraph, nx.MultiDiGraph))
+
     #W = 10.
     #H = 10.
 

@@ -2,6 +2,8 @@
 
 # Gaussian elimination over integers 
 
+from __future__ import print_function
+
 import sys, os
 
 import numpy
@@ -11,17 +13,22 @@ from argv import argv
 
 
 def _parse(fld):
+    "find the (sum of) coefficient(s) in front of a (the) symbol(s)"
     if len(fld)==1:
         return 1
+
     if "+" in fld:
         flds = fld.split("+")
         flds = [_parse(fld) for fld in flds]
         return sum(flds)
 
+    #print("_parse", fld)
     i = 0
     while i<len(fld) and fld[i] in "0123456789":
         i += 1
-    assert i+1==len(fld)
+    #assert i+1==len(fld)
+    if i==0:
+        return 1
     n = int(fld[:i])
     return n
 
@@ -32,6 +39,7 @@ def parse(table, perm=None):
     lines = [line for line in lines if line]
     global header # Lame ! haha..
     header = lines[0][2:].split()
+    print("header:", header)
     lines = lines[2:]
     lines = [line[3:] for line in lines if line]
     rows = []
@@ -40,7 +48,16 @@ def parse(table, perm=None):
         flds = [_parse(fld) for fld in flds]
         rows.append(flds)
     A = numpy.array(rows)
+    choose = argv.choose
+    if choose is not None:
+        items = choose.split(",")
+        idxs = [header.index(col) for col in items]
+        print("idxs:", idxs)
+        A = A[:, idxs]
+        A = A[idxs, :]
+        header = items
     if perm:
+        # permute the cols
         idxs = [header.index(col) for col in perm]
         A = A[:, idxs]
     return A
@@ -105,13 +122,13 @@ def zelim(A, verbose=False):
     m, n = A.shape
     assert n==len(header)
 
-    if verbose:
-        print header
-        print A
-        
-        print "$$"
-        print latex_table(A, ' '*m, header)
-        print "$$"
+#    if verbose:
+#        print header
+#        print A
+#        
+#        print "$$"
+#        print latex_table(A, ' '*m, header)
+#        print "$$"
 
     assert A.min() >= 0
 
@@ -224,7 +241,22 @@ G | G 5G   10G     20G     30G      60G    120G
 """ # parabolics of S_5
 
 
+tables["D_4"] = open("D_4.table").read()
+
 tables["PD_4"] = """
+  | A B     C     D     E           F        G        H        I        J      K    
+--+---------------------------------------------------------------------------------
+A | A B     C     D     E           F        G        H        I        J      K    
+B | B 2B+G  2F    2F    2G+J        2F+2J    4G+K     4J       4J       4J+2K  8K   
+C | C 2F    2C+H  2F    2H+J        2F+2J    4J       4H+K     4J       4J+2K  8K   
+D | D 2F    2F    2D+I  2I+J        2F+2J    4J       4J       4I+K     4J+2K  8K   
+E | E 2G+J  2H+J  2I+J  2E+G+H+I+2K 6J+K     4G+2J+4K 4H+2J+4K 4I+2J+4K 6J+9K  24K  
+F | F 2F+2J 2F+2J 2F+2J 6J+K        2F+6J+2K 8J+4K    8J+4K    8J+4K    8J+12K 32K  
+G | G 4G+K  4J    4J    4G+2J+4K    8J+4K    8G+10K   8J+8K    8J+8K    8J+20K 48K  
+H | H 4J    4H+K  4J    4H+2J+4K    8J+4K    8J+8K    8H+10K   8J+8K    8J+20K 48K  
+I | I 4J    4J    4I+K  4I+2J+4K    8J+4K    8J+8K    8J+8K    8I+10K   8J+20K 48K  
+J | J 4J+2K 4J+2K 4J+2K 6J+9K       8J+12K   8J+20K   8J+20K   8J+20K   8J+44K 96K  
+K | K 8K    8K    8K    24K         32K      48K      48K      48K      96K    192K 
 """ # parabolics of Weyl D_4
 
 
@@ -264,6 +296,29 @@ N | N 3N+2P 3N+2P 4P    2N+6P  2N+6P  5N+8P      12P   4N+12P  6N+18P   2N+20P  
 P | P 7P    7P    8P    14P    14P    21P        24P   28P     42P      42P     42P      56P    84P    168P 
 """
 
+tables["B_2"] = """
+  | A B  C  D  E    F    G  H  
+--+----------------------------
+A | A B  C  D  E    F    G  H  
+B | B 2B G  G  2E   H    2G 2H 
+C | C G  2C G  H    2F   2G 2H 
+D | D G  G  2D H    H    2G 2H 
+E | E 2E H  H  2E+H 2H   2H 4H 
+F | F H  2F H  2H   2F+H 2H 4H 
+G | G 2G 2G 2G 2H   2H   4G 4H 
+H | H 2H 2H 2H 4H   4H   4H 8H 
+"""
+
+tables["PB_2"] = """
+  | A B    C    D  
+--+----------------
+A | A B    C    D  
+B | B 2B+D 2D   4D 
+C | C 2D   2C+D 4D 
+D | D 4D   4D   8D 
+"""
+
+
 tables["B_3"] = """
   | A B  C  D  E   F    G  H  I     J     K     L     M     N     P     Q     R     S     T     U      V     W   X     Y     Z     a       b     c     d      e     f   g      h   
 --+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -302,21 +357,39 @@ g | g h  2g h  g+h 2g+h 2h 3h 3h    3h    2g+2h 3h    2g+2h 2g+2h 4h    4g+2h 4h
 h | h 2h 2h 2h 3h  4h   4h 6h 6h    6h    6h    6h    6h    6h    8h    8h    8h    12h   12h   12h    12h   12h 12h   12h   12h   12h     16h   24h   24h    24h   24h 24h    48h 
 """
 
+tables["PB_3"] = """
+  | A B     C     D       E     F      G   
+--+----------------------------------------
+A | A B     C     D       E     F      G   
+B | B 2B+E  2F    2E+F    4E+G  2F+2G  6G  
+C | C 2F    2C+2F 2F+G    4G    4F+2G  8G  
+D | D 2E+F  2F+G  2D+E+2G 4E+4G 2F+5G  12G 
+E | E 4E+G  4G    4E+4G   8E+8G 12G    24G 
+F | F 2F+2G 4F+2G 2F+5G   12G   4F+10G 24G 
+G | G 6G    8G    12G     24G   24G    48G 
+"""
 
 def process(table):
+
     A = parse(table, perm=argv.perm)
-    print (A)
-    print
+    print(A)
+    if A.shape[0]==A.shape[1]:
+        print("det:", numpy.linalg.det(A))
+    print()
+
+    order = A[-1, -1]
     A = zelim(A)
-    print shortstr(A)
+    print(shortstr(A))
+
+    reps = A[:, -1]
+    print("order:", order)
+    print("dimension of reps:", reps)
+    print("sum of squares:", (reps*reps).sum())
+    
 
 
 if __name__ == "__main__":
     table = tables[argv.next()]
-    A = parse(table, perm=argv.perm)
-    print (A)
-    print
-    A = zelim(A)
-    print shortstr(A)
+    process(table)
 
 

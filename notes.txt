@@ -1,4 +1,23 @@
 
+14/4/18
+=======
+
+
+
+simon@hero:~/home/github/bruhat/bruhat$ ./theta.py  quo="[2]"
+[1, 9, 28, 73, 126, 252, 344, 585, 757, 1134, 1332, 2044, 2198, 3096, 3528, 4681, 4914, 6813, 6860]
+[1, 9, 27, 73, 125, 243, 343, 585, 729, 1125, 1331, 1971, 2197, 3087, 3375, 4681, 4913, 6561, 6859]
+[0, 0, 1, 0, 1, 9, 1, 0, 28, 9, 1, 73, 1, 9, 153, 0, 1, 252, 1]
+simon@hero:~/home/github/bruhat/bruhat$ ./theta.py quo="[3]"
+[1, 9, 28, 73, 126, 252, 344, 585, 757, 1134, 1332, 2044, 2198, 3096, 3528, 4681, 4914, 6813, 6860]
+[1, 8, 28, 64, 125, 224, 343, 512, 757, 1000, 1331, 1792, 2197, 2744, 3500, 4096, 4913, 6056, 6859]
+[0, 1, 0, 9, 1, 28, 1, 73, 0, 134, 1, 252, 1, 352, 28, 585, 1, 757, 1]
+simon@hero:~/home/github/bruhat/bruhat$ ./theta.py quo="[2,3]"
+[1, 9, 28, 73, 126, 252, 344, 585, 757, 1134, 1332, 2044, 2198, 3096, 3528, 4681, 4914, 6813, 6860]
+[1, 9, 28, 73, 125, 252, 343, 585, 757, 1125, 1331, 2044, 2197, 3087, 3500, 4681, 4913, 6813, 6859]
+[0, 0, 0, 0, 1, 0, 1, 0, 0, 9, 1, 0, 1, 9, 28, 0, 1, 0, 1]
+
+
 9/4/18
 ======
 
@@ -14,7 +33,7 @@ T.A. Springer, 1978
     representations of W in the graded cohomology H*(B_A^G, Q)
 
 
-./zelim.py D_12  == weyl G_2
+./zelim.py D_12  == weyl G_2 # dihedral
 1111111111
 .1...11..1
 ..1..1.1.1
@@ -35,7 +54,9 @@ T.A. Springer, 1978
 ..........1....1..1.1.1..11211.23
 ...........1.1....1..2111...12.12
 
-./zelim.py PS_5
+
+
+./zelim.py PS_5 # parabolics
 1111111
 .112234
 ..11235
@@ -44,6 +65,26 @@ T.A. Springer, 1978
 .....14
 ......1
 
+
+./zelim.py PD_4 # parabolics
+[[  1   1   1   1   1   1   1   1   1   1   1]
+ [  1   3   2   2   3   4   5   4   4   6   8]
+ [  1   2   3   2   3   4   4   5   4   6   8]
+ [  1   2   2   3   3   4   4   4   5   6   8]
+ [  1   3   3   3   7   7  10  10  10  15  24]
+ [  1   4   4   4   7  10  12  12  12  20  32]
+ [  1   5   4   4  10  12  18  16  16  28  48]
+ [  1   4   5   4  10  12  16  18  16  28  48]
+ [  1   4   4   5  10  12  16  16  18  28  48]
+ [  1   6   6   6  15  20  28  28  28  52  96]
+ [  1   8   8   8  24  32  48  48  48  96 192]]
+
+Traceback (most recent call last):
+  File "./zelim.py", line 332, in <module>
+    A = zelim(A)
+  File "./zelim.py", line 94, in zelim
+    assert val1 % val0 == 0
+AssertionError
 
 
 
@@ -2237,6 +2278,7 @@ http://cage.ugent.be/~kthas/
 "Every connected regular graph of even degree is a Schreier coset graph"
 Jonathan LGross
 1977
+https://www.math.u-bordeaux.fr/~pjaming/M1/exposes/Groupe3.pdf
 
 Hint: decompose k-regular graph into union of k/2 cycles, each of which
 partition the vertex set. Choose as group the permutation group on

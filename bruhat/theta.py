@@ -166,6 +166,31 @@ def sigma(k, n):
     return i
 
 
+def sigma_quo(k, n, quo):
+    "sum of k-th powers of divisors of n, whose quotient is divisable only by quo"
+#    print("sigma_quo(%s, %s, %s)"%(k, n, quo))
+    i = 0
+    for j in divisors(n):
+        a = n//j
+#        print("\tj = %d, n//j = %d"%(j, a), end=' ')
+        allow = True
+        # a must be divisible by each element of quo
+        for b in quo:
+            if a%b:
+                allow = False
+                #print("A", end="")
+        # and no other primes
+        for b in all_primes(a):
+            if a%b==0 and b not in quo:
+                allow = False
+#                print("(b=%d not in quo)"%b, end="")
+#        print("OK" if allow else "")
+        if allow:
+            i += j**k
+#            print("\tj**k", j**k)
+    return i
+
+
 def eisenstein(k, n):
     "E_k eisenstein series: sum of (k-1)-th powers of n"
     assert k>=1
@@ -260,6 +285,32 @@ def main():
     #print([i//4 for i in nsquares(3, 20)][1:])
     print([i//8 for i in nsquares(4, 40)][1:])
     #print([i//16 for i in nsquares(8, 20)][1:])
+
+
+def main():
+
+    N = argv.get("N", 20)
+
+    E = eisenstein(4, N)
+    print(E)
+
+    quo = argv.get("quo", [2])
+    print("quo = %s" % quo)
+
+    a = 1
+    for b in quo:
+        a *= b
+
+    items = []
+    for i in range(1, N):
+        j = sigma_quo(3, i*a, quo)
+        #print("i=%d: %d" % (i*a, j))
+        items.append(j)
+    print(items)
+
+    glitch = [E[i] - items[i] for i in range(N-1)]
+    print(glitch)
+
 
 
 if __name__ == "__main__":
