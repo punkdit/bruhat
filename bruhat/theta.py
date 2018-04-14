@@ -290,12 +290,11 @@ def main():
 def main():
 
     N = argv.get("N", 20)
+    quo = argv.get("quo", [2])
+    #print("quo = %s" % quo)
 
     E = eisenstein(4, N)
     print(E)
-
-    quo = argv.get("quo", [2])
-    print("quo = %s" % quo)
 
     a = 1
     for b in quo:
