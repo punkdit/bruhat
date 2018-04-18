@@ -1,7 +1,41 @@
 
+19/4/18
+=======
+
+"Blockchain Proof-of-Work Is a Decentralized Clock"
+https://grisha.org/blog/2018/01/23/explaining-proof-of-work/
+
+"Notes on the Lie operad"
+Todd Trimble
+http://math.ucr.edu/home/baez/trimble/trimble_lie_operad.pdf
+
+@book{book:272654,
+   title =     {Automorphic Forms and Representations},
+   author =    {Daniel Bump},
+   publisher = {Cambridge University Press},
+   isbn =      {0521658187,052155098X,0511609574,9780511609572,9780521550987,9780521658188},
+   year =      {1998},
+   series =    {Cambridge Studies in Advanced Mathematics},
+   edition =   {},
+   volume =    {},
+
+Daniel Bump
+Lie Groups
+
+
+
+
 14/4/18
 =======
 
+1.4 Induced representations
+https://math.vanderbilt.edu/peters10/teaching/Spring2011/Lecture%204%20-%20Induced%20representations.pdf
+Group action and a cocycle give induced rep
+
+
+Carter
+"simple groups of lie type", 1972
+weyl groups, root systems, parabolic subgroups, etc.
 
 
 simon@hero:~/home/github/bruhat/bruhat$ ./theta.py  quo="[2]"
