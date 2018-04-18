@@ -12,8 +12,8 @@ from bruhat.argv import argv
 #z = mpc(1.0, 0.5)
 #print(kleinj(z))
 
-N = argv.get("N", 100)
-tol = argv.get("tol", 1e-3)
+N = argv.get("N", 256)
+tol = argv.get("tol", 0.5)
 
 re0 = -1.
 im0 = 1e-4
