@@ -1,4 +1,258 @@
 
+
+11/5/18
+=======
+
+https://mathoverflow.net/questions/102879/bijection-between-irreducible-representations-and-conjugacy-classes-of-finite-gr
+    conjugacy classes and irreducible representations should
+    be thought of as being dual to each other.
+
+https://mathoverflow.net/questions/10635/why-are-the-characters-of-the-symmetric-group-integer-valued
+
+https://mathoverflow.net/questions/5528/when-does-a-subgroup-h-of-a-group-g-have-a-complement-in-g
+
+https://mathoverflow.net/questions/230366/what-fun-results-in-graph-theory-should-undergraduates-learn
+    Chip-firing (aka the sandpile model, though both notions
+    have a plethory of different meanings) and rotor-routing. 
+
+https://mathoverflow.net/questions/2372/the-ants-on-a-ball-problem
+
+REPRESENTATION THEORY
+ITS RISE AND ITS ROLE IN NUMBER THEORY
+ROBERT P. LANGLANDS
+https://publications.ias.edu/sites/default/files/Representation-theory-rise-and-role-in-number-theory.pdf
+
+TOPOLOGY AND LOGIC AS A SOURCE OF ALGEBRA
+BY SAUNDERS MAC LANE
+https://projecteuclid.org/euclid.bams/1183537593
+    1: Separable extensions 1
+    2: Homological algebra 5
+    3: The cohomology of groups 8
+    4: The bar construction 17
+    5: Coherence and canonical maps 24
+    6: Naturality and categories 33
+    7: What is algebra? 36 
+
+https://mathoverflow.net/questions/37214/why-arent-there-more-classifying-spaces-in-number-theory
+    Classifying spaces are widely used in algebraic number
+    theory, but in slightly disguised form. A classifying
+    space is really just an approximation to the classifying
+    topos of a group. However the classifying topos is just
+    the category of G-sets, which is exactly what one uses
+    in defining group cohomology and so on. Or to put it
+    another way, all the useful information in the classifying
+    space is already contained in the category of G-sets.
+    
+    The comment at the end of the question is correct: group
+    cohomology was discovered as the cohomology of the classifying
+    space, and the topological constructions were then turned
+    into algebraic constructions and removed from the theory.
+    So in some sense all the group cohomology calculations
+    are implicitly using the classifying space.
+
+
+https://mathoverflow.net/a/12382/39775
+    So we obtain a description of the set of primes that
+    split in KK in terms of the modular form f(q)f(q), or
+    more precisely its Hecke eigenvalues (or what amounts
+    to the same thing, its qq-expansion).
+    The Langlands program asserts that an analogous statement
+    is true for any Galois extension of number fields E/FE/F
+    when one is given a continuous representation Gal(E/F)↪GL_n(C).
+
+
+https://mathoverflow.net/questions/124991/what-can-be-expressed-in-and-proved-with-the-internal-logic-of-a-topos
+
+https://mathoverflow.net/questions/15068/number-theory-textbook-based-on-the-absolute-galois-group
+ For example, part of the reason to study elliptic curves
+is to describe two-dimensional representations of GG,
+and reciprocity laws are secretly about ways to describe
+the traces of Frobenius elements in various representations.
+
+
+https://www.maa.org/press/periodicals/american-mathematical-monthly
+    The Monthly's readers expect a high standard of exposition;
+    they look for articles that inform, stimulate, challenge,
+    enlighten, and even entertain. Monthly articles are meant
+    to be read, enjoyed, and discussed, rather than just
+    archived. Articles may be expositions of old or new results,
+    historical or biographical essays, speculations or definitive
+    treatments, broad developments, or explorations of a
+    single application. Novelty and generality are far less
+    important than clarity of exposition and broad appeal.
+    Appropriate figures, diagrams, and photographs are encouraged.
+
+
+https://mathoverflow.net/questions/17197/how-does-this-relationship-between-the-catalan-numbers-and-su2-generalize
+
+https://mathoverflow.net/questions/153731/examples-of-finite-groups-with-good-bijections-between-conjugacy-classes-and
+
+https://mathoverflow.net/questions/58721/when-does-symmetry-in-an-optimization-problem-imply-that-all-variables-are-equal
+
+Nice proofs of the Poincaré–Birkhoff–Witt theorem
+https://mathoverflow.net/questions/87402/nice-proofs-of-the-poincar%C3%A9-birkhoff-witt-theorem
+    Let g be a finite-dimensional Lie algebra with an ordered
+    basis x1<x2<...<xn
+    
+    We define the universal enveloping algebra U(g) of
+    gg to be the free noncommutative algebra k⟨x1,...,xn⟩
+    modulo the relations (xixj−xjxi=[xi,xj]).
+    
+    The Poincaré–Birkhoff–Witt theorem states that U(g)
+    has a basis consisting of lexicographically ordered monomials
+    i.e. monomials of the form x1^e1x2^e2...xn^en.
+    Checking that this basis spans U(g) is trivial, so
+    the work lies in showing that these monomials are linearly independent.
+
+https://golem.ph.utexas.edu/category/2007/05/the_two_cultures_of_mathematic_1.html
+    categorify cauchy-swartz inequality
+
+
+https://mathoverflow.net/questions/570/deformation-theory-of-representations-of-an-algebraic-group
+    For an algebraic group G and a representation V, I think
+    it's a standard result (but I don't have a reference) that
+    (.) the obstruction to deforming V as a representation of
+        G is an element of H2(G,V⊗V*)
+    (.) if the obstruction is zero, isomorphism classes of deformations
+        are parameterized by H1(G,V⊗V*)
+    (.) automorphisms of a given deformation (as a deformation
+        of V; i.e. restricting to the identity modulo your square-zero
+        ideal) are parameterized by H0(G,V⊗V*)
+
+    where the Hi refer to standard group cohomology (derived
+    functors of invariants). The analogous statement, where
+    the algebraic group G is replaced by a Lie algebra g
+    and group cohomology is replaced by Lie algebra cohomology,
+    is true, but the only proof I know is a big calculation. 
+
+
+https://mathoverflow.net/questions/25187/resources-for-graphical-languages-penrose-notation-feynman-diagrams-birdtr
+    Peter Freyd and David Yetter (1989). "Braided Compact
+    Closed Categories with Applications to Low-Dimensional
+    Topology". Advances in Mathematics 77: 156–182.
+    
+    A. Joyal and R. Street, The geometry of tensor calculus,
+    Advances in Math. 88 (1991) 55-112
+    
+    André Joyal and Ross Street. "The Geometry of Tensor
+    calculus II". Synthese Lib 259: 29–68.
+    
+    André Joyal, Ross Street, Dominic Verity (1996). "Traced
+    monoidal categories". Mathematical Proceedings of the
+    Cambridge Philosophical Society 3: 447–468.
+    
+    In fact, many things by Ross Street
+    
+    Functorial Knot Theory: Categories of Tangles, Coherence,
+    Categorical Deformations, and Topological Invariants
+    (Series on knots & everything) by David N. Yetter (Author)
+    
+    Many works by Bob Coecke and Samson Abramsky (eg. Temperley-Lieb
+    algebra: From knot theory to logic and computation via
+    quantum mechanics) are certainly accessible.
+    
+    The Catsters youtube channel, especially the presentations
+    on string diagrams
+    
+    Functorial boxes in string diagrams by Paul-Andre Mellies
+    Invited talk at the Computer Science Logic 2006 conference
+    in Szeged, Hungary. Lecture Notes in Computer Science
+    4207, Springer Verlag.
+    
+    Masahito Hasegawa, Martin Hofmann and Gordon Plotkin
+    Finite Dimensional Vector Spaces are Complete for Traced
+    Symmetric Monoidal Categories
+
+
+
+7/5/18
+======
+
+https://www.socialcooling.com/
+Social Cooling – How big data is increasing pressure to conform (socialcooling.com)
+https://news.ycombinator.com/item?id=14585882
+
+
+4/5/18
+======
+
+Lower bound on entanglement in subspaces defined by Young diagrams
+Robin Reuvers
+https://arxiv.org/pdf/1805.00364.pdf
+
+1/5/18
+======
+
+Quantifying non-classical teleportation
+https://arxiv.org/pdf/1804.10612.pdf
+
+
+30/4/18
+=======
+
+William Stein Interview
+Cocalc, sage, etc.
+http://www.ams.org/journals/notices/201805/rnoti-p540.pdf
+
+
+29/4/18
+=======
+
+THE REAL REASON YOUR LOCAL MALL IS FAILING
+https://www.strongtowns.org/journal/2018/4/23/bon-ton-gone
+
+
+27/4/18
+=======
+
+"Lie Groups" Daniel Bump, 2013
+p403
+    An irreducible representation \pi of GL(k, F_q)
+    is called cuspidal if there are no fixed vectors
+    for the unipotent radical of any (standard)
+    parabolic subgroup.
+
+
+25/4/18
+=======
+
+https://mathoverflow.net/questions/15438/a-slick-proof-of-the-bruhat-decomposition-for-gl-nk
+    Assume GG acts strongly transitively on a thick building
+    ΔΔ. Let BB be the stabilizer of the fundamental chamber,
+    NN the stabilizer of the fundamental apartment, TT the
+    subgroup fixing the fundamental apartment, and WW the
+    quotient N/TN/T. Then (G,B,N)(G,B,N) is a BNBN-pair,
+    also called a Tits system, for GG. In particular, you
+    have the Bruhat decomposition G=∐w∈WBwBG=∐w∈WBwB, plus
+    lots more.
+    
+    In this case, take GG to be GL(V)GL(V), and take ΔΔ to
+    be the flag complex of subspaces of VV. The stabilizer
+    BB of the fundamental chamber is the upper-triangular
+    matrices. The stabilizer NN of the fundamental apartment
+    is the monomial matrices; the subgroup TT fixing the
+    fundamental apartment is the diagonal matrices; and the
+    Weyl group WW is the quotient N/TN/T, which can be identified
+    with the permutation matrices.
+
+
+http://math.ucr.edu/home/baez/week187.html
+    Now, for any Dynkin diagram and any subset of dots, there's
+    a q-polynomial with all sorts of cool properties. It
+    works just like last week:
+    a) the coefficient of qi in this polynomial is the number
+    of i-cells in the Bruhat decomposition of G/P. Here the
+    "Bruhat decomposition" is a standard way of writing G/P
+    as disjoint union of i-cells, that is, copies of Fi where
+    F is our field and i is a natural number.
+
+
+24/4/18
+=======
+
+https://blog.bradfieldcs.com/an-introduction-to-hashing-in-the-era-of-machine-learning-6039394549b0
+
+
 19/4/18
 =======
 
