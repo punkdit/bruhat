@@ -1,4 +1,500 @@
 
+10/6/18
+=======
+
+Numerical and analytical bounds on threshold error rates for hypergraph-product codes
+Alexey A. Kovalev and Sanjay Prabhakar
+Ilya Dumer
+Leonid P. Pryadko
+https://arxiv.org/pdf/1804.01950.pdf
+
+
+
+
+Universal Fault-Tolerant Logical Gates with Constant
+Time Overhead for Quantum Computation
+Guanyu Zhu, Ali Lavasani, Maissam Barkeshli
+https://scirate.com/arxiv/1806.02358
+    non-Abelian anyons in Turaev-Viro quantum error correcting
+    codes can be moved over a distance of order the code
+    distance by a constant depth local quantum circuit followed
+    by a permutation of qubits.
+
+The boundaries and twist defects of the color code and
+their applications to topological quantum computation
+Markus S. Kesselring, Fernando Pastawski, Jens Eisert, Benjamin J. Brown
+https://scirate.com/arxiv/1806.02820
+
+
+Introduction to topological quantum computation with non-Abelian anyons
+Bernard Field, Tapio Simula
+https://arxiv.org/abs/1802.06176
+
+https://physics.stackexchange.com/questions/55963/toric-code-and-random-bond-ising-model
+
+Loop series for discrete statistical models on graphs
+Michael Chertkov, Vladimir Y. Chernyak
+    https://arxiv.org/abs/cond-mat/0603189
+    In this paper we present derivation details, logic, and
+    motivation for the loop calculus introduced in \cite{06CCa}.
+    Generating functions for three inter-related discrete
+    statistical models are each expressed in terms of a finite
+    series. The first term in the series corresponds to the
+    Bethe-Peierls (Belief Propagation)-BP contribution, the
+    other terms are labeled by loops on the factor graph.
+    All loop contributions are simple rational functions
+    of spin correlation functions calculated within the BP
+    approach. We discuss two alternative derivations of the
+    loop series. One approach implements a set of local auxiliary
+    integrations over continuous fields with the BP contribution
+    corresponding to an integrand saddle-point value. The
+    integrals are replaced by sums in the complimentary approach,
+    briefly explained in \cite{06CCa}. A local gauge symmetry
+    transformation that clarifies an important invariant
+    feature of the BP solution, is revealed in both approaches.
+    The partition function remains invariant while individual
+    terms change under the gauge transformation. The requirement
+    for all individual terms to be non-zero only for closed
+    loops in the factor graph (as opposed to paths with loose
+    ends) is equivalent to fixing the first term in the series
+    to be exactly equal to the BP contribution. Further applications
+    of the loop calculus to problems in statistical physics,
+    computer and information sciences are discussed.
+
+
+The boundaries and twist defects of the color code
+and their applications to topological quantum computation
+Markus S. Kesselring,1, ∗ Fernando Pastawski,1
+Jens Eisert,1
+and Benjamin J. Brown2, 3
+    ...lattice representations of these objects
+    which include three new types of boundaries as well as
+    a generating set for all 72 color code twist defects.
+
+
+A theory of single-shot error correction for adversarial noise
+Earl T. Campbell
+https://arxiv.org/pdf/1805.09271.pdf
+
+Quantum ground state isoperimetric inequalities for the energy
+spectrum of local Hamiltonians
+Elizabeth Crosson∗ , John Bowen†
+https://arxiv.org/pdf/1703.10133.pdf
+
+
+Efficient decoding of random errors for quantum expander codes
+Omar Fawzi, Antoine Grospellier, Anthony Leverrier
+https://arxiv.org/abs/1711.08351
+
+
+Schur-Weyl Duality for the Clifford Group with Applications:
+Property Testing, a Robust Hudson Theorem, and de Finetti Representations
+David Gross, Sepehr Nezami, Michael Walter
+https://arxiv.org/abs/1712.08628
+
+
+Symmetry-protected self-correcting quantum memories
+Sam Roberts and Stephen D. Bartlett
+https://arxiv.org/pdf/1805.01474.pdf
+    investigate the gauge color code in this context. Finally,
+    noting that a 1-form symmetry is
+    a very strong constraint, we argue that topologically
+    ordered systems can possess emergent 1-form
+    symmetries, i.e., models where the symmetry appears naturally,
+    without needing to be enforced externally
+
+
+Ungauging quantum error-correcting codes
+Aleksander Kubica1, 2 and Beni Yoshida1
+    ...with unusual symmetry operators constrained
+    to live on lower-dimensional structures. We apply our
+    formalism to the three-dimensional
+    gauge color code (GCC) and show that its codeword space
+    is equivalent to the Hilbert space
+    of six copies of Z2 lattice gauge theory with 1-form symmetries.
+
+
+A computationally universal phase of quantum matter
+Robert Raussendorf1 , Cihan Okay1 , Dong-Sheng Wang1 , 
+David T. Stephen2 , Hendrik Poulsen Nautrup3
+https://arxiv.org/pdf/1803.00095.pdf
+    We provide the first example of a symmetry protected
+    quantum phase that has universal computational
+    power. Throughout this phase, which lives in spatial
+    dimension two, the ground state is a
+    universal resource for measurement based quantum computation
+
+---------------------------------
+
+Generic emergence of classical features in quantum Darwinism
+Fernando G.S.L. Brandao, ˜
+1, 2 Marco Piani,3, 4 and Paweł Horodecki5, 6
+     emergence of classicality is a general feature of any
+    quantum dynamics: observers
+    who acquire information about a quantum system indirectly
+    have access at most to classical
+    information about one and the same measurement of the
+    quantum system; moreover, if
+    such information is available to many observers, they
+    necessarily agree.
+
+Generic emergence of objectivity of observables in infinite dimensions
+Paul A. Knott,1, ∗ Tommaso Tufarelli,1 Marco Piani,2 and Gerardo Adesso1
+https://arxiv.org/pdf/1802.05719.pdf
+
+
+
+What is quantum in quantum randomness?
+Philippe Grangier1 and Alexia Auff`eves2
+    It is often said that quantum and classical randomness
+    are of different nature, the former being
+    ontological and the latter epistemological. However,
+    so far the question of ”What is quantum in
+    quantum randomness”, i.e. what is the impact of quantization
+    and discreteness on the nature of
+    randomness, remains to answer. In a first part, we explicit
+    the differences between quantum and
+    classical randomness within a recently proposed ontology
+    for quantum mechanics based on contextual
+    objectivity. In this view, quantum randomness is the
+    result of contextuality and quantization.
+    We show that this approach strongly impacts the purposes
+    of quantum theory as well as its areas of
+    application. In particular, it challenges current programs
+    inspired by classical reductionism, aiming
+    at the emergence of the classical world from a large
+    number of quantum systems. In a second part,
+    we analyze quantum physics and thermodynamics as theories
+    of randomness, unveiling their mutual
+    influences. We finally consider new technological applications
+    of quantum randomness opened in
+    the emerging field of quantum thermodynamics.
+
+
+Challenging local realism with human choices
+https://scirate.com/arxiv/1805.04431
+    ...We recruited ~100,000 human participants to play an online
+    video game that incentivizes fast, sustained input of
+    unpredictable bits while also illustrating Bell test methodology.
+
+Sequential Measurement Characterises Quantum Theory
+John van de Wetering∗
+https://arxiv.org/pdf/1803.11139.pdf
+    We study general physical systems with a notion of sequential
+    measurement that satisfies a few simple
+    and intuitive conditions. We show that, apart from two
+    exceptional cases, the systems satisfying
+    these conditions are exactly the real, complex or quaternionic
+    quantum systems. Moreover, only the
+    complex quantum systems remain if systems must be allowed
+    to be composed together in a locally
+    tomographic manner. In other words, quantum theory is
+    the unique locally tomographic theory
+    allowing sequential measurement.
+
+
+Uniqueness of Composition in Quantum Theory and Linguistics
+Coecke et al
+https://arxiv.org/pdf/1803.00708.pdf
+    We derive a uniqueness result for non-Cartesian composition
+    of systems in a large class of process
+    theories, with important implications for quantum theory
+    and linguistics. Specifically, we consider
+    theories of wavefunctions valued in commutative involutive
+    semirings—as modelled by categories
+    of free finite-dimensional modules—and we prove that
+    the only bilinear compact-closed symmetric
+    monoidal structure is the canonical one (up to linear
+    monoidal equivalence). Our results apply
+    to conventional quantum theory and other toy theories
+    of interest in the literature, such as real
+    quantum theory, relational quantum theory, hyperbolic
+    quantum theory and modal quantum theory. In
+    computational linguistics they imply that linear models
+    for categorical compositional distributional
+    semantics (DisCoCat)—such as vector spaces, sets and
+    relations, and sets and histograms—admit an
+    (essentially) unique compatible pregroup grammar
+    
+-------------------------------
+
+
+https://mathoverflow.net/questions/8599/tips-on-cohomology-for-number-theory
+    I was very happy to learn about derived functors, they
+    made the cohomological stuff "feel right".
+    ...
+    Weibel's Homological Algebra
+
+
+https://mathoverflow.net/questions/13282/good-algebraic-number-theory-books
+Rosen "A Classical Introduction to Modern Number Theory."
+     The first leaves off a lot of algebraic number theory,
+    but what it does, it does incredibly clearly (and it's
+    cheap!). It's "Number Theory I: Fermat's Dream", a translation
+    of a Japanese text by Kazuya Kato. The second is Cox's
+    "Primes of the form x2+ny2x2+ny2, which in terms of getting
+    to some of the most amazing and deepest parts of algebraic
+    number theory with as few prerequisites as possible,
+    has got to be the best choice. 
+
+
+Applications of Lie Groups to Differential Equations
+Peter J. Olver
+
+https://mathoverflow.net/questions/158075/monstrous-moonshine-for-thompson-group-th
+
+https://mathoverflow.net/questions/240150/can-you-prove-giventals-conjecture-on-wavefronts-and-the-icosahedron
+    In his remarkable book The Theory of Singularities and
+    its Applications, Vladimir Arnol'd discussed a conjecture
+    of A. B. Givental, which asserts that the symmetry group
+    of the icosahedron is secretly lurking in the problem
+    of finding the shortest path from one point to another
+    in a region of the plane. Via Huygen's principle, this
+    problem is connected to the motion of waves in such a region.
+
+
+
+9/6/18
+======
+
+CHATBOTS WERE THE NEXT BIG THING: WHAT HAPPENED?
+https://blog.growthbot.org/chatbots-were-the-next-big-thing-what-happened
+
+
+On the Imminence and Danger of AI
+http://archive.li/fi5Xn
+
+
+8/6/18
+======
+
+"Domain walls in topological phases and the Brauer-Picard ring for Vec(Z/pZ)"
+Daniel Barter,1, ∗ Jacob C. Bridgeman,2, † and Corey Jones
+https://scirate.com/arxiv/1806.01279
+The Picard group of the spectrum of a Dedekind domain is its ideal class group.
+https://en.wikipedia.org/wiki/Picard_group
+
+
+https://mathoverflow.net/questions/114245/i-know-that-you-know
+Agreeing to Disagree
+Robert J. Aumann
+The Annals of Statistics, Vol. 4, No. 6. (Nov., 1976), pp. 1236-1239.
+http://www.dklevine.com/archive/refs4512.pdf
+
+
+
+
+https://mathoverflow.net/questions/84182/shape-of-snowflakes
+
+---------------------------
+
+https://mathoverflow.net/questions/10516/uniformization-theorem-for-riemann-surfaces
+
+Teichmüller Theory and Applications to Geometry, Topology, and Dynamics
+Volume 1: Teichmüller Theory
+by John H. Hubbard
+Chapter 1 The uniformization theorem
+    1.1 Two statements of the uniformization theorem 1
+    1.2 Subharmonic and harmonic functions 3
+    1.3 Rado's theorem 6
+    1.4 An exhaustion of X 10
+    1.5 Green's functions 14
+    1.6 Simply connected compact pieces 15
+    1.7 Proof of Theorem 1.1.2 16
+    1.8 A first classification of Riemann surfaces 17
+
+
+
+
+27/5/18
+=======
+
+
+https://arxiv.org/abs/0805.2568
+AMBIGUITY THEORY, OLD AND NEW
+YVES ANDRE
+Abstract. This is a introductory survey of some recent developments of “Galois
+ideas” in Arithmetic, Complex Analysis, Transcendental Number Theory
+and Quantum Field Theory, and of some of their interrelations.
+    Ambiguity theory was the name which Galois used when he referred to his
+    own theory and its future developments. For instance,
+    in his celebrated last letter
+    (1832), he wrote:
+        My principal meditations for some time have been directed
+        towards the application of the theory of ambiguity to
+        transcendental analysis. It was a question of seeing
+        a priori in a relation between quantities or transcendent
+        functions, what exchanges one could make, which quantities
+        one could substitute for the given quantities without
+        the original relation ceasing to hold. That immediately
+        made clear the impossibility of finding many expressions
+        that one could look for. But I do not have time and my
+        ideas are not yet well developed on this ground which
+        is immense.
+
+https://golem.ph.utexas.edu/category/2008/05/ambiguity_theory.html
+
+Lautman and the Reality of Mathematics
+David Corfield
+March 20, 2009
+http://philsci-archive.pitt.edu/9210/1/3.Lautman.pdf
+
+
+
+---------------------------
+
+Terence Tao: Structure and Randomness in the Prime Numbers
+https://www.youtube.com/watch?v=PtsrAw1LR3E
+
+Sieve theory:
+we can say what is *not* a prime:
+    multiples of 2 are not prime
+    multiples of 3 are not prime
+    ...
+
+
+
+
+25/5/18
+=======
+
+Connes & Marcolli: Q-lattices generalize Conway's “Understanding groups like Γ0(N)Γ0(N)”
+Has anyone generalized Conway's description of Hecke operators on lattices to the Q-lattices of Connes & Marcolli ?
+https://mathoverflow.net/questions/69938/connes-marcolli-q-lattices-generalize-conways-understanding-groups-like-g
+http://alainconnes.org/docs/Qlattices.pdf
+    From Physics to Number theory via
+    Noncommutative Geometry
+    Alain Connes and Matilde Marcolli
+
+
+The Graph of the Truncated Icosahedron and the Last Letter of Galois
+Bertram Kostant
+http://www.ams.org/notices/199509/kostant.pdf
+
+https://mathoverflow.net/questions/2704/links-between-riemann-surfaces-and-algebraic-geometry
+    Every Riemann surface is a complex algebraic curve and
+    every compact complex algebraic curve can be embedded
+    into a projective plane and drawn as the Riemann surface.
+    
+    There are lots of gems in this short statement. For example,
+    as I said there is a way to count the algebraic forms
+    in terms of inner geometry of algebraic curve. This gives
+    some number, which could be 0, 1, 2, etc. On the other
+    hand, if you draw a Riemann surface, you notice that
+    it can be studied in topology and then it has the invariant
+    called the number of handles which could also be 0 (sphere),
+    1 (torus), 2, etc. It turns out this is exactly the same
+    thing though defined in a completely different way by
+    a completely different branch of mathematics.
+    
+    The whole algebraic geometry is, so to say, our attempt
+    to make ourselves comfortable about this amazing connection
+    between things we calculate (algebra) and things we draw
+    (geometry).
+
+https://mathoverflow.net/questions/19390/intuition-behind-the-eichler-shimura-relation
+
+https://mathoverflow.net/questions/60235/overview-of-the-interplay-of-harmonic-analysis-and-number-theory
+
+SPECTRA OF HYPERBOLIC SURFACES
+PETER SARNAK
+
+http://www.ams.org/journals/bull/2003-40-04/S0273-0979-03-00991-1/S0273-0979-03-00991-1.pdf
+
+https://mathoverflow.net/questions/1880/why-do-zeta-functions-contain-so-much-information
+
+
+https://mathoverflow.net/questions/225814/does-quantum-mechanics-ever-really-quantize-classical-mechanics
+https://mathoverflow.net/a/225901/39775
+
+
+-------------------------------
+
+
+https://mathoverflow.net/questions/63320/where-do-surreal-numbers-come-from-and-what-do-they-mean
+    Not numbers exactly, but certainly Conway's games (and
+    related game-like structures) have aroused plenty of
+    interest in certain category theorists and logicians,
+    as they can be used to give categorical (non-posetal)
+    semantics for substructural logics. In other words, under
+    the Curry-Howard paradigm of "propositions as types",
+    where propositions are promoted to objects and proofs
+    of propositions p⇒qp⇒q are promoted to morphisms p→qp→q,
+    the structures of formal deductions are embedded in strategies
+    for games.
+    
+    It was originally observed by André Joyal that Conway
+    games are the objects of a compact closed category, where
+    morphisms between games G→HG→H are second-player winning
+    strategies for −G+H−G+H.
+
+https://golem.ph.utexas.edu/category/2006/10/classical_vs_quantum_computati_3.html
+    Holodeck strategies and cartesian closed categories.
+
+
+
+19/5/18
+=======
+
+https://aeon.co/essays/seeing-is-not-simple-you-need-to-be-both-knowing-and-naive
+    If we make no prior assumptions, then we have no ground
+    to stand on. The quicksand of radical and unbounded doubt
+    opens beneath our feet and we sink, unable to gain purchase.
+    We remain forever at the base of the sheer rock face
+    of the world, unable to begin our climb. Yet, while we
+    must start with prior knowledge we take as true, we must
+    also remain open to surprise; else we can never learn
+    anything new. In this sense, science is always Janus-headed,
+    like the ancient Roman god of liminal spaces, looking
+    simultaneously to the past and to the future. Learning
+    is essentially about updating our biases, not eliminating
+    them. We always need them to get started, but we also
+    need them to be open to change, otherwise we would be
+    unable to exploit the new vistas that our advancing technology
+    opens to view.
+
+
+16/5/18
+=======
+
+Knots and dynamics
+Étienne Ghys
+Madrid ICM, 2006
+http://www.icm2006.org/proceedings/Vol_I/15.pdf
+video: https://av.tib.eu/media/15953
+slides: http://ghys.perso.math.cnrs.fr/exposes/icm.pdf
+    The quotient M = PSL(2, R) / PSL(2, Z) is homeomorphic to the complement of
+    the trefoil knot in the 3-sphere.
+     a Lorenz knot is a knot isotopic to a periodic orbit of the Lorenz
+    differential equation.
+    Isotopy classes of Lorenz knots and modular knots coincide.
+
+
+https://golem.ph.utexas.edu/category/2014/04/the_modular_flow_on_the_space.html
+
+https://ncatlab.org/nlab/show/continued+fraction#rational_tangles
+
+On the classification of rational tangles
+Louis H. Kauffman
+Sofia Lambropoulou
+https://arxiv.org/pdf/math/0311499.pdf
+
+RATIONAL TANGLES AND THE MODULAR GROUP
+FRANCESCA AICARDI
+https://arxiv.org/pdf/0908.2195.pdf
+
+
+
+14/5/18
+=======
+
+
+Blockchain Just Isn’t As Radical As You Want It To Be
+On how a new administrative technology is being conflated with radical politics.
+https://longreads.com/2018/02/15/blockchain-just-isnt-as-radical-as-you-want-it-to-be/
+
+
+https://golem.ph.utexas.edu/category/2018/05/compositionality.html
 
 11/5/18
 =======
@@ -4430,6 +4926,19 @@ https://mathoverflow.net/questions/96720/non-trivial-consequences-of-lobs-theore
 
 "Löb’s Theorem as a Limitation on Mechanism"
 MICHAEL DETLEFSEN
+
+http://blog.sigfpe.com/2017/07/self-referential-logic-via-self.html
+    "Self-referential logic via self-referential circuits"
+    The behaviour of a certain kind of delay component has
+    a formal similarity to Löb's theorem which gives a way
+    to embed part of provability logic into electronic circuits.
+
+FIXED POINT ALGEBRAS
+BY C. SMORYISKI (1982)
+https://projecteuclid.org/euclid.bams/1183548781
+    Is there a genuine algebraic aspect to arithmetic self-reference? What types of
+    self-reference fall into the algebraic sphere? And, what can or cannot an
+    algebraic analysis tell us about self-reference? 
 
 
 3/6/17
