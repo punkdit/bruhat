@@ -186,21 +186,31 @@ def pos_circ(graph):
 
     best_gs = None
     best_orbit = []
+    descs = []
     for g in G:
         if g.is_identity():
             continue
         #print(g)
         orbits = g.orbits()
         sizes = [len(orbit) for orbit in orbits]
+        sizes.sort()
+        #print(sizes)
+        descs.append(tuple(sizes))
         if orbit_size is not None:
             if orbit_size not in sizes:
                 continue
+        #if set(sizes) != set([2]):
+        #    continue
         for orbit in orbits:
             if len(orbit) > len(best_orbit):
                 best_orbit = orbit
                 best_gs = [g]
             elif len(orbit) == len(best_orbit):
                 best_gs.append(g)
+
+    descs.sort()
+    for desc in descs:
+        print(desc)
 
     if not best_gs:
         print("no orbits found")
@@ -306,8 +316,9 @@ def main():
     else:
         pts = pos_circ(graph)
 
+    output = argv.get("output", "output")
     if pts is not None:
-        draw_graph(graph, pts, "output")
+        draw_graph(graph, pts, output)
     else:
         print("failed to draw")
 

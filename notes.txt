@@ -1,4 +1,208 @@
 
+15/7/18
+=======
+
+Team decision problems with classical and quantum signals
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4685761/
+    8. An economic application
+    A natural scenario in which team problems arise but direct
+    communication is impossible is high-frequency financial trading.
+
+11/7/18
+=======
+
+https://en.wikipedia.org/wiki/Gelfand%E2%80%93Naimark_theorem
+Gelfand–Naimark theorem
+an arbitrary C*-algebra A is isometrically *-isomorphic
+to a C*-algebra of bounded operators on a Hilbert space.
+
+
+https://en.wikipedia.org/wiki/Stone%27s_representation_theorem_for_Boolean_algebras
+Each Boolean algebra B has an associated topological
+space, denoted here S(B), called its Stone space. The
+points in S(B) are the ultrafilters on B, or equivalently
+the homomorphisms from B to the two-element Boolean algebra. 
+
+For every Boolean algebra B, S(B) is a compact totally
+disconnected Hausdorff space; such spaces are called
+Stone spaces (also profinite spaces). Conversely, given
+any topological space X, the collection of subsets of
+X that are clopen (both closed and open) is a Boolean algebra.
+
+https://en.wikipedia.org/wiki/Stone%E2%80%93%C4%8Cech_compactification
+The Stone–Čech compactification βX is a compact Hausdorff
+space together with a continuous map from X that has
+the following universal property: any continuous map
+f: X → K, where K is a compact Hausdorff space, extends
+uniquely to a continuous map βf: βX → K.
+
+this universal property, together with the fact that
+βX is a compact Hausdorff space containing X, characterizes
+βX up to homeomorphism.
+
+if X is discrete, one can construct βX as the set of
+all ultrafilters on X, with a topology known as Stone
+topology. The elements of X correspond to the principal
+ultrafilters.
+
+The Stone–Čech compactification is naturally homeomorphic
+to the spectrum of Cb(X).[3] Here Cb(X) denotes the C*-algebra
+of all continuous bounded functions on X with sup-norm. 
+
+
+
+
+
+
+28/6/18
+=======
+
+https://mathoverflow.net/questions/40287/little-disks-operad-and-gal-bar-q-q
+    Gal(Q¯/Q)  acts faithfully on the profinite fundamental
+    groupoïd of the operad of little discs.
+
+https://infinityplusonemath.wordpress.com/archive/
+
+
+26/6/18
+=======
+
+A MAD DAY’S WORK: FROM GROTHENDIECK TO CONNES AND KONTSEVICH
+THE EVOLUTION OF CONCEPTS OF SPACE AND SYMMETRY
+PIERRE CARTIER
+https://www.ams.org/journals/bull/2001-38-04/S0273-0979-01-00913-2/S0273-0979-01-00913-2.pdf
+    For Leibniz the constituent of all things, both material and
+    spiritual, is provided by monads, which are windowless
+    (we would say they have no
+    internal structure), and the only things that matter
+    are their mutual relationships.
+
+    there are many reasons to believe in a
+    “cosmic Galois group” acting on the fundamental constants
+    of the physical theories.
+
+
+23/6/18
+=======
+
+Iain McGilchrist  ‘The Divided Brain’ Interview By Iain McNay
+https://www.youtube.com/watch?v=U2mSl7ee8DI
+at ~ 43:40
+"what i call the betweennes of things
+is where the life lies ...
+betweenness is important 
+-- the relations between things, not the things themselves --
+applies to everything"
+
+
+
+19/6/18
+=======
+
+"The clearest expression of this reality is to be found
+in the African saying Umuntu ngumuntu ngabantu (A person
+is a person through other persons)."
+from Validation of individual consciousness in strong
+artificial intelligence : an African theological contribution
+Forster, Dion Angus
+http://uir.unisa.ac.za/handle/10500/2361
+
+16/6/18
+=======
+
+Khovanov’s homology for tangles and cobordisms
+Dror Bar-Natan
+https://arxiv.org/pdf/math/0410495.pdf
+
+
+12/6/18
+=======
+
+https://aeon.co/ideas/to-get-a-grip-on-altruism-see-humans-as-molecules
+
+Accurate Genomic Prediction of Human Height 
+https://news.ycombinator.com/item?id=16392877
+
+https://www.statnews.com/2018/05/14/memory-transfer-between-snails-challenges-standard-theory/
+
+
+
+
+
+11/6/18
+=======
+
+https://mathoverflow.net/questions/223584/which-philosophy-for-reductive-groups
+    The early decades of the theory of automorphic forms
+    exhibited an abundance of similar-looking features, such
+    as for Hilbert modular forms, Siegel modular forms, theta-series
+    in the study of quadratic forms, and so on. But how to
+    unify these into a single framework, treat both Maass
+    forms and holomorphic forms on equal footing, understand
+    the significance of Eisenstein series, etc.? It is precisely
+    the unified perspective on the internal structure of
+    all reductive groups and the analogous unification for
+    the representation theory in Harish-Chandra's work that
+    makes them an ideal framework for subsuming all such
+    considerations into a uniform group-theoretic framework.
+    
+https://mathoverflow.net/questions/150742/is-langlands-reciprocity-somehow-analogous-to-the-wave-particle-duality-of-quant
+
+
+https://mathoverflow.net/questions/27164/why-is-fourier-analysis-so-handy-for-proving-the-isoperimetric-inequality
+    Experience with Fourier analysis and representation theory
+    has shown that every time a problem is invariant with
+    respect to a group symmetry, the representation theory
+    of that group is likely to be relevant. If the group
+    is abelian, the representation theory is given by the
+    Fourier transform on that group.
+    
+    In this case, the relevant symmetry group is that of
+    reparameterising the arclength parameterisation of the
+    perimeter by translation. This operation does not change
+    the area or the perimeter. When combined with the observation
+    (from Stokes theorem) that both the area and perimeter
+    of a body can be easily recovered from the arclength
+    parameterisation, this naturally suggests to use Fourier
+    analysis in the arclength variable.
+
+
+https://mathoverflow.net/questions/243518/linear-algebra-in-terms-of-abstract-nonsense
+    To my mind there are two classes of interesting categorical
+    facts here, loosely speaking "additive" facts and "multiplicative"
+    facts. Some additive facts:
+    
+    Finite-dimensional vector spaces over kk has biproducts,
+    and every object is a finite biproduct of copies of a
+    single object, namely kk. The categories with this property
+    are precisely the categories of finite rank free modules
+    over a semiring RR (the endomorphisms of the single object).
+    These biproduct decompositions encapsulate both the idea
+    that vector spaces have bases and that a choice of bases
+    can be used to write linear maps as matrices.
+    
+    The single object kk above is simple, and so every object
+    is a finite biproduct of simple objects. The categories
+    with this property, in addition to 1, are precisely the
+    categories of finite rank free modules over a division
+    semiring RR.
+    ...
+
+
+
+https://mathoverflow.net/questions/264820/representation-theory-and-elementary-particles
+    You can understand this philosophy as a generalization of Noether's theorem. 
+
+https://qchu.wordpress.com/2011/01/02/the-schrodinger-equation-on-a-finite-graph/
+
+
+The Algebra of Grand Unified Theories
+John C. Baez, John Huerta
+https://arxiv.org/abs/0904.1556
+    Feynman diagrams are the physicists’ way of drawing intertwining operators
+    We can ‘break the symmetry’ of the Spin(10) theory in two different ways.
+
+
 10/6/18
 =======
 

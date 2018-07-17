@@ -208,6 +208,8 @@ def main():
             perm[items[i+1]] = items[i]
             gen.append(perm)
         gen = [Perm(perm, items) for perm in gen]
+        for g in gen:
+            print g
 
         graph = cayley(gen)
 
