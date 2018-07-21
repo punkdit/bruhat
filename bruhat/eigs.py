@@ -31,12 +31,15 @@ def search(nodes, nbd, eigval, vals=[1, -1, 2, -2, 3, -3], vec=None, verbose=Fal
     if vec is None:
         node = nodes[0]
 
+        found = False
         for val in vals:
             if val >= 0:
                 vec = {node : val}
-                vec = search(nodes, nbd, eigval, vals, vec, verbose) # <--- recurse
-                if vec:
-                    return vec
+                for vec in search(nodes, nbd, eigval, vals, vec, verbose): # recurse
+                    yield vec
+                    found = True
+            #if found:
+            #    break
         return
 
     vec = dict(vec)
@@ -57,30 +60,17 @@ def search(nodes, nbd, eigval, vals=[1, -1, 2, -2, 3, -3], vec=None, verbose=Fal
             if x != vec[i]*eigval:
                 if verbose:
                     print(indent+"Not an evec")
-                return None
+                return 
             satisfied.add(i)
             bdy.remove(i)
-
-#    while 1:
-#        ready = [i for i in bdy if len([j for j in nbd[i] if j not in vec])==1]
-#        if not ready:
-#            break
-#
-#        for i in ready:
-#            x = eigval * vec[i]
-#            for j in nbd[i]:
-#                x -= vec.get(j, 0)
-#            for j in nbd[i]:
-#                if j not in vec:
-#                    vec[j] = x
-#                    satisfied.add(i
 
     if verbose:
         print(indent+"satisfied:", satisfied)
         print(indent+"bdy:", bdy)
 
     if not bdy:
-        return vec
+        yield vec
+        return
 
     i = list(bdy)[0] # choose a component to satisfy
     
@@ -98,10 +88,10 @@ def search(nodes, nbd, eigval, vals=[1, -1, 2, -2, 3, -3], vec=None, verbose=Fal
         if verbose:
             print(indent+"force: vec[%d] = %d"%(k, x))
         if x not in vals:
-            return None
+            return
         vec[k] = x
-        vec = search(nodes, nbd, eigval, vals, vec, verbose) # <--- recurse
-        return vec
+        for vec1 in search(nodes, nbd, eigval, vals, vec, verbose): # <--- recurse
+            yield vec1
 
     else:
         for j in nbd[i]:
@@ -112,13 +102,9 @@ def search(nodes, nbd, eigval, vals=[1, -1, 2, -2, 3, -3], vec=None, verbose=Fal
 
         for val in vals:
             vec[j] = val
-            vec1 = search(nodes, nbd, eigval, vals, vec, verbose) # <--- recurse
-            if vec1 is not None:
-                return vec1
+            for vec1 in search(nodes, nbd, eigval, vals, vec, verbose): # <--- recurse
+                yield vec1
             del vec[j]
-    
-    
-
     
 
 """
@@ -162,7 +148,6 @@ def main():
 
     print("|nodes|=%d, edges=|%d|"%(len(graph.nodes()), len(graph.edges())))
 
-
     eigval = argv.get("eigval", 0)
 
     nodes = list(graph.nodes())
@@ -175,12 +160,27 @@ def main():
     print(nbd)
 
     verbose = argv.verbose
+    G = get_autos(graph)
 
     vals = argv.get("vals", [1,-1,2,-2,3,-3])
 
-    vec = search(nodes, nbd, eigval, vals, verbose=verbose)
+    for vec in search(nodes, nbd, eigval, vals, verbose=verbose):
+        print("vec = ", strvec(vec))
+        H = get_stab(G, vec)
+        print("H:",len(H))
+        J = get_stab(G, vec, -1)
+        print("J:",len(J))
+        break
 
-    print("vec = ", strvec(vec))
+def get_stab(G, vec, rep=1):
+    H = []
+    for g in G:
+        u = {}
+        for i,x in vec.items():
+            u[g[i]] = rep*x
+        if u==vec:
+            H.append(g)
+    return H
 
 
 
