@@ -208,9 +208,10 @@ def pos_circ(graph):
             elif len(orbit) == len(best_orbit):
                 best_gs.append(g)
 
-    descs.sort()
-    for desc in descs:
-        print(desc)
+    if argv.desc:
+        descs.sort()
+        for desc in descs:
+            print(desc)
 
     if not best_gs:
         print("no orbits found")

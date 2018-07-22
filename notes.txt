@@ -1,10 +1,26 @@
 
+
+
 21/7/18
 =======
 
 On teaching mathematics
 by V.I. Arnold
 https://www.uni-muenster.de/Physik.TP/~munsteg/arnold.html
+
+zeta function regularization
+https://www.youtube.com/watch?v=vzjbRhYjELo
+"John Baez on the number 24"
+bosonic string theory in 24 (26) dimensions
+symmetry of this theory is the monster group (Borcherds, 1986)
+moonshine
+elliptic curve moduli space
+discriminant of an elliptic curve
+
+https://math.stackexchange.com/questions/641809/what-specific-algebraic-properties-are-broken-at-each-cayley-dickson-stage-beyon
+What specific algebraic properties are broken at each
+Cayley-Dickson stage beyond octonions?
+
 
 15/7/18
 =======
@@ -2021,19 +2037,37 @@ group determinant
 
 desargues_graph
 autos: 240
-spec: -3.000000 -2.000000 -2.000000 -2.000000 -2.000000 -1.000000 -1.000000 -1.000000 -1.000000 -1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 2.000000 2.000000 2.000000 2.000000 3.000000
+spec: 
+    -3.000000 
+    -2.000000 -2.000000 -2.000000 -2.000000
+    -1.000000 -1.000000 -1.000000 -1.000000 -1.000000 
+    1.000000 1.000000 1.000000 1.000000 1.000000 
+    2.000000 2.000000 2.000000 2.000000 
+    3.000000
 
 petersen_graph
 autos: 120
-spec: -2.000000 -2.000000 -2.000000 -2.000000 1.000000 1.000000 1.000000 1.000000 1.000000 3.000000
+spec: 
+    -2.000000 -2.000000 -2.000000 -2.000000 
+    1.000000 1.000000 1.000000 1.000000 1.000000 
+    3.000000
 
 dodecahedral_graph
 autos: 120
-spec: -2.236068 -2.236068 -2.236068 -2.000000 -2.000000 -2.000000 -2.000000 -0.000000 -0.000000 -0.000000 0.000000 1.000000 1.000000 1.000000 1.000000 1.000000 2.236068 2.236068 2.236068 3.000000
+spec: 
+    -2.236068 -2.236068 -2.236068 
+    -2.000000 -2.000000 -2.000000 -2.000000 
+    -0.000000 -0.000000 -0.000000 0.000000
+    1.000000 1.000000 1.000000 1.000000 1.000000 
+    2.236068 2.236068 2.236068 3.000000
 
 icosahedral_graph
 autos: 120
-spec: -2.236068 -2.236068 -2.236068 -1.000000 -1.000000 -1.000000 -1.000000 -1.000000 2.236068 2.236068 2.236068 5.000000
+spec: 
+    -2.236068 -2.236068 -2.236068 
+    -1.000000 -1.000000 -1.000000 -1.000000 -1.000000 
+    2.236068 2.236068 2.236068 
+    5.000000
 
 sqrt(5) == 2.23606...
 

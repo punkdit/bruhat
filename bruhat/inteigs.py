@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 """
-Eigenvectors of graphs.
+search for integer eigenvectors of graphs.
 """
 
 from __future__ import print_function
@@ -18,6 +18,7 @@ from networkx.generators import small, classic
 
 
 from equiv import get_autos
+from visualize import pos_circ
 from argv import argv
 
 
@@ -31,15 +32,12 @@ def search(nodes, nbd, eigval, vals=[1, -1, 2, -2, 3, -3], vec=None, verbose=Fal
     if vec is None:
         node = nodes[0]
 
-        found = False
         for val in vals:
             if val >= 0:
                 vec = {node : val}
                 for vec in search(nodes, nbd, eigval, vals, vec, verbose): # recurse
-                    yield vec
-                    found = True
-            #if found:
-            #    break
+                    if sum(abs(x) for x in vec.values()) != 0:
+                        yield vec
         return
 
     vec = dict(vec)
@@ -118,12 +116,75 @@ tetrahedral_graph truncated_cube_graph truncated_tetrahedron_graph
 tutte_graph
 """
 
+def draw_graph(graph, vec, pts=None, name="output"):
+    import pyx 
+    from pyx import path, deco, trafo, style, text, color, deformer
+    from pyx.color import rgb, cmyk
+    from pyx.color import rgbfromhexstring as rgbhex
+
+    black = rgb(0., 0., 0.) 
+    blue = rgb(0., 0., 0.8)
+    lred = rgb(1., 0.4, 0.4)
+    red = rgb(1., 0.0, 0.0)
+    green = rgb(0., 1.0, 0.0)
+    lgreen = rgb(0.4, 1.0, 0.4)
+    dgreen = rgb(0.0, 0.4, 0.0)
+    white = rgb(1., 1., 1.) 
+
+    if pts is None:
+        pts = pos_circ(graph)
+
+    directed = isinstance(graph, (nx.DiGraph, nx.MultiDiGraph))
+
+    #W = 10.
+    #H = 10.
+
+    R = 1.5 
+    r = 0.2 
+
+    c = pyx.canvas.canvas()
+
+    for edge in graph.edges():
+        src, tgt = edge
+
+        x0, y0 = pts[src]
+        x1, y1 = pts[tgt]
+
+        color = black
+        c.stroke(path.line(R*x0, R*y0, R*x1, R*y1), [color])
+
+    for node in graph.nodes():
+        x, y = pts[node]
+
+        val = vec[node]
+        assert int(val) == val
+
+        p = path.circle(R*x, R*y, 0.2)
+        c.fill(p, [white])
+
+        p = path.circle(R*x, R*y, 0.05)
+        c.fill(p, [black])
+
+        if val > 0:
+            color = dgreen
+        elif val < 0:
+            color = red
+            val = -val
+        else:
+            continue
+
+        for i in range(val):
+            p = path.circle(R*x, R*y, (i+1)*0.2)
+            c.stroke(p, [color, style.linewidth.THick])
+
+    c.writePDFfile(name)
+
 
 def strvec(vec):
     if vec is None:
         return "None"
     n = max(list(vec.keys()))
-    items = [vec.get(i) for i in range(n)]
+    items = [vec.get(i) for i in range(n+1)]
     return str(items)
 
 
@@ -170,7 +231,11 @@ def main():
         print("H:",len(H))
         J = get_stab(G, vec, -1)
         print("J:",len(J))
-        break
+        if argv.draw:
+            draw_graph(graph, vec)
+            break
+        if not argv.alleigs:
+            break
 
 def get_stab(G, vec, rep=1):
     H = []
