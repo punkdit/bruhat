@@ -1,4 +1,12 @@
 
+26/7/18
+=======
+
+ decay of correlations in the ground state of a Hamiltonian with a spectral gap
+Locality in Quantum Systems
+Matthew B. Hastings
+https://arxiv.org/abs/1008.5137
+
 
 
 21/7/18
