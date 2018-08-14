@@ -1,4 +1,148 @@
 
+8/8/18
+======
+
+Book: "Combinatorial Geometry"
+János Pach, Pankaj K. Agarwal
+1995
+
+SYMPLECTIC REPRESENTATIONS OF BRAID GROUPS
+by Jeff Yelton
+https://jeffyelton.weebly.com/uploads/4/4/5/6/44566759/symplecticrepresentations.pdf
+
+
+Emily Riehl
+Johns Hopkins University
+Categorifying cardinal arithmetic
+MAA MathFest, August 4, 2018
+http://www.math.jhu.edu/~eriehl/arithmetic.pdf
+Goal: prove 𝑎 × (𝑏 + 𝑐) = (𝑎 × 𝑏) + (𝑎 × 𝑐) for any natural numbers
+𝑎, 𝑏, and 𝑐 .
+
+
+
+4/8/18
+======
+
+Yann LeCun - The Next Step Towards Artificial Intelligence
+https://www.youtube.com/watch?v=U2mhZ9E8Fk8
+Convolutional networks
+22:15
+    Multilayer Architectures == Compositional structure of data
+    Hierarchical representation of data
+    low-level feature -> mid-level feature -> high-level feature -> classifier
+
+    science born from technology:
+    telescope -> optics
+    steam engine -> thermodynamics
+    airplane -> aerodynamics
+    calculators -> computer science
+    telecommunication -> information theory
+
+    artificial intelligence -> ???
+
+
+2/8/18
+======
+
+mathoverflow:
+82871
+261877
+50473
+28496
+50879
+154839
+1931
+94512
+30480
+94014
+
+
+31/7/18
+=======
+
+David Bohm, Quantum Mechanics and Enlightenment
+https://blogs.scientificamerican.com/cross-check/david-bohm-quantum-mechanics-and-enlightenment/
+
+    Someday, science and art will merge, Bohm predicted.
+    “This division of art and science is temporary,” he observed.
+    “It didn't exist in the past, and there’s no reason why
+    it should go on in the future.” Just as art consists
+    not simply of works of art but of an “attitude, the artistic
+    spirit,” so does science consist not in the accumulation
+    of knowledge but in the creation of fresh modes of perception.
+    “The ability to perceive or think differently is more
+    important than the knowledge gained,” Bohm explained.
+
+
+WHAT IS REAL? 
+The Unfinished Quest for the Meaning of Quantum Physics 
+By Adam Becker 
+
+What Does Quantum Physics Actually Tell Us About the World?
+￼BUY BOOK ▾
+When you purchase an independently reviewed book through our site, we earn an affiliate commission.
+
+By James Gleick
+https://www.nytimes.com/2018/05/08/books/review/adam-becker-what-is-real.html
+
+http://www.math.columbia.edu/~woit/wordpress/?p=10147
+
+Between classical and quantum
+N.P. Landsman
+https://arxiv.org/abs/quant-ph/0506082
+    The relationship between classical and quantum theory
+    is of central importance to the philosophy of physics,
+    and any interpretation of quantum mechanics has to clarify
+    it. Our discussion of this relationship is partly historical
+    and conceptual, but mostly technical and mathematically
+    rigorous, including over 500 references. On the assumption
+    that quantum mechanics is universal and complete, we
+    discuss three ways in which classical physics has so
+    far been believed to emerge from quantum physics, namely
+    in the limit h -> 0 of small Planck's constant (in a
+    finite system), in the limit of a large system, and through
+    decoherence and consistent histores. The first limit
+    is closely related to modern quantization theory and
+    microlocal analysis, whereas the second involves methods
+    of C*-algebras and the concepts of superselection sectors
+    and macroscopic observables. In these limits, the classical
+    world does not emerge as a sharply defined objective
+    reality, but rather as an approximate appearance relative
+    to certain "classical" states and observables. Decoherence
+    subsequently clarifies the role of such states, in that
+    they are "einselected", i.e. robust against coupling
+    to the environment. Furthermore, the nature of classical
+    observables is elucidated by the fact that they typically
+    define (approximately) consistent sets of histories.
+    We make the point that classicality results from the
+    elimination of certain states and observables from quantum
+    theory. Thus the classical world is not created by observation
+    (as Heisenberg once claimed), but rather by the lack
+    of it.
+
+
+---------------------------------
+
+Gamifying propositional logic: QED, an interactive textbook
+https://terrytao.wordpress.com/2018/07/28/gamifying-propositional-logic-qed-an-interactive-textbook/
+
+http://www.math.ucla.edu/~tao/QED/QED.html
+
+-----------------------------------
+
+@book{book:8250,
+   title =     {Smooth Manifolds and Observables},
+   author =    {Jet Nestruev},
+   publisher = {Springer},
+   isbn =      {9780387955438,0387955437,9780387227399},
+   year =      {2003},
+   series =    {Graduate texts in mathematics 220},
+   edition =   {1},
+   volume =    {},
+
+
+
 26/7/18
 =======
 
