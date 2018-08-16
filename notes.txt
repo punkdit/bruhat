@@ -1,4 +1,67 @@
 
+15/8/18
+=======
+
+https://mathoverflow.net/a/222401/39775
+    In Conway's book The Sensual (Quadratic) Form he covers
+    Zolotarev's proof of quadratic reciprocity:
+    
+    The legendre symbol (a|m) is defined as the sign of the
+    permutation "multiplication by a mod m". This happens
+    to match up with the usual definition. (Note the Cayley
+    type replacement of 'a' with the function 'multiplication by a').
+    
+    Then quadratic reciprocity is proved just using group
+    theory, and as Conway points out this has no mention
+    of square number or even prime numbers!
+
+
+https://arxiv.org/abs/1410.7416
+THE LEVEL FOUR BRAID GROUP
+TARA E. BRENDLE AND DAN MARGALIT
+Abstract. By evaluating the Burau representation at t = −1, we obtain
+a symplectic representation of the braid group. We study the resulting
+congruence subgroups of the braid group, namely, the preimages of
+the principal congruence subgroups of the symplectic group. Our main
+result is that the level 4 congruence subgroup is equal to the group generated
+by squares of Dehn twists. We also show that the image of the
+Brunnian subgroup of the braid group under the symplectic representation
+is the level four congruence subgroup.
+
+
+https://www.win.tue.nl/~aeb/2WF02/spectra.pdf
+Andries E. Brouwer, Willem H. Haemers
+"Spectra of graphs" February 1, 2011
+    3.8 Classification of integral cubic graphs
+    classify the cubic graphs (graphs, that are regular of valency
+    3) with integral spectrum. ]. There are 13 examples
+
+
+https://mathoverflow.net/a/43932/39775
+
+The Peterson Graph can be obtained by identifying the
+antipodal points of a dodecahedron and it has S5 as
+its automorphism group
+
+Possibly the most natural way to see the action of S5
+is to identify the 10 vertices with (5 choose 2) pairs
+and say two pairs are adjacent iff they're disjoint. 
+
+The Peterson graph has a nice description in terms of
+the 4 points and 6 edges of a tetrahedron or PG(3,1)
+if we abuse notation. The Moore graph of order 7 has
+a nice description in terms of the 15 points and 35 lines
+of PG(3,2). Now, PG(3,7) has 400 points and 2850 lines
+and if there is a Moore graph of order 57 (warning! warning!
+Many would conjecture that there is none!) then it has
+400+2850 vertices of which at most 400 could be independent...
+The fact that a large automorphism group has been ruled
+out makes this an unpromising approach, but who knows?
+
+
+
+
+
 8/8/18
 ======
 
