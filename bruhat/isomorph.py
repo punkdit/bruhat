@@ -8,7 +8,7 @@ try:
     import numpy
     #import scipy.sparse.linalg as la
 except ImportError:
-    print "numpy not found"
+    print("numpy not found")
 
 
 from util import write
@@ -344,8 +344,8 @@ def search_recursive(bag0, bag1, fn=None, depth=1):
     if len(orbits0) != len(orbits1):
         return
 
-    keys0 = orbits0.keys()
-    keys1 = orbits1.keys()
+    keys0 = list(orbits0.keys())
+    keys1 = list(orbits1.keys())
     keys0.sort()
     keys1.sort()
     if keys0 != keys1:
@@ -402,8 +402,8 @@ class State(object):
         if len(orbits0) != len(orbits1):
             raise Backtrack() # <-------------- raise
     
-        keys0 = orbits0.keys()
-        keys1 = orbits1.keys()
+        keys0 = list(orbits0.keys())
+        keys1 = list(orbits1.keys())
         keys0.sort()
         keys1.sort()
         if keys0 != keys1:
@@ -497,7 +497,7 @@ def search(bag0, bag1, depth=1, fn=None, verbose=False):
     orbits = bag0.get_orbits(depth)
     bag1.get_orbits()
 
-    keys = orbits.keys()
+    keys = list(orbits.keys())
     keys.sort(key = lambda key : len(orbits[key]))
     remain = []
     for key in keys:
@@ -530,7 +530,7 @@ def search(bag0, bag1, depth=1, fn=None, verbose=False):
     while stack:
 
         if verbose:
-            print "SEARCH", len(stack)
+            print( "SEARCH", len(stack))
 
         for idx in remain:
             assert fn.get(idx) is None
@@ -543,11 +543,11 @@ def search(bag0, bag1, depth=1, fn=None, verbose=False):
         assert len(remain)+len(fn)==len(bag0)
 
         if verbose:
-            print fn
+            print( fn)
 
         if len(fn) == len(bag0):
             if verbose:
-                print "FOUND"
+                print( "FOUND")
             yield dict(fn)
 
         else:
@@ -561,12 +561,12 @@ def search(bag0, bag1, depth=1, fn=None, verbose=False):
                 #remain.remove(idx)
                 stack.append(_state)
                 if verbose: 
-                    print "PUSH"
+                    print( "PUSH")
                 continue
     
             except Backtrack:
                 if verbose: 
-                    print "BACK"
+                    print( "BACK")
                 # the above do() doesn't work
                 pass
 
@@ -574,18 +574,18 @@ def search(bag0, bag1, depth=1, fn=None, verbose=False):
         while stack:
             state = stack[-1]
             if verbose:
-                print "UNDO"
+                print( "UNDO")
             assert len(remain)+len(fn)==len(bag0)
             state.undo(fn)
             assert len(remain)+len(fn)+1==len(bag0)
             try:
                 if verbose:
-                    print "NEXT"
+                    print( "NEXT")
                 state.next()
                 break # ok, finished backtracking
             except Backtrack:
                 if verbose:
-                    print "POP"
+                    print( "POP")
                 state = stack.pop() # discard this guy
                 #remain.append(state.idx0)
                 remain.insert(0, state.idx0)
@@ -754,7 +754,7 @@ if __name__ == "__main__":
     else:
         test()
 
-    print "OK"
+    print( "OK")
 
 
 

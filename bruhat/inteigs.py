@@ -159,10 +159,10 @@ def draw_graph(graph, vec, pts=None, name="output"):
         val = vec[node]
         assert int(val) == val
 
-        p = path.circle(R*x, R*y, 0.2)
-        c.fill(p, [white])
+        #p = path.circle(R*x, R*y, 0.2)
+        #c.fill(p, [white])
 
-        p = path.circle(R*x, R*y, 0.05)
+        p = path.circle(R*x, R*y, 0.10)
         c.fill(p, [black])
 
         if val > 0:
@@ -174,7 +174,7 @@ def draw_graph(graph, vec, pts=None, name="output"):
             continue
 
         for i in range(val):
-            p = path.circle(R*x, R*y, (i+1)*0.2)
+            p = path.circle(R*x, R*y, (i+2)*0.15)
             c.stroke(p, [color, style.linewidth.THick])
 
     c.writePDFfile(name)
@@ -187,6 +187,58 @@ def strvec(vec):
     items = [vec.get(i) for i in range(n+1)]
     return str(items)
 
+def tutte_coxeter():
+    edges = [
+        (0, 1), (0, 17), (0, 29), (1, 2), (1, 22), 
+        (2, 3), (2, 9), (3, 4), (3, 26), (4, 5), 
+        (4, 13), (5, 6), (5, 18), (6, 7), (6, 23), 
+        (7, 8), (7, 28), (8, 9), (8, 15), (9, 10), 
+        (10, 11), (10, 19), (11, 12), (11, 24), (12, 13), 
+        (12, 29), (13, 14), (14, 15), (14, 21), (15, 16), 
+        (16, 17), (16, 25), (17, 18), (18, 19), (19, 20), 
+        (20, 21), (20, 27), (21, 22), (22, 23), (23, 24), 
+        (24, 25), (25, 26), (26, 27), (27, 28), (28, 29)]
+    g = nx.Graph()
+    for edge in edges:
+        g.add_edge(*edge)
+    return g
+
+
+def cubic_twisted():
+    edges = []
+    for i in range(10):
+        edges.append((i, (i+1)%10))
+    edges.extend([(0, 5), (1, 3), (2, 6), (4, 8), (7, 9)])
+    g = nx.Graph()
+    for edge in edges:
+        g.add_edge(*edge)
+    return g
+
+
+def g11_graph():
+    edges = []
+    for i in range(10):
+        edges.append((i, (i+1)%10))
+    edges.extend([(0, 5), (1, 8), (2, 9), (3, 6), (4, 7)])
+    g = nx.Graph()
+    for edge in edges:
+        g.add_edge(*edge)
+    return g
+
+
+def g10_graph():
+    tree = [
+        (0, 1), (0, 2), (0, 3), 
+        (1, 4), (1, 5), (2, 6), (2, 7), (3, 8), (3, 9)]
+    edges = list(tree) + [(a+10, b+10) for (a, b) in tree]
+    edges.extend([
+        (4, 14), (4, 16), (5, 17), (5, 18), (6, 14), (6, 18),
+        (7, 15), (7, 19), (8, 15), (8, 16), (9, 17), (9, 19)])
+    g = nx.Graph()
+    for edge in edges:
+        g.add_edge(*edge)
+    return g
+
 
 def main():
 
@@ -196,6 +248,9 @@ def main():
 
     if builder is None:
         builder = getattr(classic, name, None)
+
+    if builder is None:
+        builder = globals().get(name)
 
     if builder is None:
         print(name, "not found")
@@ -222,8 +277,13 @@ def main():
 
     verbose = argv.verbose
     G = get_autos(graph)
+    print("|G|", len(G))
 
-    vals = argv.get("vals", [1,-1,2,-2,3,-3])
+    valrange = argv.get("valrange")
+    if valrange:
+        vals = range(-valrange, 0) + range(1, valrange+1)
+    else:
+        vals = argv.get("vals", [1,-1,2,-2,3,-3])
 
     for vec in search(nodes, nbd, eigval, vals, verbose=verbose):
         print("vec = ", strvec(vec))

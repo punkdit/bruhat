@@ -16,8 +16,8 @@ def mulclose_fast(gen, verbose=False, maxsize=None):
     bdy = list(els)
     changed = True 
     while bdy:
-        if verbose:
-            print "mulclose:", len(els)
+        #if verbose:
+        #    print "mulclose:", len(els)
         _bdy = []
         for A in gen:
             for B in bdy:
@@ -843,8 +843,8 @@ class Group(object):
         items = self.items
         trivial = Group([I], items)
         cyclic = self.cyclic_subgroups()
-        if verbose:
-            print "Group.subgroups: cyclic:", len(cyclic)
+        #if verbose:
+        #    print "Group.subgroups: cyclic:", len(cyclic)
         n = len(self) # order
         subs = set(cyclic)
         subs.add(trivial)
@@ -871,9 +871,9 @@ class Group(object):
                     #else:
                     #    write('/')
             bdy = _bdy
-            if verbose:
-                print "subs:", len(subs)
-                print "bdy:", len(bdy)
+            #if verbose:
+            #    print "subs:", len(subs)
+            #    print "bdy:", len(bdy)
         return subs
 
     def left_cosets(self, H=None):
@@ -1519,19 +1519,19 @@ def main():
 
     if 0:
         shapes = list(G.shape_item())
-        print len(shapes), len(set(shapes))
-        for shape in shapes:
-            print shape
+        #print len(shapes), len(set(shapes))
+        #for shape in shapes:
+        #    print shape
         return
 
     if 0:
         action = Action.identity(G)
-        for iso in action.isomorphisms(action):
-            print iso
+        #for iso in action.isomorphisms(action):
+        #    print iso
     
         return
 
-    print "G:", len(G)
+    #print "G:", len(G)
 
     if argv.test_projective:
         test_projective(G)
@@ -1572,15 +1572,15 @@ def main():
             Hs = G.cyclic_subgroups()
         else:
             Hs = G.subgroups()
-        print "subgroups:", len(Hs)
+        #print "subgroups:", len(Hs)
         Hs = list(Hs)
         Hs.sort(key = lambda H : len(H))
         for H in Hs:
             #if len(H)==len(G) or len(H)==1:
             #    continue
-            print "subgroup order=%d:"%len(H)
+            #print "subgroup order=%d:"%len(H)
             perms = [perm.perm for perm in H]
-            print perms
+            #print perms
 
 
 def orbiplex(G, k=4):
@@ -1588,7 +1588,7 @@ def orbiplex(G, k=4):
     import numpy
     from gelim import zeros, dotx, rank, nullity
 
-    print "orbiplex: |G|=%d" % len(G)
+    #print "orbiplex: |G|=%d" % len(G)
     items = G.items
 
     nchains = {} # map tuple -> index
@@ -1651,7 +1651,7 @@ def orbiplex(G, k=4):
     for i, dim in enumerate(dims):
         euler += c*dim
         c *= -1
-    print "euler:", euler
+    #print "euler:", euler
 
     for i in range(len(bdys)-1):
         A = bdys[i]
@@ -1667,10 +1667,10 @@ def orbiplex(G, k=4):
         ker = nullity(A)
         hom = ker - im
         assert hom>=0
-        if hom > 0: # and B.shape[0]*B.shape[1]:
-            print B.shape, A.shape
-            print "im=%d, ker=%d" % (im, ker)
-            print "H_%d = %d" % (i, hom)
+        #if hom > 0: # and B.shape[0]*B.shape[1]:
+        #    print B.shape, A.shape
+        #    print "im=%d, ker=%d" % (im, ker)
+        #    print "H_%d = %d" % (i, hom)
 
 
 
@@ -1678,12 +1678,12 @@ def test_projective(G):
 
     Hs = G.cyclic_subgroups()
 
-    print [len(H) for H in Hs]
+    #print [len(H) for H in Hs]
     H2s = [H for H in Hs if len(H)==2]
     H3s = [H for H in Hs if len(H)==3]
 
     pairs = list(zip(H2s, H3s))
-    print "pairs:", len(pairs)
+    #print "pairs:", len(pairs)
     shuffle(pairs)
     for H2, H3 in pairs:
         H = Group.product(H2, H3)
@@ -1693,10 +1693,10 @@ def test_projective(G):
     else:
         assert 0
 
-    print
-    print H.is_abelian()
-    for perm in H:
-        print perm.cycle_str()
+    #print
+    #print H.is_abelian()
+    #for perm in H:
+    #    print perm.cycle_str()
 
 
 def conjugacy_subgroups(G, Hs=None):
@@ -1836,11 +1836,11 @@ def schreier():
     gen = [ [4, 3, 1, 2, 0]]
     gen = [ Perm(dict(enumerate(perm)), items) for perm in gen]
     gen = list(sigmas)
-    for g in gen:
-        print g.get_idxs()
-        assert g.sign()==-1 # Not
-        print (g*g).get_idxs()
-        print
+    #for g in gen:
+    #    print g.get_idxs()
+    #    assert g.sign()==-1 # Not
+    #    print (g*g).get_idxs()
+    #    print
 
 #    _gen = []
 #    for g in gen:
@@ -1858,14 +1858,14 @@ def schreier():
 
     cls = nx.MultiGraph
     for perm in gen:
-        print perm
+        #print perm
         if not (perm*perm).is_identity():
             cls = nx.MultiDiGraph
 
     cosets = G.left_cosets(H)
 
-    print "H:", len(H),
-    print "cosets:", len(cosets)
+    #print "H:", len(H),
+    #print "cosets:", len(cosets)
 
     graph = cls()
     edges = set()
@@ -1894,8 +1894,8 @@ def schreier():
             idxs = g.get_idxs()
             strs.append(''.join(str(idx) for idx in idxs))
         strs.sort()
-        print "%2d"%ii, ' '.join(strs)
-        print "   ",
+        #print "%2d"%ii, ' '.join(strs)
+        #print "   ",
         graph.add_node(i, name=strs[0])
         names[i] = strs[0]
         for g in gen:
@@ -1905,9 +1905,9 @@ def schreier():
             if cls == nx.MultiGraph and (j, i) in edges:
                 continue
             edges.add((i, j))
-            print "(%s -> %s)" % (cosets.index(i), cosets.index(j)),
+            #print "(%s -> %s)" % (cosets.index(i), cosets.index(j)),
             graph.add_edge(i, j)
-        print
+        #print
     todot(graph, names)
 
 
@@ -1938,12 +1938,12 @@ def desargues():
         #if g.get_idxs() != [1, 3, 4, 0, 2]:
         if g.get_idxs() != [3, 2, 4, 0, 1]:
             continue
-        print g, g.sign()
+        #print g, g.sign()
         assert g.sign() == -1
         perm = {}
         for config in configs:
             _config = (tuple(g(i) for i in config[0]), g.sign()*config[1])
-            print '   ', config, "->", _config
+            #print '   ', config, "->", _config
 
     return
 
@@ -1973,11 +1973,11 @@ def desargues():
 #        Perm([1,3,4,0,2], items)]
     gen = [ [0,3,4,1,2], [2,3,4,0,1], [1,3,4,0,2], ]
     gen = [ Perm(dict(enumerate(perm)), items) for perm in gen]
-    for g in gen:
-        print g.get_idxs()
+    #for g in gen:
+        #print g.get_idxs()
         #assert g.sign()==-1 # Not
-        print (g*g).get_idxs()
-        print
+        #print (g*g).get_idxs()
+        #print
     return
 
 #    _gen = []
@@ -1996,14 +1996,14 @@ def desargues():
 
     cls = nx.MultiGraph
     for perm in gen:
-        print perm
+        #print perm
         if not (perm*perm).is_identity():
             cls = nx.MultiDiGraph
 
     cosets = G.left_cosets(H)
 
-    print "H:", len(H),
-    print "cosets:", len(cosets)
+#    print "H:", len(H),
+#    print "cosets:", len(cosets)
     graph = cls()
     edges = set()
     hom = G.left_action(cosets)
@@ -2014,8 +2014,8 @@ def desargues():
             idxs = g.get_idxs()
             strs.append(''.join(str(idx) for idx in idxs))
         strs.sort()
-        print "%2d"%ii, ' '.join(strs)
-        print "   ",
+#        print "%2d"%ii, ' '.join(strs)
+#        print "   ",
         graph.add_node(i, name=strs[0])
         for g in gen:
             j = hom.send_perms[g][i]
@@ -2024,9 +2024,9 @@ def desargues():
             if cls == nx.MultiGraph and (j, i) in edges:
                 continue
             edges.add((i, j))
-            print "(%s -> %s)" % (cosets.index(i), cosets.index(j)),
+#            print "(%s -> %s)" % (cosets.index(i), cosets.index(j)),
             graph.add_edge(i, j)
-        print
+#        print
     todot(graph)
 
 
@@ -2091,18 +2091,19 @@ def hecke(G):
         homs.append(hom)
         assert len(hom.components())==1 # transitive
         #print hom.tgt.perms
-        print "%s subgroup order = %d, number of cosets = %d" %(
-            hom.name, len(H), len(cosets))
+        #print "%s subgroup order = %d, number of cosets = %d" %(
+        #    hom.name, len(H), len(cosets))
 
-    for i in range(len(homs)):
-      for j in range(i, len(homs)):
-        A = homs[i]
-        B = homs[j]
-        print "%s * %s" % (A.name, B.name)
-        for H in A.hecke(B):
-            print shortstr(H)
-            print "sum:", H.sum()
-            print
+#    for i in range(len(homs)):
+#      for j in range(i, len(homs)):
+#        A = homs[i]
+#        B = homs[j]
+#        print "%s * %s" % (A.name, B.name)
+#        for H in A.hecke(B):
+#            print shortstr(H)
+#            print "sum:", H.sum()
+#            print
+
 #        C = A.pushout(B)
 #        assert C.src is G
 #
@@ -2134,44 +2135,44 @@ def burnside(G, Hs=None):
         homs.append(hom)
         assert len(hom.components())==1 # transitive
         #print hom.tgt.perms
-        print "%s subgroup order = %d, number of cosets = %d, conjugates = %d" %(
-            hom.name, len(H), len(cosets), len(H.conjugates))
+        print( "%s subgroup order = %d, number of cosets = %d, conjugates = %d" %(
+            hom.name, len(H), len(cosets), len(H.conjugates)))
 
-    if argv.make_dot:
-        arrows = []
-        names = [H.name for H in Hs]
-        parents = dict((name, []) for name in names)
-        for H in Hs:
-          for K in Hs:
-            # Look for K a subgroup of H
-            if len(K) >= len(H):
-                continue
-            for K1 in K.conjugates:
-              if H.is_subgroup(K1):
-                arrows.append((K.name, H.name))
-                parents[K.name].append(H.name)
-                break
-        print "digraph"
-        print "{"
-        print "    rankdir = BT;"
-        arrows = list(arrows)
-        arrows.sort()
-        for src, tgt in arrows:
-            factor = False
-            for p in parents[src]:
-                if tgt in parents[p]:
-                    break
-            else:
-                print "    %s -> %s;" % (src, tgt)
-        print "}"
-        return
+#    if argv.make_dot:
+#        arrows = []
+#        names = [H.name for H in Hs]
+#        parents = dict((name, []) for name in names)
+#        for H in Hs:
+#          for K in Hs:
+#            # Look for K a subgroup of H
+#            if len(K) >= len(H):
+#                continue
+#            for K1 in K.conjugates:
+#              if H.is_subgroup(K1):
+#                arrows.append((K.name, H.name))
+#                parents[K.name].append(H.name)
+#                break
+#        print "digraph"
+#        print "{"
+#        print "    rankdir = BT;"
+#        arrows = list(arrows)
+#        arrows.sort()
+#        for src, tgt in arrows:
+#            factor = False
+#            for p in parents[src]:
+#                if tgt in parents[p]:
+#                    break
+#            else:
+#                print "    %s -> %s;" % (src, tgt)
+#        print "}"
+#        return
 
     if 0:
         # We don't need to do this again: isomorphic homs all
         # come from conjugate subgroups.
         f = quotient_rep(homs, Action.isomorphic)
         homs = list(set(f.values())) # uniq
-        print "homs:", len(homs)
+        #print "homs:", len(homs)
 
     table = {}
     width = 0
@@ -2233,12 +2234,12 @@ def burnside(G, Hs=None):
         space = 1
 
     rows = cols = [hom.name for hom in homs]
-    print
-    print tabulate(table, rows, cols, space)
-    print
-    print "$$"
-    print latex_table(table, rows, cols, upper=argv.get("upper"))
-    print "$$"
+#    print
+#    print tabulate(table, rows, cols, space)
+#    print
+#    print "$$"
+#    print latex_table(table, rows, cols, upper=argv.get("upper"))
+#    print "$$"
 
 
 r"""
@@ -2374,14 +2375,14 @@ def test():
     if 0:
         import numpy
         group = P1.square(P1)
-        print "orbits:", len(group.orbits())
+        #print "orbits:", len(group.orbits())
         for orbit in group.orbits():
-            print orbit
+            #print orbit
             A = numpy.zeros((4, 4))
             for (i, j) in orbit:
                 i, j = items4.index(i), items4.index(j)
                 A[i, j] = 1
-            print A
+            #print A
 
     # Pauli group
     items = "+00 -00 +01 -01 +10 -10 +11 -11".split()
@@ -2422,31 +2423,31 @@ def test():
         count += 1
     assert count==0, count
 
-    if 0:
-        #G1 = S4.choice(2)
-        G1 = S4.choice(3, 2, 1)
-        G2 = S4.choice(2)
-        group = G1.square(G2) # <----- FAIL
-        print "SxS:", len(group.items)
-        print "orbits:", len(group.orbits())
-        print
-
-        group = S4.choice(2).square()
-        print "##\n##"
-        print "SxS:", len(group.items)
-        print "orbits:", len(group.orbits())
-    
-        group = S4.choice(2, 1).square()
-        print "##\n#\n#"
-        print len(group)
-        print "SxS:", len(group.items)
-        print "orbits:", len(group.orbits())
-    
-        group = S4.choice(3, 2, 1).square()
-        print "#\n#\n#\n#"
-        print len(group)
-        print "SxS:", len(group.items)
-        print "orbits:", len(group.orbits())
+#    if 0:
+#        #G1 = S4.choice(2)
+#        G1 = S4.choice(3, 2, 1)
+#        G2 = S4.choice(2)
+#        group = G1.square(G2) # <----- FAIL
+#        print "SxS:", len(group.items)
+#        print "orbits:", len(group.orbits())
+#        print
+#
+#        group = S4.choice(2).square()
+#        print "##\n##"
+#        print "SxS:", len(group.items)
+#        print "orbits:", len(group.orbits())
+#    
+#        group = S4.choice(2, 1).square()
+#        print "##\n#\n#"
+#        print len(group)
+#        print "SxS:", len(group.items)
+#        print "orbits:", len(group.orbits())
+#    
+#        group = S4.choice(3, 2, 1).square()
+#        print "#\n#\n#\n#"
+#        print len(group)
+#        print "SxS:", len(group.items)
+#        print "orbits:", len(group.orbits())
 
     S4_211 = S4.choice(2, 1)
     assert len(S4_211.items)==12
@@ -2490,18 +2491,18 @@ def test():
 
     if 0:
         group = Z22.choice(2)
-        print "Z22.choice(2): orbits", [len(orbit) for orbit in group.orbits()]
+        #print "Z22.choice(2): orbits", [len(orbit) for orbit in group.orbits()]
         group = Z22.choice(2, 1)
-        print "Z22.choice(2, 1): orbits", [len(orbit) for orbit in group.orbits()]
+        #print "Z22.choice(2, 1): orbits", [len(orbit) for orbit in group.orbits()]
         group = Z22.choice(3, 2, 1)
-        print "Z22.choice(3, 2, 1): orbits", [len(orbit) for orbit in group.orbits()]
+        #print "Z22.choice(3, 2, 1): orbits", [len(orbit) for orbit in group.orbits()]
     
         group = Z4.choice(2)
-        print "Z4.choice(2): orbits", [len(orbit) for orbit in group.orbits()]
+        #print "Z4.choice(2): orbits", [len(orbit) for orbit in group.orbits()]
         group = Z4.choice(2, 1)
-        print "Z4.choice(2, 1): orbits", [len(orbit) for orbit in group.orbits()]
+        #print "Z4.choice(2, 1): orbits", [len(orbit) for orbit in group.orbits()]
         group = Z4.choice(3, 2, 1)
-        print "Z4.choice(3, 2, 1): orbits", [len(orbit) for orbit in group.orbits()]
+        #print "Z4.choice(3, 2, 1): orbits", [len(orbit) for orbit in group.orbits()]
 
 #    print "fixed:",
 #    for g in group:
@@ -2520,7 +2521,7 @@ def test():
 #
 #    print len(group.orbits())
 
-    print "OK"
+    #print "OK"
 
 
 def test_mul():

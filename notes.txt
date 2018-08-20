@@ -1,6 +1,266 @@
 
+20/8/18
+=======
+
+
+------------------------
+
+
+
+If there is ambiguity in the question,
+does the answer also have ambiguity?
+
+
+------------------------
+
+
+Gauge fields, knots and gravity
+John Baez, Javier P. Muniain
+1994
+
+http://www.win.tue.nl/~aeb/drg/graphs/index.html
+Descriptions of various graphs. A slowly growing collection. See, for example,
+    The Petersen graph on 10 vertices.  
+    The Heawood graph on 14 vertices.  
+    The Sp(4,2) Generalized Quadrangle on 15 vertices.  
+    The Clebsch graph on 16 vertices.  
+    The Shrikhande graph on 16 vertices.  
+    The Möbius-Kantor graph on 16 vertices.  
+    The Pappus graph on 18 vertices.  
+    The Desargues graph on 20 vertices.  
+    The Dodecahedral (0,2)-graph on 20 vertices.  
+    The Paulus graphs on 25 and 26 vertices.  
+    The Schläfli graph on 27 vertices.  
+    The Chang graphs on 28 vertices.  
+    The Coxeter graph on 28 vertices.  
+    The Folded 6-cube on 32 vertices.  
+    The Armanios-Wells graph on 32 vertices.  
+    The Dyck graph on 32 vertices.  
+    The U3(3).2 graph on 36 vertices.  
+    The Sylvester graph on 36 vertices.  
+    The Hoffman-Singleton graph on 50 vertices.  
+    The Gray graph on 54 vertices.  
+    Representations of PGL(2,11) on 55 vertices.  
+    The Sims-Gewirtz graph on 56 vertices.  
+    The Perkel graph on 57 vertices.  
+    The affine polar graphs on 64 vertices.  
+    The M22 graph on 77 vertices.  
+    The Brouwer-Haemers graph (VO–(4,3)) on 81 vertices.  
+    The Higman-Sims graph on 100 vertices.  
+    The Hall-Janko graph on 100 vertices.  
+    The 1st subconstituent of the McLaughlin graph (O–(6,3)) on 112 vertices.  
+    The 2nd subconstituent of the McLaughlin graph (U4(3).22) on 162 vertices.  
+    The Cameron graph on 231 vertices.  
+    The McLaughlin graph on 275 vertices.  
+    The Cohen-Tits near octagon on 315 vertices.  
+    The G2(4) graph on 416 vertices.  
+    The M24 graph (large Witt graph, octad graph) on 759 vertices.  
+    The M24 graph on 1288 vertices.  
+    The Suzuki graph on 1782 vertices.  
+    The Affine orthogonal graphs.  
+    Cages.  
+    cubelike graphs.  
+    cubic distance-regular graphs.  
+    The Grassmann graphs.  
+    The Hamming graphs.  
+    Integral trees.  
+    The Johnson graphs.  
+    Kneser graphs.  
+    For Lattice graphs, see Hamming graphs.  
+    The Odd graphs.  
+    Orthogonal arrays.  
+    Paley graphs.  
+    Polygonal graphs.  
+    Rectagraphs.  
+    Steiner systems.  
+    Steiner triple systems.  
+    Strongly regular graphs and tables of strongly regular
+        graph parameters, and more tables of parameters for some
+        big strongly regular graphs, and for some families.  
+    Symplectic graphs.  
+    For Triangular graphs, see Johnson graphs.  
+    2-graphs.  
+    For (0,2)-graphs, see Rectagraphs.
+
+
+
+19/8/18
+=======
+
+Biggs, Norman (1994), Algebraic Graph Theory, Cambridge
+Mathematical Library (2nd ed.), Cambridge University
+Press, p. 53, ISBN 9780521458979.
+
+    The spectrum of a graph is +/- symmetric if and only
+    if it's a bipartite graph.
+    
+    A Connected graph with diameter d has at least d+1 distinct
+    eigenvalues.
+    
+    eigenvalues of cayley graphs (Babai 1979)
+    sum of powers of eigenvalues equals a sum over group
+    character evaluations...
+    
+p149: the covering graph construction
+
+
+
+./equiv.py pappus_graph
+|G|=216
+spec:  
+    3  
+    1.732051  1.732051  1.732051  1.732051  1.732051 1.732051  
+    0 -0 -0 -0 
+    -1.732051 -1.732051 -1.732051 -1.732051 -1.732051 -1.732051 
+    -3
+
+sqrt(3) == 1.73205080757
+
+
+
+
+https://mathoverflow.net/questions/32099/what-is-lagrange-inversion-good-for
+https://mathoverflow.net/questions/283716/what-is-the-matter-with-hecke-operators
+https://mathoverflow.net/questions/156338/history-of-quaternion-algebras
+https://mathoverflow.net/questions/12005/introduction-to-deformation-theory-of-algebras
+
+https://mathoverflow.net/questions/26755/what-if-anything-makes-homogeneous-polynomials-so-great
+    I would rephrase the question as "what is so great about
+    projective space (as compared to affine space)?" I would
+    give two answers:
+    Projective space has a larger symmetry group: dimension
+    n2+2nn2+2n rather than n2+nn2+n.
+    Projective space is compact.
+    The first is what you are using when you turn x2+y2=1x2+y2=1
+    into x2+y2=z2x2+y2=z2 and then (z+y)(z−y)=1(z+y)(z−y)=1;
+    the corresponding change of coordinates is a symmetry
+    of projective space which doesn't pass to affine space.
+    The second is why homogenous polynomials work better
+    for intersection theory: intersections can't run off
+    to infinity. It is also why point counting over finite
+    fields gives nicer answers in projective space: point
+    counting is related to cohomology, and cohomology for
+    smooth compact spaces obeys Poincare duality.
+
+https://mathoverflow.net/questions/62820/pythagorean-5-tuples
+    In the early 90s, I took a class from Victor Kac and
+    in it, he explained a very beautiful way of generating
+    all the primitive solutions for the Pythagorean equation
+    for a sum of n−1n−1 perfect squares is equal to a perfect
+    square where nn can be 3, 4, 5, ..., 10. Unfortunately,
+    I do not know where in the literature this is described
+    in detail. It might be in his Infinite Dimensional Lie
+    Algebras book, but I don't know.
+    
+    The idea is to realize the solutions as the isotropic
+    roots for a certain root system.
+
+https://mathoverflow.net/questions/272982/how-do-we-construct-the-g%C3%B6del-s-sentence-in-martin-l%C3%B6f-type-theory
+    There is a generalization of Gödel's incompleteness theorem
+    that is more naturally applicable to MLTT: Löb's theorem
+    says that to prove P, it suffices to prove that P is
+    true whenever P is provable. Symbolically, using ◻P
+    to mean "P is provable", this is
+        ◻(◻P→P)→◻P
+    If you instantiate P with a contradiction (say, 1=0
+    or ⊥), you get Gödel's incompleteness theorem:
+        ◻(◻⊥→⊥)→◻⊥
+    or, using the fact that ¬A is A→⊥,
+        ◻(¬◻⊥)→◻⊥
+    If your theory is consistent, i.e., if ◻P→P, then this becomes
+        ¬◻(¬◻⊥)
+    or "you cannot prove that there is no prove of false".
+    In the standard phrasing of Gödel's incompleteness theorem,
+    this would be "the statement 'there is no proof of false'
+    is true, but unprovable".
+    
+    While formalizing theorems and proofs using natural numbers
+    is standard in set theory, in MLTT, it's much more natural
+    to formulate provability by giving an inductive type
+    of theorems (also called types), and an inductive type
+    of proofs (also called terms).
+
+
+https://webzoom.freewebs.com/cvdegosson/SymplecticEgg_AJP.pdf
+The symplectic egg in classical and quantum mechanics
+Maurice A. de Gosson
+
+
+https://arxiv.org/abs/quant-ph/0703236
+Parameters of Integral Circulant Graphs and Periodic Quantum Dynamics
+Nitin Saxena, Simone Severini, Igor Shparlinski
+    The intention of the paper is to move a step towards
+    a classification of network topologies that exhibit periodic
+    quantum dynamics. We show that the evolution of a quantum
+    system, whose hamiltonian is identical to the adjacency
+    matrix of a circulant graph, is periodic if and only
+    if all eigenvalues of the graph are integers (that is,
+    the graph is integral). Motivated by this observation,
+    we focus on relevant properties of integral circulant
+    graphs. Specifically, we bound the number of vertices
+    of integral circulant graphs in terms of their degree,
+    characterize bipartiteness and give exact bounds for
+    their diameter. Additionally, we prove that circulant
+    graphs with odd order do not allow perfect state transfer.
+
+https://arxiv.org/abs/0806.2074
+Periodic Graphs
+Chris Godsil
+    We extend previous work by showing that a regular graph
+    with at least four distinct eigenvalues is periodic with
+    respect to some vertex if and only if its eigenvalues
+    are integers. 
+
+
+17/8/18
+=======
+
+./inteigs.py dodecahedral_graph eigval=1
+./inteigs.py dodecahedral_graph eigval=1 alleigs
+./inteigs.py dodecahedral_graph eigval=1 alleigs vals="[1,-1]"
+./inteigs.py dodecahedral_graph eigval=1 alleigs |grep J
+./inteigs.py dodecahedral_graph eigval=1 alleigs vals="[1,-1]"
+./inteigs.py dodecahedral_graph eigval=0 alleigs vals="[1,-1]"
+./inteigs.py dodecahedral_graph eigval=0 alleigs vals="[2,1,-1,-2]"
+./inteigs.py dodecahedral_graph eigval=0 alleigs vals="[3,2,1,-1,-2,-3]"
+./inteigs.py dodecahedral_graph eigval=0 alleigs vals="[5,4,3,2,1,-1,-2,-3,-4,-5]"
+./inteigs.py dodecahedral_graph eigval=0 alleigs vals="[4,3,2,1,-1,-2,-3,-4]"
+./inteigs.py dodecahedral_graph eigval=1 alleigs vals="[1,-1]"
+./inteigs.py dodecahedral_graph eigval=1 alleigs vals="[1,-1]" draw
+./inteigs.py dodecahedral_graph eigval=1 alleigs vals="[1,-1]" draw orbit_size=5
+./inteigs.py dodecahedral_graph eigval=1 alleigs vals="[0,1,-1]" draw orbit_size=5
+./inteigs.py dodecahedral_graph eigval=1 alleigs vals="[0,1,-1]" 
+./inteigs.py dodecahedral_graph eigval=0 alleigs vals="[4,3,2,1,-1,-2,-3,-4]" draw
+./inteigs.py dodecahedral_graph eigval=0 alleigs vals="[0,1,-1]" draw
+./inteigs.py peterson_graph eigval=1 alleigs vals="[0,1,-1]" 
+./inteigs.py petersen_graph eigval=1 alleigs vals="[0,1,-1]" 
+./inteigs.py petersen_graph eigval=1 alleigs vals="[0,1,-1]" draw
+./inteigs.py petersen_graph eigval=1 alleigs vals="[1,-1]" draw
+./inteigs.py petersen_graph eigval=-2 alleigs vals="[1,-1]" draw
+./inteigs.py petersen_graph eigval=-2 alleigs vals="[1,0,-1]" draw
+./inteigs.py petersen_graph eigval=-2 alleigs vals="[2,1,-1,-2]" draw
+./inteigs.py petersen_graph eigval=-2 alleigs vals="[3,2,1,-1,-2,-3]" draw
+./inteigs.py dodecahedral_graph eigval=1 alleigs vals="[1,-1]"
+./inteigs.py dodecahedral_graph eigval=1 alleigs vals="[1,-1]" draw
+./inteigs.py dodecahedral_graph eigval=-2 alleigs vals="[1,-1]" draw
+./inteigs.py dodecahedral_graph eigval=-2 alleigs vals="[3,2,1,-1,-2,-3]" draw
+./inteigs.py icosahedral_graph eigval=-1 alleigs vals="[1,-1]" draw
+./inteigs.py icosahedral_graph eigval=-1 alleigs vals="[1,-1]" draw orbit_size=3
+./inteigs.py icosahedral_graph eigval=-1 alleigs vals="[1,-1]" draw orbit_size=5
+./inteigs.py icosahedral_graph eigval=-1 alleigs vals="[1,0,-1]" draw orbit_size=5
+./inteigs.py icosahedral_graph eigval=-1 alleigs vals="[1,0,-1]" 
+
+
+
 15/8/18
 =======
+
+
+https://mathoverflow.net/questions/11305/constructing-the-hecke-algebra-from-the-burau-representation
+Constructing the Hecke-Algebra from the Burau representation
+
+
+
 
 https://mathoverflow.net/a/222401/39775
     In Conway's book The Sensual (Quadratic) Form he covers
