@@ -42,12 +42,12 @@ def get_autos(nodes, edges):
 
 
 
-class Layout(object):
+class Graph(object):
 
     def __init__(self, nodes, edges, layout, G=None):
-        self.nodes = nodes
-        self.edges = edges
-        self.layout = layout
+        self.nodes = list(nodes)
+        self.edges = list(edges)
+        self.layout = dict(layout)
         self.G = G
 
     def get_adjacency(self):
@@ -83,17 +83,18 @@ class Layout(object):
         #edges = [(perm[i], perm[j]) for (i, j) in self.edges]
         edges = list(self.edges) # same edges
         layout = dict((i, self.layout[perm[i]]) for i in nodes) # move the layout!
-        return Layout(nodes, edges, layout)
+        return Graph(nodes, edges, layout)
 
     def get_autos(self):
+        "find the graph autos that act by isometries (on the layout)"
         nodes = self.nodes
         edges = self.edges
         G = get_autos(nodes, edges)
         A0 = self.get_metric()
         perms = []
         for g in G:
-            layout = self.permute(g)
-            A1 = layout.get_metric()
+            graph = self.permute(g)
+            A1 = graph.get_metric()
             if numpy.allclose(A0, A1):
                 perms.append(g)
         G = Group(perms, g.items)
@@ -201,20 +202,130 @@ def petersen_graph():
         G = Group.generate([g, h])
         assert len(G) == 6
 
-    return Layout(nodes, edges, layout)
+    yield Graph(nodes, edges, layout)
 
+    # ------------
+
+    edges = [(i, (i+1)%5) for i in range(5)]
+    for i in range(5):
+        edges.append((i, i+5))
+        edges.append((i+5, (i+2)%5+5))
+
+    w = 2*pi / 5
+    layout = {}
+    for i in range(5):
+        layout[i] = R*sin(w*i), R*cos(w*i)
+        layout[i+5] = r*sin(w*i), r*cos(w*i)
+
+    yield Graph(nodes, edges, layout)
+
+
+def cubical_graph():
+    R = 2.0
+    r = 1.0
+
+    nodes = range(8)
+
+    edges = [(i, (i+1)%4) for i in range(4)]
+    for i in range(4):
+        edges.append((i, i+4))
+        edges.append((i+4, (i+1)%4+4))
+
+    w = 2*pi / 4
+    layout = {}
+    for i in range(4):
+        theta = w*(i+0.5)
+        layout[i] = R*sin(theta), R*cos(theta)
+        layout[i+4] = r*sin(theta), r*cos(theta)
+
+    yield Graph(nodes, edges, layout)
+
+
+def cycle_graph(n=6):
+    R = 2.0
+
+    nodes = range(n)
+    edges = []
+    for i in range(n):
+        edges.append((i, (i+1)%n))
+
+    layout = {}
+    w = 2 * pi / n
+    for i in range(n):
+        layout[i] = R*sin(w*i), R*cos(w*i)
+
+    yield Graph(nodes, edges, layout)
+
+
+
+def complete_graph(n=4):
+    R = 2.0
+
+    nodes = range(n)
+    edges = []
+    for i in range(n):
+      for j in range(i+1, n):
+        edges.append((i, j))
+
+    layout = {}
+    w = 2 * pi / n
+    for i in range(n):
+        layout[i] = R*sin(w*i), R*cos(w*i)
+
+    yield Graph(nodes, edges, layout)
+
+    if n%2==0:
+        layout = {}
+        layout[0] = 0., 0.
+        w = 2 * pi / (n-1)
+        for i in range(1, n):
+            layout[i] = R*sin(w*i), R*cos(w*i)
+    
+        yield Graph(nodes, edges, layout)
+
+
+
+
+def complete_bipartite_graph(n=3, m=None):
+    R = 2.0
+    if m is None:
+        m = n
+
+    nodes = range(n+m)
+    edges = []
+    for i in range(n):
+      for j in range(m):
+        edges.append((i, n+j))
+
+    assert n==m
+    layout = {}
+    w = pi / n
+    for i in range(n):
+        layout[i] = R*sin(2*w*i), R*cos(2*w*i)
+        layout[i+n] = R*sin(2*w*i+w), R*cos(2*w*i+w)
+
+    yield Graph(nodes, edges, layout)
+
+
+# TODO: find closed path that visits all nodes with autos that act by rotation.
+# layout in a circle.
 
 def main():
     name = argv.next()
     fn = eval(name)
-    layout = fn()
 
-    G = layout.get_autos()
-    print("|G| =", len(G))
-    for g in G:
-        print(g)
+    arg = argv.next()
+    if arg is not None:
+        items = fn(int(arg))
+    else:
+        items = fn()
 
-    return
+    for layout in items:
+    
+        G = layout.get_autos()
+        print("|G| =", len(G))
+        for g in G:
+            print(g)
 
     layout.draw()
 
