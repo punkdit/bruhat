@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Gaussian elimination over integers 
+# Gaussian elimination over natural numbers
 
 from __future__ import print_function
 
@@ -8,7 +8,9 @@ import sys, os
 
 import numpy
 
-from solve import shortstr
+#from solve import shortstr
+shortstr = str
+
 from argv import argv
 
 
@@ -82,6 +84,8 @@ def latex_table(table, rows, cols, upper=False):
 
 
 def zelim(A, verbose=False):
+
+    A = A.copy()
     n = len(A)
     assert A.shape == (n, n)
     
@@ -133,6 +137,16 @@ def zelim(A, verbose=False):
     assert A.min() >= 0
 
     return A
+
+
+def rank(A):
+    A = zelim(A)
+    idx = 0
+    while idx<len(A):
+        if A[idx].sum() == 0:
+            break
+        idx += 1
+    return idx
 
 
 tables = {}

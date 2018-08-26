@@ -5,6 +5,7 @@ Here we demonstrate the galois connection between
 spectra and symmetry groups of graphs.
 """
 
+from __future__ import print_function
 
 import sys, os
 
@@ -17,7 +18,7 @@ from networkx.generators import small, classic
 
 import isomorph
 from action import Perm, Group
-from solve import shortstr
+#from solve import shortstr
 
 from argv import Argv 
 argv = Argv()
@@ -130,8 +131,7 @@ def divide(source, G):
     nodes = nx.connected_components(nodes)
     nodes = list(nodes)
 
-    print "nodes:", len(nodes),
-    print nodes
+    print("nodes:", len(nodes), nodes)
     lookup = {}
     for idx, node in enumerate(nodes):
         for i in node:
@@ -141,8 +141,7 @@ def divide(source, G):
     edges = nx.connected_components(edges)
     edges = list(edges)
 
-    print "edges:", len(edges),
-    print edges
+    print("edges:", len(edges), edges)
 
     n = len(nodes)
     A = numpy.zeros((n, n))
@@ -209,7 +208,7 @@ def main():
             gen.append(perm)
         gen = [Perm(perm, items) for perm in gen]
         for g in gen:
-            print g
+            print(g)
 
         graph = cayley(gen)
 
@@ -226,7 +225,7 @@ def main():
                 gen.append(perm)
         gen = [Perm(perm, items) for perm in gen]
 
-        print "gen:", len(gen)
+        print("gen:", len(gen))
         graph = cayley(gen)
 
     elif name == "cycles":
@@ -249,7 +248,7 @@ def main():
                 gen.append(perm)
         gen = [Perm(perm, items) for perm in gen]
 
-        print "gen:", len(gen)
+        print("gen:", len(gen))
         graph = cayley(gen)
 
     else:
@@ -260,7 +259,7 @@ def main():
             builder = getattr(classic, name, None)
     
         if builder is None:
-            print name, "not found"
+            print(name, "not found")
             return
     
         n = argv.n
@@ -270,7 +269,7 @@ def main():
             graph = builder()
 
 
-    print "|nodes|=%d, edges=|%d|"%(len(graph.nodes()), len(graph.edges()))
+    print("|nodes|=%d, edges=|%d|"%(len(graph.nodes()), len(graph.edges())))
 
     if argv.visualize:
         from visualize import draw_graph
@@ -278,16 +277,15 @@ def main():
         return
 
     if argv.spec:
-        print "spec:",
+        print("spec:",)
         spec = nx.adjacency_spectrum(graph)
         spec = [x.real for x in spec]
         spec.sort()
-        print ' '.join("%5f"%x for x in spec)
-        print
+        print(' '.join("%5f"%x for x in spec))
         return
 
     G = get_autos(graph)
-    print "|G|=%d"%len(G)
+    print("|G|=%d"%len(G))
 
     if argv.all_subgroups:
         Hs = list(G.subgroups())
@@ -296,10 +294,10 @@ def main():
         Hs = [Group.generate([G.identity])]
 
     for H in Hs:
-        print "|H|=%d"%len(H)
+        print("|H|=%d"%len(H))
 
         A = build_orbigraph(graph, H)
-        print shortstr(A)
+        print(A)
 
         spec = numpy.linalg.eigvals(A)
 
@@ -307,7 +305,7 @@ def main():
         spec.sort(reverse=True)
         s = ' '.join(("%5f"%x).rjust(9) for x in spec)
         s = s.replace(".000000", "")
-        print "spec:", s
+        print("spec:", s)
         print
     return
 

@@ -1,4 +1,24 @@
 
+26/8/18
+=======
+
+Colin Maclachlan, Alan W. Reid 
+    The arithmetic of hyperbolic 3-manifolds (2003, Springer)
+
+
+23/8/18
+=======
+
+./graphs.py fano_graph
+|G| = 336
+isoms = 14
+evals: [-3.         
+    -1.41421356 -1.41421356 -1.41421356 -1.41421356 -1.41421356 -1.41421356  
+    1.41421356  1.41421356  1.41421356  1.41421356  1.41421356 1.41421356 
+    3.        ]
+
+
+
 20/8/18
 =======
 
@@ -7,8 +27,18 @@
 
 
 
-If there is ambiguity in the question,
-does the answer also have ambiguity?
+Three koans:
+
+    If there is ambiguity in the question,
+    does the answer also have ambiguity?
+
+    What does the world look like from the
+    point of view of a wave?
+
+    What is a number?
+
+
+
 
 
 ------------------------
