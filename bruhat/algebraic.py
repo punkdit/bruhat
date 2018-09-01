@@ -11,46 +11,46 @@ import numpy
 
 scalar = numpy.int64
 
-#from bruhat.action import mulclose
+from bruhat.action import mulclose
 
-def mulclose(els, verbose=False, maxsize=None):
-    els = set(els)
-    changed = True 
-    while changed:
-        if verbose:
-            print("mulclose:", len(els))
-        changed = False
-        _els = list(els)
-        for A in _els:
-            for B in _els:
-                C = A*B  
-                if C not in els: 
-                    els.add(C)
-                    if maxsize and len(els)>=maxsize:
-                        return list(els)
-                    changed = True 
-    return els
-
-
-def mulclose_fast(els, bdy=None, maxsize=None):
-    els = set(els)
-    if bdy is None:
-        bdy = [(i, j) for i in els for j in els] 
-
-    while bdy: 
-        _bdy = [] 
-        for i, j in bdy: 
-            k = i*j
-            if k not in els: 
-                _bdy.append((k, k))
-                for kk in els: 
-                    _bdy.append((k, kk)) 
-                    #_bdy.append((kk, k)) # i don't think we need this
-                els.add(k)
-        if maxsize and len(els)>maxsize:
-            return els
-        bdy = _bdy 
-    return els
+#def mulclose(els, verbose=False, maxsize=None):
+#    els = set(els)
+#    changed = True 
+#    while changed:
+#        if verbose:
+#            print("mulclose:", len(els))
+#        changed = False
+#        _els = list(els)
+#        for A in _els:
+#            for B in _els:
+#                C = A*B  
+#                if C not in els: 
+#                    els.add(C)
+#                    if maxsize and len(els)>=maxsize:
+#                        return list(els)
+#                    changed = True 
+#    return els
+#
+#
+#def mulclose_fast(els, bdy=None, maxsize=None):
+#    els = set(els)
+#    if bdy is None:
+#        bdy = [(i, j) for i in els for j in els] 
+#
+#    while bdy: 
+#        _bdy = [] 
+#        for i, j in bdy: 
+#            k = i*j
+#            if k not in els: 
+#                _bdy.append((k, k))
+#                for kk in els: 
+#                    _bdy.append((k, kk)) 
+#                    #_bdy.append((kk, k)) # i don't think we need this
+#                els.add(k)
+#        if maxsize and len(els)>maxsize:
+#            return els
+#        bdy = _bdy 
+#    return els
 
 
 
@@ -145,7 +145,7 @@ def SL(n, p):
             A[i, j] = 1
             gen.append(Op(A, p))
     order = order_sl(n, p)
-    G = mulclose_fast(gen, maxsize=order)
+    G = mulclose(gen, maxsize=order)
     return G
 
 

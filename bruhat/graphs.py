@@ -183,11 +183,15 @@ class Graph(object):
         layout = dict((i, self.layout[perm[i]]) for i in nodes) # move the layout!
         return Graph(nodes, edges, layout)
 
+    _G = None
     def get_autos(self):
         "find the graph autos"
+        if self._G is not None:
+            return self._G
         nodes = self.nodes
         edges = self.edges
         G = get_autos(nodes, edges)
+        self._G = G
         return G
 
     def get_isoms(self):
@@ -293,6 +297,9 @@ class Graph(object):
     
             p = path.circle(R*x, R*y, 0.10)
             c.fill(p, [black]+trafo)
+
+            if argv.show_nodes:
+                c.text(R*x+0.1, R*y+0.1, node)
     
             val = 0
             if vec is not None:
@@ -312,8 +319,11 @@ class Graph(object):
                 c.stroke(p, [color, style.linewidth.THick]+trafo)
     
         if name is not None:
+            print("renderings/"+name)
             c.writePDFfile("renderings/"+name)
             c.writeSVGfile("renderings/"+name)
+            c.writePDFfile("integral_cubic/"+name)
+            c.writeSVGfile("integral_cubic/"+name)
 
 
 class Vec(object):
@@ -477,7 +487,7 @@ def cycle_graph(n=6):
 
 
 def complete_graph(n=4):
-    R = 2.0
+    R = 1.5
 
     nodes = range(n)
     edges = []
@@ -505,7 +515,7 @@ def complete_graph(n=4):
 
 
 def complete_bipartite_graph(n=3, m=None):
-    R = 2.0
+    R = 1.5
     if m is None:
         m = n
 
@@ -525,35 +535,109 @@ def complete_bipartite_graph(n=3, m=None):
     yield Graph(nodes, edges, layout)
 
 
-def XXtutte_coxeter_graph():
-    edges = [
-        (0, 1), (0, 17), (0, 29), (1, 2), (1, 22), 
-        (2, 3), (2, 9), (3, 4), (3, 26), (4, 5), 
-        (4, 13), (5, 6), (5, 18), (6, 7), (6, 23), 
-        (7, 8), (7, 28), (8, 9), (8, 15), (9, 10), 
-        (10, 11), (10, 19), (11, 12), (11, 24), (12, 13), 
-        (12, 29), (13, 14), (14, 15), (14, 21), (15, 16), 
-        (16, 17), (16, 25), (17, 18), (18, 19), (19, 20), 
-        (20, 21), (20, 27), (21, 22), (22, 23), (23, 24), 
-        (24, 25), (25, 26), (26, 27), (27, 28), (28, 29)]
-
-
 
 def cubic_twisted_graph():
+    nodes = range(10)
     edges = []
     for i in range(10):
         edges.append((i, (i+1)%10))
     edges.extend([(0, 5), (1, 3), (2, 6), (4, 8), (7, 9)])
 
+    R = 2.0
+    layout = {}
+    w = 2 * pi / 10
+    for i in range(10):
+        layout[i] = R*sin(w*i), R*cos(w*i)
+
+    yield Graph(nodes, edges, layout)
+
+
+def cayley_A4_graph():
+    nodes = range(12)
+    edges = [(0, 1), (1, 2), (2, 0),
+        (1, 4), (2, 5), (0, 3),
+        (3, 6), (3, 9), (4, 7), (4, 10), (5, 8), (5, 11),
+        (6, 9), (9, 7), (7, 10), (10, 8), (8, 11), (11, 6)]
+    layout = {}
+    
+    r0 = 0.7
+    r1 = 1.5
+    r2 = 2.4
+    w = 2 * pi / 3
+    d = 0.13
+    for i in range(3):
+        layout[i] = r0*sin(w*i), r0*cos(w*i)
+        layout[i+3] = r1*sin(w*i), r1*cos(w*i)
+        layout[i+6] = r2*sin(w*(i-d)), r2*cos(w*(i-d))
+        layout[i+9] = r2*sin(w*(i+d)), r2*cos(w*(i+d))
+
+    yield Graph(nodes, edges, layout)
+
+
+def g13_graph():
+    nodes = range(24)
+
+    edges = []
+    for i in range(3):
+        a, b = (2*i+1, (2*i+2)%6)
+        edges.append((a, b))
+        for j in range(1, 4):
+            a, b = (2*i, (2*i+1)%6)
+            edges.append((a + 6*j, b + 6*j))
+
+    edges.extend([
+        (0, 10), (1, 9), (2, 18), (3, 23), (4, 14), (5, 13)])
+    edges.extend([
+        (7, 20), (8, 19), (6, 17), (11, 12), (15, 22), (16, 21)])
+
+    for i in range(3):
+        for j in range(4):
+            edges.append((i+6*j, i+3+6*j))
+
+    assert len(set(edges)) == len(edges)
+    for i, j in edges:
+        assert (j, i) not in edges
+
+    layout = {}
+    w = 2*pi/6
+    r0 = 1.0
+    r1 = 3.0
+    for i in range(6):
+        theta = w*(i-0.5)
+        layout[i] = r0*sin(theta), r0*cos(theta)
+
+    w1 = 2*pi/3
+    for j in range(3):
+        x, y = r1*sin(-w1*j), r1*cos(-w1*j)
+        for i in range(6):
+            theta = w*(i-0.5)
+            layout[i + 6*(j+1)] = x + r0*sin(theta), y + r0*cos(theta)
+
+    fudge = {}
+
+    fudge[(6, 17)] = -0.5, 0.
+    fudge[(16, 21)] = 0., -0.5
+    fudge[(7, 20)] = 0.5, 0.
+
+    yield Graph(nodes, edges, layout, fudge)
+
 
 def g11_graph():
+    nodes = range(10)
     edges = []
     for i in range(10):
         edges.append((i, (i+1)%10))
     edges.extend([(0, 5), (1, 8), (2, 9), (3, 6), (4, 7)])
+    R = 2.0
+    layout = {}
+    w = pi / 10
+    for i in range(10):
+        layout[i] = R*sin(2*w*i), R*cos(2*w*i)
+    yield Graph(nodes, edges, layout)
 
 
 def g10_graph():
+    nodes = range(20)
     tree = [
         (0, 1), (0, 2), (0, 3), 
         (1, 4), (1, 5), (2, 6), (2, 7), (3, 8), (3, 9)]
@@ -561,6 +645,21 @@ def g10_graph():
     edges.extend([
         (4, 14), (4, 16), (5, 17), (5, 18), (6, 14), (6, 18),
         (7, 15), (7, 19), (8, 15), (8, 16), (9, 17), (9, 19)])
+    w = 1.
+    h = 1.
+    layout = {}
+    layout[0] = (0., 2.5*h)
+    idx = 1
+    for i in range(3):
+        layout[idx] = (w, (i+1.5)*h)
+        idx += 1
+    for i in range(6):
+        layout[idx] = (2*w, i*h)
+        idx += 1
+    for i in range(10):
+        x, y = layout[i]
+        layout[i+10] = 6*w - x, y
+    yield Graph(nodes, edges, layout)
 
 
 def fano_graph():
@@ -679,6 +778,7 @@ def main():
     n = argv.get("n")
     if n is not None:
         items = fn(int(n))
+        graph_name = graph_name + "_" + str(n)
     else:
         items = fn()
 
@@ -699,6 +799,7 @@ def main():
         graph.draw(name=graph_name)
         return
 
+    autos = graph.get_autos()
     isoms = graph.get_isoms()
     print("|isoms| =", len(isoms))
 
@@ -715,7 +816,7 @@ def main():
         #print(vec)
         count = 0
         orbit = [vec]
-        for g in isoms:
+        for g in autos:
             u = vec.act(g)
             if u==vec:
                 count += 1
@@ -723,13 +824,14 @@ def main():
                 orbit.append(u)
         #dim = graph.get_dimension(orbit)
         #print("count=%d, dim=%d" % (count, dim))
-        print("count=%d"%count)
+        print(count, end=" ")
 
         if argv.draw:
             graph.draw(vec, name)
             break
-        #if count==6:
-        #    graph.draw(vec, name)
+        if count==36:
+            graph.draw(vec, name)
+            break
 
     print()
 

@@ -1,4 +1,173 @@
 
+1/9/18
+======
+
+Geometric Langlands, Khovanov Homology, String Theory
+Edward Witten on rich mathematical secrets and surprises
+https://www.ias.edu/ideas/2015/witten-interview
+
+
+31/8/18
+=======
+
+
+Eric Weinstein
+Gauge theory and economics (consumer price index)
+https://www.youtube.com/watch?v=XjCAsXUDvno
+https://en.wikipedia.org/wiki/Coase_theorem
+    describes the economic efficiency of an economic allocation
+    or outcome in the presence of externalities. 
+
+
+https://www.quora.com/Do-16-dimensional-numbers-exist/answer/John-Baez-1
+
+https://www.edge.org/response-detail/11356
+2008 : WHAT HAVE YOU CHANGED YOUR MIND ABOUT? WHY?
+John Baez
+Mathematical Physicist, U.C. Riverside
+Should I be thinking about quantum gravity?
+
+https://www.quora.com/What-are-topological-phase-transitions-and-topological-phases-of-matter/answer/John-Baez-1
+
+https://www.ribbonfarm.com/2015/09/24/samuel-becketts-guide-to-particles-and-antiparticles/
+    In the pictures I drew above, my elementary defects were
+    the the vortex, with charge +1, and the antivortex with
+    charge -1. But I can change what my elementary defects
+    look like by making a gauge transformation. If I rotate
+    all spins by 180 degrees, then I just change the signs
+    of the two defects. But if I rotate all spins by 90 degrees,
+    then the vortex looks like an electric charge, with field
+    lines pointing radially (either inward or outward). The
+    antivortex still looks qualitatively the same, buts its
+    axes are redefined.
+    
+    So in some descriptions, the fundamental defects of the
+    XY model don’t contain vortices at all, but only radial
+    charges and “antivortices” of the sort that I drew. (This
+    is the way it’s presented, for example, in Kardar’s book
+    on the statistical mechanics of fields.)
+    
+    In that sense, the basic symmetry between clockwise vortices
+    and counterclockwise vortices is a gauge symmetry. What
+    you want your +1 defects and -1 defects to look like
+    is your choice.
+
+https://www.ribbonfarm.com/2015/10/29/quasiparticles-and-the-miracle-of-emergence/
+
+https://www.ribbonfarm.com/2015/12/10/field-theory-of-swords/
+
+
+Movie madness: Why Chinese cinemas are empty but full
+Loopy belief propagation
+
+
+
+30/8/18
+=======
+
+https://motherboard.vice.com/en_us/article/9kmp9v/life-on-the-internet-is-hard-when-your-last-name-is-butts
+    Michael Veale, a researcher studying responsible machine
+    learning at University College London, told me the reason
+    the Scunthorpe problem is such a tough nut to crack is
+    because creating effective obscenity filters depends
+    on the filter’s ability to understand a word in context.
+    Despite advances in artificial intelligence, this is
+    something that even the most advanced machine-learning
+    algorithms still struggle with today.
+    
+    “This works both ways around,” Veale told me in an email.
+    “Cock (a bird) and Dick (the given name) are both harmless
+    in certain contexts, even in children’s settings online,
+    but in other cases parents might not want them used.
+    Equally, those wanting to abuse a system can find ways
+    around it.”
+
+
+https://johncarlosbaez.wordpress.com/2012/05/21/symmetry-and-the-fourth-dimension-part-1/
+http://math.ucr.edu/home/baez/platonic.html
+Platonic Solids in All Dimensions
+John Baez
+November 12, 2006
+
+
+https://nplusonemag.com/issue-32/the-intellectual-situation/the-new-reading-environment/
+Were his readers not reading well enough, or did he not
+write it well enough? Disagreement is mostly blamed on
+miscommunication. The burden of clarity is now entirely
+on the author, which makes for dull and repetitive arguments
+ — and a demand that certain people come to represent,
+unambiguously, certain arguments. One’s cards must all
+be laid on the table, faceup, and one’s position must
+be unified. But the rise of misreading doesn’t give permission
+not to mean what you say.
+
+
+"How the hippies saved physics"
+From the CODA:
+    And yet a topic whose importance strikes so many physicists
+    today as self-evident had been shunned for a full decade
+    after Bell’s original publication, castigated as less
+    than “real” physics. 
+
+    ...
+    Their concern, instead, was to broaden the physicists’
+    range of approaches or methods beyond the hyperpragmatism
+    that had marked the earlier Cold War years. They strove
+    to expand the physics profession’s collective mental
+    space, to push beyond what they considered a narrowness
+    of vision that had hardened after a quarter century of
+    instrumentalist thinking....
+    
+    But that practical, pragmatic mindset had blinded nearly
+    the entire discipline to major breakthroughs like Bell’s
+    theorem.
+
+"The age of entanglement"
+Louisa Gilder
+p271
+    Three months later, on October 1, 1990, Bell died of
+    a stroke in his kitchen in Geneva, so sud- denly
+    and unexpectedly that Bertlmann couldn’t even come to
+    the funeral. He was only sixty- two,
+    never having given anyone except Mary a hint of the terrible
+    migraine headaches that he had suffered from all his life.
+    In the year of his death, Bell’s theorem was still a piece
+    of arcana, a vaguely suspect subject with roots
+    in unloved corners of the subculture of quantum physics.
+    A decade later, it would be the prin- cipal
+    subject of whole issues of Physics Review Letters, and
+    universities would be hurrying to create
+    special labs entirely for the study of subjects made possible
+    by Bell’s theorem. For those who now work
+    in these newly wide-open fields, it is a frustrating
+    and poignant irony that, if only Bell could have
+    lived out his biblically allotted three-score years and
+    ten, he would have seen such wonderful things
+    begun by his half-secret hobby.
+
+
+29/8/18
+
+=======
+
+Dijkstra's in Disguise
+https://blog.evjang.com/2018/08/dijkstras.html
+
+
+
+28/8/18
+=======
+
+geometry of physics -- perturbative quantum field theory
+https://ncatlab.org/nlab/show/geometry+of+physics+--+perturbative+quantum+field+theory
+Urs Schreiber
+
+"Some Fundamental Theorems in Mathematics"
+Knill, Oliver" <knill@math.harvard.edu>
+http://www.math.harvard.edu/~knill/graphgeometry/papers/fundamental.pdf
+
+
+
 26/8/18
 =======
 
