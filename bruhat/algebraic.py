@@ -12,49 +12,6 @@ import numpy
 scalar = numpy.int64
 
 from bruhat.action import mulclose
-
-#def mulclose(els, verbose=False, maxsize=None):
-#    els = set(els)
-#    changed = True 
-#    while changed:
-#        if verbose:
-#            print("mulclose:", len(els))
-#        changed = False
-#        _els = list(els)
-#        for A in _els:
-#            for B in _els:
-#                C = A*B  
-#                if C not in els: 
-#                    els.add(C)
-#                    if maxsize and len(els)>=maxsize:
-#                        return list(els)
-#                    changed = True 
-#    return els
-#
-#
-#def mulclose_fast(els, bdy=None, maxsize=None):
-#    els = set(els)
-#    if bdy is None:
-#        bdy = [(i, j) for i in els for j in els] 
-#
-#    while bdy: 
-#        _bdy = [] 
-#        for i, j in bdy: 
-#            k = i*j
-#            if k not in els: 
-#                _bdy.append((k, k))
-#                for kk in els: 
-#                    _bdy.append((k, kk)) 
-#                    #_bdy.append((kk, k)) # i don't think we need this
-#                els.add(k)
-#        if maxsize and len(els)>maxsize:
-#            return els
-#        bdy = _bdy 
-#    return els
-
-
-
-
 from bruhat.spec import isprime
 from bruhat.argv import argv
 
@@ -72,6 +29,9 @@ class Op(object):
             self.A %= p
         self.key = (self.p, self.A.tostring())
         self._hash = hash(self.key)
+
+    def __str__(self):
+        return str(self.A)
 
     def __hash__(self):
         return self._hash
@@ -144,8 +104,13 @@ def SL(n, p):
             A = I.copy()
             A[i, j] = 1
             gen.append(Op(A, p))
+#    for op in gen:
+#        print(op)
+#        print(numpy.linalg.det(op.A))
     order = order_sl(n, p)
-    G = mulclose(gen, maxsize=order)
+#    G = mulclose(gen, maxsize=order)
+    G = mulclose(gen)
+    assert len(G)==order
     return G
 
 
@@ -156,6 +121,8 @@ def main():
     G = SL(n, p)
 
     print(len(G))
+
+    print(order_gl(n, p))
 
 
 if __name__ == "__main__":

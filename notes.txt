@@ -1614,22 +1614,22 @@ p403
 =======
 
 https://mathoverflow.net/questions/15438/a-slick-proof-of-the-bruhat-decomposition-for-gl-nk
-    Assume GG acts strongly transitively on a thick building
-    ΔΔ. Let BB be the stabilizer of the fundamental chamber,
-    NN the stabilizer of the fundamental apartment, TT the
-    subgroup fixing the fundamental apartment, and WW the
-    quotient N/TN/T. Then (G,B,N)(G,B,N) is a BNBN-pair,
-    also called a Tits system, for GG. In particular, you
-    have the Bruhat decomposition G=∐w∈WBwBG=∐w∈WBwB, plus
+    Assume G acts strongly transitively on a thick building
+    Δ. Let B be the stabilizer of the fundamental chamber,
+    N the stabilizer of the fundamental apartment, T the
+    subgroup fixing the fundamental apartment, and W the
+    quotient N/T. Then (G,B,N) is a BN-pair,
+    also called a Tits system, for G. In particular, you
+    have the Bruhat decomposition G=∐w∈WBwB, plus
     lots more.
     
-    In this case, take GG to be GL(V)GL(V), and take ΔΔ to
-    be the flag complex of subspaces of VV. The stabilizer
-    BB of the fundamental chamber is the upper-triangular
-    matrices. The stabilizer NN of the fundamental apartment
-    is the monomial matrices; the subgroup TT fixing the
+    In this case, take G to be GL(V), and take Δ to
+    be the flag complex of subspaces of V. The stabilizer
+    B of the fundamental chamber is the upper-triangular
+    matrices. The stabilizer N of the fundamental apartment
+    is the monomial matrices; the subgroup T fixing the
     fundamental apartment is the diagonal matrices; and the
-    Weyl group WW is the quotient N/TN/T, which can be identified
+    Weyl group W is the quotient N/T, which can be identified
     with the permutation matrices.
 
 
