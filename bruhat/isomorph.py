@@ -11,6 +11,9 @@ except ImportError:
     print("numpy not found")
 
 
+if sys.version_info.major>=3:
+    long = int
+
 from util import write
 
 

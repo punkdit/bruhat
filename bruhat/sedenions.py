@@ -2,6 +2,9 @@
 
 import math, os
 
+from isomorph import Point, Graph, search
+from argv import argv
+
 
 class Number(object):
     def __init__(self, a):
@@ -139,12 +142,23 @@ class Double(Number):
     def is_real(self):
         return self.a.is_real() and self.b.is_zero()
 
+    def is_zero(self):
+        return self.a.is_zero() and self.b.is_zero()
+
 
 
 def is_commutative(items):
     for a in items:
       for b in items:
         if a*b != b*a:
+            return False
+    return True
+
+
+def is_anticommutative(items):
+    for a in items:
+      for b in items:
+        if a!=b and a*b != -b*a:
             return False
     return True
 
@@ -166,11 +180,85 @@ def is_alternative(items):
     return True
 
 
+def get_geometry(imag):
+    graph = Graph()
+    N = len(imag)
+    triples = set()
+    cycles = []
+    for idx in range(N):
+        graph.add('p')
+    for idx in range(N):
+      for jdx in range(N):
+        if idx==jdx:
+            continue
+        k = imag[idx]*imag[jdx]
+        if k not in imag:
+            continue
+        kdx = imag.index(k)
+        key = [idx, jdx, kdx]
+        cycle = list(key)
+        key.sort()
+        key = tuple(key)
+        if key in triples:
+            continue
+        triples.add(key)
+        cycles.append(cycle)
+        p = graph.add('l')
+        graph.join(idx, p)
+        graph.join(jdx, p)
+        graph.join(kdx, p)
+
+    return graph, cycles
+
+
+def test_structure(imag):
+    bag0, cycles = get_geometry(imag)
+    bag1, cycles = get_geometry(imag)
+    #print(cycles)
+
+    N = 3
+    struct = [] 
+    for cycle in cycles:
+        items = [] 
+        for i in range(N):
+            items.append(tuple(cycle[(i+j)%N] for j in range(N)))
+        items.sort()
+        #print items
+        struct.append(items)
+    struct.sort()
+    
+    for cycle in cycles:
+        cycle = [bag0[i] for i in cycle]
+        nbd = set(cycle[0].nbd)
+        for point in cycle:
+            nbd = nbd.intersection(point.nbd)
+        assert len(nbd)==1
+      
+    #print(struct)
+
+    count = 0
+    total = 0
+    for f in search(bag0, bag1):
+        _struct = [[tuple(f[i] for i in cycle) for cycle in items] for items in struct ]
+        for items in _struct:
+            items.sort()
+        _struct.sort()
+        #print(_struct)
+        if struct==_struct:
+            count += 1
+            #print("*")
+        total += 1
+
+    return count, total
+
+
 def test():
 
     x = Number(2)
     y = Double(2, 0)
     assert x==y
+
+    # ----------- double: complex --------------------
 
     one = Double(1, 0)
     i = Double(0, 1)
@@ -180,7 +268,7 @@ def test():
     assert is_commutative(cplex)
     assert is_associative(cplex)
 
-    # ----------- double: quaternions
+    # ----------- double: quaternions --------------------
 
     zero = Double(Double(0, 0), Double(0, 0))
     one = Double(Double(1, 0), Double(0, 0))
@@ -199,9 +287,14 @@ def test():
 
     quaternions = [one, i, j, k]
     assert not is_commutative(quaternions)
+    assert is_anticommutative(quaternions[1:])
     assert is_associative(quaternions)
 
-    # ----------- double: octonions
+    count, total = test_structure(quaternions[1:])
+    assert count==3
+    assert total==6 # GL(2, 2) = S_3
+
+    # ----------- double: octonions --------------------
 
     octonions = [
         Double(one, zero), Double(zero, one),
@@ -215,9 +308,14 @@ def test():
     
     assert not is_commutative(octonions)
     assert not is_associative(octonions)
+    assert is_anticommutative(octonions[1:])
     assert is_alternative(octonions)
 
-    # ----------- double: sedenions
+    count, total = test_structure(imag)
+    assert count == 21
+    assert total == 168 # GL(3, 2)
+
+    # ----------- double: sedenions --------------------
 
     one = Double(one, zero)
     zero = Double(zero, zero)
@@ -229,6 +327,7 @@ def test():
 
     assert not is_commutative(sedenions)
     assert not is_associative(sedenions)
+    assert is_anticommutative(sedenions[1:])
     assert is_alternative(sedenions) # um...
 
     # try some more sedenions here:
@@ -237,6 +336,25 @@ def test():
       for b in sedenions:
         items.append(a+b)
     assert not is_alternative(items)
+
+    N = len(sedenions)
+    for idx in range(1, N):
+      for jdx in range(1, N):
+        if idx==jdx:
+            continue
+        e = sedenions[idx] * sedenions[jdx]
+        if e in sedenions:
+            kdx = sedenions.index(e)
+            #print("e_%d * e_%d = e_%d" % (idx, jdx, kdx))
+
+    for idx in range(1, N):
+      for jdx in range(idx+1, N):
+        e = sedenions[idx] * sedenions[jdx]
+
+    count, total = test_structure(sedenions[1:])
+    assert count == 21 # does this make any sense?
+    assert total == 20160 # GL(4, 2)
+
 
     
 

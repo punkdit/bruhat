@@ -812,6 +812,8 @@ def test_fano():
         lines = [p for p in bag if p.desc=='l']
         bags.append(bag)
 
+    print(len(bag))
+
     # just hack it....
     N = 3
     cycles = [
@@ -822,6 +824,7 @@ def test_fano():
         (3, 6, 4),
         (4, 2, 1),
         (5, 1, 6)]
+    cycles.sort()
 
     struct = []
     for cycle in cycles:
@@ -1471,11 +1474,12 @@ https://golem.ph.utexas.edu/category/2016/09/magnitude_homology.html#more
 if __name__ == "__main__":
 
     if argv.profile:
-       import cProfile as profile
-       profile.run("test()")
+        import cProfile as profile
+        profile.run("test()")
 
     else:
-       test()
+        test()
+        test_fano()
 
 
 

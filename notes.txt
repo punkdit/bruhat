@@ -1,10 +1,25 @@
 
+2/9/18
+======
+
+https://twitter.com/JadeMasterMath/status/1036065258949959680
+    Reflexive transitive relation? That's just a monad in Rel.
+    Symmetric reflexive transitive relation?  
+    That's just a groupoid that's a preorder.
+    (So what's it in monad lingo?)
+
 1/9/18
 ======
 
 Geometric Langlands, Khovanov Homology, String Theory
 Edward Witten on rich mathematical secrets and surprises
 https://www.ias.edu/ideas/2015/witten-interview
+
+https://github.com/Quantomatic/pyzx
+Python library for quantum circuit rewriting and optimisation using the ZX-calculus
+
+
+
 
 
 31/8/18
