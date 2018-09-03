@@ -824,7 +824,6 @@ def test_fano():
         (3, 6, 4),
         (4, 2, 1),
         (5, 1, 6)]
-    cycles.sort()
 
     struct = []
     for cycle in cycles:

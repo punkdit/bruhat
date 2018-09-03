@@ -1,4 +1,15 @@
 
+3/9/18
+======
+
+Liouville's theorem in statistical mechanics
+probability density f(p, q, t), hamiltonian H:
+    partial f / partial t = -{H, f}
+compare with Heisenberg:
+    dA/dt = i [H, A]
+https://ncatlab.org/nlab/show/quantum+probability
+https://ncatlab.org/nlab/show/wave+function+collapse#RelationToConditionalExpectationValues
+
 2/9/18
 ======
 
@@ -149,7 +160,7 @@ p271
     In the year of his death, Bell’s theorem was still a piece
     of arcana, a vaguely suspect subject with roots
     in unloved corners of the subculture of quantum physics.
-    A decade later, it would be the prin- cipal
+    A decade later, it would be the principal
     subject of whole issues of Physics Review Letters, and
     universities would be hurrying to create
     special labs entirely for the study of subjects made possible
