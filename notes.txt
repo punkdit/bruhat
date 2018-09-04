@@ -10,6 +10,44 @@ compare with Heisenberg:
 https://ncatlab.org/nlab/show/quantum+probability
 https://ncatlab.org/nlab/show/wave+function+collapse#RelationToConditionalExpectationValues
 
+
+https://arxiv.org/abs/math/9802116
+QUASIALGEBRA STRUCTURE OF THE OCTONIONS
+Other examples include the higher 2^n-onion Cayley algebras
+and examples associated to Hadamard matrices.
+...for the octonions, the cocycle is a coboundary and can
+be identified as the result of twisting k(G) by
+a 2-cochain F. In an extension of Drinfeld’s theory of
+twisting or ‘gauge equivalence’[1], any algebra
+on which k(G) acts also has to be twisted to remain a
+module-algebra. In this sense the octonions
+are gauge-equivalent or the twisting of the group algebra
+of Z2×Z2×Z2 by a 2-cochain, which we provide.
+
+Matrix Representation of Octonions and Generalizations
+J Daboul, R Delbourgo
+(Submitted on 9 Jun 1999)
+We define a special matrix multiplication among a special
+subset of $2N\x 2N$ matrices, and study the resulting
+(non-associative) algebras and their subalgebras. We
+derive the conditions under which these algebras become
+alternative non-associative and when they become associative.
+In particular, these algebras yield special matrix representations
+of octonions and complex numbers; they naturally lead
+to the Cayley-Dickson doubling process. Our matrix representation
+of octonions also yields elegant insights into Dirac's
+equation for a free particle. A few other results and
+remarks arise as byproducts.
+
+
+THE MEANING OF THE WAVE
+FUNCTION
+In Search of the Ontology of
+Quantum Mechanics
+SHAN GAO
+2017, CUP
+
+
 2/9/18
 ======
 

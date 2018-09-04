@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""
+Implement the Cayley-Dickson construction to
+get complex numbers, quaternions, octonions, sedenions, etc.
+"""
+
 import math, os
 
 from isomorph import Point, Graph, search
