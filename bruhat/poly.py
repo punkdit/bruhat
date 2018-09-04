@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-single variable polynomials
+Single variable polynomials
 """
 
 import sys, os
