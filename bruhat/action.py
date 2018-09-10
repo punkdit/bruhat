@@ -167,6 +167,15 @@ class Perm(object):
                 return False
         return True
 
+    @classmethod
+    def fromcycles(cls, cycles, items, *args, **kw):
+        perm = {}
+        for cycle in cycles:
+            m = len(cycle)
+            for i in range(m):
+                perm[cycle[i]] = cycle[(i+1)%m]
+        return Perm(perm, items, *args, **kw)
+
     def order(self):
         i = 1
         g = self
@@ -358,7 +367,7 @@ class Perm(object):
         remain = set(self.items)
         orbits = []
         while remain:
-            item = iter(remain).next()
+            item = iter(remain).__next__()
             orbit = [item]
             item0 = item
             while 1:

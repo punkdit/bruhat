@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import sys
 from random import random, randint, shuffle, seed
 
@@ -77,7 +79,7 @@ def rand2(m, n, p=0.5, weight=None):
     if weight is not None:
         r = zeros2(m, n)
         for i in range(m):
-            idxs = range(n)
+            idxs = list(range(n))
             for j in range(weight):
                 idx = idxs.pop(randint(0, len(idxs)-1))
                 assert r[i, idx] == 0
@@ -176,7 +178,7 @@ def enum2(n):
     #assert n < 20, "too big"
     N = 2**n
     i = 0
-    rn = range(n)
+    rn = list(range(n))
     while i < N:
         a = [(i>>j)%2 for j in range(n)]
         a = array2(a)
@@ -196,7 +198,7 @@ def swap_col(A, j, k):
 
 
 def shortstrx(*As, **kw):
-    from smap import SMap
+    from .smap import SMap
     smap = SMap()
 
     zero = kw.get('zero', '.')
@@ -227,7 +229,7 @@ def lu_decompose(A, verbose=False):
 
     m, n = A.shape
     if verbose:
-        print "lu_decompose: shape=", m, n
+        print("lu_decompose: shape=", m, n)
     assert m<=n, "umm.."
 
     for k in range(m-1):
@@ -244,11 +246,11 @@ def lu_decompose(A, verbose=False):
     for k in range(m-1):
         
         if verbose:
-            print "_"*79
-            print "k =", k
-            print shortstrx(L, U, A)
-            print "LU == A", eq2(dot(L, U), A)
-            print
+            print("_"*79)
+            print("k =", k)
+            print(shortstrx(L, U, A))
+            print("LU == A", eq2(dot(L, U), A))
+            print()
 
         if U[k, k] == 0:
             continue
@@ -258,9 +260,9 @@ def lu_decompose(A, verbose=False):
             U[j, k:] = (U[j, k:] - L[j, k] * U[k, k:]) % 2
 
     if verbose:
-        print shortstrx(L, U, A)
-        print "LU == A", eq2(dot(L, U), A)
-        print
+        print(shortstrx(L, U, A))
+        print("LU == A", eq2(dot(L, U), A))
+        print()
 
     return L, U
         
@@ -278,14 +280,14 @@ def row_reduce(H, truncate=True, inplace=False, check=False, debug=False):
         return H
 
     if debug:
-        print "solve:"
-        print "%d rows, %d cols" % (m, n)
+        print("solve:")
+        print("%d rows, %d cols" % (m, n))
 
     i = 0
     j = 0
     while i < m and j < n:
         if debug:
-            print "i, j = %d, %d" % (i, j)
+            print("i, j = %d, %d" % (i, j))
 
         assert i<=j
         if i and check:
@@ -301,14 +303,14 @@ def row_reduce(H, truncate=True, inplace=False, check=False, debug=False):
 
         if i != i1:
             if debug:
-                print "swap", i, i1
+                print("swap", i, i1)
             swap_row(H, i, i1)
 
         assert H[i, j]
         for i1 in range(i+1, m):
             if H[i1, j]:
                 if debug: 
-                    print "add %s to %s" % (i, i1)
+                    print("add %s to %s" % (i, i1))
                 H[i1, :] += H[i, :]
                 H[i1, :] %= 2
 
@@ -408,16 +410,16 @@ def plu_reduce(A, truncate=False, check=False, verbose=False):
     assert m*n, (m, n)
 
     if verbose:
-        print "plu_reduce:"
-        print "%d rows, %d cols" % (m, n)
+        print("plu_reduce:")
+        print("%d rows, %d cols" % (m, n))
 
     i = 0
     j = 0
     while i < m and j < n:
         if verbose:
-            print "i, j = %d, %d" % (i, j)
-            print "P, L, U:"
-            print shortstrx(P, L, U)
+            print("i, j = %d, %d" % (i, j))
+            print("P, L, U:")
+            print(shortstrx(P, L, U))
 
         assert i<=j
         if i and check:
@@ -433,7 +435,7 @@ def plu_reduce(A, truncate=False, check=False, verbose=False):
 
         if i != i1:
             if verbose:
-                print "swap", i, i1
+                print("swap", i, i1)
             swap_row(U, i, i1)
             swap_col(P, i, i1)
             swap_col(L, i, i1)
@@ -447,7 +449,7 @@ def plu_reduce(A, truncate=False, check=False, verbose=False):
         for i1 in range(i+1, m):
             if U[i1, j]:
                 if verbose: 
-                    print "add %s to %s" % (i, i1)
+                    print("add %s to %s" % (i, i1))
                 L[i1, i] = 1
                 U[i1, :] += U[i, :]
                 U[i1, :] %= 2
@@ -479,11 +481,11 @@ def linear_independent(A, check=False, verbose=False):
     P, L, U = plu_reduce(A)
 
     if verbose:
-        print "linear_independent"
-        print "P L U = A"
-        print P.shape, L.shape, U.shape
-        print shortstrx(P, L, U, A)
-        print
+        print("linear_independent")
+        print("P L U = A")
+        print(P.shape, L.shape, U.shape)
+        print(shortstrx(P, L, U, A))
+        print()
 
     m, n = U.shape
 
@@ -504,9 +506,9 @@ def linear_independent(A, check=False, verbose=False):
     if verbose:
         #print m, n
         #print k
-        print "U = W A"
-        print shortstrx(U, W, A)
-        print
+        print("U = W A")
+        print(shortstrx(U, W, A))
+        print()
 
     # Key idea: rows of W[k+1:] denote linearly dependant rows of A.
     # So we use the (column) span of W[:k+1]:
@@ -546,9 +548,9 @@ def find_kernel(A, inplace=False, check=False, verbose=False):
     m, n = U.shape
 
     if verbose:
-        print "find_kernel: shape", m, n
+        print("find_kernel: shape", m, n)
         #print shortstr(U, deco=True)
-        print
+        print()
 
     items = []
     for row in range(m):
@@ -566,8 +568,8 @@ def find_kernel(A, inplace=False, check=False, verbose=False):
     degeneracy = m - len(leading)
 
     if verbose:
-        print "leading:", leading
-        print "degeneracy:", degeneracy
+        print("leading:", leading)
+        print("degeneracy:", degeneracy)
 
     # Look for the free variables
     vars = []
@@ -591,7 +593,7 @@ def find_kernel(A, inplace=False, check=False, verbose=False):
         vars.append(k)
 
     if verbose:
-        print "found %d free vars:" % len(vars), vars
+        print("found %d free vars:" % len(vars), vars)
 
     basis = []
     for var in vars:
@@ -718,7 +720,7 @@ def find_logops(Hx, Hz, check=False, verbose=False):
 
     basis = find_kernel(Hx.copy(), check=check, verbose=verbose)
     if verbose:
-        print "find_logops: basis len", len(basis)
+        print("find_logops: basis len", len(basis))
 
     logops = basis
 
@@ -745,8 +747,8 @@ def find_logops(Hx, Hz, check=False, verbose=False):
     Lz = linear_independent(Lz, check=check)
 
     if verbose:
-        print "Lz="
-        print shortstr(Lz)
+        print("Lz=")
+        print(shortstr(Lz))
 
     return Lz
 
@@ -957,7 +959,7 @@ class LinearCombination(object):
     def promote(cls, item):
         if type(item) is cls:
             lin = item
-        elif type(item) in (int, long, float): #, complex, numpy.complex128): # wah...
+        elif type(item) in (int, int, float): #, complex, numpy.complex128): # wah...
             if item==0:
                 lin = cls()
             else:
@@ -965,7 +967,7 @@ class LinearCombination(object):
         elif type(item) is tuple:
             lin = cls({item : 1})
         else:
-            raise TypeError, (item, type(item))
+            raise TypeError(item, type(item))
         return lin
 
     def __str__(self):
@@ -974,7 +976,7 @@ class LinearCombination(object):
         #s = ["%d*(%d,%d)" % (value, key[0], key[1]) 
         #    for (key, value) in self.data.items()]
         s = ["%s*%s" % (value, key)
-            for (key, value) in self.data.items()]
+            for (key, value) in list(self.data.items())]
         s = "+".join(s)
         s = s.replace("1*(", "(")
         return s
@@ -983,7 +985,7 @@ class LinearCombination(object):
 
     def __add__(self, other):
         other = self.promote(other)
-        keys = set(self.data.keys() + other.data.keys())
+        keys = set(list(self.data.keys()) + list(other.data.keys()))
         data = {}
         for key in keys:
             value = self.data.get(key, 0) + other.data.get(key, 0)
@@ -1000,7 +1002,7 @@ class LinearCombination(object):
 
     def __sub__(self, other):
         other = self.promote(other)
-        keys = set(self.data.keys() + other.data.keys())
+        keys = set(list(self.data.keys()) + list(other.data.keys()))
         data = {}
         for key in keys:
             value = self.data.get(key, 0) - other.data.get(key, 0)
@@ -1010,7 +1012,7 @@ class LinearCombination(object):
 
     def __rsub__(self, other):
         other = self.promote(other)
-        keys = set(self.data.keys() + other.data.keys())
+        keys = set(list(self.data.keys()) + list(other.data.keys()))
         data = {}
         for key in keys:
             value = other.data.get(key, 0) - self.data.get(key, 0)
@@ -1026,13 +1028,13 @@ class LinearCombination(object):
         if other==1:
             return self
         data = {}
-        for key, value in self.data.items():
+        for key, value in list(self.data.items()):
             data[key] = other*value
         return self.__class__(data)
     __rmul__ = __mul__
 
     def __mod__(self, i):
-        data = dict((key, value%i) for (key, value) in self.data.items())
+        data = dict((key, value%i) for (key, value) in list(self.data.items()))
         return self.__class__(data)
 
     def __eq__(self, other):
@@ -1094,9 +1096,9 @@ class System(object):
         self.T = T
 
     def append(self, lhs, rhs):
-        if type(rhs) in (int, float, long) and rhs==0:
+        if type(rhs) in (int, float, int) and rhs==0:
             rhs = zeros2(*lhs.shape)
-        if type(rhs) in (int, float, long) and rhs==1:
+        if type(rhs) in (int, float, int) and rhs==1:
             n = min(*lhs.shape)
             rhs = identity2(n)
         if lhs.dtype==numpy.int32:
@@ -1130,7 +1132,7 @@ class System(object):
             for j0 in range(lhs.shape[1]):
               lin = lhs[i0, j0]
               assert isinstance(lin, LinearCombination), repr(lhs)
-              for (i1, j1), w in lin.data.items():
+              for (i1, j1), w in list(lin.data.items()):
                   H[row, T.shape[1]*i1+j1] = w
               v[row] = rhs[i0, j0]
               row += 1
@@ -1854,6 +1856,6 @@ if __name__=="__main__":
     test_fromkernel()
     test_reductor()
 
-    print "OK"
+    print("OK")
 
 

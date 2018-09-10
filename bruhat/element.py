@@ -113,6 +113,36 @@ class Element(object):
 
 
 
+class GenericElement(Element):
+    """
+        Element with immutable, hashable cargo 
+    """
+
+    def __init__(self, value, tp):
+        Element.__init__(self, tp)
+        self.value = value
+
+    def __eq__(self, other):
+        tp = self.tp
+        other = tp.promote(other)
+        return self.value == other.value
+
+    def __ne__(self, other):
+        tp = self.tp
+        other = tp.promote(other)
+        return self.value != other.value
+
+    def __hash__(self):
+        return hash((self.tp, self.value))
+
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return "%s(%r, %r)"%(self.__class__.__name__, self.value, self.tp)
+
+
+
 class IntegerRing(Ring):
 
     """
@@ -303,7 +333,7 @@ class PolynomialRing(Ring):
             return value
         _value = self.base.promote(value)
         if _value is None:
-            print(self, "cannot promote", value)
+            #print(self, "cannot promote", value)
             return None
         return Polynomial({0:_value}, self)
 
@@ -332,8 +362,8 @@ class PolynomialRing(Ring):
 class Polynomial(Element):
     def __init__(self, cs, tp):
         Element.__init__(self, tp)
-        self.cs = {}
-        self.deg = 0
+        self.cs = {} # use a tuple here and switch to GenericElement ?
+        self.deg = -1 # zero Polynomial has degree -1... right?
         for deg, coeff in cs.items():
             if coeff==0: # strip these out
                 continue
@@ -523,41 +553,17 @@ class GaloisField(ModuloRing):
             return self.zero
         if b==self.zero:
             return None # fail
-        #a = a.value # unwrap
-        #b = b.value # unwrap
         for div in self.elements:
-            #print(a, div, b*div)
             if a == b*div:
                 break
         else:
             assert 0
         return div
 
-
-class ModuloElement(Element):
-    def __init__(self, value, tp):
-        Element.__init__(self, tp)
-        self.value = value
-
-    def __eq__(self, other):
-        tp = self.tp
-        other = tp.promote(other)
-        return self.value == other.value
-
-    def __ne__(self, other):
-        tp = self.tp
-        other = tp.promote(other)
-        return self.value != other.value
-
-    def __hash__(self):
-        return hash((self.tp, self.value))
-
-    def __str__(self):
-        return str(self.value)
-
-    def __repr__(self):
-        return "%s(%r, %r)"%(self.__class__.__name__, self.value, self.tp)
-
+class ModuloElement(GenericElement):
+    @property
+    def deg(self):
+        return self.value.deg
 
 
 def test():
@@ -671,11 +677,42 @@ def test():
     x = ring.x
     GF = GaloisField(ring, (x**3 + x + 1))
 
-    x = GF.x
     one = GF.one
+    x = GF.x
 
     assert one/x == x**2+1
 
+    # --------------------------------------------------
+
+    # GF(64)
+    x = ring.x
+    GF = GaloisField(ring, (x**6 + x + 1))
+
+    one = GF.one
+    x = GF.x
+
+    assert len(GF.elements) == 64
+
+    # -------------------------
+
+    p = 7
+    field = FiniteField(p)
+    ring = PolynomialRing(field)
+    x = ring.x
+
+    if p % 4 == 3:
+        r = p-1
+    else:
+        assert 0
+
+    GF = GaloisField(ring, x**2 - r)
+
+    one = GF.one
+    x = GF.x
+
+    for a in GF.elements:
+        b = a**(p+1)
+        assert b.deg <= 0, repr(b)
 
 
 if __name__ == "__main__":

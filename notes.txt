@@ -1,4 +1,171 @@
 
+9/9/18
+======
+
+https://twitter.com/carloangiuli/status/1038360752883679232
+Samson Abramsky, on Structure vs Power in theoretical computer science. First talk at Achim Jung Fest.
+
+
+https://phys.org/news/2018-09-hidden-prime-crystal-like-materials.html
+https://arxiv.org/abs/1802.10498
+Uncovering Multiscale Order in the Prime Numbers via Scattering
+S. Torquato, G. Zhang, M. de Courcy-Ireland
+    The discovery of this hidden multiscale order in the
+    primes is in contradistinction to their traditional treatment
+    as pseudo-random numbers.
+https://www.quantamagazine.org/a-chemist-shines-light-on-a-surprising-prime-number-pattern-20180514/
+https://mathoverflow.net/questions/133581/quasicrystals-and-the-riemann-hypothesis
+
+----------------------------------------
+
+
+./algebraic.py p=23
+|SL|= 12144 = 2**4 * 3 * 11 * 23
+
+PSL(2,23) acts on the extended Golay code G_24,
+the Mathieu group M_24 has order 
+24*23*22*21*20*16*3
+= 244823040
+
+----------------------------------------
+
+Sphere Packings, Lattices and Groups
+J. H. ConwayN. J. A. Sloane
+
+    there are a number of astonishing results in the book, and
+    perhaps this is a good place to mention some of the most miraculous.
+    - The occurrence of the Leech lattice as the unique laminated lattice in
+    24 dimensions (Fig. 6.1).
+    - Gleason's theorem describing the weight enumerators of doubly-even
+    self-dual codes, and Hecke's theorem describing the theta series of even
+    unimodular lattices (Theorems 16 and 17 of Chap. 7).
+    - The one-to-one correspondence between the 23 deep holes in the Leech
+    lattice and the even unimodular 24-dimensional lattices of minimal norm 2
+    (Chapters 16,23,26).
+    - The construction of the Leech lattice in 11 25 ,1 as wJ../w , where
+        w = (0,1,2,3 .. " .24170)
+    is a vector of zero norm (Theorem 3 of Chap. 26). (We remind the reader
+    that in Lorentzian space R 25 ,1, which is 26-dimensional space equipped
+    with the norm x'x=xr+'" +Xi5-xi6, there is a unique even
+    unimodular lattice 11 25 • 1 - see §1 of Chap. 26.)
+    - The occurrence of the Leech lattice as the Coxeter diagram of the
+    reflections in the automorphism group of 11 25 •1 (Chap. 27).
+
+
+8/9/18
+======
+
+book
+"Primes of the Form x2+ny2: Fermat, Class Field Theory,
+and Complex Multiplication, 2nd Edition"
+David A. Cox
+2013
+
+the big galois group Gal(Q¯/Q) acts on the
+l-power torsion points of an elliptic curve over Q for
+some prime l, and defines a representation in a natural way. 
+
+For an elliptic curve over Q,
+serre's mod l representation is
+    Gal(Q¯/Q) -> Aut(E_l) = GL(2, l)
+where E_l is the group of l-torsion points on E.
+
+
+https://mathoverflow.net/a/103862/39775
+    For abelian number fields, the Dedekind zeta function
+    factors into Dirichlet LL-functions. Hecke characters
+    are one-dimensional representations. For possible generalizations
+    to non-abelian field extensions, you will require higher
+    dimensional Galois representations and Artin LL functions.
+    
+    (Maass 1949) Maass wave forms of eigenvalue 1/41/4 correspond
+    to 2-dimensional Galois representations, see Bump "Autom.reps...."
+    Chapter 1.9. Similar things happen for modular forms
+    of weight one (Hecke 1925). In general, automorphic representations
+    and Galois representations are expected to be in a certain
+    correspondence (the LL functions and the root numbers
+    should be the same).
+    
+    A possible conceptual explanation for the importance
+    of Galois representations delivers the Tannaka-Krein
+    theorem. Roughly, this states that knowing the representation
+    theory is equivalent to knowing the group. The group
+    you want to understand is the absolute Galois groups
+    (with a profinite topology) via its Galois representations,
+    and understand the Galois representation via automorphic forms.
+    
+    Perhaps one famous example is the Taniyama Shimura conjecture
+    and consequently Fermat's last theorem: A certain construction
+    with the elliptic curve gave a Galois representation,
+    and the later was then shown to correspond to an automorphic form.
+
+
+
+6/9/18
+======
+
+Exceptional mathematics: data structure or algorithm?
+
+
+-----------------------------
+
+A linear cyclic q-ary code is an ideal in the
+ring of polynomials over GF(q) modulo x^n-1.
+Therefore: this ideal is principle, and every
+codeword is a multiple of some generator polynomial.
+This generator polynomial is the monic codeword of least degree,
+and it is a divisor of x^n-1.
+
+
+6/9/18
+======
+
+
+https://arxiv.org/abs/1809.01165
+Building Archimedean Space
+Bogdan Stoica
+
+https://arxiv.org/abs/1605.07639
+Tensor networks, p-adic fields, and algebraic curves: arithmetic and the AdS3/CFT2 correspondence
+Matthew Heydeman, Matilde Marcolli, Ingmar Saberi, Bogdan Stoica
+    "Bruhat–Tits trees and tensor networks"
+
+    Figure 1: The standard representation of the Bruhat–Tits
+    tree. The point at infinity and the center are
+    arbitrary as the tree is homogeneous. Geodesics such
+    as the highlighted one are infinite paths through the
+    tree from ∞ to the boundary which uniquely specify elements
+    of Qp. This path as a series specifies the
+    digits of the decimal expansion of x ∈ Q2 in this example.
+    At the nth vertex, we choose either 0 or 1
+    corresponding to the value of xn in the p n th term of x.
+    Negative powers of p correspond to larger p-adic
+    norms as we move towards the point ∞.
+
+
+2-D Compass Codes
+Muyuan Li, Daniel Miller, Michael Newman, Yukai Wu, Kenneth R. Brown
+https://arxiv.org/abs/1809.01193
+
+
+5/9/18
+======
+
+https://www.tate.org.uk/art/research-publications/the-sublime/philip-shaw-kasimir-malevichs-black-square-r1141459
+
+https://arxiv.org/abs/1809.00245
+On Generalized Symmetries and Structure of Modular Categories
+Shawn X. Cui, Modjtaba Shokrian Zini, Zhenghan Wang
+
+
+4/9/18
+======
+
+https://www.nybooks.com/articles/2011/10/27/symmetry-key-natures-secrets/
+Symmetry: A ‘Key to Nature’s Secrets’
+Steven Weinberg
+
+
 3/9/18
 ======
 

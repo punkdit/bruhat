@@ -6,6 +6,7 @@ Algebraic groups: matrix groups over Z/pZ.
 
 
 import sys, os
+import random
 
 import numpy
 
@@ -118,11 +119,16 @@ def main():
 
     n = argv.get("n", 2)
     p = argv.get("p", 2)
-    G = SL(n, p)
 
-    print(len(G))
+    print("|GL(%d, %d)| = %d"%(p, n, order_gl(n, p)))
+    print("|SL(%d, %d)| = %d"%(p, n, order_sl(n, p)))
+    print("|Sp(%d, %d)| = %d"%(p, n, order_sp(n, p)))
 
-    print(order_gl(n, p))
+    if argv.SL:
+        G = SL(n, p)
+        print("|G| =", len(G))
+
+
 
 
 if __name__ == "__main__":
