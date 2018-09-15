@@ -8,6 +8,7 @@ eg. p=23 gives the Golay code.
 
 import sys, os
 
+import numpy
 
 from argv import argv
 from solve import zeros2, shortstr, find_kernel, dot2, array2, span, eq2, rank
@@ -55,16 +56,36 @@ def main():
                 i = 0
             G[u, v] = i
 
+    print("G =")
     print(shortstr(G))
 
     m = rank(G)
     assert m == N/2
     print("rank =", m)
+    print("det:", numpy.linalg.det(G))
 
     H = find_kernel(G)
     H = array2(H)
     print()
     print(shortstr(H))
+
+    # -----------------------------------
+
+    print()
+    print("non extended:")
+    G1 = G[:-1, :-1]
+    print(shortstr(G1))
+
+    print("det:", numpy.linalg.det(G1.astype(numpy.float)))
+
+    m = rank(G1)
+    assert m == N/2
+    print("rank =", m)
+
+    H1 = find_kernel(G1)
+    H1 = array2(H1)
+    print()
+    print(shortstr(H1))
 
     # -----------------------------------
     # code should be fixed by PSL(2, p).
@@ -126,8 +147,9 @@ def main():
         G = Group.generate([alpha, beta, gamma]) # PSL(2,23)
         print(len(G))
 
-        G = Group.generate([alpha, beta, gamma, delta]) # M_24
-        print(len(G))
+        # way too big to generate:
+        #G = Group.generate([alpha, beta, gamma, delta]) # M_24 
+        #print(len(G))
 
 
 if __name__ == "__main__":

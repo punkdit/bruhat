@@ -1,4 +1,278 @@
 
+15/9/18
+=======
+
+Quantum Black Holes, Wall Crossing, and Mock Modular Forms
+Atish Dabholkar1,2 , Sameer Murthy3 , and Don Zagier4,
+https://arxiv.org/pdf/1208.4074v1.pdf
+
+
+14/9/18
+=======
+
+distributivity
+https://twitter.com/FunctorFact/status/1040237281435680768
+The chain rule says that the derivative operator is a functor.
+https://ncatlab.org/nlab/show/differentiation#AsAFunctor
+https://nforum.ncatlab.org/discussion/7282/burnside-ring/
+
+Rational representations and permutation representations of finite groups
+Alex Bartel, Tim Dokchitser
+https://arxiv.org/abs/1405.6616
+
+http://www.maths.manchester.ac.uk/~jm/wiki/Representations/Burnside
+Table of marks
+The element in row G/K and column H represents the number
+of points in the orbit (type) G/K fixed by H. By the
+definition of the action of G on G/K, a coset gK is fixed
+by H whenever HgK = gK. But this is equivalent to, g-1Hg
+< K so that
+m(G/K,H)=#{gK∈G/K∣g−1Hg<K}.
+In particular, the diagonal elements are m(K, K) = |NG(K)/K|.
+If H is not conjugate to a subgroup of K then m(G/K, H) = 0.
+If K is a normal subgroup of G and H < K then g−1Hg⊂K for all g∈G, so that m(G/K,H)=|G/K|.
+If G is Abelian then every subgroup is normal and so, again if H < K then m(G/K,H)=|G/K|, otherwise m(G/K,H)=0.
+
+https://web.math.rochester.edu/people/faculty/doug/otherpapers/tomDieck-Burnside.pdf
+
+------------------------------
+
+Making better sense of quantum mechanics
+N. David Mermin
+https://arxiv.org/abs/1809.01639v1
+
+Everything for Everyone: The Radical Tradition that Is Shaping the Next Economy
+September 2018, Nation Books
+https://nathanschneider.info/books/everything-for-everyone/
+
+
+
+
+13/9/18
+=======
+
+@book{book:1424998,
+   title =     {Genius at Play: The Curious Mind of John Horton Conway},
+   author =    {Siobhan Roberts},
+   publisher = {Bloomsbury USA},
+   isbn =      {},
+   year =      {2015},
+
+
+12/9/18
+=======
+
+
+https://ncatlab.org/nlab/show/geometry+of+physics+--+categories+and+toposes
+    Category theory is the theory of duality.
+    
+    Duality is of course an ancient notion in philosophy.
+    At least as a term, it makes a curious re-appearance
+    in the conjectural theory of fundamental physics formerly
+    known as string theory as duality in string theory. In
+    both cases, the literature left some room in delineating
+    what precisely is meant. But the philosophically inclined
+    mathematician could notice (see Lambek 82) that an excellent
+    candidate to make precise the idea of duality is the
+    mathematical concept of adjunction, from category theory.
+
+    Historically, category theory was introduced in order
+    to make precise the concept of natural transformation:
+    The concept of functors was introduced just so as to
+    support that of natural transformations, and the concept
+    of categories only served that of functors (see e.g.
+    Freyd 65, Part II).
+    
+    But natural transformations are, in turn, exactly the
+    basis for the concept of adjoint functors (Def. 1.32
+    below), equivalently adjunctions between categories (Prop.
+    1.39 below), shown on the left. All universal constructions,
+    the heart of category theory, are special cases of adjoint
+    functors – hence of dualities, if we follow Lambek 82:
+    This includes the concepts of limits and colimits (Def.
+    3.1 below), ends and coends (Def. 3.13 below) Kan extensions
+    (Prop. 3.29 below), and the behaviour of these constructions,
+    such as for instance the free co-completion nature of
+    the Yoneda embedding (Prop. 3.20 below).
+
+    The pivotal role of adjunctions in category theory (Lawvere
+    08) and in the foundations of mathematics (Lawvere 69,
+    Lawvere 94 ) was particularly amplified by F. W. Lawvere1.
+    Moreover, Lawvere saw the future of category theory (Lawvere
+    91) as concerned with adjunctions expressing systems
+    of archetypical dualities that reveal foundations for
+    geometry (Lawvere 07) and physics (Lawvere 97, see Def.
+    5.2 and Def. 5.10 below). He suggested (Lawvere 94) this
+    as a precise formulation of core aspects of the theory
+    of everything of early 19th century philosophy: Hegel‘s
+    Science of Logic.
+    
+
+https://ncatlab.org/nlab/show/objective+and+subjective+logic
+    Lawvere 92: It is my belief that in the next decade and
+    in the next century the technical advances forged by
+    category theorists will be of value to dialectical philosophy,
+    lending precise form with disputable mathematical models
+    to ancient philosophical distinctions such as general
+    vs. particular, objective vs. subjective, being vs. becoming,
+    space vs. quantity, equality vs. difference, quantitative
+    vs. qualitative etc. In turn the explicit attention by
+    mathematicians to such philosophical questions is necessary
+    to achieve the goal of making mathematics (and hence
+    other sciences) more widely learnable and useable. Of
+    course this will require that philosophers learn mathematics
+    and that mathematicians learn philosophy.
+William Lawvere, Categories of space and quantity, in
+J. Echeverria et al (eds.), The Space of mathematics
+, de Gruyter, Berlin, New York, pages 14-30, 1992.
+
+
+https://arxiv.org/abs/1210.1478
+Axiomatic Method and Category Theory
+Andrei Rodin
+(Submitted on 25 Sep 2012)
+Lawvere's axiomatization of topos theory and Voevodsky's
+axiomatization of heigher homotopy theory exemplify a
+new way of axiomatic theory building, which goes beyond
+the classical Hibert-style Axiomatic Method. The new
+notion of Axiomatic Method that emerges in Categorical
+logic opens new possibilities for using this method in
+physics and other natural sciences.
+Comments: 337 pages, 21 figures
+
+
+
+Probability on Trees and Networks
+Russell Lyons with Yuval Peres
+2010
+ https://www.uni-due.de/~hm0110/book.pdf
+
+
+https://mathoverflow.net/a/119532/39775
+    The second area is the Langlands program. Unlike the
+    Riemann hypothesis, the Langlands program is named for
+    the most advanced part of the theory, not the original
+    question. But the roots of the Langlands program go all
+    the way back to Gauss' Law of Quadratic Reciprocity:
+    Given an odd prime q, let ϵ=±1 so that ϵq≡1mod4.
+    Then for an odd prime p, the Legendre symbols (p|q)
+    and (ϵq|p) are equal. More abstractly, the Galois
+    representation arising from the Kronecker symbol (ϵq|∗)
+    has the same L function as the Dirichlet character (∗|q).
+    Langlands interprets the latter as an automorphic from
+    on GL(1).
+
+https://mathoverflow.net/questions/79342/primes-of-the-form-x2ny2-and-congruences
+https://mathoverflow.net/a/175949/39775
+
+https://terrytao.wordpress.com/2008/06/18/the-strong-law-of-large-numbers/
+
+https://mathoverflow.net/questions/71743/what-is-the-precise-relationship-between-langlands-and-tannakian-formalism
+
+Another adjoint pair: Definable sets and set-builder formulas
+https://mathoverflow.net/a/146313/39775
+
+What is a special parahoric subgroup?
+https://mathoverflow.net/a/41073/39775
+    You're certainly used to Bruhat-Tits theory for SL2SL2,
+    or at least for PGL2PGL2, over QpQp, where one encounters
+    the (p+1)(p+1)-regular tree. As you know, PGL2(Qp)PGL2(Qp)
+    acts on this tree, and the stabilizer of a point is a
+    maximal compact subgroup that is conjugate to PGL2(Zp)PGL2(Zp),
+    and the stabilizer of an edge is an Iwahori subgroup.
+    This I assume is a familiar picture.
+
+
+
+"Reductive groups over local fields", Tits
+@book{book:3876,
+   title =     {Automorphic Forms, Representations, and L-functions},
+   author =    {Armand Borel, W. Casselman},
+   publisher = {American Mathematical Society},
+   isbn =      {9780821814352,0821814354},
+   year =      {1979},
+   series =    {Proceedings of symposia in pure mathematics 33},
+   edition =   {1st},
+   volume =    {},
+[Proceedings of symposia in pure mathematics 33] Armand Borel, W. Casselman - Automorphic Forms, Representations, and L-functions (1979, American Mathematical Society).djvu
+
+    
+12/9/18
+=======
+
+https://empslocal.ex.ac.uk/people/staff/rjchapma/notes/ant.pdf
+Algebraic Number Theory
+Robin Chapman
+
+page 6:
+
+alpha = sqrt(2)
+beta = 1/2 * (1 + sqrt(5))
+
+minimum polynomials:
+alpha: X**2 - 2
+beta: X**2-X-1
+
+Let
+vT = (1, alpha, beta, alpha*beta)
+
+Then
+
+dot(alpha, v) = 
+. 1 . .
+2 . . .
+. . . 1
+. . 2 . v = Av
+
+dot(beta, v) = 
+. . 1 .
+. . . 1
+1 . 1 .
+. 1 . 1 v = Bv
+
+And alpha*beta is an eigenvalue of dot(A, B).
+
+
+
+
+11/9/18
+=======
+
+MERITS AND DEMERITS OF THE ORBIT METHOD
+A. A. KIRILLOV
+https://pdfs.semanticscholar.org/5d18/6dca1d17d044dcc4750f119430d2f6c74aec.pdf
+
+
+
+
+10/9/18
+=======
+
+https://ncatlab.org/johnbaez/show/Zeta+functions
+
+Serge Lang, "Algebra", 2002
+
+"Black Square" Malevich, 1915.
+https://www.tate.org.uk/art/research-publications/the-sublime/philip-shaw-kasimir-malevichs-black-square-r1141459
+How to cite:
+    Philip Shaw, ‘Kasimir Malevich’s Black Square’, in Nigel
+    Llewellyn and Christine Riding (eds.), The Art of the
+    Sublime, Tate Research Publication, January 2013, 
+    https://www.tate.org.uk/art/research-publications/the-sublime/philip-shaw-kasimir-malevichs-black-square-r1141459, 
+    accessed 10 September 2018.
+
+https://www.tate.org.uk/about-us/policies-and-procedures/website-terms-use#
+REPRODUCING CONTENT FROM THE TATE WEBSITE
+Website content that is Tate copyright may be reproduced
+for the non-commercial purposes of research, private
+study, criticism and review, or for limited circulation
+within an educational establishment (such as a school,
+college or university).
+
+https://www.youtube.com/watch?v=DTXDRx4VKOg
+"... and all objects are just aparitions made by point-of-view" 
+Adi Da Samraj
+
 9/9/18
 ======
 
@@ -18,6 +292,9 @@ https://mathoverflow.net/questions/133581/quasicrystals-and-the-riemann-hypothes
 
 ----------------------------------------
 
+https://blogs.ams.org/visualinsight/2015/12/01/golay-code/
+https://blogs.ams.org/visualinsight/2016/06/15/small-stellated-dodecahedron/
+Bring's curve, quintic equation, riemann surface
 
 ./algebraic.py p=23
 |SL|= 12144 = 2**4 * 3 * 11 * 23

@@ -5,34 +5,14 @@
 
 import sys, os
 
+from action import mulclose, Perm, Group
+
 from util import cross
 from argv import argv
 
 
 class Type(object):
     pass
-
-
-class Ring(Type):
-
-    def neg(self, a):
-        zero = self.zero
-        a = self.sub(zero, a)
-        return a
-
-    def __repr__(self):
-        return "%s()"%(self.__class__.__name__,)
-
-    def __hash__(self):
-        return hash(self.__class__)
-
-    def __eq__(self, other):
-        assert isinstance(other, Type)
-        return self.__class__ == other.__class__ # ?
-
-    def __ne__(self, other):
-        assert isinstance(other, Type)
-        return self.__class__ != other.__class__ # ?
 
 
 
@@ -112,6 +92,29 @@ class Element(object):
         return p
 
 
+class Keyed(object):
+
+    def __init__(self, key):
+        self.key = key
+
+    def __hash__(self):
+        return hash(self.key)
+
+    def __eq__(self, other):
+        if self.__class__ is not other.__class__:
+            return False
+        return self.key == other.key
+
+    def __ne__(self, other):
+        if self.__class__ is not other.__class__:
+            return True
+        return self.key != other.key
+
+    def __str__(self):
+        return "%s(%s)"%(self.__class__.__name__, self.key)
+    __repr__ = __str__
+
+
 
 class GenericElement(Element):
     """
@@ -141,6 +144,31 @@ class GenericElement(Element):
     def __repr__(self):
         return "%s(%r, %r)"%(self.__class__.__name__, self.value, self.tp)
 
+
+
+# ----------------------------------------------------------------------------
+
+
+class Ring(Type):
+
+    def neg(self, a):
+        zero = self.zero
+        a = self.sub(zero, a)
+        return a
+
+    def __repr__(self):
+        return "%s()"%(self.__class__.__name__,)
+
+    def __hash__(self):
+        return hash(self.__class__)
+
+    def __eq__(self, other):
+        assert isinstance(other, Type)
+        return self.__class__ == other.__class__ # ?
+
+    def __ne__(self, other):
+        assert isinstance(other, Type)
+        return self.__class__ != other.__class__ # ?
 
 
 class IntegerRing(Ring):
@@ -295,6 +323,9 @@ class FieldElement(Integer):
         assert 0<=i<tp.p
         self.i = i
 
+
+
+# ----------------------------------------------------------------------------
 
 
 class PolynomialRing(Ring):
@@ -460,7 +491,7 @@ class Polynomial(Element):
         return r, b
 
 
-class ModuloRing(Ring):
+class ModuloRing(Keyed, Ring):
     """
         Ring modulo a principle ideal.
     """
@@ -470,23 +501,24 @@ class ModuloRing(Ring):
         self.ring = ring
         assert mod.tp == ring
         self.mod = mod
-        self.key = (self.__class__, self.ring, self.mod)
+        key = (self.__class__, self.ring, self.mod)
+        Keyed.__init__(self, key)
         self.reduce = mod.reduce
         self.zero = ModuloElement(ring.zero, self)
         self.one = ModuloElement(ring.one, self)
 
-    def __hash__(self):
-        return hash(self.key)
-
-    def __eq__(self, other):
-        if self.__class__ is not other.__class__:
-            return False
-        return self.key == other.key
-
-    def __ne__(self, other):
-        if self.__class__ is not other.__class__:
-            return True
-        return self.key != other.key
+#    def __hash__(self):
+#        return hash(self.key)
+#
+#    def __eq__(self, other):
+#        if self.__class__ is not other.__class__:
+#            return False
+#        return self.key == other.key
+#
+#    def __ne__(self, other):
+#        if self.__class__ is not other.__class__:
+#            return True
+#        return self.key != other.key
 
     def promote(self, value):
         if isinstance(value, Element) and value.tp==self:
@@ -560,10 +592,112 @@ class GaloisField(ModuloRing):
             assert 0
         return div
 
+
 class ModuloElement(GenericElement):
     @property
     def deg(self):
         return self.value.deg
+
+
+# ----------------------------------------------------------------------------
+
+
+class Linear(Keyed, Type):
+    
+    def __init__(self, n, base):
+        "Algebraic group: (n, n) matrices over a base ring"
+        self.n = n
+        self.base = base
+        key = (self.n, self.base)
+        Keyed.__init__(self, key)
+        Type.__init__(self)
+        one = self.base.one
+        zero = self.base.zero
+        self.zero = LinearElement(
+            tuple(tuple(zero for j in range(n)) for i in range(n)), self)
+        self.one = LinearElement(
+            tuple(tuple(
+            (one if i==j else zero)
+            for j in range(n)) for i in range(n)), self)
+
+    def promote(self, value):
+        if isinstance(value, Element) and value.tp==self:
+            return value
+        if isinstance(value, Element) and isinstance(value.tp, Linear):
+            assert 0, "%s cannot promote from %s" % (self, value.tp)
+            return None
+        value = self.base.promote(value)
+        n = self.n
+        zero = self.base.zero
+        a = tuple(tuple(
+            (value if i==j else zero)
+            for j in range(n)) for i in range(n))
+        a = LinearElement(a, self)
+        return a
+    
+    def add(self, a, b):
+        a = a.value # unwrap
+        b = b.value # unwrap
+        n = self.n
+        value = tuple(tuple(
+                a[i][j] + b[i][j]
+            for j in range(n)) for i in range(n))
+        return LinearElement(value, self)
+    
+    def sub(self, a, b):
+        a = a.value # unwrap
+        b = b.value # unwrap
+        n = self.n
+        value = tuple(tuple(
+                a[i][j] - b[i][j]
+            for j in range(n)) for i in range(n))
+        return LinearElement(value, self)
+
+    def neg(self, a):
+        a = a.value # unwrap
+        n = self.n
+        value = tuple(tuple(-a[i][j]
+            for j in range(n)) for i in range(n))
+        return LinearElement(value, self)
+
+    def mul(self, a, b):
+        a = a.value # unwrap
+        b = b.value # unwrap
+        n = self.n
+        value = tuple(tuple(
+                sum(a[i][k] * b[k][j] for k in range(n))
+            for j in range(n)) for i in range(n))
+        return LinearElement(value, self)
+
+    def get(self, value):
+        n = self.n
+        assert len(value)==n
+        for row in value:
+            assert len(row)==n
+        base = self.base
+        value = tuple(tuple(
+            base.promote(value[i][j]) 
+            for j in range(n)) for i in range(n))
+        return LinearElement(value, self)
+
+
+class LinearElement(GenericElement):
+    def __init__(self, value, tp):
+        n = tp.n
+        assert len(value)==n
+        assert len(value[0])==n
+        base = tp.base
+        value = tuple(tuple(
+            base.promote(value[i][j]) 
+            for j in range(n)) for i in range(n))
+        GenericElement.__init__(self, value, tp)
+
+    def __getitem__(self, key):
+        i, j = key
+        return self.value[i][j]
+
+
+# ----------------------------------------------------------------------------
 
 
 def test():
@@ -714,10 +848,44 @@ def test():
         b = a**(p+1)
         assert b.deg <= 0, repr(b)
 
+    # -------------------------
+
+    Z2 = FiniteField(2)
+    for GL in [Linear(1, Z), Linear(2, Z), Linear(2, Z2)]:
+
+        one = GL.one
+        zero = GL.zero
+        
+        assert one-one == zero
+        assert zero+one == one
+        assert one+one != one
+        assert one*one == one
+        assert zero*one == zero
+        assert one+one == 2*one
+
+        if GL.base == Z2:
+            assert one+one == zero
+    
+    GL2 = Linear(2, Z)
+    A = GL2.get([[1, 1], [0, 1]])
+
+    # -------------------------
+
+    field = FiniteField(7)
+    GL = Linear(2, field)
+    A = GL.get([[1, 1], [0, 1]])
+    B = GL.get([[1, 0], [1, 1]])
+
+    SL2_7 = mulclose([GL.one, A, B])
+    assert len(SL2_7) == 336 == 168*2
+    
+
 
 if __name__ == "__main__":
 
     test()
+
+    print("OK")
 
 
 
