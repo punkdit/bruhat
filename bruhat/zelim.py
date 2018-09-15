@@ -383,6 +383,86 @@ F | F 2F+2G 4F+2G 2F+5G   12G   4F+10G 24G
 G | G 6G    8G    12G     24G   24G    48G 
 """
 
+# binary dicyclic group
+tables["Dic3"] = """
+  | A B  C   D  E  F   
+--+--------------------
+A | A B  C   D  E  F   
+B | B 2B E   2D 2E 2F  
+C | C E  C+E F  3E 3F  
+D | D 2D F   4D 2F 4F  
+E | E 2E 3E  2F 6E 6F  
+F | F 2F 3F  4F 6F 12F 
+"""
+
+# binary dicyclic group
+tables["Dic4"] = """
+  | A B  C  D  E    F    G  H  I   
+--+--------------------------------
+A | A B  C  D  E    F    G  H  I   
+B | B 2B G  G  2E   H    2G 2H 2I  
+C | C G  2C G  H    2F   2G 2H 2I  
+D | D G  G  2D H    H    2G 2H 2I  
+E | E 2E H  H  2E+H 2H   2H 4H 4I  
+F | F H  2F H  2H   2F+H 2H 4H 4I  
+G | G 2G 2G 2G 2H   2H   4G 4H 4I  
+H | H 2H 2H 2H 4H   4H   4H 8H 8I  
+I | I 2I 2I 2I 4I   4I   4I 8I 16I 
+"""
+
+# binary tetrahedral group, aka SL(2, 3)
+tables["2T"] = """
+  | A B  C   D     E     F   G   
+--+------------------------------
+A | A B  C   D     E     F   G   
+B | B 3B F   3D    G     3F  3G  
+C | C F  C+F 2F    E+G   4F  4G  
+D | D 3D 2F  2D+2F 2G    6F  6G  
+E | E G  E+G 2G    2E+2G 4G  8G  
+F | F 3F 4F  6F    4G    12F 12G 
+G | G 3G 4G  6G    8G    12G 24G 
+"""
+
+# binary octahedral group
+tables["2O"] = """
+  | A B  C   D    E     F     G  H     I     J     K     L     M     N   P      Q   
+--+---------------------------------------------------------------------------------
+A | A B  C   D    E     F     G  H     I     J     K     L     M     N   P      Q   
+B | B 2B G   H    L     L     2G 2H    M     M     N     2L    2M    2N  Q      2Q  
+C | C G  C+G K    E+L   F+L   3G N     P     P     K+N   3L    Q     3N  P+Q    3Q  
+D | D H  K   D+K  2K    N     N  H+N   I+P   J+P   2K+N  2N    M+Q   4N  2P+Q   4Q  
+E | E L  E+L 2K   2E+N  L+N   3L 2N    2P    2P    2K+2N 2L+2N 2Q    6N  2P+2Q  6Q  
+F | F L  F+L N    L+N   2F+N  3L 2N    Q     Q     3N    2L+2N 2Q    6N  3Q     6Q  
+G | G 2G 3G  N    3L    3L    6G 2N    Q     Q     3N    6L    2Q    6N  3Q     6Q  
+H | H 2H N   H+N  2N    2N    2N 2H+2N M+Q   M+Q   4N    4N    2M+2Q 8N  4Q     8Q  
+I | I M  P   I+P  2P    Q     Q  M+Q   2I+Q  M+2P  2P+Q  2Q    2M+2Q 4Q  2P+3Q  8Q  
+J | J M  P   J+P  2P    Q     Q  M+Q   M+2P  2J+Q  2P+Q  2Q    2M+2Q 4Q  2P+3Q  8Q  
+K | K N  K+N 2K+N 2K+2N 3N    3N 4N    2P+Q  2P+Q  2K+5N 6N    4Q    12N 2P+5Q  12Q 
+L | L 2L 3L  2N   2L+2N 2L+2N 6L 4N    2Q    2Q    6N    4L+4N 4Q    12N 6Q     12Q 
+M | M 2M Q   M+Q  2Q    2Q    2Q 2M+2Q 2M+2Q 2M+2Q 4Q    4Q    4M+4Q 8Q  8Q     16Q 
+N | N 2N 3N  4N   6N    6N    6N 8N    4Q    4Q    12N   12N   8Q    24N 12Q    24Q 
+P | P Q  P+Q 2P+Q 2P+2Q 3Q    3Q 4Q    2P+3Q 2P+3Q 2P+5Q 6Q    8Q    12Q 2P+11Q 24Q 
+Q | Q 2Q 3Q  4Q   6Q    6Q    6Q 8Q    8Q    8Q    12Q   12Q   16Q   24Q 24Q    48Q 
+"""
+
+# binary icosahedral group
+tables["2I"] = """
+  | A B    C     D     E     F     G     H     I      J      K   L    
+--+-------------------------------------------------------------------
+A | A B    C     D     E     F     G     H     I      J      K   L    
+B | B B+G  I     G+I   K     F+K   2G+K  L     I+2K   2J+L   5K  5L   
+C | C I    C+I   2I    E+K   3I    2K    H+L   2I+2K  2L     6K  6L   
+D | D G+I  2I    D+I+K 2K    3I+K  G+3K  2L    2I+4K  J+3L   10K 10L  
+E | E K    E+K   2K    2E+2K 3K    4K    2H+2L 6K     4L     12K 12L  
+F | F F+K  3I    3I+K  3K    3F+3K 5K    3L    3I+6K  5L     15K 15L  
+G | G 2G+K 2K    G+3K  4K    5K    2G+6K 4L    10K    2J+6L  20K 20L  
+H | H L    H+L   2L    2H+2L 3L    4L    4H+4L 6L     8L     12L 24L  
+I | I I+2K 2I+2K 2I+4K 6K    3I+6K 10K   6L    2I+14K 10L    30K 30L  
+J | J 2J+L 2L    J+3L  4L    5L    2J+6L 8L    10L    4J+12L 20L 40L  
+K | K 5K   6K    10K   12K   15K   20K   12L   30K    20L    60K 60L  
+L | L 5L   6L    10L   12L   15L   20L   24L   30L    40L    60L 120L 
+"""
+
 def process(table):
 
     A = parse(table, perm=argv.perm)

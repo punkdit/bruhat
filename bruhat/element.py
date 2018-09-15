@@ -5,7 +5,7 @@
 
 import sys, os
 
-from action import mulclose, Perm, Group
+from action import mulclose, Perm, Group, burnside
 
 from util import cross
 from argv import argv
@@ -41,6 +41,8 @@ class Element(object):
     def __rsub__(self, other):
         tp = self.tp
         other = tp.promote(other)
+        if other is None:
+            return NotImplemented
         a = tp.sub(other, self)
         return a
 
@@ -61,6 +63,8 @@ class Element(object):
     def __radd__(self, value):
         tp = self.tp
         other = tp.promote(value)
+        if other is None:
+            return NotImplemented
         a = tp.add(other, self)
         return a
 
@@ -80,6 +84,8 @@ class Element(object):
     def __rtruediv__(self, other):
         tp = self.tp
         other = tp.promote(other)
+        if other is None:
+            return NotImplemented
         a = tp.div(other, self)
         return a
 
@@ -206,7 +212,7 @@ class IntegerRing(Ring):
     
     def promote(self, value):
         if isinstance(value, Integer):
-            assert value.tp is self
+            assert value.tp == self
             return value
         if isinstance(value, int):
             return Integer(value, self)
@@ -328,12 +334,13 @@ class FieldElement(Integer):
 # ----------------------------------------------------------------------------
 
 
-class PolynomialRing(Ring):
+class PolynomialRing(Keyed, Ring):
     """
         Ring of polynomials, over some other base ring.
     """
 
     def __init__(self, base):
+        Keyed.__init__(self, base)
         Ring.__init__(self)
         self.base = base
         self.zero = Polynomial({}, self)
@@ -341,18 +348,17 @@ class PolynomialRing(Ring):
         self.one = Polynomial({0:one}, self)
         self.x = Polynomial({1:one}, self)
 
-    def __hash__(self):
-        return hash((self.__class__, self.base))
+#    def __hash__(self):
+#        return hash((self.__class__, self.base))
+#
+#    def __eq__(self, other):
+#        return self.__class__ is other.__class__ and self.base == other.base
+#
+#    def __ne__(self, other):
+#        assert self.__class__ is other.__class__
+#        return self.base != other.base
 
-    def __eq__(self, other):
-        assert self.__class__ is other.__class__
-        return self.base == other.base
-
-    def __ne__(self, other):
-        assert self.__class__ is other.__class__
-        return self.base != other.base
-
-    def __div__(self, mod):
+    def __truediv__(self, mod):
         assert mod.tp == self
         return ModuloRing(self, mod)
 
@@ -388,6 +394,11 @@ class PolynomialRing(Ring):
             cs[deg] = cs.get(deg, 0) + c0*c1
         return Polynomial(cs, self)
 
+    def div(self, a, b):
+        p, rem = b.reduce(a)
+        if rem != self.zero:
+            return None
+        return p
 
 
 class Polynomial(Element):
@@ -507,19 +518,6 @@ class ModuloRing(Keyed, Ring):
         self.zero = ModuloElement(ring.zero, self)
         self.one = ModuloElement(ring.one, self)
 
-#    def __hash__(self):
-#        return hash(self.key)
-#
-#    def __eq__(self, other):
-#        if self.__class__ is not other.__class__:
-#            return False
-#        return self.key == other.key
-#
-#    def __ne__(self, other):
-#        if self.__class__ is not other.__class__:
-#            return True
-#        return self.key != other.key
-
     def promote(self, value):
         if isinstance(value, Element) and value.tp==self:
             return value
@@ -624,7 +622,8 @@ class Linear(Keyed, Type):
         if isinstance(value, Element) and value.tp==self:
             return value
         if isinstance(value, Element) and isinstance(value.tp, Linear):
-            assert 0, "%s cannot promote from %s" % (self, value.tp)
+            # XXX TODO
+            assert 0, "TODO: %s cannot promote from %s" % (self, value.tp)
             return None
         value = self.base.promote(value)
         n = self.n
@@ -682,19 +681,89 @@ class Linear(Keyed, Type):
 
 
 class LinearElement(GenericElement):
-    def __init__(self, value, tp):
-        n = tp.n
-        assert len(value)==n
-        assert len(value[0])==n
-        base = tp.base
-        value = tuple(tuple(
-            base.promote(value[i][j]) 
-            for j in range(n)) for i in range(n))
-        GenericElement.__init__(self, value, tp)
+
+#    def __init__(self, value, tp):
+#        n = tp.n
+#
+#        ###### I don't think we need this here #####
+#        #assert len(value)==n
+#        #assert len(value[0])==n
+#        #base = tp.base
+#        #value = tuple(tuple(
+#        #    base.promote(value[i][j]) 
+#        #    for j in range(n)) for i in range(n))
+#
+#        GenericElement.__init__(self, value, tp)
 
     def __getitem__(self, key):
         i, j = key
         return self.value[i][j]
+
+
+# ----------------------------------------------------------------------------
+
+
+def cayley(elements):
+    "build the regular permutation representation"
+    elements = list(elements)
+    lookup = {}
+    for idx, e in enumerate(elements):
+        lookup[e] = idx
+    items = list(range(len(elements)))
+    perms = []
+    for i, e in enumerate(elements):
+        perm = {}
+        for j, f in enumerate(elements):
+            g = e*f
+            k = lookup[g]
+            perm[j] = k
+        perm = Perm(perm, items)
+        perms.append(perm)
+    G = Group(perms, items)
+    return G
+
+
+def divisors(n):
+    divs = [1] 
+    for i in range(2, n): 
+        if n%i == 0:
+            divs.append(i)
+    if n>1:
+        divs.append(n)
+    return divs
+
+
+_cyclotomic_cache = {} # XXX TODO
+def cyclotomic(n):
+
+    if n in _cyclotomic_cache:
+        return _cyclotomic_cache[n]
+
+    divs = divisors(n)
+
+    Z = IntegerRing()
+    ring = PolynomialRing(Z)
+    x = ring.x
+    one = ring.one
+
+    if n==1:
+        p = x-1
+
+    elif len(divs)==2:
+        # prime
+        p = sum(x**i for i in range(n))
+
+    else:
+
+        p = x**n - 1
+
+        assert divs[-1] == n
+        for i in divs[:-1]:
+            p = p / cyclotomic(i)
+
+    _cyclotomic_cache[n] = p
+    return p
+
 
 
 # ----------------------------------------------------------------------------
@@ -876,9 +945,46 @@ def test():
     A = GL.get([[1, 1], [0, 1]])
     B = GL.get([[1, 0], [1, 1]])
 
-    SL2_3 = mulclose([GL.one, A, B])
+    # AKA. binary tetrahedral group
+    SL2_3 = mulclose([A, B])
     assert len(SL2_3) == 24
-    
+
+    # -------------------------
+    # https://people.maths.bris.ac.uk/~matyd/GroupNames/1/GL(2,3).html
+    # aka binary octahedral group
+
+    C = GL.get([[2, 0], [0, 1]])
+    D = GL.get([[1, 0], [0, 2]])
+
+    GL2_3 = mulclose([A, B, C, D])
+    assert len(GL2_3) == 48
+
+    # -------------------------
+    # https://people.maths.bris.ac.uk/~matyd/GroupNames/1/Q8.html
+    # quaternion group, Q_8 
+
+    A = GL.get([[2, 2], [2, 1]])
+    B = GL.get([[0, 2], [1, 0]])
+
+    Q8 = mulclose([A, B])
+    assert(len(Q8)) == 8
+
+    # -------------------------
+    # https://people.maths.bris.ac.uk/~matyd/GroupNames/97/SL(2,5).html
+    # aka binary icosahedral group
+
+    field = FiniteField(5)
+    GL = Linear(2, field)
+
+    A = GL.get([[4, 2], [4, 1]])
+    B = GL.get([[3, 3], [4, 1]])
+
+    SL2_5 = mulclose([A, B])
+    assert len(SL2_5) == 120
+
+    #G = cayley(SL2_5)
+    #burnside(G)
+
     # -------------------------
 
     field = FiniteField(7)
@@ -888,8 +994,54 @@ def test():
 
     SL2_7 = mulclose([GL.one, A, B])
     assert len(SL2_7) == 336 == 168*2
-    
 
+    # -------------------------
+
+    ring = PolynomialRing(Z)
+    x = ring.x
+    assert cyclotomic(1) == x-1
+    assert cyclotomic(2) == x+1
+    assert cyclotomic(3) == x**2+x+1
+    assert cyclotomic(4) == x**2+1
+    assert cyclotomic(5) == x**4+x**3+x**2+x+1
+    assert cyclotomic(6) == x**2-x+1
+    assert cyclotomic(7) == x**6+x**5+x**4+x**3+x**2+x+1
+    assert cyclotomic(8) == x**4+1
+    assert cyclotomic(9) == x**6+x**3+1
+    assert cyclotomic(10) == x**4-x**3+x**2-x+1
+    assert cyclotomic(24) == x**8-x**4+1
+
+    # -------------------------
+
+    for n in range(2, 5):
+
+        p = cyclotomic(2*n)
+    
+        ring = PolynomialRing(Z) / p
+        x = ring.ring.x # HACK
+        x = ring.promote(x)
+    
+        x1 = x**(2*n-1) # inverse
+        
+        assert x**(2*n) == 1
+        assert x1 != 1
+    
+        # ----------------------------
+        # Binary dihedral group
+        # https://people.maths.bris.ac.uk/~matyd/GroupNames/dicyclic.html
+    
+        GL = Linear(2, ring)
+    
+        A = GL.get([[x, 0], [0, x1]])
+        B = GL.get([[0, -1], [1, 0]])
+    
+        Di = mulclose([A, B])
+        assert len(Di) == 4*n
+
+        if n==4:
+
+            G = cayley(Di)
+            burnside(G)
 
 
 if __name__ == "__main__":

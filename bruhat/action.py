@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import string
@@ -222,7 +222,7 @@ class Perm(object):
         remain = set(self.set_items)
         cycles = []
         while remain:
-            item = iter(remain).next()
+            item = iter(remain).__next__()
             orbit = [item]
             item1 = self*item
             while item1 != item:
@@ -249,7 +249,7 @@ class Perm(object):
         s = []
 #        print "__str__", self.perm, self.items
         while remain:
-            item = iter(remain).next()
+            item = iter(remain).__next__()
 #            print "item:", item
             orbit = [item]
             item1 = self*item
@@ -1139,7 +1139,7 @@ class Action(object):
         orbits = []
         while remain:
             #print "remain:", remain
-            item = iter(remain).next()
+            item = iter(remain).__next__()
             orbit = set(send_perms[g](item) for g in G.perms)
             #print "orbit:", orbit
             for item in orbit:
@@ -1639,7 +1639,7 @@ def orbiplex(G, k=4):
 
         bdy = zeros(dims[-2], dims[-1])
         for idx, orbit in enumerate(orbits):
-            key = iter(orbit).next()
+            key = iter(orbit).__next__()
             c = 1
             for m in range(n):
                 # all the keys should be the same...
@@ -2084,7 +2084,7 @@ def hecke(G):
 
     Hs = conjugacy_subgroups(G)
 
-    letters = list(string.uppercase + string.lowercase)
+    letters = list(string.ascii_uppercase + string.ascii_lowercase)
     letters = letters + [l+"'" for l in letters] + [l+"''" for l in letters]
     assert len(letters) >= len(Hs)
     letters = letters[:len(Hs)]
@@ -2125,7 +2125,7 @@ def burnside(G, Hs=None):
     if Hs is None:
         Hs = conjugacy_subgroups(G)
 
-    letters = list(string.uppercase + string.lowercase)
+    letters = list(string.ascii_uppercase + string.ascii_lowercase)
     letters.remove("O")
     letters.remove("o")
     letters = letters + [l+"'" for l in letters] + [l+"''" for l in letters]
@@ -2243,12 +2243,12 @@ def burnside(G, Hs=None):
         space = 1
 
     rows = cols = [hom.name for hom in homs]
-#    print
-#    print tabulate(table, rows, cols, space)
-#    print
-#    print "$$"
-#    print latex_table(table, rows, cols, upper=argv.get("upper"))
-#    print "$$"
+    print()
+    print(tabulate(table, rows, cols, space))
+    print()
+    print("$$")
+    print(latex_table(table, rows, cols, upper=argv.get("upper")))
+    print("$$")
 
 
 r"""
