@@ -871,6 +871,16 @@ def test():
 
     # -------------------------
 
+    field = FiniteField(3)
+    GL = Linear(2, field)
+    A = GL.get([[1, 1], [0, 1]])
+    B = GL.get([[1, 0], [1, 1]])
+
+    SL2_3 = mulclose([GL.one, A, B])
+    assert len(SL2_3) == 24
+    
+    # -------------------------
+
     field = FiniteField(7)
     GL = Linear(2, field)
     A = GL.get([[1, 1], [0, 1]])
@@ -879,6 +889,7 @@ def test():
     SL2_7 = mulclose([GL.one, A, B])
     assert len(SL2_7) == 336 == 168*2
     
+
 
 
 if __name__ == "__main__":
