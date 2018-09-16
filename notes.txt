@@ -1,4 +1,17 @@
 
+16/9/18
+=======
+
+the causal revolutionary
+https://www.3ammagazine.com/3am/the-causal-revolutionary/
+    Judea Pearl  is a computer scientist and philosopher,
+    best known for championing the probabilistic approach
+    to artificial intelligence and the development of Bayesian
+    networks . He is also credited for developing a theory
+    of causal and counterfactual inference based on structural
+    models. 
+
+
 15/9/18
 =======
 
@@ -147,6 +160,8 @@ order: 16
 dimension of reps: [1 1 1 1 2 8]
 sum of squares: 72
 
+
+http://www.maths.manchester.ac.uk/~jm/wiki/Representations/BinaryCubic
 
 
 14/9/18

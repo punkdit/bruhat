@@ -151,6 +151,30 @@ def rank(A):
 
 tables = {}
 
+tables["C_3"] = """
+  | A B  
+--+------
+A | A B  
+B | B 3B 
+"""
+
+tables["C_4"] = """
+  | A B  C  
+--+---------
+A | A B  C  
+B | B 2B 2C 
+C | C 2C 4C 
+"""
+
+tables["C_6"] = """
+  | A B  C  D  
+--+------------
+A | A B  C  D  
+B | B 2B D  2D 
+C | C D  3C 3D 
+D | D 2D 3D 6D 
+"""
+
 tables["D_8"] = """
   | A B  C  D  E    F    G  H  
 --+----------------------------
@@ -461,6 +485,23 @@ I | I I+2K 2I+2K 2I+4K 6K    3I+6K 10K   6L    2I+14K 10L    30K 30L
 J | J 2J+L 2L    J+3L  4L    5L    2J+6L 8L    10L    4J+12L 20L 40L  
 K | K 5K   6K    10K   12K   15K   20K   12L   30K    20L    60K 60L  
 L | L 5L   6L    10L   12L   15L   20L   24L   30L    40L    60L 120L 
+"""
+
+tables["C3*Q_8"] = """
+  | A B  C  D  E  F  G  H  I  J  K   L   
+--+--------------------------------------
+A | A B  C  D  E  F  G  H  I  J  K   L   
+B | B 2B F  F  G  2F 2G K  K  2J 2K  2L  
+C | C F  2C F  H  2F K  2H K  2J 2K  2L  
+D | D F  F  2D I  2F K  K  2I 2J 2K  2L  
+E | E G  H  I  3E K  3G 3H 3I L  3K  3L  
+F | F 2F 2F 2F K  4F 2K 2K 2K 4J 4K  4L  
+G | G 2G K  K  3G 2K 6G 3K 3K 2L 6K  6L  
+H | H K  2H K  3H 2K 3K 6H 3K 2L 6K  6L  
+I | I K  K  2I 3I 2K 3K 3K 6I 2L 6K  6L  
+J | J 2J 2J 2J L  4J 2L 2L 2L 8J 4L  8L  
+K | K 2K 2K 2K 3K 4K 6K 6K 6K 4L 12K 12L 
+L | L 2L 2L 2L 3L 4L 6L 6L 6L 8L 12L 24L 
 """
 
 def process(table):

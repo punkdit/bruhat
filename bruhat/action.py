@@ -9,6 +9,7 @@ from bruhat.argv import argv
 from bruhat import isomorph
 from bruhat.smap import SMap, tabulate
 
+long = int
 
 
 def mulclose_fast(gen, verbose=False, maxsize=None):
@@ -756,7 +757,7 @@ class Group(object):
         orbits = []
         while remain:
             #print "remain:", remain
-            item = iter(remain).next()
+            item = iter(remain).__next__()
             orbit = set(g(item) for g in self.perms)
             #print "orbit:", orbit
             for item in orbit:
@@ -1114,7 +1115,7 @@ class Action(object):
         assert marked
         while len(marked):
             H = numpy.zeros((m, n), dtype=numpy.float64)
-            i, j = iter(marked).next()
+            i, j = iter(marked).__next__()
             marked.remove((i, j))
             H[i, j] = 1
             ai = self.items[i]
@@ -1442,6 +1443,9 @@ def main():
         perms = mulclose(gen)
         G = Group(perms, items)
         assert len(G)==8
+
+        C3 = Group.cyclic(range(3))
+        G = C3.direct_product(G)
 
     elif argv.P2:
         G = get_P2()
