@@ -103,6 +103,9 @@ class FlowPrint(object):
         #self.blank_line = False
         self.stdout.write(s)
 
+    def flush(self):
+        self.stdout.flush()
+
     def write(self, *args):
         s = ' '.join(str(s) for s in args)
         #nl = s.endswith('\n')

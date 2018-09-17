@@ -175,6 +175,17 @@ C | C D  3C 3D
 D | D 2D 3D 6D 
 """
 
+tables["C_20"] = """
+  | A B  C  D  E   F   
+--+--------------------
+A | A B  C  D  E   F   
+B | B 2B 2C E  2E  2F  
+C | C 2C 4C F  2F  4F  
+D | D E  F  5D 5E  5F  
+E | E 2E 2F 5E 10E 10F 
+F | F 2F 4F 5F 10F 20F 
+"""
+
 tables["D_8"] = """
   | A B  C  D  E    F    G  H  
 --+----------------------------
@@ -487,6 +498,7 @@ K | K 5K   6K    10K   12K   15K   20K   12L   30K    20L    60K 60L
 L | L 5L   6L    10L   12L   15L   20L   24L   30L    40L    60L 120L 
 """
 
+# From: Serre, 1977, p104
 tables["C3*Q_8"] = """
   | A B  C  D  E  F  G  H  I  J  K   L   
 --+--------------------------------------

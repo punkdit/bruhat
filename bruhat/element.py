@@ -73,6 +73,12 @@ class Element(object):
         a = tp.neg(self)
         return a
 
+    def __floordiv__(self, other):
+        assert 0, "TODO"
+
+    def __rfloordiv__(self, other):
+        assert 0, "TODO"
+
     def __truediv__(self, other):
         tp = self.tp
         other = tp.promote(other)
@@ -193,21 +199,21 @@ class IntegerRing(Ring):
     def add(self, a, b):
         assert a.tp is self # do we need this here?
         assert b.tp is self # do we need this here?
-        return Integer(a.i + b.i, self)
+        return Integer(a.value + b.value, self)
     
     def sub(self, a, b):
-        return Integer(a.i - b.i, self)
+        return Integer(a.value - b.value, self)
     
     def mul(self, a, b):
-        return Integer(a.i * b.i, self)
+        return Integer(a.value * b.value, self)
     
     def neg(self, a):
-        return Integer(-a.i, self)
+        return Integer(-a.value, self)
 
     def div(self, a, b):
-        if a.i%b.i:
-            raise Exception
-        i = a.i // b.i
+        if a.value%b.value:
+            raise Exception("cannot divide %s by %s" % (a, b))
+        i = a.value // b.value
         return Integer(i, self)
     
     def promote(self, value):
@@ -258,25 +264,25 @@ class FiniteField(Ring):
         assert a.tp is self
         assert b.tp is self
         p = self.p
-        return FieldElement((a.i + b.i)%p, self)
+        return FieldElement((a.value + b.value)%p, self)
     
     def sub(self, a, b):
         p = self.p
-        return FieldElement((a.i - b.i)%p, self)
+        return FieldElement((a.value - b.value)%p, self)
     
     def mul(self, a, b):
         p = self.p
-        return FieldElement((a.i * b.i)%p, self)
+        return FieldElement((a.value * b.value)%p, self)
     
     def neg(self, a):
         p = self.p
-        return FieldElement((p-a.i)%p, self)
+        return FieldElement((p-a.value)%p, self)
     
     def inverse(self, a):
         p = self.p
-        assert 0<a.i<p
+        assert 0<a.value<p
         for j in range(1, p):
-            if (j*a.i)%p == 1:
+            if (j*a.value)%p == 1:
                 break
         else:
             assert 0
@@ -296,6 +302,10 @@ class FiniteField(Ring):
         return FieldElement(value, self)
 
 
+class Integer(GenericElement):
+    pass
+
+"""
 class Integer(Element):
     def __init__(self, i, tp): # XXX make all Element's use generic "value" attr ?? XXX
         Element.__init__(self, tp)
@@ -320,15 +330,14 @@ class Integer(Element):
 
     def __repr__(self):
         return "%s(%s)"%(self.__class__.__name__, self.i)
+"""
 
 
 class FieldElement(Integer):
-    def __init__(self, i, tp):
-        Element.__init__(self, tp)
-        assert int(i)==i
-        assert 0<=i<tp.p
-        self.i = i
-
+    def __init__(self, value, tp):
+        GenericElement.__init__(self, value, tp)
+        assert int(value)==value
+        assert 0<=value<tp.p
 
 
 # ----------------------------------------------------------------------------
@@ -626,13 +635,15 @@ class Linear(Keyed, Type):
             assert 0, "TODO: %s cannot promote from %s" % (self, value.tp)
             return None
         value = self.base.promote(value)
-        n = self.n
-        zero = self.base.zero
-        a = tuple(tuple(
-            (value if i==j else zero)
-            for j in range(n)) for i in range(n))
-        a = LinearElement(a, self)
-        return a
+        if 0:
+            n = self.n
+            zero = self.base.zero
+            a = tuple(tuple(
+                (value if i==j else zero)
+                for j in range(n)) for i in range(n))
+            a = LinearElement(a, self)
+            return a
+        return value
     
     def add(self, a, b):
         a = a.value # unwrap
@@ -660,12 +671,26 @@ class Linear(Keyed, Type):
         return LinearElement(value, self)
 
     def mul(self, a, b):
-        a = a.value # unwrap
-        b = b.value # unwrap
         n = self.n
-        value = tuple(tuple(
-                sum(a[i][k] * b[k][j] for k in range(n))
-            for j in range(n)) for i in range(n))
+        if a.tp == self.base:
+            b = b.value # unwrap
+            value = tuple(tuple(a * b[i][j] for j in range(n)) for i in range(n))
+        elif b.tp == self.base:
+            a = a.value # unwrap
+            value = tuple(tuple(a[i][j] * b for j in range(n)) for i in range(n))
+        else:
+            a = a.value # unwrap
+            b = b.value # unwrap
+            value = tuple(tuple(
+                    sum(a[i][k] * b[k][j] for k in range(n))
+                for j in range(n)) for i in range(n))
+        return LinearElement(value, self)
+
+    def div(self, a, b):
+        assert b.tp == self.base
+        a = a.value # unwrap
+        n = self.n
+        value = tuple(tuple(a[i][j] / b for j in range(n)) for i in range(n))
         return LinearElement(value, self)
 
     def get(self, value):
@@ -682,22 +707,32 @@ class Linear(Keyed, Type):
 
 class LinearElement(GenericElement):
 
-#    def __init__(self, value, tp):
-#        n = tp.n
-#
-#        ###### I don't think we need this here #####
-#        #assert len(value)==n
-#        #assert len(value[0])==n
-#        #base = tp.base
-#        #value = tuple(tuple(
-#        #    base.promote(value[i][j]) 
-#        #    for j in range(n)) for i in range(n))
-#
-#        GenericElement.__init__(self, value, tp)
-
     def __getitem__(self, key):
         i, j = key
         return self.value[i][j]
+
+    def __str__(self):
+        n = self.tp.n
+        value = self.value
+        rows = [[str(value[i][j]) for j in range(n)] for i in range(n)]
+        w = 1
+        for row in rows:
+            for col in row:
+                w = max(w, len(col))
+        rows = ['[%s]'%' '.join(s.rjust(w) for s in row) for row in rows]
+        lines = []
+        for i, row in enumerate(rows):
+            if i==0:
+                row = "["+row
+            else:
+                row = " "+row
+            if i==len(rows)-1:
+                row = row+"]"
+            else:
+                row = row+","
+            lines.append(row)
+        return '\n'.join(lines)
+        
 
 
 # ----------------------------------------------------------------------------
@@ -949,6 +984,9 @@ def test():
     SL2_3 = mulclose([A, B])
     assert len(SL2_3) == 24
 
+    #G = cayley(SL2_3)
+    #burnside(G)
+
     # -------------------------
     # https://people.maths.bris.ac.uk/~matyd/GroupNames/1/GL(2,3).html
     # aka binary octahedral group
@@ -1038,10 +1076,6 @@ def test():
         Di = mulclose([A, B])
         assert len(Di) == 4*n
 
-        if n==4:
-
-            G = cayley(Di)
-            burnside(G)
 
 
 if __name__ == "__main__":
