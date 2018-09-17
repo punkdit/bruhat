@@ -11,8 +11,23 @@ from util import cross
 from argv import argv
 
 
+def divisors(n):
+    divs = [1] 
+    for i in range(2, n): 
+        if n%i == 0:
+            divs.append(i)
+    if n>1:
+        divs.append(n)
+    return divs
+
+
 class Type(object):
-    pass
+
+    def eq(self, a, b):
+        return a.value == b.value
+
+    def ne(self, a, b):
+        return a.value != b.value
 
 
 
@@ -21,6 +36,20 @@ class Element(object):
         assert isinstance(tp, Type)
         self.tp = tp
         #self.promote = tp.promote # ??
+
+    def __eq__(self, other):
+        tp = self.tp
+        other = tp.promote(other)
+        if other is None:
+            return NotImplemented
+        return tp.eq(self, other)
+
+    def __ne__(self, other):
+        tp = self.tp
+        other = tp.promote(other)
+        if other is None:
+            return NotImplemented
+        return tp.ne(self, other)
 
     def __add__(self, other):
         tp = self.tp
@@ -95,6 +124,14 @@ class Element(object):
         a = tp.div(other, self)
         return a
 
+    def __mod__(self, other):
+        tp = self.tp
+        other = tp.promote(other)
+        if other is None:
+            return NotImplemented
+        a = tp.mod(self, other)
+        return a
+
     def __pow__(self, n):
         assert int(n)==n
         assert n>=0
@@ -104,7 +141,7 @@ class Element(object):
         return p
 
 
-class Keyed(object):
+class Keyed(object): # use for Type's
 
     def __init__(self, key):
         self.key = key
@@ -136,16 +173,6 @@ class GenericElement(Element):
     def __init__(self, value, tp):
         Element.__init__(self, tp)
         self.value = value
-
-    def __eq__(self, other):
-        tp = self.tp
-        other = tp.promote(other)
-        return self.value == other.value
-
-    def __ne__(self, other):
-        tp = self.tp
-        other = tp.promote(other)
-        return self.value != other.value
 
     def __hash__(self):
         return hash((self.tp, self.value))
@@ -195,6 +222,14 @@ class IntegerRing(Ring):
         Ring.__init__(self)
         self.one = Integer(1, self)
         self.zero = Integer(0, self)
+    
+    def promote(self, value):
+        if isinstance(value, Integer):
+            assert value.tp == self
+            return value
+        if isinstance(value, int):
+            return Integer(value, self)
+        return None
 
     def add(self, a, b):
         assert a.tp is self # do we need this here?
@@ -212,17 +247,39 @@ class IntegerRing(Ring):
 
     def div(self, a, b):
         if a.value%b.value:
-            raise Exception("cannot divide %s by %s" % (a, b))
+            raise Exception("cannot divide %r by %r" % (a, b))
         i = a.value // b.value
         return Integer(i, self)
+
+    def mod(self, a, b):
+        a = a.value
+        b = b.value
+        return Integer(a%b, self)
     
-    def promote(self, value):
-        if isinstance(value, Integer):
-            assert value.tp == self
-            return value
-        if isinstance(value, int):
-            return Integer(value, self)
-        return None
+    def gcd(self, a, b):
+        a = a.value
+        b = b.value
+        while b != 0:
+            a, b = b, a%b
+        factor = Integer(a, self)
+        return factor
+
+
+class Integer(GenericElement):
+
+    def reduce(a, b):
+        """
+            a.reduce(b): use a to reduce b.
+            return (div, rem) such that div*a+rem==b.
+        """
+
+        a = a.value # unwrap
+        b = b.value # unwrap
+
+        div = a//b
+        rem = a%b
+        return div, rem
+
 
 
 class FiniteField(Ring):
@@ -302,36 +359,6 @@ class FiniteField(Ring):
         return FieldElement(value, self)
 
 
-class Integer(GenericElement):
-    pass
-
-"""
-class Integer(Element):
-    def __init__(self, i, tp): # XXX make all Element's use generic "value" attr ?? XXX
-        Element.__init__(self, tp)
-        assert int(i)==i
-        self.i = i
-
-    def __eq__(self, other):
-        tp = self.tp
-        other = tp.promote(other)
-        return self.i == other.i
-
-    def __ne__(self, other):
-        tp = self.tp
-        other = tp.promote(other)
-        return self.i != other.i
-
-    def __hash__(self):
-        return hash((self.tp, self.i))
-
-    def __str__(self):
-        return str(self.i)
-
-    def __repr__(self):
-        return "%s(%s)"%(self.__class__.__name__, self.i)
-"""
-
 
 class FieldElement(Integer):
     def __init__(self, value, tp):
@@ -357,16 +384,6 @@ class PolynomialRing(Keyed, Ring):
         self.one = Polynomial({0:one}, self)
         self.x = Polynomial({1:one}, self)
 
-#    def __hash__(self):
-#        return hash((self.__class__, self.base))
-#
-#    def __eq__(self, other):
-#        return self.__class__ is other.__class__ and self.base == other.base
-#
-#    def __ne__(self, other):
-#        assert self.__class__ is other.__class__
-#        return self.base != other.base
-
     def __truediv__(self, mod):
         assert mod.tp == self
         return ModuloRing(self, mod)
@@ -382,6 +399,12 @@ class PolynomialRing(Keyed, Ring):
             #print(self, "cannot promote", value)
             return None
         return Polynomial({0:_value}, self)
+
+    def eq(self, a, b):
+        return a.cs == b.cs
+
+    def ne(self, a, b):
+        return a.cs != b.cs
 
     def add(self, a, b):
         cs = dict(a.cs)
@@ -408,6 +431,18 @@ class PolynomialRing(Keyed, Ring):
         if rem != self.zero:
             return None
         return p
+
+    def mod(self, a, b):
+        div, rem = b.reduce(a)
+        return rem
+
+    def gcd(self, a, b):
+        assert a.tp == self
+        assert b.tp == self
+        while b != self.zero:
+            a, b = b, a%b
+        return a
+
 
 
 class Polynomial(Element):
@@ -451,16 +486,6 @@ class Polynomial(Element):
     def __repr__(self):
         return "Polynomial(%s, %s)"%(self.cs, self.tp)
 
-    def __eq__(self, other): # XXX put this in the tp ?
-        other = self.tp.promote(other)
-        assert self.tp == other.tp
-        return self.cs == other.cs
-
-    def __ne__(self, other): # XXX put this in the tp ?
-        other = self.tp.promote(other)
-        assert self.tp == other.tp
-        return self.cs != other.cs
-
     def __hash__(self):
         cs = self.cs
         keys = list(cs.keys())
@@ -497,7 +522,7 @@ class Polynomial(Element):
             assert b0 is not None, b
             a0 = a[a.deg]
             assert a0 is not None, repr(a)
-            coeff = b0/a0
+            coeff = b0/a0 # FIX FIX FIX XXX
             assert coeff != 0
             m = coeff * x**(b.deg - a.deg)
             #print("m = %s"%m)
@@ -532,6 +557,11 @@ class ModuloRing(Keyed, Ring):
             return value
         value = self.ring.promote(value)
         value = self.reduce(value)[1]
+        a = ModuloElement(value, self)
+        return a
+
+    def __getattr__(self, attr):
+        value = getattr(self.ring, attr)
         a = ModuloElement(value, self)
         return a
 
@@ -604,6 +634,91 @@ class ModuloElement(GenericElement):
     @property
     def deg(self):
         return self.value.deg
+
+
+# ----------------------------------------------------------------------------
+
+
+class FieldOfFractions(Ring):
+    
+    def __init__(self, base):
+        Ring.__init__(self)
+        self.base = base
+        one = base.one
+        zero = base.zero
+        self.one = Fraction((one, one), self)
+        self.zero = Fraction((zero, one), self)
+
+    def promote(self, value):
+        if isinstance(value, Fraction):
+            assert value.tp == self
+            return value
+        value = self.base.promote(value)
+        value = Fraction((value, self.base.one), self)
+        return value
+
+    def eq(self, a, b):
+        atop, abot = a.value
+        btop, bbot = b.value
+        return atop * bbot == btop * abot
+    
+    def ne(self, a, b):
+        atop, abot = a.value
+        btop, bbot = b.value
+        return atop * bbot != btop * abot
+    
+    def add(self, a, b):
+        atop, abot = a.value
+        btop, bbot = b.value
+        top = atop * bbot + btop * abot
+        bot = abot * bbot
+        return Fraction((top, bot), self)
+    
+    def sub(self, a, b):
+        atop, abot = a.value
+        btop, bbot = b.value
+        top = atop * bbot - btop * abot
+        bot = abot * bbot
+        return Fraction((top, bot), self)
+    
+    def mul(self, a, b):
+        atop, abot = a.value
+        btop, bbot = b.value
+        top = atop * btop
+        bot = abot * bbot
+        return Fraction((top, bot), self)
+    
+    def neg(self, a):
+        atop, abot = a.value
+        return Fraction((-atop, abot), self)
+
+    def div(self, a, b):
+        atop, abot = a.value
+        btop, bbot = b.value
+        top = atop * bbot
+        bot = abot * btop
+        if bot == self.zero:
+            raise Exception("cannot divide %s by %s"%(a, b))
+        return Fraction((top, bot), self)
+    
+
+class Fraction(GenericElement):
+    def __init__(self, value, tp):
+        top, bot = value
+        base = tp.base
+        assert top.tp == base
+        assert bot.tp == base
+        factor = base.gcd(top, bot)
+        top = top/factor
+        bot = bot/factor
+        value = (top, bot)
+        GenericElement.__init__(self, value, tp)
+
+    def __str__(self):
+        top, bot = self.value
+        return "(%s/%s)"%(top, bot)
+
+
 
 
 # ----------------------------------------------------------------------------
@@ -758,26 +873,14 @@ def cayley(elements):
     return G
 
 
-def divisors(n):
-    divs = [1] 
-    for i in range(2, n): 
-        if n%i == 0:
-            divs.append(i)
-    if n>1:
-        divs.append(n)
-    return divs
-
-
-_cyclotomic_cache = {} # XXX TODO
-def cyclotomic(n):
+_cyclotomic_cache = {}
+def cyclotomic(ring, n): # make this a method ?
 
     if n in _cyclotomic_cache:
         return _cyclotomic_cache[n]
 
     divs = divisors(n)
 
-    Z = IntegerRing()
-    ring = PolynomialRing(Z)
     x = ring.x
     one = ring.one
 
@@ -794,7 +897,7 @@ def cyclotomic(n):
 
         assert divs[-1] == n
         for i in divs[:-1]:
-            p = p / cyclotomic(i)
+            p = p / cyclotomic(ring, i)
 
     _cyclotomic_cache[n] = p
     return p
@@ -1037,27 +1140,26 @@ def test():
 
     ring = PolynomialRing(Z)
     x = ring.x
-    assert cyclotomic(1) == x-1
-    assert cyclotomic(2) == x+1
-    assert cyclotomic(3) == x**2+x+1
-    assert cyclotomic(4) == x**2+1
-    assert cyclotomic(5) == x**4+x**3+x**2+x+1
-    assert cyclotomic(6) == x**2-x+1
-    assert cyclotomic(7) == x**6+x**5+x**4+x**3+x**2+x+1
-    assert cyclotomic(8) == x**4+1
-    assert cyclotomic(9) == x**6+x**3+1
-    assert cyclotomic(10) == x**4-x**3+x**2-x+1
-    assert cyclotomic(24) == x**8-x**4+1
+    assert cyclotomic(ring, 1) == x-1
+    assert cyclotomic(ring, 2) == x+1
+    assert cyclotomic(ring, 3) == x**2+x+1
+    assert cyclotomic(ring, 4) == x**2+1
+    assert cyclotomic(ring, 5) == x**4+x**3+x**2+x+1
+    assert cyclotomic(ring, 6) == x**2-x+1
+    assert cyclotomic(ring, 7) == x**6+x**5+x**4+x**3+x**2+x+1
+    assert cyclotomic(ring, 8) == x**4+1
+    assert cyclotomic(ring, 9) == x**6+x**3+1
+    assert cyclotomic(ring, 10) == x**4-x**3+x**2-x+1
+    assert cyclotomic(ring, 24) == x**8-x**4+1
 
     # -------------------------
 
     for n in range(2, 5):
 
-        p = cyclotomic(2*n)
+        p = cyclotomic(ring, 2*n)
     
         ring = PolynomialRing(Z) / p
-        x = ring.ring.x # HACK
-        x = ring.promote(x)
+        x = ring.x
     
         x1 = x**(2*n-1) # inverse
         
@@ -1075,6 +1177,75 @@ def test():
     
         Di = mulclose([A, B])
         assert len(Di) == 4*n
+
+    # -------------------------
+
+    field = FieldOfFractions(Z)
+    one = field.one
+    two = one+one
+    assert two*one == two
+    half = one/two
+    assert 2*half == 1
+
+    assert 4*one/4 == one
+    assert str(18*one/4) == "(9/2)"
+
+    # -------------------------
+
+    if 0:
+
+        ring = PolynomialRing(Z)
+        field = FieldOfFractions(ring)
+        one = field.one
+        two = one+one
+        assert two*one == two
+        half = one/two # FAIL
+        assert 2*half == 1
+        assert 4*one/4 == one
+
+    # -------------------------
+    # Gaussian integers
+    # http://math.ucr.edu/home/baez/week216.html
+
+    ring = PolynomialRing(Z)
+    x = ring.x
+    gints = ring / (x**2 + 1)
+
+    one = gints.one
+    i = gints.x
+
+    assert i*i == -one
+    assert i**3 == -i
+
+    assert (1+i)**2 == 2*i
+    assert (2+i)*(2-i) == 5
+    assert (3+2*i)*(3-2*i) == 13
+
+    # -------------------------
+    # Eisenstein integers
+    
+    ring = PolynomialRing(Z)
+    x = ring.x
+    ints = ring / cyclotomic(ring, 3)
+
+    one = ints.one
+    i = ints.x
+
+    assert i**3 == 1
+
+    # -------------------------
+    # Kleinian integers
+    
+    if 0:
+        ring = PolynomialRing(Z)
+        x = ring.x
+        ints = ring / (4*x**2 + 4*x + 8)
+    
+        one = ints.one
+        i = ints.x
+    
+        assert i * (-1-i) == 2 # FAIL
+
 
 
 
