@@ -103,17 +103,27 @@ class Element(object):
         return a
 
     def __floordiv__(self, other):
-        assert 0, "TODO"
+        tp = self.tp
+        other = tp.promote(other)
+        if other is None:
+            return NotImplemented
+        a = tp.floordiv(self, other)
+        return a
 
     def __rfloordiv__(self, other):
-        assert 0, "TODO"
+        tp = self.tp
+        other = tp.promote(other)
+        if other is None:
+            return NotImplemented
+        a = tp.floordiv(other, self)
+        return a
 
     def __truediv__(self, other):
         tp = self.tp
         other = tp.promote(other)
         if other is None:
             return NotImplemented
-        a = tp.div(self, other)
+        a = tp.truediv(self, other)
         return a
 
     def __rtruediv__(self, other):
@@ -121,7 +131,7 @@ class Element(object):
         other = tp.promote(other)
         if other is None:
             return NotImplemented
-        a = tp.div(other, self)
+        a = tp.truediv(other, self)
         return a
 
     def __mod__(self, other):
@@ -245,9 +255,13 @@ class IntegerRing(Ring):
     def neg(self, a):
         return Integer(-a.value, self)
 
-    def div(self, a, b):
+    def truediv(self, a, b):
         if a.value%b.value:
             raise Exception("cannot divide %r by %r" % (a, b))
+        i = a.value // b.value
+        return Integer(i, self)
+
+    def floordiv(self, a, b):
         i = a.value // b.value
         return Integer(i, self)
 
@@ -345,9 +359,13 @@ class FiniteField(Ring):
             assert 0
         return FieldElement(j, self)
 
-    def div(self, a, b):
+    def truediv(self, a, b):
         b = self.inverse(b)
         return self.mul(a, b)
+    floordiv = truediv
+
+    def mod(self, a, b):
+        return self.zero
     
     def promote(self, value):
         if isinstance(value, FieldElement):
@@ -426,10 +444,14 @@ class PolynomialRing(Keyed, Ring):
             cs[deg] = cs.get(deg, 0) + c0*c1
         return Polynomial(cs, self)
 
-    def div(self, a, b):
+    def truediv(self, a, b):
         p, rem = b.reduce(a)
         if rem != self.zero:
             return None
+        return p
+
+    def floordiv(self, a, b):
+        p, rem = b.reduce(a)
         return p
 
     def mod(self, a, b):
@@ -515,22 +537,26 @@ class Polynomial(Element):
             return base.zero, b
         x = tp.x
         r = base.zero
-        #print("reduce: %s, %s" % (a, b))
+#        print("reduce: %s, %s" % (a, b))
         assert a != 0
         while b.deg >= a.deg:
             b0 = b[b.deg]
             assert b0 is not None, b
             a0 = a[a.deg]
             assert a0 is not None, repr(a)
-            coeff = b0/a0 # FIX FIX FIX XXX
-            assert coeff != 0
-            m = coeff * x**(b.deg - a.deg)
-            #print("m = %s"%m)
+            div = b0//a0
+            if div==0:
+                break
+            rem = b0%a0
+#            print("div = %s, rem = %s" % (div, rem))
+            assert div != 0
+            m = div * x**(b.deg - a.deg)
+#            print("m = %s"%m)
             ma = m*a
             assert ma.deg == b.deg
             _b = b - ma
-            #print("b = %s"%_b)
-            assert _b.deg < b.deg
+#            print("b = %s"%_b)
+            assert _b.deg <= b.deg
             b = _b
             r = r + m
         return r, b
@@ -615,7 +641,7 @@ class GaloisField(ModuloRing):
         self.one = ModuloElement(one, self)
         self.x = ModuloElement(x, self)
 
-    def div(self, a, b):
+    def truediv(self, a, b):
         ring = self.ring
         mod = self.mod
         if a==self.zero:
@@ -692,7 +718,7 @@ class FieldOfFractions(Ring):
         atop, abot = a.value
         return Fraction((-atop, abot), self)
 
-    def div(self, a, b):
+    def truediv(self, a, b):
         atop, abot = a.value
         btop, bbot = b.value
         top = atop * bbot
@@ -801,7 +827,7 @@ class Linear(Keyed, Type):
                 for j in range(n)) for i in range(n))
         return LinearElement(value, self)
 
-    def div(self, a, b):
+    def truediv(self, a, b):
         assert b.tp == self.base
         a = a.value # unwrap
         n = self.n
@@ -946,6 +972,12 @@ def test():
     div, rem = a.reduce(b)
     assert a*div + rem == b
     #print("(%s) * (%s) + %s = %s" % (a, div, rem, b))
+
+    bot = 2*x+1
+    top = 3*x
+    
+    div, rem = bot.reduce(top)
+    assert bot*div + rem == top
 
     # -------------------------
 
@@ -1180,8 +1212,8 @@ def test():
 
     # -------------------------
 
-    field = FieldOfFractions(Z)
-    one = field.one
+    Q = FieldOfFractions(Z)
+    one = Q.one
     two = one+one
     assert two*one == two
     half = one/two
@@ -1192,16 +1224,14 @@ def test():
 
     # -------------------------
 
-    if 0:
-
-        ring = PolynomialRing(Z)
-        field = FieldOfFractions(ring)
-        one = field.one
-        two = one+one
-        assert two*one == two
-        half = one/two # FAIL
-        assert 2*half == 1
-        assert 4*one/4 == one
+    ring = PolynomialRing(Z)
+    field = FieldOfFractions(ring)
+    one = field.one
+    two = one+one
+    assert two*one == two
+    half = one/two
+    assert 2*half == 1
+    assert 4*one/4 == one
 
     # -------------------------
     # Gaussian integers
@@ -1236,15 +1266,14 @@ def test():
     # -------------------------
     # Kleinian integers
     
-    if 0:
-        ring = PolynomialRing(Z)
-        x = ring.x
-        ints = ring / (4*x**2 + 4*x + 8)
-    
-        one = ints.one
-        i = ints.x
-    
-        assert i * (-1-i) == 2 # FAIL
+    ring = PolynomialRing(Z)
+    x = ring.x
+    ints = ring / (x**2 + x + 2)
+
+    one = ints.one
+    i = ints.x
+
+    assert i * (-1-i) == 2
 
 
 
