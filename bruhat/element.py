@@ -23,6 +23,11 @@ def divisors(n):
 
 class Type(object):
 
+    def promote(self, a):
+        if isinstance(a, Element) and a.tp == self:
+            return a
+        return None
+
     def eq(self, a, b):
         return a.value == b.value
 
@@ -87,6 +92,20 @@ class Element(object):
         tp = self.tp
         other = tp.promote(value)
         a = tp.mul(other, self)
+        return a
+
+    def __matmul__(self, other):
+        tp = self.tp
+        other = tp.promote(other)
+        if other is None:
+            return NotImplemented
+        a = tp.matmul(self, other)
+        return a
+
+    def __rmatmul__(self, value):
+        tp = self.tp
+        other = tp.promote(value)
+        a = tp.matmul(other, self)
         return a
 
     def __radd__(self, value):
