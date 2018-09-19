@@ -1,49 +1,53 @@
 #!/usr/bin/env python3
 
 """
-Category of finite sets and relations
+Category of finite sets and relations as a compact closed category.
+We avoid using associators by treating tensor as a mult-arity operation.
+(Even though python treats it as a binary operation.)
+
+See:
+Physics, Topology, Logic and Computation: A Rosetta Stone
+John C. Baez, Mike Stay
+https://arxiv.org/abs/0903.0340
 """
 
 import sys, os
 
-from bruhat.element import Type, GenericElement
-
-
-
-class TpSet(Type):
-
-    def eq(self, a, b):
-        return a.set_items == b.set_items
-
-    def ne(self, a, b):
-        return a.set_items != b.set_items
-
-
-class TpRel(Type):
-
-    def eq(self, a, b):
-        return a.set_items == b.set_items
-
-    def ne(self, a, b):
-        return a.set_items != b.set_items
-
-    def mul(self, a, b):
-        "tensor"
-
-    def matmul(self, a, b):
-        "dot"
-
-    def promote(self, a):
-        if isinstance(a, Rel):
-            return a
-        items = [(x, x) for x in a]
-        return Rel(items)
+#from bruhat.element import Type, GenericElement
+#
+#class TpSet(Type):
+#
+#    def eq(self, a, b):
+#        return a.set_items == b.set_items
+#
+#    def ne(self, a, b):
+#        return a.set_items != b.set_items
+#
+#
+#class TpRel(Type):
+#
+#    def eq(self, a, b):
+#        return a.set_items == b.set_items
+#
+#    def ne(self, a, b):
+#        return a.set_items != b.set_items
+#
+#    def mul(self, a, b):
+#        "tensor"
+#
+#    def matmul(self, a, b):
+#        "dot"
+#
+#    def promote(self, a):
+#        if isinstance(a, Rel):
+#            return a
+#        items = [(x, x) for x in a]
+#        return Rel(items)
 
 
 class Set(object):
     def __init__(self, items):
-        for x in items:
-            assert type(x) is tuple
+        items = [(x if type(x) is tuple else tuple(x)) for x in items]
         items = list(items)
         items.sort() # eeeeck: watch this ! 
         self.items = tuple(items)
@@ -69,7 +73,7 @@ class Set(object):
 
     def __mul__(a, b):
         "tensor"
-        items = [x+y for x in a.items for y in b.items]
+        items = [x+y for x in a.items for y in b.items] # tuple addition
         return Set(items)
         
     def __matmul__(a, b):
@@ -80,16 +84,18 @@ class Set(object):
 
     @property
     def left_unitor(self):
+        "I*X --> X"
         src = Set.one * self
         tgt = self
-        items = [(Set.star+x, x) for x in self.items]
+        items = [(Set.star+x, x) for x in self.items] # tuple addition
         return Rel(items, src, tgt)
 
     @property
     def right_unitor(self):
+        "X*I --> X"
         src = self * Set.one
         tgt = self
-        items = [(x+Set.star, x) for x in self.items]
+        items = [(x+Set.star, x) for x in self.items] # tuple addition
         return Rel(items, src, tgt)
 
     @property
@@ -98,7 +104,7 @@ class Set(object):
         src = Set.one
         star = Set.star
         tgt = self * self
-        items = [(star, (x + x)) for x in self.items]
+        items = [(star, (x + x)) for x in self.items] # tuple addition
         return Rel(items, src, tgt)
 
     @property
@@ -107,7 +113,7 @@ class Set(object):
         tgt = Set.one
         star = Set.star
         src = self * self
-        items = [((x + x), star) for x in self.items]
+        items = [((x + x), star) for x in self.items] # tuple addition
         return Rel(items, src, tgt)
 
 
@@ -118,13 +124,15 @@ class Rel(object):
         assert isinstance(src, Set)
         assert isinstance(tgt, Set)
 
-        items = list(items)
-        items.sort() # eeeeck
-        self.items = tuple(items)
-        self.set_items = set(items)
+        items = [
+            ((i if type(i) is tuple else tuple(i)), (j if type(j) is tuple else tuple(j)))
+            for (i, j) in items]
         for i, j in items:
             assert i in src, "%s not found in %s" % (i, src) # col
             assert j in tgt, "%s not found in %s" % (j, tgt) # row
+        items.sort() # eeeeck
+        self.items = tuple(items)
+        self.set_items = set(items)
         self.src = src
         self.tgt = tgt
 
@@ -148,7 +156,7 @@ class Rel(object):
         "tensor"
         src = a.src * b.src
         tgt = a.tgt * b.tgt
-        items = [(x+y, u+v) for (x, u) in a.items for (y, v) in b.items]
+        items = [(x+y, u+v) for (x, u) in a.items for (y, v) in b.items] # tuple addition
         return Rel(items, src, tgt)
 
     def __matmul__(a, b):
@@ -168,7 +176,7 @@ class Rel(object):
 
 
 Set.star = ("*",)
-Set.one = Set([Set.star])
+Set.one = Set([Set.star]) # tensor unit
 
 def dot(*rels):
     idx = 0
@@ -190,21 +198,23 @@ def compose(*rels):
 
 def test():
 
-    A = Set([(x,) for x in "abcd"])
-    B = Set([(x,) for x in "uv"])
-    C = Set([(x,) for x in "1234"])
-    D = Set([(x,) for x in "678"])
+    A = Set("abcd")
+    B = Set("uv")
+    C = Set("1234")
+    D = Set("678")
 
     assert (A*B)*C == A*(B*C)
 
-    f = Rel([(('a',), ('u',)), (('a',), ('v',))], A, B) # A--f-->B
+    f = Rel([('a', 'u'), ('a', 'v')], A, B) # A--f-->B
 
     assert f@A.ident == f
     assert B.ident@f == f
     
-    g = Rel([(('2',), ('6',)), (('3',), ('8',))], C, D) # C--g-->D
+    g = Rel([('2', '6'), ('3', '8')], C, D) # C--g-->D
 
-    h = f*g*g
+    h = Rel([('a', 'd'), ('b', 'c'), ('c', 'c')], A, A) # A--g-->A
+
+    assert f*(g*h) == (f*g)*h
 
     #print(h)
 
@@ -219,9 +229,11 @@ def test():
     assert lhs == rhs
 
     # check dual is transpose
-    lhs = A.left_unitor @ ( B.cup * A.ident ) @ (B.ident * f * A.ident ) @ ( B.ident * A.cap )
-    rhs = f.dual() @ B.right_unitor
-    assert lhs == rhs
+    for f in [h, g, f]:
+        A, B = f.src, f.tgt
+        lhs = A.left_unitor @ ( B.cup * A.ident ) @ (B.ident * f * A.ident ) @ ( B.ident * A.cap )
+        rhs = f.dual() @ B.right_unitor
+        assert lhs == rhs
 
     #print(lhs)
     #print(rhs)
