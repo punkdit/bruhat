@@ -947,6 +947,10 @@ def cyclotomic(ring, n): # make this a method ?
     _cyclotomic_cache[n] = p
     return p
 
+# ----------------------------------------------------------------------------
+
+Z = IntegerRing()
+Q = FieldOfFractions(Z)
 
 
 # ----------------------------------------------------------------------------
@@ -970,7 +974,6 @@ def test():
 
     # -------------------------
 
-    Z = IntegerRing()
     one = Z.one
     two = one + one
     assert one/one == one
@@ -1231,7 +1234,6 @@ def test():
 
     # -------------------------
 
-    Q = FieldOfFractions(Z)
     one = Q.one
     two = one+one
     assert two*one == two

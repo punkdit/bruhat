@@ -1,145 +1,163 @@
 #!/usr/bin/env python3
 
 """
-Category of finite sets and relations as a compact closed category.
+Category of finite dimensional vector spaces as a compact closed category.
 We avoid using associators by treating tensor as a multi-arity operation.
 (Even though python treats it as a binary operation.)
+Based on rel.py 
 
 See:
 Physics, Topology, Logic and Computation: A Rosetta Stone
 John C. Baez, Mike Stay
 https://arxiv.org/abs/0903.0340
+
+Also:
+2-Hilbert spaces:
+https://arxiv.org/pdf/q-alg/9609018.pdf
 """
 
 import sys, os
+from functools import lru_cache
 
-#from bruhat.element import Type, GenericElement
-#
-#class TpSet(Type):
-#
-#    def eq(self, a, b):
-#        return a.set_items == b.set_items
-#
-#    def ne(self, a, b):
-#        return a.set_items != b.set_items
-#
-#
-#class TpRel(Type):
-#
-#    def eq(self, a, b):
-#        return a.set_items == b.set_items
-#
-#    def ne(self, a, b):
-#        return a.set_items != b.set_items
-#
-#    def mul(self, a, b):
-#        "tensor"
-#
-#    def matmul(self, a, b):
-#        "dot"
-#
-#    def promote(self, a):
-#        if isinstance(a, Rel):
-#            return a
-#        items = [(x, x) for x in a]
-#        return Rel(items)
+from bruhat.element import Z
 
 
-class Set(object):
-    def __init__(self, items):
-        items = [(x if type(x) is tuple else tuple(x)) for x in items]
-        items = list(items)
-        items.sort() # eeeeck: watch this ! 
-        self.items = tuple(items)
-        self.set_items = set(items)
-        pairs = [(x, x) for x in items]
-        self.ident = Rel(pairs, self, self)
+class Space(object):
+    "Vector space with an *ordered* basis, over a ring."
+
+    def __init__(self, basis, ring):
+        basis = [(x if type(x) is tuple else tuple(x)) for x in basis]
+        self.basis = tuple(basis)
+        self.set_basis = set(basis)
+        self.ring = ring
+
+    def __contains__(self, x):
+        return x in self.set_basis
 
     def __str__(self):
-        return "Set(%s)"%(str(list(self.items)))
+        return "Space(%s)"%(str(list(self.items)))
     __repr__ = __str__
 
-    def __contains__(self, item):
-        return item in self.set_items
+    def __eq__(A, B):
+        assert A.ring == B.ring
+        return A.basis == B.basis # ordered basis
 
-    def __eq__(a, b):
-        return a.items == b.items
-
-    def __ne__(a, b):
-        return a.items != b.items
+    def __ne__(A, B):
+        assert A.ring == B.ring
+        return A.basis != B.basis # ordered basis
 
     def __hash__(self):
-        return hash(self.items)
+        return hash(self.basis) # ordered basis
 
-    def __mul__(a, b):
+    def __mul__(A, B):
         "tensor"
-        items = [x+y for x in a.items for y in b.items] # tuple addition
-        return Set(items)
+        assert A.ring == B.ring
+        basis = [x+y for x in A.basis for y in B.basis] # tuple addition
+        return Space(basis, A.ring)
         
-    def __matmul__(a, b):
-        if a==b:
-            return a
+    def __matmul__(A, B):
+        assert A.ring == B.ring
+        if A==B:
+            return A
         else:
             assert 0
 
+    @classmethod
+    @lru_cache()
+    def zero(cls, ring):
+        "zero object"
+        return cls([], ring)
+    
+    the_star = ("*",)
+
+    @classmethod
+    @lru_cache()
+    def unit(cls, ring):
+        "Tensor unit object"
+        return cls([cls.the_star], ring)
+    
+    #@lru_cache
+    @property
+    def ident(self):
+        ring = self.ring
+        one, zero = ring.one, ring.zero
+        items = [((x, x), one) for x in self.basis]
+        ident = Map(items, self, self)
+        return ident
+
     @property
     def left_unitor(self):
-        "I*X --> X"
-        src = Set.one * self
+        "IxA --> A"
+        src = Space.unit(self.ring) * self
         tgt = self
-        items = [(Set.star+x, x) for x in self.items] # tuple addition
-        return Rel(items, src, tgt)
+        one = self.ring.one
+        basis = [((Space.the_star+x, x), one) for x in self.basis] # tuple addition
+        return Map(basis, src, tgt)
 
     @property
     def right_unitor(self):
-        "X*I --> X"
-        src = self * Set.one
+        "AxI --> A"
+        src = self * Space.unit(self.ring)
         tgt = self
-        items = [(x+Set.star, x) for x in self.items] # tuple addition
-        return Rel(items, src, tgt)
+        one = self.ring.one
+        basis = [((x+Space.the_star, x), one) for x in self.basis] # tuple addition
+        return Map(basis, src, tgt)
 
     @property
     def cap(self):
-        "the unit, eta: I --> X*X"
-        src = Set.one
-        star = Set.star
+        "the unit, eta: I --> AxA"
+        src = Space.unit(self.ring)
+        the_star = Space.the_star
         tgt = self * self
-        items = [(star, (x + x)) for x in self.items] # tuple addition
-        return Rel(items, src, tgt)
+        one = self.ring.one
+        basis = [((the_star, x+x), one) for x in self.basis] # tuple addition
+        return Map(basis, src, tgt)
 
     @property
     def cup(self):
-        "the co-unit, epsilon: X*X --> I"
-        tgt = Set.one
-        star = Set.star
+        "the co-unit, epsilon: AxA --> I"
+        tgt = Space.unit(self.ring)
+        the_star = Space.the_star
         src = self * self
-        items = [((x + x), star) for x in self.items] # tuple addition
-        return Rel(items, src, tgt)
+        one = self.ring.one
+        basis = [((x+x, the_star), one) for x in self.basis] # tuple addition
+        return Map(basis, src, tgt)
 
     #get_perm
 
 
-class Rel(object):
+class Map(object):
 
-    def __init__(self, items, src, tgt):
-        assert isinstance(src, Set)
-        assert isinstance(tgt, Set)
+    def __init__(self, _items, src, tgt):
+        assert isinstance(src, Space)
+        assert isinstance(tgt, Space)
 
-        items = [
-            ((i if type(i) is tuple else tuple(i)), (j if type(j) is tuple else tuple(j)))
-            for (i, j) in items]
-        for i, j in items:
+        ring = src.ring
+        zero = ring.zero
+        assert tgt.ring == ring
+        items = []
+        keys = []
+        for item in _items:
+            (i, j), val = item
+            i = (i if type(i) is tuple else (i,))
+            j = (j if type(j) is tuple else (j,))
+            if val != zero: # make canonical. sparse
+                items.append(((i, j), val))
+                keys.append((i, j))
+            assert val.tp == ring
             assert i in src, "%s not found in %s" % (i, src) # col
             assert j in tgt, "%s not found in %s" % (j, tgt) # row
-        items.sort() # eeeeck
+        assert len(keys)==len(items), "duplicate key: %s" % (keys)
+        items.sort() # Make canonical. careful with this...
         self.items = tuple(items)
-        self.set_items = set(items)
+        self.map_items = dict(items)
         self.src = src
         self.tgt = tgt
         self.shape = (src, tgt)
+        self.ring = ring
 
     def __str__(self):
-        return "Rel(%s)"%(str(list(self.items)))
+        return "Map(%s)"%(str(list(self.items)))
     __repr__ = __str__
 
     def __eq__(a, b):
@@ -158,62 +176,67 @@ class Rel(object):
         "tensor"
         src = a.src * b.src
         tgt = a.tgt * b.tgt
-        items = [(x+y, u+v) for (x, u) in a.items for (y, v) in b.items] # tuple addition
-        return Rel(items, src, tgt)
+        items = [
+            ((x+y, u+v), val*wal)
+            for ((x, u), val) in a.items 
+            for ((y, v), wal) in b.items]
+        return Map(items, src, tgt)
 
     def __matmul__(a, b):
         assert b.tgt == a.src, "%s != %s" % (b.tgt, a.src)
 
-        items = set()
-        for j, i in a.items:
-          for k, j1 in b.items:
+        zero = a.ring.zero
+        map_items = dict()
+        for ((j, i), u) in a.items:
+          for ((k, j1), v) in b.items:
             if j != j1:
                 continue
-            items.add((k, i))
-        return Rel(items, b.src, a.tgt)
+            val = map_items.get((k, i), zero) + u*v
+            map_items[k, i] = val
+        items = list(map_items.items())
+        return Map(items, b.src, a.tgt)
 
-    def dual(self):
-        items = [(j, i) for (i, j) in self.items]
-        return Rel(items, self.tgt, self.src)
+    def transpose(self):
+        items = [((j, i), v) for ((i, j), v) in self.items]
+        return Map(items, self.tgt, self.src)
 
 
 
-Set.zero = Set([])
-Set.star = ("*",)
-Set.one = Set([Set.star]) # tensor unit
-
-def dot(*rels):
+def dot(*maps):
     idx = 0
-    A = rels[idx]
-    while idx+1 < len(rels):
-        B = rels[idx+1]
+    A = maps[idx]
+    while idx+1 < len(maps):
+        B = maps[idx+1]
         A = A@B
         idx += 1 
     A = A%2
     return A
 
 
-def compose(*rels):
-    rels = list(reversed(rels))
-    A = dot(*rels)
+def compose(*maps):
+    maps = list(reversed(maps))
+    A = dot(*maps)
     return A
 
 
 
 def test():
 
-    zero = Set.zero
-    I = Set.one
+    ring = Z
 
-    A = Set("abcd")
-    B = Set("uv")
-    C = Set("1234")
-    D = Set("678")
+    zero = Space.zero(ring)
+    I = Space.unit(ring)
+
+    A = Space("abcd", Z)
+    B = Space("uv", Z)
+    C = Space("1234", Z)
+    D = Space("678", Z)
 
     assert (A*B)*C == A*(B*C)
     assert zero*A == A*zero == zero
 
-    f = Rel([('a', 'u'), ('a', 'v')], A, B) # A--f-->B
+    one = Z.one
+    f = Map([(('a', 'u'), one), (('a', 'v'), one)], A, B) # A--f-->B
 
     assert f@A.ident == f
     assert B.ident@f == f
@@ -221,9 +244,9 @@ def test():
     assert ((f * A.ident) @ A.cap).shape == (I, B*A)
     assert ((A.ident * f) @ A.cap).shape == (I, A*B)
     
-    g = Rel([('2', '6'), ('3', '8')], C, D) # C--g-->D
+    g = Map([(('2', '6'), one), (('3', '8'), one)], C, D) # C--g-->D
 
-    h = Rel([('a', 'd'), ('b', 'c'), ('c', 'c')], A, A) # A--g-->A
+    h = Map([(('a', 'd'), one), (('b', 'c'), one), (('c', 'c'), one)], A, A) # A--g-->A
 
     assert f*(g*h) == (f*g)*h
 
@@ -243,7 +266,7 @@ def test():
     for f in [h, g, f]:
         A, B = f.src, f.tgt
         lhs = A.left_unitor @ ( B.cup * A.ident ) @ (B.ident * f * A.ident ) @ ( B.ident * A.cap )
-        rhs = f.dual() @ B.right_unitor
+        rhs = f.transpose() @ B.right_unitor
         assert lhs == rhs
 
     #print(lhs)
