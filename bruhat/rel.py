@@ -2,7 +2,7 @@
 
 """
 Category of finite sets and relations as a compact closed category.
-We avoid using associators by treating tensor as a mult-arity operation.
+We avoid using associators by treating tensor as a multi-arity operation.
 (Even though python treats it as a binary operation.)
 
 See:
@@ -116,6 +116,7 @@ class Set(object):
         items = [((x + x), star) for x in self.items] # tuple addition
         return Rel(items, src, tgt)
 
+    #get_perm
 
 
 class Rel(object):
@@ -135,6 +136,7 @@ class Rel(object):
         self.set_items = set(items)
         self.src = src
         self.tgt = tgt
+        self.shape = (src, tgt)
 
     def __str__(self):
         return "Rel(%s)"%(str(list(self.items)))
@@ -175,6 +177,8 @@ class Rel(object):
         return Rel(items, self.tgt, self.src)
 
 
+
+Set.zero = Set([])
 Set.star = ("*",)
 Set.one = Set([Set.star]) # tensor unit
 
@@ -198,17 +202,24 @@ def compose(*rels):
 
 def test():
 
+    zero = Set.zero
+    I = Set.one
+
     A = Set("abcd")
     B = Set("uv")
     C = Set("1234")
     D = Set("678")
 
     assert (A*B)*C == A*(B*C)
+    assert zero*A == A*zero == zero
 
     f = Rel([('a', 'u'), ('a', 'v')], A, B) # A--f-->B
 
     assert f@A.ident == f
     assert B.ident@f == f
+
+    assert ((f * A.ident) @ A.cap).shape == (I, B*A)
+    assert ((A.ident * f) @ A.cap).shape == (I, A*B)
     
     g = Rel([('2', '6'), ('3', '8')], C, D) # C--g-->D
 
