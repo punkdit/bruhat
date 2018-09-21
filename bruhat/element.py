@@ -696,8 +696,11 @@ class FieldOfFractions(Ring):
         if isinstance(value, Fraction):
             assert value.tp == self
             return value
-        value = self.base.promote(value)
-        value = Fraction((value, self.base.one), self)
+        _value = self.base.promote(value)
+        #assert _value is not None, repr(value)
+        if _value is None:
+            return None
+        value = Fraction((_value, self.base.one), self)
         return value
 
     def eq(self, a, b):

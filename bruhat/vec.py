@@ -16,8 +16,8 @@ Also:
 https://arxiv.org/pdf/q-alg/9609018.pdf
 """
 
-import sys, os
 #from functools import lru_cache # fail
+from random import randint, seed
 
 import numpy
 
@@ -354,6 +354,95 @@ def compose(*maps):
 
 
 
+
+def swap_row(A, j, k):
+    row = A[j, :].copy()
+    A[j, :] = A[k, :]
+    A[k, :] = row
+
+def swap_col(A, j, k):
+    col = A[:, j].copy()
+    A[:, j] = A[:, k]
+    A[:, k] = col
+
+
+def row_reduce(f, truncate=False, inplace=False, check=False, verbose=False):
+    """ Remove zero rows if truncate==True
+    """
+
+    A = f.to_array()
+    ring = f.ring
+    zero = ring.zero
+
+    assert len(A.shape)==2, A.shape
+    m, n = A.shape
+    if not inplace:
+        A = A.copy()
+
+    if m*n==0:
+        if truncate and m:
+            A = A[:0, :]
+        return A
+
+    if verbose:
+        print("row_reduce")
+        #print("%d rows, %d cols" % (m, n))
+
+    i = 0
+    j = 0
+    while i < m and j < n: 
+        if verbose:
+            print("i, j = %d, %d" % (i, j))
+            print("A:")
+            print(shortstrx(A))
+
+        assert i<=j 
+        if i and check:
+            assert (A[i:,:j]!=0).sum() == 0
+
+        # first find a nonzero entry in this col
+        for i1 in range(i, m):
+            if A[i1, j]:
+                break
+        else:
+            j += 1 # move to the next col
+            continue # <----------- continue ------------
+
+        if i != i1:
+            if verbose:
+                print("swap", i, i1)
+            swap_row(A, i, i1)
+
+        assert A[i, j]
+        for i1 in range(i+1, m):
+            if A[i1, j]:
+                if verbose: 
+                    print("add row %s to %s" % (i, i1))
+                r = -A[i1, j] / A[i, j]
+                A[i1, :] += r*A[i, :]
+                assert A[i1, j] == zero
+
+        i += 1 
+        j += 1 
+
+    if truncate:
+        m = A.shape[0]-1
+        #print("sum:", m, A[m, :], A[m, :].sum())
+        while m>=0 and (A[m, :]!=0).sum()==0:
+            m -= 1
+        A = A[:m+1, :]
+
+    if verbose:
+        print()
+
+    f1 = Map.from_array(A, f.hom)
+
+    return f1
+
+
+
+
+
 def test_over_ring(ring):
 
     zero = Space.zero(ring)
@@ -425,12 +514,50 @@ def test_over_ring(ring):
 
 
 
+def zeros(ring, m, n):
+    A = numpy.empty((m, n), dtype=object)
+    A[:] = ring.zero
+    return A
+
+
+def rand(ring, m, n, p=3, q=3):
+    A = zeros(ring, m, n)
+    for i in range(m):
+      for j in range(n):
+        a = randint(-p, q)
+        A[i, j] = ring.promote(a) / randint(1, q)
+    return A
+
+
+def test():
+
+    Q = element.Q
+
+    n = 5
+    gen = list(range(n))
+    X = Space(gen, Q)
+
+    A = rand(Q, n, n, 0, 5)
+
+    hom = Hom(X, X)
+    f = Map.from_array(A, hom)
+
+    print(f)
+
+    f = row_reduce(f)
+    
+    print(f)
+    print()
+
+
+
 
 if __name__ == "__main__":
 
 
     test_over_ring(element.Z)
     test_over_ring(element.Q)
+    test()
     print("OK")
 
 
