@@ -96,6 +96,8 @@ class Element(Type):
     def __rmul__(self, value):
         tp = self.tp
         other = tp.promote(value)
+        if other is None:
+            return NotImplemented
         a = tp.mul(other, self)
         return a
 
@@ -110,6 +112,8 @@ class Element(Type):
     def __rmatmul__(self, value):
         tp = self.tp
         other = tp.promote(value)
+        if other is None:
+            return NotImplemented
         a = tp.matmul(other, self)
         return a
 

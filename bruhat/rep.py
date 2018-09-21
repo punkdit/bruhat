@@ -81,10 +81,8 @@ class Rep(Element): # Object of the category
             print(rg)
             print()
 
-
     @classmethod
     def perm_rep(cls, G, cat):
-        
         ring = cat.ring
         one = ring.one
         basis = G.items
@@ -97,6 +95,41 @@ class Rep(Element): # Object of the category
             send_perms[g] = rg
         rep = cls(send_perms, V, cat)
         return rep
+
+
+#class RepHom(Keyed, Type):
+#    def __init__(self, src, tgt):
+#        assert isinstance(src, Rep)
+#        assert isinstance(tgt, Rep)
+#        assert src.ring == tgt.ring
+#        Keyed.__init__(self, (src, tgt))
+#        Type.__init__(self)
+#        self.ring = src.ring
+#        self.src = src 
+#        self.tgt = tgt 
+#
+#    @property
+#    def zero(self):
+#        return Map([], self) # the zero map
+#
+#    def __getitem__(self, i): 
+#        assert 0<=i<1
+#        return [self.src, self.tgt][i]
+#
+#    def tensor(a, b): 
+#        # not sure if this makes sense mathematically..
+#        src = a.src * b.src
+#        tgt = a.tgt * b.tgt
+#        return Hom(src, tgt)
+#    __mul__ = tensor
+#
+#    def __matmul__(a, b): 
+#        assert b.tgt == a.src, "%s != %s" % (b.tgt, a.src)
+#        return Hom(b.src, a.tgt)
+#
+#    def transpose(a):
+#        return Hom(a.tgt, a.src)
+
 
 
 def test():
