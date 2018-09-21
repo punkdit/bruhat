@@ -36,7 +36,7 @@ class Type(object):
 
 
 
-class Element(object):
+class Element(Type):
     def __init__(self, tp):
         assert isinstance(tp, Type)
         self.tp = tp
@@ -173,23 +173,21 @@ class Element(object):
 class Keyed(object): # use for Type's
 
     def __init__(self, key):
-        self.key = key
+        if not type(key) is tuple:
+            key = (key,)
+        self.key = (self.__class__,) + key
 
     def __hash__(self):
         return hash(self.key)
 
     def __eq__(self, other):
-        if self.__class__ is not other.__class__:
-            return False
-        return self.key == other.key
+        return self.__class__ == other.__class__ and self.key == other.key
 
     def __ne__(self, other):
-        if self.__class__ is not other.__class__:
-            return True
-        return self.key != other.key
+        return self.__class__ != other.__class__ or self.key != other.key
 
     def __str__(self):
-        return "%s(%s)"%(self.__class__.__name__, self.key)
+        return str(self.key)
     __repr__ = __str__
 
 
@@ -591,7 +589,7 @@ class ModuloRing(Keyed, Ring):
         self.ring = ring
         assert mod.tp == ring
         self.mod = mod
-        key = (self.__class__, self.ring, self.mod)
+        key = (self.ring, self.mod)
         Keyed.__init__(self, key)
         self.reduce = mod.reduce
         self.zero = ModuloElement(ring.zero, self)
