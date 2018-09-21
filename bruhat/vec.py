@@ -413,7 +413,7 @@ def row_reduce(f, truncate=False, inplace=False, check=False, verbose=False):
                 print("swap", i, i1)
             swap_row(A, i, i1)
 
-        assert A[i, j]
+        assert A[i, j] != zero
         for i1 in range(i+1, m):
             if A[i1, j]:
                 if verbose: 
@@ -537,7 +537,7 @@ def test():
     gen = list(range(n))
     X = Space(gen, Q)
 
-    A = rand(Q, n, n, 0, 5)
+    A = rand(Q, n, n, 0, 1)
 
     hom = Hom(X, X)
     f = Map.from_array(A, hom)

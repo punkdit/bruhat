@@ -34,6 +34,8 @@ class Type(object):
     def ne(self, a, b):
         return a.value != b.value
 
+    def bool(self, a):
+        return True
 
 
 class Element(Type):
@@ -55,6 +57,9 @@ class Element(Type):
         if other is None:
             return NotImplemented
         return tp.ne(self, other)
+
+    def __bool__(self):
+        return self.tp.bool(self)
 
     def __add__(self, other):
         tp = self.tp
@@ -235,6 +240,9 @@ class Ring(Type):
     def __ne__(self, other):
         assert isinstance(other, Type)
         return self.__class__ != other.__class__ # ?
+
+    def bool(self, a):
+        return a != self.zero
 
 
 class IntegerRing(Ring):
@@ -696,11 +704,10 @@ class FieldOfFractions(Ring):
         if isinstance(value, Fraction):
             assert value.tp == self
             return value
-        _value = self.base.promote(value)
-        #assert _value is not None, repr(value)
-        if _value is None:
+        value = self.base.promote(value)
+        if value is None:
             return None
-        value = Fraction((_value, self.base.one), self)
+        value = Fraction((value, self.base.one), self)
         return value
 
     def eq(self, a, b):
@@ -762,6 +769,9 @@ class Fraction(GenericElement):
 
     def __str__(self):
         top, bot = self.value
+        one = self.tp.base.one
+        if bot==one:
+            return str(top)
         return "(%s/%s)"%(top, bot)
 
 
