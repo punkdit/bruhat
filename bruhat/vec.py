@@ -22,7 +22,7 @@ from random import randint, seed
 import numpy
 
 from bruhat import element
-from bruhat import felim as elim
+from bruhat import elim
 from bruhat.element import Keyed, Type, Element, GenericElement
 
 
