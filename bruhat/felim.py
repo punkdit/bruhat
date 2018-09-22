@@ -53,13 +53,18 @@ def shortstr(*items, **kw):
         items[i, j] = s
 
     smap = SMap()
+    smap[0, 0] = "["
     for i in range(m):
-      smap[i, 0] = "["
-      smap[i, n*dw+1] = "]"
+      smap[i, 1] = "["
+      smap[i, n*dw+2] = "]"
+      if i+1<m:
+        smap[i, n*dw+3] = ","
+      else:
+        smap[i, n*dw+3] = "]"
       for j in range(n):
         s = items[i, j]
         s = s.rjust(dw-1)
-        smap[i, j*dw+1] = s
+        smap[i, j*dw+2] = s
 
     return smap
 
@@ -131,6 +136,27 @@ def swap_col(A, j, k):
     col = A[:, j].copy()
     A[:, j] = A[:, k]
     A[:, k] = col
+
+
+def complement(ring, A, verbose=False):
+    A = row_reduce(ring, A, truncate=True)
+    zero = ring.zero
+    one = ring.one
+    m, n = A.shape
+    idxs = []
+    j = 0
+    for i in range(m):
+        while A[i, j] == zero:
+            idxs.append(j)
+            j += 1
+        j += 1
+    while j+1<n:
+        idxs.append(j)
+        j += 1
+    B = zeros(ring, len(idxs), n)
+    for i, j in enumerate(idxs):
+        B[i, j] = one
+    return B
 
 
 def row_reduce(ring, A, truncate=False, inplace=False, check=False, verbose=False):

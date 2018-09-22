@@ -22,6 +22,7 @@ from random import randint, seed
 import numpy
 
 from bruhat import element
+from bruhat import felim as elim
 from bruhat.element import Keyed, Type, Element, GenericElement
 
 
@@ -514,40 +515,22 @@ def test_over_ring(ring):
 
 
 
-def zeros(ring, m, n):
-    A = numpy.empty((m, n), dtype=object)
-    A[:] = ring.zero
-    return A
-
-
-def rand(ring, m, n, p=3, q=3):
-    A = zeros(ring, m, n)
-    for i in range(m):
-      for j in range(n):
-        a = randint(-p, q)
-        A[i, j] = ring.promote(a) / randint(1, q)
-    return A
-
-
 def test():
 
-    Q = element.Q
+    ring = element.Q
 
-    n = 5
-    gen = list(range(n))
-    X = Space(gen, Q)
+    m, n = 5, 10
 
-    A = rand(Q, n, n, 0, 1)
+    A = elim.rand(ring, m, n, 0, 1)
+    print(elim.shortstr(A))
 
-    hom = Hom(X, X)
-    f = Map.from_array(A, hom)
-
-    print(f)
-
-    f = row_reduce(f)
+    B = elim.row_reduce(ring, A)
+    print(elim.shortstr(B))
     
-    print(f)
-    print()
+    B = elim.complement(ring, A)
+    print(elim.shortstr(B))
+
+    C = numpy.concatenate((A, B))
 
 
 
