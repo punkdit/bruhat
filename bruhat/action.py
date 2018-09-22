@@ -168,6 +168,15 @@ class Perm(object):
                 return False
         return True
 
+    def rename(self, send_items, items):
+        perm = {}
+        assert len(items) == len(self.items)
+        for item in self.items:
+            jtem = send_items[item]
+            assert jtem in items
+            perm[jtem] = send_items[self.perm[item]]
+        return Perm(perm, items)
+
     @classmethod
     def fromcycles(cls, cycles, items, *args, **kw):
         perm = {}
@@ -524,7 +533,6 @@ assert len(choose(items4, 2)) == 4*3//2
 assert len(choose(items4, 3)) == 4
 assert len(choose(items4, 4)) == 1
 
-
 class Group(object):
     """
     A collection of Perm's.
@@ -564,6 +572,9 @@ class Group(object):
     def __contains__(self, g):
         assert g.items == self.items
         return g in self.set_perms
+
+#    def __lt__(self, other):
+#        return id(self) < id(other)
 
     @classmethod
     def generate(cls, perms, *args, **kw):
@@ -663,11 +674,11 @@ class Group(object):
         assert len(G) == 2*n
         return G
 
-    def __str__(self):
-        return "Group(%s, %s)"%(self.perms, self.items)
-
     def __repr__(self):
-        return "Group(%d, %d)"%(len(self.perms), len(self.items))
+        return "%s(%s, %s)"%(self.__class__.__name__, self.perms, self.items)
+
+    def __str__(self):
+        return "%s(%d, %d)"%(self.__class__.__name__, len(self.perms), len(self.items))
 
     def __len__(self):
         return len(self.perms)
@@ -894,7 +905,7 @@ class Group(object):
             Hs = self.subgroups()
         for action in Hs:
             for g in self:
-                coset = Group([g*h for h in action], self.items)
+                coset = Coset([g*h for h in action], self.items)
                 cosets.add(coset)
         return list(cosets)
 
@@ -1035,6 +1046,11 @@ class Group(object):
                 yield func
 
 
+class Coset(Group):
+    pass
+
+
+
 class Action(object):
     """
         A Group acting on a set.
@@ -1087,6 +1103,22 @@ class Action(object):
           for g2 in G.perms:
             h2 = send_perms[g2]
             assert send_perms[g1*g2] == h1*h2
+
+    def __getitem__(self, g):
+        perm = self.send_perms[g]
+        return perm
+
+    def rename(self, send_items, items):
+        #G, items, send_perms = self.G, self.items, self.send_perms
+        for item in self.items:
+            assert item in send_items
+        new_send = {}
+        for g in self.G.perms:
+            assert g in self.send_perms
+            perm = self.send_perms[g]
+            perm = perm.rename(send_items, items)
+            new_send[g] = perm
+        return Action(self.G, new_send, items)
 
     def pushout(self, other): # HOTSPOT
         assert self.src == other.src

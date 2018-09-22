@@ -32,7 +32,12 @@ class Space(Keyed, Type):
 
     def __init__(self, gen, ring):
         gen = [(x if type(x) is tuple else (x,)) for x in gen]
-        gen.sort() # <------- canonical <-----
+        try:
+            gen.sort() # <------- canonical <-----
+        except TypeError:
+            # unorderable types
+            #gen.sort(key = lambda a:id(a)) # too difficult...
+            raise 
         self.gen = tuple(gen)
         self.set_gen = set(gen)
         self.dim = len(gen)
@@ -147,6 +152,15 @@ class Space(Keyed, Type):
         one = self.ring.one
         items = [((the_star, x+x), one) for x in self.gen] # tuple addition
         return Map(items, Hom(src, tgt))
+
+    def inject_to(self, other):
+        one = self.ring.one
+        items = []
+        for i in self.gen:
+            assert i in other.set_gen, "%s not in %s"%(i, self.set_gen)
+            items.append(((i, i), one))
+        hom = Hom(self, other)
+        return Map(items, hom)
 
 
 class Hom(Keyed, Type):
