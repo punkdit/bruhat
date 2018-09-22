@@ -175,6 +175,9 @@ class Hom(Keyed, Type):
         self.tgt = tgt
         self.shape = (tgt.dim, src.dim)
 
+    def __str__(self):
+        return "Hom(%s, %s)"%(self.src, self.tgt)
+
     @property
     def zero(self):
         return Map([], self) # the zero map
