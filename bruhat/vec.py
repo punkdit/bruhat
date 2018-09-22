@@ -515,23 +515,34 @@ def test_over_ring(ring):
 
 
 
-def test():
+def test(ring):
 
-    ring = element.Q
 
-    m, n = 5, 10
+    for trial in range(10):
 
-    A = elim.rand(ring, m, n, 0, 1)
-    print(elim.shortstr(A))
-
-    B = elim.row_reduce(ring, A)
-    print(elim.shortstr(B))
+        m, n = 5, 10
     
-    B = elim.complement(ring, A)
-    print(elim.shortstr(B))
+        A = elim.rand(ring, m, n, 0, 1)
+        #print(elim.shortstr(A))
+    
+        B = elim.row_reduce(ring, A)
+        #print(elim.shortstr(B))
+        
+        B = elim.complement(ring, A)
+        #print(elim.shortstr(B))
+    
+        C = numpy.concatenate((A, B))
+        assert elim.rank(ring, C) == n
 
-    C = numpy.concatenate((A, B))
-
+        m, n = 10, 5
+        f = elim.rand(ring, m, n, 0, 1)
+        #print(elim.shortstr(f))
+        
+        g = elim.cokern(ring, f)
+        #print(elim.shortstr(g))
+        gf = elim.dot(ring, g, f)
+        #print(elim.shortstr(gf))
+        assert numpy.alltrue(gf==ring.zero)
 
 
 
@@ -540,7 +551,8 @@ if __name__ == "__main__":
 
     test_over_ring(element.Z)
     test_over_ring(element.Q)
-    test()
+
+    test(element.Q)
     print("OK")
 
 

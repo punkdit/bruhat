@@ -10,7 +10,6 @@ from random import randint, seed
 
 
 import numpy
-from numpy import dot
 
 from bruhat import element
 from bruhat.smap import SMap
@@ -111,19 +110,26 @@ def eq(A, B):
     return numpy.alltrue(A==B)
 
 
-def dotx(*items):
+def dot(ring, A, B):
+    C = numpy.dot(A, B)
+    if len(A.shape)==2 and A.shape[1] == 0:
+        C[:] = ring.zero
+    return C
+
+
+def dotx(ring, *items):
     idx = 0
     A = items[idx]
     while idx+1 < len(items):
         B = items[idx+1]
-        A = dot(A, B)
+        A = dot(ring, A, B)
         idx += 1 
     return A
 
 
-def compose(*items):
+def compose(ring, *items):
     items = list(reversed(items))
-    A = dotx(*items)
+    A = dotx(ring, *items)
     return A
 
 
@@ -136,27 +142,6 @@ def swap_col(A, j, k):
     col = A[:, j].copy()
     A[:, j] = A[:, k]
     A[:, k] = col
-
-
-def complement(ring, A, verbose=False):
-    A = row_reduce(ring, A, truncate=True)
-    zero = ring.zero
-    one = ring.one
-    m, n = A.shape
-    idxs = []
-    j = 0
-    for i in range(m):
-        while A[i, j] == zero:
-            idxs.append(j)
-            j += 1
-        j += 1
-    while j+1<n:
-        idxs.append(j)
-        j += 1
-    B = zeros(ring, len(idxs), n)
-    for i, j in enumerate(idxs):
-        B[i, j] = one
-    return B
 
 
 def row_reduce(ring, A, truncate=False, inplace=False, check=False, verbose=False):
@@ -231,6 +216,27 @@ def row_reduce(ring, A, truncate=False, inplace=False, check=False, verbose=Fals
 
 
 
+def complement(ring, A, verbose=False):
+    A = row_reduce(ring, A, truncate=True)
+    zero = ring.zero
+    one = ring.one
+    m, n = A.shape
+    idxs = []
+    j = 0
+    for i in range(m):
+        while A[i, j] == zero:
+            idxs.append(j)
+            j += 1
+        j += 1
+    while j<n:
+        idxs.append(j)
+        j += 1
+    B = zeros(ring, len(idxs), n)
+    for i, j in enumerate(idxs):
+        B[i, j] = one
+    return B
+
+
 def plu_reduce(ring, A, truncate=False, check=False, verbose=False):
     """
     Solve PLU = A, st. P is permutation, L is lower tri, U is upper tri.
@@ -280,7 +286,7 @@ def plu_reduce(ring, A, truncate=False, check=False, verbose=False):
             swap_row(L, i, i1)
 
         if check:
-            A1 = dot(P, dot(L, U))
+            A1 = dot(ring, P, dot(ring, L, U))
             assert eq(A1, A)
 
         r = U[i, j]
@@ -296,7 +302,7 @@ def plu_reduce(ring, A, truncate=False, check=False, verbose=False):
                 assert U[i1, j] == zero
 
         if check:
-            A1 = dot(P, dot(L, U))
+            A1 = dot(ring, P, dot(ring, L, U))
             assert eq(A1, A)
 
         i += 1
@@ -355,14 +361,14 @@ def u_inverse(ring, U, check=False, verbose=False):
         U1[j, i] = r
 
         #print("U, U1, U*U1:")
-        #print(shortstrx(U, U1, dot(U, U1)))
+        #print(shortstrx(U, U1, dot(ring, U, U1)))
 
         k = i-1
         while k>=0:
             #print("dot")
             #print(shortstr(U[k,:]))
             #print(shortstr(U1[:,i]))
-            r = dot(U[k, :], U1[:, i])
+            r = dot(ring, U[k, :], U1[:, i])
             #print("=", r)
             if r != 0:
                 j = leading[k]
@@ -370,7 +376,7 @@ def u_inverse(ring, U, check=False, verbose=False):
                 #print("set", j, i)
                 U1[j, i] = -r/s
             #print(shortstr(U1[:,i]))
-            assert dot(U[k, :], U1[:, i]) == 0
+            assert dot(ring, U[k, :], U1[:, i]) == 0
             k -= 1
         i -= 1
 
@@ -395,18 +401,18 @@ def l_inverse(ring, L, check=False, verbose=False):
         for j in range(i+1, m):
             #print("i=%d, j=%d"%(i, j))
             #print("L, L1, L*L1:")
-            #print(shortstrx(L, L1, dot(L, L1)))
-            r = dot(L[j, :], L1[:, i])
+            #print(shortstrx(L, L1, dot(ring, L, L1)))
+            r = dot(ring, L[j, :], L1[:, i])
             #print("r =", r)
             if r != 0:
                 assert L1[j, i] == 0
                 L1[j, i] = -r
-            r = dot(L[j, :], L1[:, i])
+            r = dot(ring, L[j, :], L1[:, i])
             #print("r =", r)
-            #print(shortstrx(L, L1, dot(L, L1)))
-            assert dot(L[j, :], L1[:, i]) == 0
+            #print(shortstrx(L, L1, dot(ring, L, L1)))
+            assert dot(ring, L[j, :], L1[:, i]) == 0
 
-    assert eq(dot(L, L1), identity(ring, m))
+    assert eq(dot(ring, L, L1), identity(ring, m))
     return L1
 
 
@@ -419,10 +425,10 @@ def pseudo_inverse(ring, A, check=False):
     L1 = l_inverse(ring, L, check=check)
     U1 = u_inverse(ring, U, check=check)
     #print("P, L, U, PLU:")
-    #print(shortstr(P, L, U, dot(dot(P, L), U)))
+    #print(shortstr(P, L, U, dot(ring, dot(ring, P, L), U)))
     
-    A1 = dot(U1, dot(L1, P.transpose()))
-    #print(shortstr(dot(A1, A)))
+    A1 = dot(ring, U1, dot(ring, L1, P.transpose()))
+    #print(shortstr(dot(ring, A1, A)))
     return A1
 
 
@@ -432,8 +438,8 @@ def solve(ring, H, u, force=False, verbose=False, check=False):
     A = pseudo_inverse(ring, H, check)
     #print("pseudo_inverse")
     #print(shortstr(A))
-    v = dot(A, u)
-    if eq(dot(H, v), u) or force:
+    v = dot(ring, A, u)
+    if eq(dot(ring, H, v), u) or force:
         return v
 
 
@@ -504,10 +510,127 @@ def kernel(ring, A, check=False, verbose=False):
     #K = K[:, j+1:]
     K = K[:, j:]
     if check:
-        B = dot(A0, K)
+        B = dot(ring, A0, K)
         assert numpy.alltrue(B==zero)
 
     return K.transpose()
+
+
+def projector(ring, A, check=False):
+
+    """
+        Find universal projector that kills the columns of A,
+        ie. PP=P and PA = 0, st. given any other Q with
+        QQ=Q and QA=0, then there exists R st. Q=RP.
+    """
+
+    """
+        Alternatively
+        Find universal projector that preserves the columns of A,
+        ie. PP=P and PA=A, st. given any other Q with
+        QQ=Q and QA=A, then there exists R st. P=RQ.
+    """
+
+    m, n = A.shape
+
+    P = identity(ring, m) - dot(ring, A, pseudo_inverse(ring, A))
+
+    return P
+
+
+def pushout(ring, J, K, J1=None, K1=None, check=False):
+    """  
+    Return JJ,KK given J and K in the following diagram:
+
+       J
+    A ---> B
+    |      |
+    | K    | JJ
+    v      v
+    C ---> B+C/~
+       KK
+
+    if also given J1:B->T and K1:C->T (st. J1*J=K1*K)
+    return unique arrow F : B+C/~ --> T (st. F*JJ=J1 and F*KK=K1).
+    """
+    assert J.shape[1] == K.shape[1]
+
+    b, c = J.shape[0], K.shape[0]
+    JJ = zeros(ring, b+c, b)
+    JJ[:b] = identity(ring, b)
+
+    KK = zeros(ring, b+c, c)
+    KK[b:] = identity(ring, c)
+
+    #print(K.shape)
+    #print(KK.shape)
+    kern = compose(ring, J, JJ) - compose(ring, K, KK)
+    # We need to kill the columns of kern
+    R = projector(ring, kern, check=check)
+    R = row_reduce(ring, R, truncate=True, check=check)
+
+    assert eq(compose(ring, J, JJ, R), compose(ring, K, KK, R))
+
+    JJ = compose(ring, JJ, R)
+    KK = compose(ring, KK, R)
+
+    if J1 is not None:
+        assert K1 is not None
+        assert J1.shape[0] == K1.shape[0]
+        assert eq(compose(ring, J, J1), compose(ring, K, K1))
+        m = J1.shape[0]
+        n = R.shape[0]
+        F = zeros(ring, m, n)
+
+#        print "F=", F.shape
+#        print "R=", R.shape
+        #print shortstr(R)
+
+        Rinv = pseudo_inverse(ring, R, check=check)
+
+#        print "Rinv=", Rinv.shape
+        #print shortstr(Rinv)
+
+        for i in range(n):
+            r = Rinv[:, i]
+            u, v = r[:b], r[b:]
+            u = dot(ring, J1, u)
+            v = dot(ring, K1, v)
+            #assert eq(u, v)
+            uv = (u+v)
+            F[:, i] = uv
+
+        assert eq(compose(ring, JJ, F), J1)
+        assert eq(compose(ring, KK, F), K1)
+
+        return JJ, KK, F
+
+    else:
+        return JJ, KK
+
+
+def cokern(ring, J, check=False):
+    """  
+    find f as a pushout of the following diagram:
+
+      J
+    k ---> n
+    |      |
+    |      | f
+    v      v
+    0 ---> n'
+
+    """
+
+    n, k = J.shape
+    K = zeros(ring, 0, k)
+
+    f, g = pushout(ring, J, K, check=check)
+
+    return f
+
+
+
 
 
 def rank(ring, A, **kw):
@@ -559,7 +682,7 @@ class Subspace(object):
         K = kernel(self.ring, W.transpose())#.transpose()
         #print("K:")
         #print(shortstr(K))
-        W = dot(K[:, :len(W1)], W1)
+        W = dot(self.ring, K[:, :len(W1)], W1)
         return Subspace(self.ring, W)
 
 
@@ -638,8 +761,8 @@ def test():
     
         K = kernel(ring, A, check=True)
         #print("kernel: A, K, A*K")
-        #print(shortstr(A, K, dot(A, K)))
-        B = dot(A, K.transpose())
+        #print(shortstr(A, K, dot(ring, A, K)))
+        B = dot(ring, A, K.transpose())
         assert numpy.alltrue(B==zero)
 
         if K.shape[1]>1:
