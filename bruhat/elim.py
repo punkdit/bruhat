@@ -789,6 +789,34 @@ def test():
     #print(L)
     #print(U)
 
+
+    for trial in range(10):
+
+        m, n = 5, 10
+    
+        A = rand(ring, m, n, 0, 1)
+        #print(shortstr(A))
+    
+        B = row_reduce(ring, A)
+        #print(shortstr(B))
+     
+        B = complement(ring, A)
+        #print(shortstr(B))
+    
+        C = numpy.concatenate((A, B)) 
+        assert rank(ring, C) == n
+
+        m, n = 10, 5
+        f = rand(ring, m, n, 1, 1)
+        #print(shortstr(f))
+        g = cokern(ring, f)
+        #print(shortstr(g))
+        assert rank(ring, g)==m-n
+        gf = dot(ring, g, f)
+        #print(shortstr(gf))
+        assert numpy.alltrue(gf==ring.zero)
+
+
     print("OK")
 
 
