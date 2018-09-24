@@ -609,7 +609,7 @@ def pushout(ring, J, K, J1=None, K1=None, check=False):
         return JJ, KK
 
 
-def cokern(ring, J, check=False):
+def cokernel(ring, J, check=False):
     """  
     find f as a pushout of the following diagram:
 
@@ -809,7 +809,7 @@ def test():
         m, n = 10, 5
         f = rand(ring, m, n, 1, 1)
         #print(shortstr(f))
-        g = cokern(ring, f)
+        g = cokernel(ring, f)
         #print(shortstr(g))
         assert rank(ring, g)==m-n
         gf = dot(ring, g, f)

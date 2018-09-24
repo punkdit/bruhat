@@ -1,4 +1,34 @@
 
+23/9/18
+=======
+
+Is Quantum Mechanics a Probabilistic Theory?
+https://www.math.columbia.edu/~woit/wordpress/?p=10533
+
+https://www.math.columbia.edu/~woit/wordpress/?p=10543
+Nima Arkani-Hamed gave the colloquium talk ending the
+Madrid conference. At the end (1:30), he had these mystifying
+comments about the landscape, somehow relating this posting
+to the previous one:
+
+    The raises the possibility that we are misinterpreting
+    the string landscape – the different regions aren’t “out
+    there” but are different APPROXIMATE “System/Observer”
+    splits of A SINGLE OBJECT.
+    http://150.244.223.31/videos/video/1834/
+
+
+@book{book:320958,
+   title =     {Representations of groups: A computational approach},
+   author =    {Klaus Lux, Herbert Pahlings},
+   publisher = {CUP},
+   isbn =      {9780521768078,0521768071},
+   year =      {2010},
+   series =    {Cambridge Studies in Advanced Mathematics},
+   edition =   {},
+   volume =    {},
+
+
 20/9/18
 =======
 

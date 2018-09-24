@@ -24,6 +24,15 @@ class Cat(Keyed, Type):
         self.G = G
         self.ring = ring
 
+    def is_hom(self, rep1, rep2, f):
+        G = self.G
+        for g in G:
+            g1 = rep1[g]
+            g2 = rep2[g]
+            if f@g1 != g2@f:
+                return False
+        return True
+
 
 class Rep(Element): # Object of the category
     """
@@ -146,6 +155,7 @@ class Rep(Element): # Object of the category
         rep.check()
         return rep
     
+    
 
 def burnside(tp): # make it a method
 
@@ -164,7 +174,7 @@ def burnside(tp): # make it a method
     for i, H in enumerate(Hs):
         names[H] = "%s_0"%letters[i] # identity coset
 
-    acts = []
+    acts = {}
     for i, H in enumerate(Hs):
         cosets = G.left_cosets(H)
         assert len(G) == len(cosets)*len(H)
@@ -186,67 +196,50 @@ def burnside(tp): # make it a method
         act = act.rename(names, items)
         act.name = letter
         H.name = act.name
-        acts.append(act)
+        acts[letter] = act
         assert len(act.components())==1 # transitive
         #print act.tgt.perms
         print("%s subgroup order = %d, number of cosets = %d, conjugates = %d" %(
             act.name, len(H), len(cosets), len(H.conjugates)))
 
-    print(list(names.values()))
+    #print(list(names.values()))
 
-    A, B, C, D = acts
-
-    reps = []
-    for act in acts:
+    reps = {}
+    for act in acts.values():
         rep = Rep.mk_rep(act, tp)
-        reps.append(rep)
+        reps[act.name] = rep
 
-    kA, kB, kC, kD = reps
+    arg = argv.next()
+    assert "*" in arg
+    left, right = arg.split("*")
 
-    kCC = kC*kC
-    #kCC.dump()
+    act0 = acts[left]
+    act1 = acts[right]
 
-    CC = C.pushout(C)
-    rep = Rep.mk_rep(CC, tp)
-    #rep.dump()
-    assert rep==kCC
+    rep0 = reps[left]
+    rep1 = reps[right]
 
-    U = Space(C.items, ring)
-    UU = U*U
-    #print(UU)
+    act2 = act0.pushout(act1)
+    rep = Rep.mk_rep(act2, tp)
 
-    cup = U.cup
-    ident = U.ident
+    U0 = Space(act0.items, ring)
+    U1 = Space(act1.items, ring)
+    UU = U0*U1
+    print(UU)
 
-    for act in CC.components():
-        #rep = Rep.mk_rep(act, tp)
-        #print(rep.space)
-        space = Space(act.items, ring)
-        print(space)
-        f = space.inject_to(UU)
-        #for g in G:
-        #    fgf = f@rep[g]@f.transpose()
-        ff = f@f.transpose()
-        print(ff.hom)
-        print(ff)
-        r = (cup * ident) @ (ident * ff)
-        #rep.dump()
+    one = ring.one
+    hom = Hom(U0, U1)
+    for act in act2.components():
 
-    return
+        items = [((y, x), one) for (x, y) in act.items]
+        f = Map(items, hom)
+        print(f)
 
-    for i in range(len(acts)):
-      for j in range(i, len(acts)):
-        A = acts[i]
-        B = acts[j]
-        C = A.pushout(B)
-        #print(C.send_perms)
+        assert tp.is_hom(rep0, rep1, f)
 
-        for act in C.components():
-        #    print(act.send_perms)
-            send_perms = act.send_perms
-            for g in G:
-                h = send_perms[g]
-                print(h.perm)
+        g = f.cokernel()
+        print(g)
+        print()
 
 
 

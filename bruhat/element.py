@@ -907,7 +907,13 @@ class LinearElement(GenericElement):
                 row = row+","
             lines.append(row)
         return '\n'.join(lines)
-        
+
+    def trace(self):
+        x = self.tp.zero
+        value = self.value
+        for i in range(self.tp.n):
+            x = x + value[i][i]
+        return value 
 
 
 # ----------------------------------------------------------------------------
@@ -1156,8 +1162,7 @@ def test():
     SL2_3 = mulclose([A, B])
     assert len(SL2_3) == 24
 
-    #G = cayley(SL2_3)
-    #burnside(G)
+    burnside(cayley(SL2_3))
 
     # -------------------------
     # https://people.maths.bris.ac.uk/~matyd/GroupNames/1/GL(2,3).html
@@ -1169,6 +1174,8 @@ def test():
     GL2_3 = mulclose([A, B, C, D])
     assert len(GL2_3) == 48
 
+    #burnside(cayley(GL2_3))
+
     # -------------------------
     # https://people.maths.bris.ac.uk/~matyd/GroupNames/1/Q8.html
     # quaternion group, Q_8 
@@ -1178,6 +1185,8 @@ def test():
 
     Q8 = mulclose([A, B])
     assert(len(Q8)) == 8
+
+    #burnside(cayley(Q8))
 
     # -------------------------
     # https://people.maths.bris.ac.uk/~matyd/GroupNames/97/SL(2,5).html
@@ -1192,8 +1201,7 @@ def test():
     SL2_5 = mulclose([A, B])
     assert len(SL2_5) == 120
 
-    #G = cayley(SL2_5)
-    #burnside(G)
+    #burnside(cayley(SL2_5))
 
     # -------------------------
 
@@ -1246,6 +1254,9 @@ def test():
     
         Di = mulclose([A, B])
         assert len(Di) == 4*n
+
+        #if n==4:
+        #    burnside(cayley(Di))
 
     # -------------------------
 

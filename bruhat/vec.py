@@ -352,9 +352,9 @@ class Map(Element):
         items = [((j, i), v) for ((i, j), v) in a.items] # conjugate v?
         return Map(items, a.hom.transpose())
 
-    def cokern(a):
+    def cokernel(a):
         A = a.to_array()
-        B = elim.cokern(a.ring, A)
+        B = elim.cokernel(a.ring, A)
         n = B.shape[0]
         X = Space(list(range(n)), a.ring)
         hom = Hom(a.tgt, X)
@@ -448,7 +448,7 @@ def test_over_ring(ring):
     #assert (2@f) == f+f # do we swap @ and * ? this looks ugly...
     assert 2*f == f+f
 
-    g = f.cokern()
+    g = f.cokernel()
     fg = dot(g, f)
     assert fg == fg.hom.zero
 

@@ -589,6 +589,30 @@ class Group(object):
         perms = list(mulclose(perms, *args))
         return cls(perms, items, **kw)
 
+    def is_cyclic(self):
+        n = len(self)
+        for g in self:
+            if g.order() == n:
+                return True
+        return False
+
+    def cgy_cls(self):
+        "conjugacy classes of elements of G"
+        found = set() # map Perm to it's conjugacy class
+        itemss = []
+        for g in self:
+            if g in found:
+                continue
+            items = set([g])
+            itemss.append(items)
+            found.add(g)
+            for h in self:
+                k = h*g*(~h)
+                items.add(k)
+                found.add(k)
+        itemss.sort(key = lambda items : iter(items).__next__().order())
+        return itemss
+
     @property
     def identity(self):
         p = Perm.identity(self.items)
@@ -1585,6 +1609,13 @@ def main():
         conjugacy_subgroups(G)
         return
 
+    if argv.cgy_cls:
+        itemss = G.cgy_cls()
+        print("|G|=", len(G))
+        for gs in itemss:
+            gs = list(gs)
+            print("Order:", gs[0].order(), "Size:", len(gs))
+
     if argv.burnside:
         burnside(G)
         return
@@ -2156,6 +2187,45 @@ def hecke(G):
 #        print C.send_perms.keys()
 
 
+r"""
+\begin{array}{c|lcr}
+n & \text{Left} & \text{Center} & \text{Right} \\
+\hline
+1 & 0.24 & 1 & 125 \\
+2 & -1 & 189 & -8 \\
+3 & -20 & 2000 & 1+10i
+\end{array}
+"""
+
+def latex_dump(header, rows, sider=None, sep=True):
+    header = list(header)
+    n = len(header)
+    lines = [("$$")]
+    desc = "c|"*n if sep else "c"*n
+    if sider:
+        desc = "c|"+desc
+        header.insert(0, "")
+    lines.append(r"\begin{array}{|%s|}"%(desc))
+    lines.append(r"\hline")
+    lines.append(" & ".join(r"%s"%fld for fld in header) + r" \\")
+    lines.append(r"\hline")
+    for i, row in enumerate(rows):
+        line = ''
+        if sider:
+            line = "%s & " % sider[i]
+        line += " & ".join(str(fld) for fld in row) + r" \\"
+        lines.append(line)
+        if sep:
+            lines.append(r"\hline")
+    if not sep:
+        lines.append(r"\hline")
+    lines.append(r"\end{array}")
+    lines.append("$$")
+    s = "\n".join(lines)
+    s = s.replace('||', '|')
+    return s
+
+
 def burnside(G, Hs=None):
 
     if Hs is None:
@@ -2169,6 +2239,7 @@ def burnside(G, Hs=None):
     letters = letters[:len(Hs)]
 
     homs = []
+    rows = []
     for i, H in enumerate(Hs):
         cosets = G.left_cosets(H)
         assert len(G) == len(cosets)*len(H)
@@ -2180,8 +2251,21 @@ def burnside(G, Hs=None):
         homs.append(hom)
         assert len(hom.components())==1 # transitive
         #print hom.tgt.perms
-        print( "%s subgroup order = %d, number of cosets = %d, conjugates = %d" %(
-            hom.name, len(H), len(cosets), len(H.conjugates)))
+        row = [hom.name, len(H), len(cosets), len(H.conjugates)]
+        print("%s subgroup order = %d, number of cosets = %d, conjugates = %d" %
+            tuple(row), end="")
+        if H.is_cyclic():
+            print(", cyclic")
+            row.append(r"\checkmark")
+        else:
+            print()
+            row.append(r"")
+        rows.append(row)
+
+    if argv.latex:
+        s = latex_dump(
+            r'\text{subgroup} \text{order} \text{cosets} \text{conjugates} \text{cyclic}'.split(), rows)
+        print(s)
 
 #    if argv.make_dot:
 #        arrows = []
@@ -2218,6 +2302,22 @@ def burnside(G, Hs=None):
         f = quotient_rep(homs, Action.isomorphic)
         homs = list(set(f.values())) # uniq
         #print "homs:", len(homs)
+
+    itemss = G.cgy_cls()
+    els = []
+    for gs in itemss:
+        gs = list(gs)
+        g = gs[0]
+        els.append(g)
+        print("Order:", g.order(), "Size:", len(gs))
+    for hom in homs:
+        print("Perm rep:", hom.name)
+        for g in els:
+            g = hom[g]
+            print(len(g.fixed()), end=' ')
+        print()
+
+    return
 
     table = {}
     width = 0
@@ -2279,23 +2379,44 @@ def burnside(G, Hs=None):
         space = 1
 
     rows = cols = [hom.name for hom in homs]
-    print()
-    print(tabulate(table, rows, cols, space))
-    print()
-    print("$$")
-    print(latex_table(table, rows, cols, upper=argv.get("upper")))
-    print("$$")
 
+    if argv.latex:
+        print()
+        print("$$")
+        print(latex_table(table, rows, cols, upper=argv.get("upper")))
+        print("$$")
 
-r"""
-\begin{array}{c|lcr}
-n & \text{Left} & \text{Center} & \text{Right} \\
-\hline
-1 & 0.24 & 1 & 125 \\
-2 & -1 & 189 & -8 \\
-3 & -20 & 2000 & 1+10i
-\end{array}
-"""
+    s = str(tabulate(table, rows, cols, space))
+    print(s)
+
+    import zelim
+    import numpy
+    A = zelim.parse(s)
+
+    if argv.latex:
+        s = latex_dump(cols, A, sider=cols, sep=False)
+        print(s)
+
+    L, B = zelim.zelim(A)
+    if argv.latex:
+        s = latex_dump(cols, B, sep=False)
+        s = s.replace("0 ", ". ")
+        print(s)
+    else:
+        print("H~:")
+        print(B)
+        print("UMU:")
+        UMU = numpy.dot(L, numpy.dot(A, L.transpose()))
+        print(UMU)
+
+    m, n = B.shape
+    items = []
+    for row in B:
+      for x in row:
+        items.append(x)
+    if argv.latex:
+        print("MatrixSpace(Z,%s,%s)(%s).hermite_form().smith_form()" % (m, n, items))
+
 
 def latex_table(table, rows, cols, upper=False):
     lines = []

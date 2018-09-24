@@ -6,11 +6,12 @@ Exercise 13.4 from Serre "Linear Representations of Finite Groups ", 1977.
 
 import sys, os
 
-from element import *
+import numpy
+
+from element import Linear, Z, Q
 from action import mulclose
 
-Z = IntegerRing()
-M = Linear(4, Z)
+M = Linear(4, Q)
 
 
 def quaternion(a, b, c, d):
@@ -23,11 +24,37 @@ def quaternion(a, b, c, d):
     return A
 
 
+e = quaternion(1, 0, 0, 0)
+i = quaternion(0, 1, 0, 0)
+j = quaternion(0, 0, 1, 0)
+k = quaternion(0, 0, 0, 1)
+basis = [e, i, j, k]
+
+
+def dot(a, b):
+    a = numpy.array(a.value)
+    b = numpy.array(b.value)
+    c = a*b
+    return c.sum()
+
+
+def get_rep(A, left=True):
+    Arep = []
+    for v in basis:
+        row = []
+        for u in basis:
+            if left:
+                B = A*u # left action
+            else:
+                B = u*A # right action
+            r = dot(B, v)
+            row.append(r/4)
+        Arep.append(row)
+    Arep = M.get(Arep)
+    return Arep
+
+
 def test():
-    e = quaternion(1, 0, 0, 0)
-    i = quaternion(0, 1, 0, 0)
-    j = quaternion(0, 0, 1, 0)
-    k = quaternion(0, 0, 0, 1)
 
     assert i*i == -e
     assert j*j == -e
@@ -39,18 +66,25 @@ def test():
 
     assert i*j*k == -e
 
-    a = i+j+k-e
-    assert a!=e
-    assert a**2!=e
-    assert a**3==8*e
+    one = Q.one
+    A = (one/2)*(i+j+k-e)
+    assert A!=e
+    assert A**2!=e
+    assert A**3==e
 
     Q_8 = mulclose([i, j, k])
     assert len(Q_8)==8
 
-    print(a**2)
+    # Q_8 acts by right multiplication, C_3 by left multiplication
 
-    b = a**2
-    print(b/3)
+    Arep = get_rep(A)
+    print("Arep:")
+    print(Arep)
+
+    Qrep = [get_rep(V, False) for V in [i, j, k]]
+    for V in Qrep:
+        print(V)
+        assert V*Arep == Arep*V
 
     if 0:
         search = [-1, 0, 1]

@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Gaussian elimination over natural numbers
+# Gaussian elimination over natural _numbers
 
 from __future__ import print_function
 
@@ -41,7 +41,7 @@ def parse(table, perm=None):
     lines = [line for line in lines if line]
     global header # Lame ! haha..
     header = lines[0][2:].split()
-    print("header:", header)
+    #print("header:", header)
     lines = lines[2:]
     lines = [line[3:] for line in lines if line]
     rows = []
@@ -54,7 +54,7 @@ def parse(table, perm=None):
     if choose is not None:
         items = choose.split(",")
         idxs = [header.index(col) for col in items]
-        print("idxs:", idxs)
+        #print("idxs:", idxs)
         A = A[:, idxs]
         A = A[idxs, :]
         header = items
@@ -83,11 +83,13 @@ def latex_table(table, rows, cols, upper=False):
 
 
 
-def zelim(A, verbose=False):
+def zelim(A, truncate=True, verbose=False):
 
     A = A.copy()
     n = len(A)
     assert A.shape == (n, n)
+
+    L = numpy.zeros((n, n), dtype=int)
     
     row = 0
     
@@ -108,6 +110,8 @@ def zelim(A, verbose=False):
 
         val0 = A[row, col]
         assert val0
+        assert numpy.alltrue(L[:, row]==0)
+        L[row, row] = 1
         for row1 in range(row + 1, n):
             val1 = A[row1, col]
             if val1 == 0:
@@ -116,27 +120,26 @@ def zelim(A, verbose=False):
             r = val1 // val0
             A[row1] -= r*A[row]
             assert A.min() >= 0
+            L[row1] -= r*L[row]
         #print
         #print shortstr(A)
     
         row += 1
     
+    if row < n:
+        assert numpy.alltrue(L[:, row]==0)
+        L[row, row] = 1
     
-    A = numpy.array([row for row in A if row.sum()])
-    m, n = A.shape
-    assert n==len(header)
-
-#    if verbose:
-#        print header
-#        print A
-#        
-#        print "$$"
-#        print latex_table(A, ' '*m, header)
-#        print "$$"
+    if truncate:
+        idxs = [idx for (idx, row) in enumerate(A) if row.sum()]
+        #A = numpy.array([row for row in A if row.sum()])
+        A = A[idxs, :]
+        L = L[idxs, :]
+        m, n = A.shape
 
     assert A.min() >= 0
 
-    return A
+    return L, A
 
 
 def rank(A):
@@ -518,15 +521,23 @@ L | L 2L 2L 2L 3L 4L 6L 6L 6L 8L 12L 24L
 
 def process(table):
 
-    A = parse(table, perm=argv.perm)
-    print(A)
-    if A.shape[0]==A.shape[1]:
-        print("det:", numpy.linalg.det(A))
+    M = parse(table, perm=argv.perm)
+    print(M)
+    if M.shape[0]==M.shape[1]:
+        print("det:", numpy.linalg.det(M))
     print()
 
-    order = A[-1, -1]
-    A = zelim(A)
+    order = M[-1, -1]
+    L, A = zelim(M)
+    print("L =")
+    print(shortstr(L))
+    print("A =")
     print(shortstr(A))
+
+    LM = numpy.dot(L, M)
+    #print("LM =")
+    #print(shortstr(LM))
+    assert(numpy.alltrue(LM==A))
 
     reps = A[:, -1]
     print("order:", order)
