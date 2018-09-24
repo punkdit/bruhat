@@ -29,7 +29,7 @@ class Cat(Keyed, Type):
         for g in G:
             g1 = rep1[g]
             g2 = rep2[g]
-            if f@g1 != g2@f:
+            if f*g1 != g2*f:
                 return False
         return True
 
@@ -82,7 +82,7 @@ class Rep(Element): # Object of the category
             for g2 in G.perms:
                 h2 = send_perms[g2]
                 lhs = send_perms[g1*g2]
-                rhs = h1@h2
+                rhs = h1*h2
                 if lhs != rhs:
                     print("lhs =")
                     print(lhs.items)
@@ -105,7 +105,7 @@ class Rep(Element): # Object of the category
             send_perms[g] = rg
         return Rep(send_perms, space, self.tp)
 
-    __mul__ = tensor
+    __matmul__ = tensor
 
     def dump(self):
         print("========= Rep ===========")
@@ -224,7 +224,7 @@ def burnside(tp): # make it a method
 
     U0 = Space(act0.items, ring)
     U1 = Space(act1.items, ring)
-    UU = U0*U1
+    UU = U0@U1
     print(UU)
 
     one = ring.one
@@ -259,7 +259,7 @@ def test():
     rep = Rep.perm_rep(G, cat)
     rep.check()
 
-    r2 = rep * rep
+    r2 = rep @ rep
     r2.check()
 
     r2.dump()

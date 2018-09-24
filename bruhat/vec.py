@@ -87,9 +87,9 @@ class Space(Keyed, Type):
         assert A.ring == B.ring
         gen = [x+y for x in A.gen for y in B.gen] # tuple addition
         return Space(gen, A.ring)
-    __mul__ = tensor
+    __matmul__ = tensor
         
-    def __matmul__(A, B):
+    def __mul__(A, B):
         assert A.ring == B.ring
         if A==B:
             return A
@@ -118,7 +118,7 @@ class Space(Keyed, Type):
     @property
     def left_unitor(self): # XX cache me
         "IxA --> A"
-        src = Space.unit(self.ring) * self
+        src = Space.unit(self.ring) @ self
         tgt = self
         one = self.ring.one
         items = [((x, Space.the_star+x), one) for x in self.gen] # tuple addition
@@ -127,7 +127,7 @@ class Space(Keyed, Type):
     @property
     def right_unitor(self): # XX cache me
         "AxI --> A"
-        src = self * Space.unit(self.ring)
+        src = self @ Space.unit(self.ring)
         tgt = self
         one = self.ring.one
         items = [((x, x+Space.the_star), one) for x in self.gen] # tuple addition
@@ -138,7 +138,7 @@ class Space(Keyed, Type):
         "the unit, eta: I --> A*xA"
         src = Space.unit(self.ring)
         the_star = Space.the_star
-        tgt = self.dual * self
+        tgt = self.dual @ self
         one = self.ring.one
         items = [((x+x, the_star), one) for x in self.gen] # tuple addition
         return Map(items, Hom(src, tgt))
@@ -148,7 +148,7 @@ class Space(Keyed, Type):
         "the co-unit, epsilon: AxA* --> I"
         tgt = Space.unit(self.ring)
         the_star = Space.the_star
-        src = self * self.dual
+        src = self @ self.dual
         one = self.ring.one
         items = [((the_star, x+x), one) for x in self.gen] # tuple addition
         return Map(items, Hom(src, tgt))
@@ -188,12 +188,12 @@ class Hom(Keyed, Type):
 
     def tensor(a, b):
         # not sure if this makes sense mathematically..
-        src = a.src * b.src
-        tgt = a.tgt * b.tgt
+        src = a.src @ b.src
+        tgt = a.tgt @ b.tgt
         return Hom(src, tgt)
-    __mul__ = tensor
+    __matmul__ = tensor
 
-    def __matmul__(a, b):
+    def __mul__(a, b):
         assert b.tgt == a.src, "%s != %s" % (b.tgt, a.src)
         return Hom(b.src, a.tgt)
 
@@ -316,19 +316,19 @@ class Map(Element):
         return Map(items, self.hom)
 
     def tensor(a, b):
-        hom = a.hom*b.hom
+        hom = a.hom@b.hom
         items = [
             ((x+y, u+v), val*wal)
             for ((x, u), val) in a.items 
             for ((y, v), wal) in b.items]
         return Map(items, hom)
-    __mul__ = tensor # ?
+    __matmul__ = tensor # ?
 
 #    def __rmul__(a, r):
 #        return NotImplemented
 
-    def __matmul__(a, b):
-        hom = a.hom@b.hom
+    def __mul__(a, b):
+        hom = a.hom*b.hom
         zero = a.ring.zero
         map_items = dict()
         for ((i, j), u) in a.items:
@@ -340,13 +340,12 @@ class Map(Element):
         items = list(map_items.items())
         return Map(items, hom)
 
-    def __rmatmul__(a, r):
+    def __rmul__(a, r):
         #assert isinstance(r, Element)
         #assert r.tp == self.ring
         r = a.ring.promote(r)
         items = [((i, j), u*r) for ((i, j), u) in a.items]
         return Map(items, a.hom)
-    __rmul__ = __rmatmul__ # yes?
 
     def transpose(a):
         items = [((j, i), v) for ((i, j), v) in a.items] # conjugate v?
@@ -367,7 +366,7 @@ def dot(*maps):
     A = maps[idx]
     while idx+1 < len(maps):
         B = maps[idx+1]
-        A = A@B
+        A = A*B
         idx += 1 
     return A
 
@@ -390,15 +389,15 @@ def test_over_ring(ring):
     D = Space("678", ring)
 
     assert str(A)
-    assert (A*B)*C == A*(B*C)
-    assert zero*A == A*zero == zero
-    assert A*(B+C) == A*B + A*C
+    assert (A@B)@C == A@(B@C)
+    assert zero@A == A@zero == zero
+    assert A@(B+C) == A@B + A@C
 
     a = A.basis(0)
     u = B.basis(0)
     v = B.basis(0)
 
-    f = (a.transpose()*u) # kind of a mess...
+    f = (a.transpose()@u) # kind of a mess...
     #print(f.hom)
 
     one = ring.one
@@ -411,42 +410,41 @@ def test_over_ring(ring):
     assert str(f)
     assert f-f == f.hom.zero
     assert f+f.hom.zero == f
-    assert f@A.ident == f
-    assert B.ident@f == f
+    assert f*A.ident == f
+    assert B.ident*f == f
 
-    assert ((f * A.ident) @ A.cap).hom == Hom(I, B*A)
-    assert ((A.ident * f) @ A.cap).hom == Hom(I, A*B)
+    assert ((f @ A.ident) * A.cap).hom == Hom(I, B@A)
+    assert ((A.ident @ f) * A.cap).hom == Hom(I, A@B)
     
     g = Map([(('6', '2'), one), (('8', '3'), one)], Hom(C, D)) # C--g-->D
 
     h = Map([(('d', 'a'), one), (('c', 'b'), one), (('c', 'c'), one)], Hom(A, A)) # A--g-->A
 
-    assert f*(g*h) == (f*g)*h
+    assert f@(g@h) == (f@g)@h
 
     #print(h)
 
     # right zig-zag equation
-    lhs = A.left_unitor @ ( A.cup * A.ident ) @ ( A.ident * A.cap )
+    lhs = A.left_unitor * ( A.cup @ A.ident ) * ( A.ident @ A.cap )
     rhs = A.right_unitor
     assert lhs == rhs
 
     # left zig-zag equation
-    lhs = A.right_unitor @ ( A.ident * A.cup ) @ ( A.cap * A.ident )
+    lhs = A.right_unitor * ( A.ident @ A.cup ) * ( A.cap @ A.ident )
     rhs = A.left_unitor
     assert lhs == rhs
 
     # check dual is transpose
     for f in [h, g, f]:
         A, B = f.src, f.tgt
-        lhs = A.left_unitor @ ( B.cup * A.ident ) @ (B.ident * f * A.ident ) @ ( B.ident * A.cap )
-        rhs = f.transpose() @ B.right_unitor
+        lhs = A.left_unitor * ( B.cup @ A.ident ) * (B.ident @ f @ A.ident ) * ( B.ident @ A.cap )
+        rhs = f.transpose() * B.right_unitor
         assert lhs == rhs
 
     #print(lhs)
     #print(rhs)
 
-    #assert (2@f) == f+f # do we swap @ and * ? this looks ugly...
-    assert 2*f == f+f
+    assert (2*f) == f+f
 
     g = f.cokernel()
     fg = dot(g, f)
