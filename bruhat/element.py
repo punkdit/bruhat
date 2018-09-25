@@ -1162,7 +1162,8 @@ def test():
     SL2_3 = mulclose([A, B])
     assert len(SL2_3) == 24
 
-    burnside(cayley(SL2_3))
+    if argv.SL2_3:
+        burnside(cayley(SL2_3))
 
     # -------------------------
     # https://people.maths.bris.ac.uk/~matyd/GroupNames/1/GL(2,3).html
@@ -1174,7 +1175,8 @@ def test():
     GL2_3 = mulclose([A, B, C, D])
     assert len(GL2_3) == 48
 
-    #burnside(cayley(GL2_3))
+    if argv.GL2_3:
+        burnside(cayley(GL2_3))
 
     # -------------------------
     # https://people.maths.bris.ac.uk/~matyd/GroupNames/1/Q8.html
@@ -1186,7 +1188,8 @@ def test():
     Q8 = mulclose([A, B])
     assert(len(Q8)) == 8
 
-    #burnside(cayley(Q8))
+    if argv.Q8 or argv.Q_8:
+        burnside(cayley(Q8))
 
     # -------------------------
     # https://people.maths.bris.ac.uk/~matyd/GroupNames/97/SL(2,5).html
@@ -1201,7 +1204,8 @@ def test():
     SL2_5 = mulclose([A, B])
     assert len(SL2_5) == 120
 
-    #burnside(cayley(SL2_5))
+    if argv.SL2_5:
+        burnside(cayley(SL2_5))
 
     # -------------------------
 
@@ -1255,8 +1259,11 @@ def test():
         Di = mulclose([A, B])
         assert len(Di) == 4*n
 
-        #if n==4:
-        #    burnside(cayley(Di))
+        if argv.Di_3 and n==3:
+            burnside(cayley(Di))
+
+        if argv.Di_4 and n==4:
+            burnside(cayley(Di))
 
     # -------------------------
 

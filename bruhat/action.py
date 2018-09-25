@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function
+
 import sys
 import string
 from random import randint, shuffle
@@ -2197,6 +2199,68 @@ n & \text{Left} & \text{Center} & \text{Right} \\
 \end{array}
 """
 
+class CFunc(object):
+    """ class function on a group 
+    """
+
+    def __init__(self, G, func):
+        self.G = G
+        self.func = dict(func)
+
+    def __str__(self):
+        return "CFunc(%s)"%(list(self.func[g] for g in self.G))
+    __repr__ = __str__
+
+    def dot(self, other):
+        assert self.G is other.G
+        x = 0
+        for g in self.G:
+            x += self[g] * other[g]
+        n = len(self.G)
+        assert x%n == 0
+        return x//n
+
+    def __getitem__(self, g):
+        return self.func[g]
+
+    def __add__(self, other):
+        assert self.G is other.G
+        func = {}
+        for g in self.G:
+            func[g] = self[g] + other[g]
+        return CFunc(self.G, func)
+
+    def __sub__(self, other):
+        assert self.G is other.G
+        func = {}
+        for g in self.G:
+            func[g] = self[g] - other[g]
+        return CFunc(self.G, func)
+
+    def __mul__(self, other):
+        assert self.G is other.G
+        func = {}
+        for g in self.G:
+            func[g] = self[g] * other[g]
+        return CFunc(self.G, func)
+
+    def __rmul__(self, r):
+        assert isinstance(r, int)
+        func = {}
+        for g in self.G:
+            func[g] = r*self[g]
+        return CFunc(self.G, func)
+
+    @classmethod
+    def from_action(cls, action):
+        G = action.G
+        func = {}
+        for g in G:
+            ga = action[g]
+            func[g] = len(ga.fixed())
+        return cls(G, func)
+
+
 def latex_dump(header, rows, sider=None, sep=True):
     header = list(header)
     n = len(header)
@@ -2303,21 +2367,26 @@ def burnside(G, Hs=None):
         homs = list(set(f.values())) # uniq
         #print "homs:", len(homs)
 
-    itemss = G.cgy_cls()
-    els = []
-    for gs in itemss:
-        gs = list(gs)
-        g = gs[0]
-        els.append(g)
-        print("Order:", g.order(), "Size:", len(gs))
-    for hom in homs:
-        print("Perm rep:", hom.name)
-        for g in els:
-            g = hom[g]
-            print(len(g.fixed()), end=' ')
-        print()
+    if 0:
+        itemss = G.cgy_cls()
+        els = []
+        for gs in itemss:
+            gs = list(gs)
+            g = gs[0]
+            els.append(g)
+            print("Order:", g.order(), "Size:", len(gs))
+        for hom in homs:
+            print("Perm rep:", hom.name)
+            for g in els:
+                g = hom[g]
+                print(len(g.fixed()), end=' ')
+            print()
 
-    return
+    T = []
+    for hom in homs:
+        chi = CFunc.from_action(hom)
+        print(hom.name, chi)
+        T.append(chi)
 
     table = {}
     width = 0
@@ -2373,10 +2442,8 @@ def burnside(G, Hs=None):
         table[B.name, A.name] = s # commutative
       print
 
-    space = 2
-    if argv.compact or 1:
-        table = dict((k, v.replace("*", "")) for (k, v) in table.items())
-        space = 1
+    space = 1
+    table = dict((k, v.replace("*", "")) for (k, v) in table.items())
 
     rows = cols = [hom.name for hom in homs]
 
@@ -2408,6 +2475,13 @@ def burnside(G, Hs=None):
         print("UMU:")
         UMU = numpy.dot(L, numpy.dot(A, L.transpose()))
         print(UMU)
+
+    LT = numpy.dot(L, T)
+    print(LT)
+    for chi1 in LT:
+      for chi2 in LT:
+        print(chi1.dot(chi2), end=" ")
+      print()
 
     m, n = B.shape
     items = []
