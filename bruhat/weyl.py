@@ -1198,14 +1198,14 @@ def main():
         G = Weyl.build_E6()
         assert G.matrix() == {
             (0, 1): 3, (1, 2): 3, (2, 3): 3, (2, 4): 3, (4, 5): 3}
-        #items = mulclose(G.gen, verbose=True)
-        #print "|E6|=", len(items)
+        items = mulclose(G.gen, verbose=True)
+        print "|E6|=", len(items)
 
     if argv.F_4:
         G = Weyl.build_F4()
         assert G.matrix() == {(0, 1): 3, (1, 2): 4, (2, 3): 3}
-        #items = mulclose(G.gen, verbose=True)
-        #print "|F4|=", len(items) # == 1152
+        items = mulclose(G.gen, verbose=True)
+        print "|F4|=", len(items) # == 1152
 
     if argv.G_2:
         G = Weyl.build_G2()

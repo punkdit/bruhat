@@ -1,4 +1,56 @@
 
+26/9/18
+=======
+
+Completeness of †-categories and
+the complex numbers
+Jamie Vicary
+https://arxiv.org/pdf/0807.2927.pdf
+
+On unitary 2-representations of finite groups and
+topological quantum field theory
+Bruce Bartlett
+https://arxiv.org/pdf/0901.3975.pdf
+
+
+AN INTRODUCTION TO UNIVALENT FOUNDATIONS
+FOR MATHEMATICIANS
+DANIEL R. GRAYSON
+http://www.ams.org/journals/bull/2018-55-04/S0273-0979-2018-01616-9/S0273-0979-2018-01616-9.pdf
+
+Springer construction, representations of weyl groups, p175
+@book{book:272777,
+   title =     {Representation Theory and Complex Geometry},
+   author =    {Neil Chriss, Victor Ginzburg (auth.)},
+   publisher = {Birkhäuser Basel},
+   isbn =      {0817649379,9780817649371},
+   year =      {2010},
+   series =    {Modern Birkhäuser Classics},
+   edition =   {1},
+   volume =    {},
+
+
+25/9/18
+=======
+
+On the Schur Indices of Characters of the Exceptional Weyl Groups
+Mark Benard
+Annals of Mathematics, Second Series, Vol. 94, No. 1 (Jul., 1971), pp. 89-107
+Annals of Mathematics
+http://www.jstor.org/stable/1970736 
+
+
+
+24/9/18
+=======
+
+A self-contained, brief and complete formulation
+of Voevodsky’s Univalence Axiom
+Mart´ın H¨otzel Escard´o
+https://arxiv.org/abs/1803.02294
+
+
+
 23/9/18
 =======
 

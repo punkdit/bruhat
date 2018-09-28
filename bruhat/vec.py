@@ -254,7 +254,9 @@ class Map(Element):
             else:
                 row = row+","
             lines.append(row)
-        return '\n'.join(lines)
+        s = '\n'.join(lines) or "[]"
+        s += str(self.hom.shape)
+        return s
 
     def to_array(self):
         zero = self.ring.zero
@@ -262,6 +264,7 @@ class Map(Element):
         rows = [[map_items.get((i, j), zero)
             for j in self.src.gen] for i in self.tgt.gen]
         A = numpy.array(rows)
+        assert A.shape == self.hom.shape
         return A
 
     @classmethod
@@ -269,7 +272,7 @@ class Map(Element):
         ring = hom.ring
         zero = ring.zero
         items = []
-        assert A.shape == hom.shape
+        assert A.shape == hom.shape, "%s != %s" % (A.shape, hom.shape)
         for idx, i in enumerate(hom.tgt.gen):
           for jdx, j in enumerate(hom.src.gen):
             u = A[idx, jdx]
@@ -360,6 +363,21 @@ class Map(Element):
         b = Map.from_array(B, hom)
         return b
 
+    def kernel(a):
+        A = a.to_array()
+        B = elim.kernel(a.ring, A)
+        n = B.shape[1] # src
+        X = Space(list(range(n)), a.ring)
+        hom = Hom(X, a.src)
+#        print("a.shape:", a.hom.shape)
+#        print(a)
+#        print("B.shape:", B.shape)
+#        print(B)
+#        print("hom.shape:", hom.shape)
+#        print(X, a.src)
+        b = Map.from_array(B, hom)
+        return b
+
 
 def dot(*maps):
     idx = 0
@@ -445,6 +463,10 @@ def test_over_ring(ring):
     #print(rhs)
 
     assert (2*f) == f+f
+
+    g = f.kernel()
+    gf = dot(f, g)
+    assert gf == gf.hom.zero
 
     g = f.cokernel()
     fg = dot(g, f)

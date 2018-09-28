@@ -78,31 +78,35 @@ def test():
     # Q_8 acts by right multiplication, C_3 by left multiplication
 
     Arep = get_rep(A)
-    print("Arep:")
-    print(Arep)
 
     Qrep = [get_rep(V, False) for V in [i, j, k]]
     for V in Qrep:
-        print(V)
+        #print(V)
         assert V*Arep == Arep*V
 
-    if 0:
-        search = [-1, 0, 1]
-        for xe in search:
-         for xi in search:
-          for xj in search:
-           for xk in search:
-            if abs(xi)+abs(xj)+abs(xk)==0:
-                continue
-            a = xe*e + xi*i + xj*j + xk*k
-            assert a!=0
-            b = a*a # a**2
-            if b==0 or b==e or b==8*e:
-                continue
-            b = b*a # a**3
-            if b==e or b==8*e:
-                print("found:", xe, xi, xj, xk)
-      
+    G = mulclose(Qrep + [Arep])
+    assert len(G) == 24
+
+    chi = []
+    G = list(G)
+    G.sort(key = get_order)
+    for g in G:
+        print(str(get_order(g)).rjust(3), end=" ")
+        chi.append(g.trace())
+    print()
+    for x in chi:
+        print(str(x).rjust(3), end=" ")
+    print()
+        
+
+def get_order(g):
+    n = 1
+    a = g
+    while a*a != a: # identity
+        a = a*g
+        n += 1
+
+    return n
 
 
 if __name__ == "__main__":

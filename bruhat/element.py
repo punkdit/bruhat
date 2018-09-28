@@ -909,11 +909,11 @@ class LinearElement(GenericElement):
         return '\n'.join(lines)
 
     def trace(self):
-        x = self.tp.zero
+        x = self.tp.base.zero
         value = self.value
         for i in range(self.tp.n):
             x = x + value[i][i]
-        return value 
+        return x 
 
 
 # ----------------------------------------------------------------------------

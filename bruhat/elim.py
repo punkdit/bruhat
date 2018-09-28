@@ -513,7 +513,7 @@ def kernel(ring, A, check=False, verbose=False):
         B = dot(ring, A0, K)
         assert numpy.alltrue(B==zero)
 
-    return K.transpose()
+    return K
 
 
 def projector(ring, A, check=False):

@@ -237,6 +237,12 @@ def burnside(tp): # make it a method
 
         assert tp.is_hom(rep0, rep1, f)
 
+        print("kernel:")
+        g = f.kernel()
+        print(g)
+        print()
+
+        print("cokernel:")
         g = f.cokernel()
         print(g)
         print()

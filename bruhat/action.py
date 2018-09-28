@@ -1502,6 +1502,16 @@ def main():
         G = Group(perms, items)
         assert len(G)==8
 
+    elif argv.Q_8C_3:
+
+        items = range(8)
+        gen = [
+            Perm({0:1, 1:3, 3:6, 6:0, 2:5, 5:7, 7:4, 4:2}, items),
+            Perm({0:2, 2:3, 3:7, 7:0, 1:4, 4:6, 6:5, 5:1}, items)]
+        perms = mulclose(gen)
+        G = Group(perms, items)
+        assert len(G)==8
+
         C3 = Group.cyclic(range(3))
         G = C3.direct_product(G)
 
@@ -2260,6 +2270,59 @@ class CFunc(object):
             func[g] = len(ga.fixed())
         return cls(G, func)
 
+    @classmethod
+    def show_table(cls, chis):
+        G = chis[0].G
+        itemss = G.cgy_cls()
+        els = []
+        for gs in itemss:
+            gs = list(gs)
+            g = gs[0]
+            els.append(g)
+            print("Order:", g.order(), "Size:", len(gs))
+        for chi in chis:
+            assert chi.G is G
+            for g in els:
+                print(str(chi[g]).rjust(3), end=" ")
+            print()
+
+    @classmethod
+    def latex_table(cls, chis):
+        G = chis[0].G
+        itemss = G.cgy_cls()
+        rows = [[r"\mathrm{class}"], [r"\mathrm{size}"], r"\hline"]
+        els = []
+        for gs in itemss:
+            gs = list(gs)
+            g = gs[0]
+            els.append(g)
+            rows[0].append(g.order())
+            rows[1].append(len(gs))
+        for idx, chi in enumerate(chis):
+            assert chi.G is G
+            side = "V_{%d}"%(idx+1)
+            row = [side]+[chi[g] for g in els]
+            rows.append(row)
+        s = latex_nosep(rows, "r|" + "r"*len(itemss))
+        print(s)
+
+
+def latex_nosep(rows, desc):
+    n = len(rows[0])
+    lines = [("$$")]
+    lines.append(r"\begin{array}{%s}"%(desc))
+    for i, row in enumerate(rows):
+        if type(row)==list:
+            line = " & ".join(str(fld) for fld in row) + r" \\"
+        else:
+            line = str(row)
+        lines.append(line)
+    lines.append(r"\end{array}")
+    lines.append("$$")
+    s = "\n".join(lines)
+    return s
+
+
 
 def latex_dump(header, rows, sider=None, sep=True):
     header = list(header)
@@ -2291,6 +2354,10 @@ def latex_dump(header, rows, sider=None, sep=True):
 
 
 def burnside(G, Hs=None):
+
+    if argv.cyclic_subgroups:
+        Hs = G.cyclic_subgroups()
+        Hs = conjugacy_subgroups(G, Hs)
 
     if Hs is None:
         Hs = conjugacy_subgroups(G)
@@ -2367,26 +2434,13 @@ def burnside(G, Hs=None):
         homs = list(set(f.values())) # uniq
         #print "homs:", len(homs)
 
-    if 0:
-        itemss = G.cgy_cls()
-        els = []
-        for gs in itemss:
-            gs = list(gs)
-            g = gs[0]
-            els.append(g)
-            print("Order:", g.order(), "Size:", len(gs))
-        for hom in homs:
-            print("Perm rep:", hom.name)
-            for g in els:
-                g = hom[g]
-                print(len(g.fixed()), end=' ')
-            print()
-
     T = []
     for hom in homs:
         chi = CFunc.from_action(hom)
         print(hom.name, chi)
         T.append(chi)
+    #CFunc.show_table(T)
+    #return
 
     table = {}
     width = 0
@@ -2472,24 +2526,28 @@ def burnside(G, Hs=None):
     else:
         print("H~:")
         print(B)
-        print("UMU:")
-        UMU = numpy.dot(L, numpy.dot(A, L.transpose()))
-        print(UMU)
+#        print("UMU:")
+#        UMU = numpy.dot(L, numpy.dot(A, L.transpose()))
+#        print(UMU)
 
+    print("characters:")
     LT = numpy.dot(L, T)
-    print(LT)
     for chi1 in LT:
       for chi2 in LT:
         print(chi1.dot(chi2), end=" ")
       print()
+    CFunc.show_table(LT)
+    if argv.latex:
+        CFunc.latex_table(LT)
 
     m, n = B.shape
     items = []
     for row in B:
       for x in row:
         items.append(x)
-    if argv.latex:
-        print("MatrixSpace(Z,%s,%s)(%s).hermite_form().smith_form()" % (m, n, items))
+
+    #if argv.latex:
+    #    print("MatrixSpace(Z,%s,%s)(%s).hermite_form()" % (m, n, items))
 
 
 def latex_table(table, rows, cols, upper=False):
