@@ -3,6 +3,16 @@
 """
 binary linear codes from quadratic residues.
 eg. p=23 gives the Golay code.
+
+See:
+Sphere Packings, Lattices and Groups
+J. H. ConwayN. J. A. Sloane
+p84.
+
+The Theory of Error-Correcting Codes
+F.J. MacWilliams
+N.J.A. Sloane
+p45.
 """
 
 
@@ -19,8 +29,8 @@ def main():
 
     p = argv.get("p", 7)
 
-    assert (p%8) in [1, 7]
-    # equivalent to "2 is a quadratic _residue mod p"
+    #assert (p%8) in [1, 7]
+    # equivalent to "2 (binary!) is a quadratic _residue mod p"
     # eg. 7 17 23 31 41 47 71 73 79 89 97
 
     def neginv(i):
@@ -59,8 +69,14 @@ def main():
     print("G =")
     print(shortstr(G))
 
+    GG = dot2(G, G.transpose())
+    if GG.sum()==0:
+        print("self-dual code, p=%d mod 4" % (p%4))
+    else:
+        print("not a self-dual code, p=%d mod 4" % (p%4))
+
     m = rank(G)
-    assert m == N/2
+    #assert m == N/2
     print("rank =", m)
     print("det:", numpy.linalg.det(G))
 
@@ -68,6 +84,8 @@ def main():
     H = array2(H)
     print()
     print(shortstr(H))
+
+    return
 
     # -----------------------------------
 
@@ -79,8 +97,8 @@ def main():
     print("det:", numpy.linalg.det(G1.astype(numpy.float)))
 
     m = rank(G1)
-    assert m == N/2
     print("rank =", m)
+    #assert m == N/2
 
     H1 = find_kernel(G1)
     H1 = array2(H1)
@@ -118,6 +136,14 @@ def main():
     PSL = Group.generate([A, B])
     print("|PSL(2,%d)| = %d"%(p, len(PSL)))
 
+    print(residues)
+    count = 0
+    for g in PSL:
+        r1 = set(g[r] for r in residues)
+        if r1==residues:
+            count += 1
+    print("count =", count)
+
 #    g = PSL[5]
 #    print(g.orbits())
 
@@ -145,7 +171,7 @@ def main():
         delta = Perm.fromcycles(cycles, basis)
 
         G = Group.generate([alpha, beta, gamma]) # PSL(2,23)
-        print(len(G))
+        assert len(G) == 6072
 
         # way too big to generate:
         #G = Group.generate([alpha, beta, gamma, delta]) # M_24 

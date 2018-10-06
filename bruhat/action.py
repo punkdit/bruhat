@@ -2155,6 +2155,8 @@ def mathieu():
     M8 = Group(perms, items) # remove 8 ?
     assert len(M8)==8
 
+    print("OK")
+
 
 def hecke(G):
 

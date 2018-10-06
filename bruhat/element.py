@@ -268,6 +268,13 @@ class IntegerRing(Ring):
             return value
         if isinstance(value, int):
             return Integer(value, self)
+        try:
+            value = int(value)
+            return Integer(value, self)
+        except ValueError:
+            pass
+        except TypeError:
+            pass
         return None
 
     def add(self, a, b):

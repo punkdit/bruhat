@@ -1,4 +1,358 @@
 
+5/10/18
+=======
+
+https://twitter.com/benblumsmith/status/1047666790111875079
+Thanks to @emilyriehl I now understand the Yoneda Lemma
+well enough to identify it in the wild. I just had my
+first legit Yoneda Experience.
+
+Honeycombs and sums of Hermitian matrices
+Allen Knutson, Terence Tao
+
+https://mathoverflow.net/questions/35793/prime-ideals-in-c0-1
+prime ideals in C([0,1])
+
+https://mathoverflow.net/questions/162419/categorification-of-the-integers
+https://mathoverflow.net/questions/214767/adding-inverses-to-a-symmetric-monoidal-category-reference
+
+http://math.ucr.edu/home/baez/numbers/8.pdf
+APPENDIX: QUATERNIONS, THE DODECAHEDRON, AND E8
+elements of the binary icosahedral group
+are precisely the unit quaternions
+q = q01 + q1i + q2j + q3k
+where q0, q1, q2, q3 lie in the ‘golden field’.
+McKay correspondence
+
+
+https://golem.ph.utexas.edu/category/2007/03/news_about_e8.html
+Schubert cells, Bruhat classes
+
+https://golem.ph.utexas.edu/category/2007/04/the_field_with_one_element.html
+    Nikolai Durov: New Approach to Arakelov Geometry.
+    In Chapter 4 he defines an ‘algebraic monad’ to be a
+    monad on Set which preserves filtered colimits. But,
+    as Lawvere showed, this is just a painfully technical
+    way of talking about an ‘algebraic theory’ — roughly
+    speaking, a theory describing gadgets with some specified
+    n-ary operations satisfying some specified equational laws.
+    
+    An example of the kind of algebraic theory Durov cares
+    about is ‘the theory of R-modules’ for a ring R.
+    In short, he doesn’t really generalize the concept of
+    ring; he really generalizes the concept of R-module,
+    replacing it by ‘model of an algebraic theory’ — that
+    is, a gadget with some n-ary operations satisfying
+    some equations.
+    
+    That’s a truly massive generalization. It runs the risk
+    of vacuity.
+    
+    But, the really important rings in algebraic geometry
+    are the commutative ones! So, it’s R-modules with 
+    R commutative that Durov really needs to generalize.
+    And, he does this using the concept of a ‘commutative’
+    algebraic monad, which he introduces in Chapter 5. Again
+    it’s easier to think of these in terms of algebraic theories.
+    An algebraic theory is ‘commutative’ if all its operations
+    commute in a suitable sense.
+    
+    What does it mean for an n-ary operation and an m-ary
+    operation to ‘commute’? Well, for n = m = 1 it
+    just means the obvious thing: two unary operations r
+    r and s s on a set X commute if
+    
+    s(r(x)) = r(s(x))
+    for all x∈X. If s s is binary and r is unary,
+    we instead need
+    
+    s(r(x),r(y)) = r(s(x,y)).
+    It’s fun to guess the general pattern from these examples!
+
+
+https://mathoverflow.net/questions/63807/how-does-the-framed-function-theorem-simplify-cerf-theory
+
+https://mathoverflow.net/questions/20683/quantum-group-as-relative-drinfeld-double
+
+https://en.wikipedia.org/wiki/Hasse_principle
+
+
+
+3/10/18
+=======
+
+Conway & Sloane, p92
+Constructing lattices and codes from groups.
+The construction of lattices from integral representations.
+
+
+Bob Coecke
+https://golem.ph.utexas.edu/category/2008/07/real_versus_complex_numbers.html#c018034
+     there ARE two incompatible observables on the two element
+    set in Rel, according to the definition Ross Duncan and
+    I wrote down in our ICALP’08 paper. Roughly, compatible
+    obsevables are a pair of dagger Frobenius algebras which
+    mutually form `scaled’ dagger bialgebras. One checks
+    that on the two element set in Rel, highly remarcably,
+    such a pair exists, namely
+    
+    delta_g = 0 ~ (0,0); 1~(1,1)
+    epsilon_g = 0 ~ *; 1 ~ *
+    
+    and a misterious one
+    
+    delta_r = 0 ~ {(0,0),(1,1)}; 1~{(0,1),(1,0)}
+    epsilon_r = 0 ~ *
+
+http://math.ucr.edu/home/baez/span/
+whenever C C is a cartesian category with pullbacks,
+the category of spans in C C is dagger compact.
+
+Interacting Quantum Observables: Categorical Algebra and Diagrammatics
+Bob Coecke, Ross Duncan
+https://arxiv.org/abs/0906.4725
+
+https://mathoverflow.net/questions/162419/categorification-of-the-integers
+
+
+https://mathoverflow.net/questions/53362/what-do-dessins-tell-us-about-the-absolute-galois-group
+
+https://mathoverflow.net/a/119039/39775
+    Negative numbers and complex numbers were regarded as
+    absurd and useless by many mathematicians prior to 15th15th
+    century. For instance, Chuquet referred negative numbers
+    as "absurd numbers." Michael Stifel has a chapter on
+    negative numbers in his book "Arithmetica integra" titled
+    "numeri absurdi". And so too were complex/imaginary numbers.
+    Gerolamo Cardano in his book "Ars Magna" calls the square
+    root of negative numbers as a completely useless object.
+
+
+https://mathoverflow.net/a/84321/39775
+    Monads are very useful in computer science, specifically
+    logic programming. Haskell is a programming language
+    which is extremely mathematical, to the point where programs
+    and proofs are the same thing. It's a pure functional
+    programming language, which means everything is a function
+    and these functions are not allowed to have side-effects
+    (you can't cheat to make Haskell do something for you). 
+
+
+
+
+1/10/18
+=======
+
+https://arxiv.org/pdf/q-alg/9609018.pdf
+Higher-Dimensional Algebra II: 2-Hilbert Spaces
+John C. Baez
+page 8: The category Hilb is the categorification of
+the complex numbers. Categorification of conjugation
+is a functor, Hilb -> Hilb.
+
+
+The Theory of Error-Correcting Codes
+F.J. MacWilliams
+N.J.A. Sloane
+1977
+Ch. 13, Reed-Muller codes
+    The punctured RM code R(r,m)* is a cyclic code.
+    The incidence vectors of the projective subspaces 
+    PG(u-1,2) of PG(m-1,2) generate R(r,m)*, where u=m-r.
+    The incidence vectors of the (m-r)-flats in EG(m,2) generate R(r,m).
+Appendix B.
+    If the dimension exceeds 2, all projective and affine geometries come from
+    finite fields. It's more complicated in dimension 2.
+    A projective plane is equivalent to a Steiner system 
+    S(2, n+1, n^2+n+1) for some n>=2.
+    Ie. n^2+n+1 points, n^2+n+1 lines, with n+1 points on each line, and
+    a unique line containing any two points. An affine plane is equivalent
+    to a S(2, n, n^2).
+    Define PG(m,q) as the m-dim projective geometry from the m+1 dim vector
+    space over GL(q). Points are 1-dim subspaces, lines are 2-dim subspaces.
+    A hyperplane is a maximal proper subspace.
+    Define EG(m,q) as coming from PG(m,q) by removing a hyperplane ("at infinity").
+    
+
+30/9/18
+=======
+
+@book{book:11824,
+   title =     {A course in computational algebraic number theory},
+   author =    {Henri Cohen},
+   publisher = {Springer},
+   isbn =      {9780387556406,9783540556404,0387556400,3540556400},
+   year =      {1993},
+   series =    {Graduate Texts in Mathematics},
+   edition =   {3rd, Corr. Print},
+   volume =    {},
+
+@book{book:741094,
+   title =     {Advanced Topics in Computational Number Theory},
+   author =    {Henri Cohen (auth.)},
+   publisher = {Springer-Verlag New York},
+   isbn =      {0387987274,9780387987279},
+   year =      {2000},
+   series =    {Graduate Texts in Mathematics 193},
+   edition =   {1},
+   volume =    {},
+
+
+http://www.math.ucr.edu/home/baez/week102.html
+    if k is large enough, there are exactly 24 different
+    homotopy class of maps from an (k+3)-sphere to an k-sphere
+    ...
+    Part of Joyal's point was that we should really think
+    of the integers as the "free k-tuply monoidal n-groupoid
+    on one object". 
+    ...
+    homotopy n-types
+    ...
+    What about string theory and the magic number 24?
+
+
+Hoyningen-Huene, P. (1994). "Niels Bohr’s Argument for
+the Irreducibility of Biology to Physics." Boston Studies
+in the Philosophy of Science, 231–255.
+
+
+Quantum theory cannot consistently describe the use of itself
+Daniela Frauchiger & Renato Renner 
+https://www.nature.com/articles/s41467-018-05739-8
+https://www.facebook.com/howard.wiseman.9/posts/2483577304993485?__tn__=K-R
+My take on FRAUCHIGER & RENNER's
+"Quantum theory cannot consistently describe the use of itself"
+(date: 2018-9-28)
+https://www.scottaaronson.com/blog/?p=3975
+
+
+@book{book:473981,
+   title =     {Mathematics and Its History},
+   author =    {John Stillwell (auth.)},
+   publisher = {Springer-Verlag New York},
+   isbn =      {144196052X,9781441960528},
+   year =      {2010},
+   series =    {Undergraduate Texts in Mathematics},
+   edition =   {3},
+   volume =    {},
+
+http://www.math.jhu.edu/~eriehl/Voevodsky.pdf
+The Curry-Howard-Voevodsky correspondence
+type theory | set theory | logic | homotopy theory
+𝐴 | set | proposition | space
+𝑥 ∶ 𝐴 | element | proof | point
+∅, 1 |  ∅, {∅}  | ⊥, ⊤ |  ∅, ∗
+𝐴 × 𝐵 set of pairs 𝐴 and 𝐵 product space
+𝐴 + 𝐵 disjoint union 𝐴 or 𝐵 coproduct
+𝐴 → 𝐵 set of functions 𝐴 implies 𝐵 function space
+𝑥 ∶ 𝐴 ⊢ 𝐵(𝑥) family of sets predicate fibration
+𝑥 ∶ 𝐴 ⊢ 𝑏 ∶ 𝐵(𝑥) fam. of elements conditional proof section
+∏𝑥∶𝐴 𝐵(𝑥) product ∀𝑥.𝐵(𝑥) space of sections
+∑𝑥∶𝐴 𝐵(𝑥) disjoint sum ∃𝑥.𝐵(𝑥) total space
+𝑝 ∶ 𝑥 =𝐴 𝑦 𝑥 = 𝑦 proof of equality path from 𝑥 to 𝑦
+∑𝑥,𝑦∶𝐴 𝑥 =𝐴 𝑦 diagonal equality relation path space for �
+
+#distributivity
+https://arxiv.org/abs/1803.09356
+Neural Nets via Forward State Transformation and Backward Loss Transformation
+Bart Jacobs, David Sprunger
+    Functoriality of backpropagation
+
+https://arxiv.org/abs/1711.10455
+Backprop as Functor: A compositional perspective on supervised learning
+Brendan Fong, David I. Spivak, Rémy Tuyéras
+    gradient descent---with respect to a fixed step size
+    and an error function satisfying a certain property---defines
+    a monoidal functor from a category of parametrised functions
+    to this category of update rules.
+
+https://mindbodyproblems.com/
+John Horgan
+    But consciousness is just one of many mind-body conundrums.
+    Free will is another. Do our physical components—genes,
+    ganglia, neurotransmitters, hormones—dictate what we
+    do? Are conscious thoughts really afterthoughts, which
+    give us the illusion of self-control but lack causal
+    power? Does that mean that “mental illness” is a misnomer,
+    that depression and schizophrenia are physical illnesses
+    best treated with physical remedies?
+
+
+Quantum Mechanics of Identity:
+Bosons, Fermions, Anyons
+http://frankwilczek.com/2018/identity_01.pdf
+    The existence of anyons - of many kinds - is firmly
+    established theoretically, and by numerical simulation, in
+    the fractional quantum Hall effect.
+    But direct experimental demonstration, for example
+    through interferometry, remains an open challenge. 
+    Anyons are also predicted to exist in other states of
+    matter, such as Chern insulators and spin liquids, which
+    might offer cleaner access. 
+    ...
+    An enormous effort, lavishly funded by Microsoft, is being
+    directed at producing and controlling “Majorana” anyons
+    (majorinos).
+    Majorinos are non-abelian anyons associated with
+    specially designed vortex-like structures in
+    superconductors.
+    They could provide building blocks for topological
+    quantum computing. 
+    At the moment, the experimenters have produced
+    individual Majorinos, but they have not demonstrated
+    their statistics directly.
+    That demonstration will be an early step in Microsoft’s
+    ambitious program to make and manipulate many
+    Majorinos within a scalable architecture.
+    It will be disappointing - and surprising - if it is not
+    accomplished soon. 
+
+
+http://cognitivemedium.com/vme
+The varieties of material existence
+Sep 19, 2018
+By Michael Nielsen
+
+
+29/9/18
+=======
+
+Sociophysics and Econophysics, the Future of Social Science?
+https://daily.jstor.org/sociophysics-and-econophysics-the-future-of-social-science/
+
+#distributivity
+https://twitter.com/_julesh_/status/1045977083866992640
+    Intuitionistic validity commutes with all logical connectives:
+    for example of "A or B" is valid then A is valid or B
+    is valid, similarly if "exists x . P(x)" is valid then
+    there exists an x such that "P(x)" is valid. With classical
+    logic this fails for both "or" and "exists".
+
+    Connectives are divided into positive and negative depending
+    on whose turn it is to move in a dialogue. Classical
+    validity only commutes with negative connectives, which
+    are moves of the Falsifier.
+
+
+Robert Spekkens Public Lecture: The Riddle of the Quantum Sphinx
+https://www.youtube.com/watch?v=jvZ5m3UMer4
+
+
+
+
+27/9/18
+=======
+
+https://math.stackexchange.com/questions/45893/how-to-find-the-galois-group-of-a-polynomial
+
+https://sbseminar.wordpress.com/2007/08/24/factoring-polynomials-and-the-frobenius/
+
+https://ncatlab.org/nlab/show/permutation+representation
+
+https://math.stackexchange.com/questions/676303/representation-theory-over-mathbbq
+
+
+
 26/9/18
 =======
 
@@ -1508,6 +1862,7 @@ Cayley-Dickson stage beyond octonions?
 =======
 
 Team decision problems with classical and quantum signals
+2016
 https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4685761/
     8. An economic application
     A natural scenario in which team problems arise but direct
