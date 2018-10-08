@@ -1174,7 +1174,6 @@ def test():
 
     # -------------------------
     # https://people.maths.bris.ac.uk/~matyd/GroupNames/1/GL(2,3).html
-    # aka binary octahedral group
 
     C = GL.get([[2, 0], [0, 1]])
     D = GL.get([[1, 0], [0, 2]])
@@ -1223,6 +1222,19 @@ def test():
 
     SL2_7 = mulclose([GL.one, A, B])
     assert len(SL2_7) == 336 == 168*2
+
+
+    # https://people.maths.bris.ac.uk/~matyd/GroupNames/1/CSU(2,3).html
+    # aka binary octahedral group
+    A = GL.get([[2, 1], [2, 5]])
+    B = GL.get([[1, 2], [6, 6]])
+    C = GL.get([[4, 0], [2, 2]])
+    D = GL.get([[2, 5], [6, 5]])
+
+    BO = mulclose([A, B, C, D])
+    assert len(BO) == 48
+    if argv.BO:
+        burnside(cayley(BO))
 
     # -------------------------
 

@@ -1,4 +1,29 @@
 
+
+8/10/18
+=======
+
+https://arxiv.org/abs/1810.02372
+Super-resolving the Ising model with convolutional neural networks
+Stavros Efthymiou, Matthew J. S. Beach, Roger G. Melko
+
+https://mindbodyproblems.com/chapter-four/
+Inspired by these ideas, Kauffman, together with Smolin,
+conjectured that reality is fundamentally unpredictable
+and creative. “Einstein starts with a pre-stated configuration
+space, a block universe,” Kauffman said. “What if that’s
+not how it happens? What if, from loop quantum gravity,
+the universe builds itself, but you can’t say what it’s
+going to build until it builds itself?” The universe
+“is not an is. It’s a becoming.” Kauffman constructed
+a non-deterministic metaphysics based not on probability—the
+key concept of quantum mechanics—but on possibility.
+The switch makes causation looser, allowing for more
+wriggle room. Causation becomes akin to enablement.
+
+
+
+
 5/10/18
 =======
 
