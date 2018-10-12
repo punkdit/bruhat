@@ -1,4 +1,21 @@
 
+10/10/18
+========
+
+
+Some years ago I was fond of discovering
+http://ncatlab.org/nlab/show/Tannaka+duality#ForPermutationRepresentations …
+that the proof of Tannaka duality for G-sets (hence for G-reps over F1)
+is nothing but a sequence of four applications of the Yoneda lemma
+in a row.
+https://twitter.com/SchreiberUrs/status/1049733552319995904
+
+
+It Was 20 Years Ago Today — the M-theory Conjectures
+August 17, 2015/2 Comments/in Physics Articles /by Urs Schreiber
+https://www.physicsforums.com/insights/20-years-ago-today-m-theory-conjecture/
+
+
 
 8/10/18
 =======

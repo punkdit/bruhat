@@ -2396,6 +2396,9 @@ def burnside(G, Hs=None):
         rows.append(row)
 
     if argv.latex:
+        print()
+        print(r"\noindent Subgroups:")
+        print()
         s = latex_dump(
             r'\text{subgroup} \text{order} \text{cosets} \text{conjugates} \text{cyclic}'.split(), rows)
         print(s)
@@ -2517,11 +2520,17 @@ def burnside(G, Hs=None):
     A = zelim.parse(s)
 
     if argv.latex:
+        print()
+        print(r"\noindent Table of multiplicities:")
+        print()
         s = latex_dump(cols, A, sider=cols, sep=False)
         print(s)
 
     L, B = zelim.zelim(A)
     if argv.latex:
+        print()
+        print(r"\noindent Upper triangular form:")
+        print()
         s = latex_dump(cols, B, sep=False)
         s = s.replace("0 ", ". ")
         print(s)
@@ -2532,7 +2541,6 @@ def burnside(G, Hs=None):
 #        UMU = numpy.dot(L, numpy.dot(A, L.transpose()))
 #        print(UMU)
 
-    print("characters:")
     LT = numpy.dot(L, T)
     for chi1 in LT:
       for chi2 in LT:
@@ -2540,6 +2548,9 @@ def burnside(G, Hs=None):
       print()
     CFunc.show_table(LT)
     if argv.latex:
+        print()
+        print(r"\noindent Character table for image of $\beta$:")
+        print()
         CFunc.latex_table(LT)
 
     m, n = B.shape

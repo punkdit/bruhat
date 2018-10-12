@@ -1254,9 +1254,9 @@ def test():
 
     # -------------------------
 
-    for n in range(2, 5):
+    for n in range(2, 9):
 
-        p = cyclotomic(ring, 2*n)
+        p = cyclotomic(PolynomialRing(Z), 2*n)
     
         ring = PolynomialRing(Z) / p
         x = ring.x
@@ -1278,10 +1278,7 @@ def test():
         Di = mulclose([A, B])
         assert len(Di) == 4*n
 
-        if argv.Di_3 and n==3:
-            burnside(cayley(Di))
-
-        if argv.Di_4 and n==4:
+        if argv.Dic and n==argv.get("n"):
             burnside(cayley(Di))
 
     # -------------------------
