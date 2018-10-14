@@ -1,4 +1,27 @@
 
+14/10/18
+========
+
+Introduction To Quadratic Forms Over Fields
+T. Y. Lam
+2005
+
+    #distributivity
+    p143
+    discrete (rank 1) Krull valuation:
+    surjective map v:F^x -> Z s.t.
+    (1) v(ab) = v(a) + v(b) 
+    (2) v(a+b) >= min(v(a), v(b)) 
+    also: v(0) = infinity.
+    The valuation ring of F is defined
+    A={x in F : v(x) >= 0} (including 0)
+    Then:
+    quotient fielf of A is F.
+    etc.
+
+
+
+
 10/10/18
 ========
 

@@ -949,8 +949,9 @@ def cayley(elements):
 _cyclotomic_cache = {}
 def cyclotomic(ring, n): # make this a method ?
 
-    if n in _cyclotomic_cache:
-        return _cyclotomic_cache[n]
+    key = (ring, n)
+    if key in _cyclotomic_cache:
+        return _cyclotomic_cache[key]
 
     divs = divisors(n)
 
@@ -972,7 +973,7 @@ def cyclotomic(ring, n): # make this a method ?
         for i in divs[:-1]:
             p = p / cyclotomic(ring, i)
 
-    _cyclotomic_cache[n] = p
+    _cyclotomic_cache[key] = p
     return p
 
 # ----------------------------------------------------------------------------
