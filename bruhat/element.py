@@ -407,7 +407,11 @@ class FiniteField(Ring):
         if isinstance(value, FieldElement):
             assert value.tp is self
             return value
-        if not isinstance(value, int):
+        #if not isinstance(value, int):
+        #    return None
+        try:
+            value = int(value)
+        except:
             return None
         value = value % self.p
         return FieldElement(value, self)
