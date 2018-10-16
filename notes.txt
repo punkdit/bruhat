@@ -1,4 +1,13 @@
 
+15/10/18
+========
+
+sage: g=graphs.McGeeGraph()
+sage: a=g.automorphism_group()    
+sage: a.structure_description()
+'(C2 x D4) : C2'
+
+
 14/10/18
 ========
 
@@ -170,8 +179,8 @@ https://golem.ph.utexas.edu/category/2008/07/real_versus_complex_numbers.html#c0
     epsilon_r = 0 ~ *
 
 http://math.ucr.edu/home/baez/span/
-whenever C C is a cartesian category with pullbacks,
-the category of spans in C C is dagger compact.
+whenever C is a cartesian category with pullbacks,
+the category of spans in C is dagger compact.
 
 Interacting Quantum Observables: Categorical Algebra and Diagrammatics
 Bob Coecke, Ross Duncan

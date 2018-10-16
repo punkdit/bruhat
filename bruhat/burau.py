@@ -46,6 +46,61 @@ def main():
     print("J =")
     print(J)
 
+    make = lambda items : from_array(numpy.array(items), hom)
+    is_symplectic = lambda A : (A.transpose() * J * A == J)
+
+    a1 = make([
+        [1, -1, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]])
+
+    assert is_symplectic(a1)
+
+    b1 = make([
+        [1, 0, 0, 0],
+        [1, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]])
+
+    assert is_symplectic(b1)
+
+    a2 = make([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, -1],
+        [0, 0, 0, 1]])
+
+    assert is_symplectic(a2)
+
+    b2 = make([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 1, 1]])
+
+    assert is_symplectic(b2)
+
+    c = make([
+        [1, 0, 0, 0],
+        [1, 1, -1, 0],
+        [0, 0, 1, 0],
+        [-1, 0, 1, 1]])
+
+    assert is_symplectic(c)
+
+    assert a1*b1*a1 == b1*a1*b1
+    assert a2*b2*a2 == b2*a2*b2
+
+    assert b1*c == c*b1
+    assert a1*c*a1 == c*a1*c
+
+    gen = [b1, a1, c, a2, b2]
+
+    assert c*b2 == b2*c
+
+    return
+
     # getting desparate....
     Js = []
     for i in range(m-1):
@@ -63,6 +118,7 @@ def main():
     #print(len(Js))
 
     gen = []
+    ngen = []
     for i in range(m):
 
         A = zeros(m)
@@ -87,10 +143,11 @@ def main():
             else:
                 A[j, j] = 1
 
-        print("det:", numpy.linalg.det(A))
+        #print("det:", numpy.linalg.det(A))
+        ngen.append(A)
         A = from_array(A, hom)
-        print("A=")
-        print(A)
+        #print("A=")
+        #print(A)
         #print()
         #print(A.transpose() * J * A)
         #print(A * J * A.transpose())
@@ -107,10 +164,18 @@ def main():
         elif abs(i-j)>1:
             assert a*b == b*a
 
-    for a in gen:
-        print(a)
-
     #G = mulclose(gen)
+
+    if 0:
+        from solve import Unknown, System, dot2
+        U = Unknown(m, m)
+        system = System(U)
+        for A in ngen:
+            system.append(dot2(A, dot2(U, A.transpose())), A)
+        V = system.solve()
+        print(V)
+
+    return
 
     for J in Js:
         count = 0

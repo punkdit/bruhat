@@ -9,19 +9,21 @@ import numpy
 import numpy.random as ra
 from numpy import dot, concatenate
 
+int_scalar = numpy.int64
+
 
 def array2(items):
-    return numpy.array(items, dtype=numpy.int32)
+    return numpy.array(items, dtype=int_scalar)
 
 
 def zeros2(*shape):
     if len(shape)==1 and type(shape[0]) is tuple:
         shape = shape[0]
-    return numpy.zeros(shape, dtype=numpy.int32)
+    return numpy.zeros(shape, dtype=int_scalar)
 
 
 def identity2(n):
-    return numpy.identity(n, dtype=numpy.int32)
+    return numpy.identity(n, dtype=int_scalar)
 
 
 def dot2(*items):
@@ -70,7 +72,7 @@ def append2(A, u):
 
 def binomial2(p, *shape):
     error = ra.binomial(1, p, shape)
-    error = error.astype(numpy.int32)
+    error = error.astype(int_scalar)
     return error
 
 
@@ -109,7 +111,7 @@ def parse(s):
         n = len(rows[0])
         for row in rows:
             assert len(row)==n, "rows have varying lengths"
-    a = numpy.array(rows, dtype=numpy.int32)
+    a = numpy.array(rows, dtype=int_scalar)
     return a
 
 
@@ -599,7 +601,7 @@ def find_kernel(A, inplace=False, check=False, verbose=False):
     for var in vars:
 
         #print "var:", var
-        v = numpy.zeros((n,), dtype=numpy.int32)
+        v = numpy.zeros((n,), dtype=int_scalar)
         v[var] = 1
         row = min(var-1, m-1)
         while row>=0:
@@ -808,7 +810,7 @@ def check_conjugate(A, B):
     if A is None or B is None:
         return
     assert A.shape == B.shape
-    I = numpy.identity(A.shape[0], dtype=numpy.int32)
+    I = numpy.identity(A.shape[0], dtype=int_scalar)
     assert eq2(dot2(A, B.transpose()), I)
 
 
@@ -1082,7 +1084,7 @@ class System(object):
                 j += T1.shape[1]
             blocks.append(row)
             i += T0.shape[0]
-        self.blocks = blocks = numpy.array(blocks, dtype=numpy.int32)
+        self.blocks = blocks = numpy.array(blocks, dtype=int_scalar)
         n = self.n = len(Ts)
         for i in range(n):
           for j in range(n):
@@ -1101,13 +1103,13 @@ class System(object):
         if type(rhs) in (int, float, int) and rhs==1:
             n = min(*lhs.shape)
             rhs = identity2(n)
-        if lhs.dtype==numpy.int32:
+        if lhs.dtype==int_scalar:
             lhs, rhs = rhs, lhs # swap
         elif lhs.dtype==object and rhs.dtype==object:
             lhs = lhs-rhs
             rhs = zeros2(*rhs.shape)
         assert lhs.dtype == object, lhs.dtype
-        assert rhs.dtype == numpy.int32, rhs.dtype
+        assert rhs.dtype == int_scalar, rhs.dtype
         if len(lhs.shape)==1:
             lhs = lhs.view()
             lhs.shape = (lhs.shape[0], 1)
@@ -1328,16 +1330,16 @@ def test_solve():
        [1, 1, 0, 1, 0, 0, 1, 0],
        [0, 0, 0, 0, 1, 0, 0, 1],
        [0, 1, 0, 0, 0, 0, 1, 0],
-       [1, 0, 0, 1, 1, 0, 0, 1]], dtype=numpy.int32)
+       [1, 0, 0, 1, 1, 0, 0, 1]], dtype=int_scalar)
 
-    #u = numpy.array([0, 0, 0, 1, 0, 1, 0, 0, 1], dtype=numpy.int32)
+    #u = numpy.array([0, 0, 0, 1, 0, 1, 0, 0, 1], dtype=int_scalar)
 
-    v = numpy.array([0, 1, 1, 0, 1, 0, 0, 1], dtype=numpy.int32)
+    v = numpy.array([0, 1, 1, 0, 1, 0, 0, 1], dtype=int_scalar)
 
     v = numpy.array([
         [0, 1, 1, 0, 1, 0, 0, 1],
         [0, 1, 1, 0, 0, 0, 0, 0]],
-        dtype=numpy.int32)
+        dtype=int_scalar)
 
     #print H.shape
     #print v.shape
@@ -1529,7 +1531,7 @@ def test_plu():
     m, n = 9, 9
     rows = [[int(i==j) for i in range(n)] for j in range(n)]
     shuffle(rows)
-    A = numpy.array(rows, dtype=numpy.int32)
+    A = numpy.array(rows, dtype=int_scalar)
 
     A = parse("""
     1........
