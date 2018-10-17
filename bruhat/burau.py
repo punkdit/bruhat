@@ -49,112 +49,83 @@ def main():
     make = lambda items : from_array(numpy.array(items), hom)
     is_symplectic = lambda A : (A.transpose() * J * A == J)
 
-    a1 = make([
-        [1, -1, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1]])
 
-    assert is_symplectic(a1)
+    if 0:
+        a1 = make([
+            [1, -1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]])
+    
+        assert is_symplectic(a1)
+    
+        b1 = make([
+            [1, 0, 0, 0],
+            [1, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]])
+    
+        assert is_symplectic(b1)
+    
+        a2 = make([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, -1],
+            [0, 0, 0, 1]])
+    
+        assert is_symplectic(a2)
+    
+        b2 = make([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 1, 1]])
+    
+        assert is_symplectic(b2)
+    
+        c = make([
+            [1, 0, 0, 0],
+            [1, 1, -1, 0],
+            [0, 0, 1, 0],
+            [-1, 0, 1, 1]])
+    
+        assert is_symplectic(c)
+    
+        gen = [b1, a1, c, a2, b2]
 
-    b1 = make([
-        [1, 0, 0, 0],
-        [1, 1, 0, 0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1]])
-
-    assert is_symplectic(b1)
-
-    a2 = make([
-        [1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, 1, -1],
-        [0, 0, 0, 1]])
-
-    assert is_symplectic(a2)
-
-    b2 = make([
-        [1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, 1, 0],
-        [0, 0, 1, 1]])
-
-    assert is_symplectic(b2)
-
-    c = make([
-        [1, 0, 0, 0],
-        [1, 1, -1, 0],
-        [0, 0, 1, 0],
-        [-1, 0, 1, 1]])
-
-    assert is_symplectic(c)
-
-    assert a1*b1*a1 == b1*a1*b1
-    assert a2*b2*a2 == b2*a2*b2
-
-    assert b1*c == c*b1
-    assert a1*c*a1 == c*a1*c
-
-    gen = [b1, a1, c, a2, b2]
-
-    assert c*b2 == b2*c
-
-    return
-
-    # getting desparate....
-    Js = []
-    for i in range(m-1):
-        A = zeros(m)
-        for j in range(m):
-            if j==i:
-                A[i, i+1] = 1
-            elif j==i+1:
-                A[i+1, i] = 1
-            else:
-                A[j, j] = 1
-        A = from_array(A, hom)
-        Js.append(A)
-    Js = mulclose(Js)
-    #print(len(Js))
 
     gen = []
-    ngen = []
+    I = zeros(m)
     for i in range(m):
+        I[i, i] = 1
+    A = zeros(m) + I
+    A[1, 0] = 1
+    gen.append(A)
 
-        A = zeros(m)
-#        for j in range(m):
-#            A[j, j] = 1
-#
-#        if i>0:
-#            A[i-1, i] = -1
-#
-#        if i+1 < m:
-#            A[i+1, i] = 1
-
-        for j in range(m):
-            if j==i-1:
-                A[i-1, j] = 1
-                A[i, j] = 1
-            elif j==i:
-                A[i, j] = 1
-            elif j==i+1:
-                A[i, j] = -1
-                A[i+1, j] = 1
-            else:
-                A[j, j] = 1
-
-        #print("det:", numpy.linalg.det(A))
-        ngen.append(A)
-        A = from_array(A, hom)
-        #print("A=")
-        #print(A)
-        #print()
-        #print(A.transpose() * J * A)
-        #print(A * J * A.transpose())
-        #assert A.transpose() * J * A == J
+    for i in range(m//2):
+        A = zeros(m) + I
+        A[2*i, 2*i+1] = -1
         gen.append(A)
 
+        if i+1 < m//2:
+            A = zeros(m) + I
+            A[2*i+1, 2*i] = 1
+            A[2*i+3, 2*i] = -1
+            A[2*i+1, 2*i+2] = -1
+            A[2*i+3, 2*i+2] = 1
+            gen.append(A)
+
+    if m//2>1:
+        A = zeros(m) + I
+        A[m-1, m-2] = 1
+        gen.append(A)
+
+    gen = [make(A) for A in gen]
+
     print("gen:", len(gen))
+    for A in gen:
+        print(A)
+        assert is_symplectic(A)
 
     for i in range(m):
       for j in range(i, m):
@@ -164,35 +135,18 @@ def main():
         elif abs(i-j)>1:
             assert a*b == b*a
 
-    #G = mulclose(gen)
+    A = zeros(m) + I
+    A[3, 2] = 1
+    A = make(A)
+    assert is_symplectic(A)
+    gen.append(A)
 
-    if 0:
-        from solve import Unknown, System, dot2
-        U = Unknown(m, m)
-        system = System(U)
-        for A in ngen:
-            system.append(dot2(A, dot2(U, A.transpose())), A)
-        V = system.solve()
-        print(V)
-
-    return
-
-    for J in Js:
-        count = 0
-        for A in gen:
-            if A.transpose() * J * A == J:
-                count += 1
-        if count==len(gen):
-            print("found:")
-            print(J)
-        else:
-            print(count, end=" ")
-    print()
-
-    if argv.generate:
+    if argv.p==2 and m==4 or argv.mulclose:
         assert p is not None, "not a finite group!"
         G = mulclose(gen)
         print("|G| =", len(G))
+        if argv.p==2 and m==4:
+            assert len(G)==720
 
 
 if __name__ == "__main__":
