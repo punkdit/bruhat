@@ -77,8 +77,8 @@ def main():
 
     m = rank(G)
     #assert m == N/2
-    print("rank =", m)
-    print("det:", numpy.linalg.det(G))
+    print("F_2 rank =", m)
+    #print("det:", numpy.linalg.det(G))
 
     H = find_kernel(G)
     H = array2(H)

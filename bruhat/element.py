@@ -37,6 +37,17 @@ class Type(object):
     def bool(self, a):
         return True
 
+    def gcd(self, a, b):
+        raise TypeError("Not implemented for Type %s"%self)
+
+    def truediv(self, a, b):
+        raise TypeError("Not implemented for Type %s"%self)
+
+    def floordiv(self, a, b):
+        raise TypeError("Not implemented for Type %s"%self)
+
+    # etc...
+
 
 class Element(Type):
     def __init__(self, tp):
@@ -307,6 +318,8 @@ class IntegerRing(Ring):
         return Integer(a%b, self)
     
     def gcd(self, a, b):
+        assert a.tp == self, repr(a)
+        assert b.tp == self, repr(b)
         a = a.value
         b = b.value
         while b != 0:
@@ -498,12 +511,95 @@ class PolynomialRing(Keyed, Ring):
         div, rem = b.reduce(a)
         return rem
 
-    def gcd(self, a, b):
-        assert a.tp == self
-        assert b.tp == self
-        while b != self.zero:
-            a, b = b, a%b
-        return a
+    def content(self, a):
+        # Definition 3.2.7, p116 (Cohen, 1993)
+        cs = list(a.cs.values())
+        ring = self.base
+        if not cs:
+            return ring.zero
+        d = cs[0]
+        for e in cs[1:]:
+            d = ring.gcd(d, e)
+        return d
+
+    def primitive(self, A):
+        if A==self.zero:
+            return self.zero
+        a = self.content(A)
+        return A/a
+
+#    def gcd(self, a, b):
+#        assert a.tp == self
+#        assert b.tp == self
+#        args = (a, b)
+#        print("gcd(%s, %s):"%(a, b))
+#        seen = set([(a, b)])           # remove me
+#        while b != self.zero:
+#            a, b = b, a%b
+#            print("\t%s, %s"%(a, b))
+#            assert (a, b) not in seen, "gcd(%s, %s): %s"%args  # remove me
+#            seen.add((a, b))           # remove me
+#            #print("gcd", a, b)
+#        return a
+
+    def pseudo_div(self, A, B):
+        # algorithm 3.1.2, p112 (Cohen, 1993)
+        assert A.tp == self
+        assert B.tp == self
+        assert B!=0
+        m, n = A.deg, B.deg
+        d = B[n]
+        zero = self.zero
+        x = self.x
+        Q = zero
+        R = A
+        while R.deg >= B.deg:
+            S = R[R.deg] * x**(R.deg - B.deg)
+            Q = d*Q + S
+            R = d*R - S*B
+
+        return Q, R
+
+    def gcd(self, A, B):
+        # algorithm 3.2.10, p117 (Cohen, 1993)
+        assert A.tp == self
+        assert B.tp == self
+        args = (A, B)
+#        print("gcd(%s, %s):"%(A, B))
+        if B==0:
+            return A
+        ring = self.base
+        a = self.content(A)
+        b = self.content(B)
+        d = ring.gcd(a, b)
+        A = self.primitive(A)
+        B = self.primitive(B)
+
+        while 1:
+#            print("\tA=%s, B=%s" % (A, B))
+            #Q, R = B.reduce(A)
+            Q, R = self.pseudo_div(A, B)
+#            print("\tQ=%s, R=%s" % (Q, R,))
+            if Q != 0:
+                lhs = B[B.deg] ** (A.deg - B.deg + 1) * A
+                rhs = B*Q + R
+                assert lhs == rhs
+            else:
+                assert R==A
+            if R==0:
+                break
+            if R.deg == 0:
+                B = 1
+                break
+            A = B
+            B = R/self.content(R)
+
+        #print("\td=%s, B=%s"%(d, B), ring)
+        #print("\t", type(d*B))
+        B = self.promote(d*B)
+#        print("\tB=%s"%B)
+        assert B is not None
+        return B
 
 
 
@@ -622,6 +718,8 @@ class ModuloRing(Keyed, Ring):
         if isinstance(value, Element) and value.tp==self:
             return value
         value = self.ring.promote(value)
+        if value is None:
+            return None
         value = self.reduce(value)[1]
         a = ModuloElement(value, self)
         return a
@@ -650,6 +748,23 @@ class ModuloRing(Keyed, Ring):
         value = ring.mul(a.value, b.value)
         value = self.reduce(value)[1]
         a = ModuloElement(value, self)
+        return a
+
+    def gcd(self, a, b):
+        assert a.tp == self
+        assert b.tp == self
+        ring = self.ring
+        a = ring.gcd(a.value, b.value)
+        a = self.promote(a)
+        return a
+
+    def truediv(self, a, b):
+        assert a.tp == self
+        assert b.tp == self
+        ring = self.ring
+        a = a.value / b.value
+        #a = ring.truediv(a.value, b.value)
+        a = self.promote(a)
         return a
 
 
@@ -1022,17 +1137,25 @@ def test():
     assert (x+one)**5 == x**5+5*x**4+10*x**3+10*x**2+5*x+1
     assert str((x+one)**3) == "x**3+3*x**2+3*x+1"
 
-    a = x**3 + x + 1
-    b = x**6
-    div, rem = a.reduce(b)
-    assert a*div + rem == b
-    #print("(%s) * (%s) + %s = %s" % (a, div, rem, b))
+    assert ring.content(10*x + 2) == 2
+    assert ring.content(5*x**2 + 10*x + 2) == 1
 
-    bot = 2*x+1
-    top = 3*x
-    
-    div, rem = bot.reduce(top)
-    assert bot*div + rem == top
+    for (a, b) in [
+        (4, 10),
+        (4, 10*x),
+        (2*x+1, 3*x),
+        (x**3 + x + 1, x**6),
+    ]:
+        a = ring.promote(a)
+        b = ring.promote(b)
+        div, rem = a.reduce(b)
+        assert a*div + rem == b
+        #print("(%s) * (%s) + %s = %s" % (a, div, rem, b))
+
+        c = ring.gcd(a, b)
+        #print("gcd(%s, %s) == %s"%(a, b, c))
+
+    #return
 
     # -------------------------
 
@@ -1350,6 +1473,48 @@ def test():
 
     assert i * (-1-i) == 2
 
+    # -------------------------
+    #
+
+    ring = PolynomialRing(Z)
+    p = cyclotomic(PolynomialRing(Z), 8)
+    ring = ring / p
+    field = FieldOfFractions(ring)
+
+    x = field.promote(ring.x)
+    one = field.one
+
+    r2 = x + x**7
+    assert r2**2 == 2  # sqrt(2)
+
+    i = x**2
+    assert i**2 == -one # sqrt(-1)
+
+    GL = Linear(2, field)
+    I = GL.get([[1, 0], [0, 1]])
+    J = GL.get([[1, 0], [0, i]])
+    
+    M = (r2/2) * GL.get([[1, 1], [1, -1]]) # Hadamard
+
+    assert J**4 == I
+    assert M**2 == I
+    
+    G = mulclose([J, M])
+    assert len(G) == 192
+
+#    def get_order(A):
+#        count = 1
+#        B = A
+#        while B!=I:
+#            B = A*B
+#            count += 1
+#        return count
+#            
+#    #G = cayley(G)
+#    #orders = [g.order() for g in G]
+#    orders = [get_order(A) for A in G]
+#    orders.sort()
+#    print(orders)
 
 
 

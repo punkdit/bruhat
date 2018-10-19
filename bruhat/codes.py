@@ -8,15 +8,21 @@ Build Reed-Muller codes.
 import numpy
 
 from solve import array2, zeros2, dot2, shortstr, rank, find_kernel, span
+from solve import linear_independent
 from argv import argv
 from util import choose
 
 
 class Code(object):
-    def __init__(self, G, H=None, d=None, check=True):
+    """
+        binary linear code, as defined by a generator matrix.
+    """
+    def __init__(self, G, H=None, d=None, desc="", check=True):
+        assert len(G.shape)==2
         self.G = G.copy()
         self.k, self.n = G.shape
         self.d = d
+        self.desc = desc
 
         if H is None:
             H = list(find_kernel(G))
@@ -35,7 +41,8 @@ class Code(object):
         assert A.sum()==0
 
     def __str__(self):
-        return "Code([[%s, %s, %s]])" % (self.n, self.k, self.d)
+        desc = ', "%s"'%self.desc if self.desc else ""
+        return "Code([[%s, %s, %s]]%s)" % (self.n, self.k, self.d, desc)
 
     def dump(self):
         G, H = self.G, self.H
@@ -46,9 +53,23 @@ class Code(object):
         print(shortstr(H))
 
     def is_selfdual(self):
-        G = self.G
-        x = dot2(G, G.transpose())
-        return x==0
+        #G = self.G
+        #x = dot2(G, G.transpose())
+        #return x.sum()==0
+        return self.eq(self.get_dual())
+
+    def get_dual(self):
+        return Code(self.H, self.G)
+
+    def eq(self, other):
+        "Two codes are equal if their generating matrices have the same span."
+        G1, G2 = self.G, other.G
+        if len(G1) != len(G2):
+            return False
+        A = dot2(self.H, other.G.transpose())
+        B = dot2(other.H, self.G.transpose())
+        assert (A.sum()==0) == (B.sum()==0)
+        return A.sum() == 0
 
     def get_distance(self):
         G = self.G
@@ -59,22 +80,42 @@ class Code(object):
                 continue
             if d is None or w<d:
                 d = w
+        if self.d is None:
+            self.d = d
         return d
 
     def puncture(self, i):
         assert 0<=i<self.n
         G = self.G
-        A = G[:i]
-        B = G[i+1:]
-        print(A.shape)
-        print(B.shape)
-        G = numpy.concatenate((A, B), axis=0)
+        A = G[:, :i]
+        B = G[:, i+1:]
+        G = numpy.concatenate((A, B), axis=1)
+        G = linear_independent(G, check=True)
         return Code(G)
-    
 
-def build_rm(r, m):
+    def is_morthogonal(self, m):
+        G = self.G
+        k = self.k
+        assert m>=2
+        if m>2 and not self.is_morthogonal(m-1):
+            return False
+        items = list(range(k))
+        for idxs in choose(items, m):
+            v = G[idxs[0]]
+            for idx in idxs[1:]:
+                v = v * G[idx]
+            if v.sum()%2 != 0:
+                return False
+        return True
 
-    assert 0<=r<=m
+    def is_triorthogonal(self):
+        return self.is_morthogonal(3)
+
+
+def reed_muller(r, m, puncture=False):
+    "Build Reed-Muller code"
+
+    assert 0<=r<=m, "r=%s, m=%d"%(r, m)
 
     n = 2**m # length
 
@@ -99,15 +140,20 @@ def build_rm(r, m):
             basis.append(v)
         
     G = numpy.array(basis)
-    code = Code(G)
+
+    code = Code(G, d=2**(m-r), desc="reed_muller(%d, %d)"%(r, m))
+
+    if puncture:
+        code = code.puncture(0)
+
     return code
 
 
 def test():
 
-    for m in range(2, 6):
+    for m in range(2, 7):
       for r in range(0, m+1):
-        code = build_rm(r, m)
+        code = reed_muller(r, m)
         assert code.n == 2**m
         k = 1
         for i in range(1, r+1):
@@ -116,6 +162,12 @@ def test():
         if code.k < 12:
             assert code.get_distance() == 2**(m-r)
 
+        if 0<=r<=m-1:
+            dual = code.get_dual()
+            code1 = reed_muller(m-r-1, m)
+            #print(m-r-1 == r, dual.eq(code), code)
+            assert code1.eq(dual)
+
     print("OK")
 
 
@@ -123,16 +175,31 @@ def main():
     r = argv.get("r", 1) # degree
     m = argv.get("m", 3)
 
-    code = build_rm(r, m)
+    code = reed_muller(r, m)
 
     print(code)
-    print("d =", code.get_distance())
+    #print("d =", code.get_distance())
+    code.dump()
 
     code = code.puncture(3)
 
     print(code)
+    code.dump()
     print("d =", code.get_distance())
 
+
+    for m in range(2, 10):
+      for r in range(0, m+1):
+        code = reed_muller(r, m)
+        print(code, end=" ")
+        if code.is_selfdual():
+            print("is_selfdual", end=" ")
+        if code.is_morthogonal(3):
+            print("is_triorthogonal", end=" ")
+        p = code.puncture(0)
+        if p.is_morthogonal(3):
+            print("puncture.is_triorthogonal", end=" ")
+        print()
 
 
 

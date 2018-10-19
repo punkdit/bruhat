@@ -13,6 +13,7 @@ https://arxiv.org/pdf/math/0505518.pdf
 
 """
 
+from __future__ import print_function
 
 import sys, os
 import string
@@ -58,11 +59,11 @@ def mulclose_pri(els, verbose=False, maxsize=None):
     changed = True
     while changed:
         if verbose:
-            print "mulclose:", len(els)
+            print("mulclose:", len(els))
         changed = False
         _els = list(els)
         pairs = [(g, h) for g in _els for h in _els]
-        pairs.sort(key = lambda (g,h) : len(g.word+h.word))
+        pairs.sort(key = lambda pair : len(pair[0].word+pair[1].word))
 
         for A, B in pairs:
             C = A*B 
@@ -100,7 +101,7 @@ class Weyl(object):
     def generate(self):
         gen = self.gen
         n = len(gen)
-        names = string.uppercase
+        names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         assert n<=len(names)
         for i, g in enumerate(gen):
             g.word = names[i]
@@ -684,16 +685,16 @@ def representation(G, verbose=False):
 
     # Simple vectors in the Euclidean (standard) basis.
     S = array(simple)
-    print "S:"
-    print shortstr(S)
+    print("S:")
+    print(shortstr(S))
     I = identity(G.n)
 
     # T maps vectors in the Euclidean basis to vectors in the Simple basis.
     Tt = solve(S, identity(G.n), check=True)
     T = Tt.transpose()
-    print "T:"
-    print shortstr(T)
-    print '--'*10
+    print("T:")
+    print(shortstr(T))
+    print('--'*10)
 
     assert eq(dot(S, Tt), I)
 
@@ -714,11 +715,11 @@ def representation(G, verbose=False):
         A = array(rows).transpose()
         assert eq(dot(A, A), identity(len(A))) # reflection
         As.append(A)
-        print "A:"
-        print shortstr(A)
+        print("A:")
+        print(shortstr(A))
 
-        print "St*A*T:"
-        print shortstr(dotx(S.transpose(), A, T))
+        print("St*A*T:")
+        print(shortstr(dotx(S.transpose(), A, T)))
 
         # W is the fixed space of A, expressed as vectors in the Euclidean basis.
         # These vectors (rows of W) lie on the "mirror" that is A.
@@ -738,8 +739,8 @@ def representation(G, verbose=False):
 
         W = array(W)
         Ws.append(W)
-        print "W:"
-        print shortstr(W)
+        print("W:")
+        print(shortstr(W))
         B = dotx((A-identity(len(A))), T, W.transpose())
         #print "A*T*Wt:"
         #print shortstr(dotx(A, T, W.transpose()))
@@ -751,14 +752,14 @@ def representation(G, verbose=False):
         #print "B:"
         #print shortstr(B)
 
-    print '--'*10
+    print('--'*10)
 
     Ws = [Subspace(W) for W in Ws]
     for W in Ws:
-        print "W:"
-        print W
+        print("W:")
+        print(W)
 
-    print '--'*10
+    print('--'*10)
 
     # not needed...
     # W0 = Subspace(S)
@@ -776,8 +777,8 @@ def representation(G, verbose=False):
         for j in range(1, len(Ws1)):
             W = W.intersect(Ws1[j])
 
-        print "weight:"
-        print W
+        print("weight:")
+        print(W)
 
         W = W.W # get the numpy array
         assert len(W)==1
@@ -807,26 +808,26 @@ def representation(G, verbose=False):
         weights.append(w)
 
     W = array(weights)
-    print "W:"
-    print shortstr(W)
+    print("W:")
+    print(shortstr(W))
     Wt = W.transpose()
     St = S.transpose()
 
     # What combination of weights gives the (simple) roots?
     U = solve(Wt, St)
-    print "U:"
-    print shortstr(U)
+    print("U:")
+    print(shortstr(U))
 
     # What combination of roots gives the weights?
     V = solve(St, Wt)
-    print "V:"
-    print shortstr(V)
+    print("V:")
+    print(shortstr(V))
 
-    print '--'*10
+    print('--'*10)
 
     #for A in As:
     weyl = G.generate() # entire weyl group, sorted by word length
-    print "weyl:", len(weyl)
+    print("weyl:", len(weyl))
     I = weyl[0]
     assert I.word == '' # identity
 
@@ -849,9 +850,9 @@ def representation(G, verbose=False):
 
         #print "A:"
         #print shortstr(A)
-        print g.word or 'I'
+        print(g.word or 'I')
         D = dot(A-A0, V).transpose()
-        print shortstr(D)
+        print(shortstr(D))
 
 
 
@@ -859,17 +860,17 @@ def find_negi(G):
 
     roots = G.roots
     simple = G.simple
-    print "roots:", len(roots)
+    print("roots:", len(roots))
 #    print roots
 #    print
 
     weyl = G.generate()
 
-    print "weyl:",
+    print("weyl:",)
     for w in weyl:
-        print w.word,
-    print
-    print "weyl:", len(weyl)
+        print(w.word,)
+    print()
+    print("weyl:", len(weyl))
 
     nroots = [rscale(-1, root) for root in roots]
     n = len(roots)
@@ -888,7 +889,7 @@ def find_negi(G):
         else:
             if len(X.word)==len(Z.word)==G.n:
                 x, z = X.word, Z.word
-                print "%s*%s = -%s*%s" % (x, z, z, x)
+                print("%s*%s = -%s*%s" % (x, z, z, x))
                 #return
 
 
@@ -899,7 +900,7 @@ def find_negi(G):
             if g(roots[i]) != nroots[i]:
                 break
         else:
-            print "%s = -I" % g.word
+            print("%s = -I" % g.word)
 
 
 
@@ -908,14 +909,14 @@ def test_monoid(G):
     "this representation is not faithful."
 
     roots = G.roots
-    print "roots:", len(roots)
+    print("roots:", len(roots))
 
     weyl = G.generate()
-    print "weyl:",
+    print("weyl:",)
     for w in weyl:
-        print w.word,
-    print
-    print "weyl:", len(weyl)
+        print(w.word,)
+    print()
+    print("weyl:", len(weyl))
 
     r0 = roots[0]
     bdy = set([r0])
@@ -941,11 +942,11 @@ def test_monoid(G):
     gen = [Perm(perms[i], roots, gen[i].word) for i in range(len(perms))]
     identity = Perm(identity, roots)
     for g in gen:
-        print g.str()
+        print(g.str())
         assert g*g == g
     
     monoid = mulclose_pri([identity]+gen)
-    print "monoid:", len(monoid)
+    print("monoid:", len(monoid))
     #monoid = mulclose(monoid)
     #print "monoid:", len(monoid)
 
@@ -963,8 +964,8 @@ def test_monoid(G):
     for g in monoid:
         tgt = list(set(g.perm.values()))
         g = txlate(g.word)
-        print "%6s"%g.word, len(tgt)
-    print
+        print("%6s"%g.word, len(tgt))
+    print()
 
     return
 
@@ -988,10 +989,10 @@ def test_monoid(G):
         g = txlate(w0)
         w1 = lookup.get(g)
         if w1 is not None:
-            print w0, "=", w1
+            print(w0, "=", w1)
         else:
             lookup[g] = w0
-            print w0
+            print(w0)
 
     for w0 in monoid.words:
       for w1 in monoid.words:
@@ -999,8 +1000,8 @@ def test_monoid(G):
         if txlate(w0)*txlate(w1) == txlate(w2):
             pass
         else:
-            print "%r*%r = %r" % (w0, w1, w2),
-            print " ****************** FAIL"
+            print("%r*%r = %r" % (w0, w1, w2),)
+            print(" ****************** FAIL")
 
 
 
@@ -1121,7 +1122,7 @@ def test_longest_element():
 
     while w != g:
         w = w*A*C*C
-        print "."
+        print(".")
 
     G = Weyl.build_B(2)
     g = G.longest_element()
@@ -1163,7 +1164,7 @@ def test_longest_element():
     for root in G.roots:
         assert g(root) == rscale(-1, root)
 
-    print "OK"
+    print("OK")
     
 
 def main():
@@ -1199,13 +1200,13 @@ def main():
         assert G.matrix() == {
             (0, 1): 3, (1, 2): 3, (2, 3): 3, (2, 4): 3, (4, 5): 3}
         items = mulclose(G.gen, verbose=True)
-        print "|E6|=", len(items)
+        print("|E6|=", len(items))
 
     if argv.F_4:
         G = Weyl.build_F4()
         assert G.matrix() == {(0, 1): 3, (1, 2): 4, (2, 3): 3}
         items = mulclose(G.gen, verbose=True)
-        print "|F4|=", len(items) # == 1152
+        print("|F4|=", len(items)) # == 1152
 
     if argv.G_2:
         G = Weyl.build_G2()
@@ -1220,7 +1221,7 @@ def main():
         except:
             continue
 
-        print "constructing %s"%arg
+        print("constructing %s"%arg)
         if arg.startswith("A"):
             G = Weyl.build_A(n)
         if arg.startswith("B"):
@@ -1230,20 +1231,20 @@ def main():
         if arg.startswith("D"):
             G = Weyl.build_D(n)
 
-        print "roots:", len(G.roots)
+        print("roots:", len(G.roots))
         if argv.order:
-            print "order:", len(mulclose(G.gen))
+            print("order:", len(mulclose(G.gen)))
 
     if G is None:
         return
 
     if argv.show:
         for g in G.gen:
-            print g
+            print(g)
 
     if argv.longest_element:
         g = G.longest_element()
-        print g
+        print(g)
 
     if argv.monoid:
         test_monoid(G)
@@ -1253,6 +1254,12 @@ def main():
 
     if argv.find_negi:
         find_negi(G)
+
+    if argv.orders:
+        G = G.build_group()
+        orders = [g.order() for g in G]
+        orders.sort()
+        print(orders)
 
     if argv.orbiplex:
         G = G.build_group()
