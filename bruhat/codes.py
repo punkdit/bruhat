@@ -111,6 +111,16 @@ class Code(object):
     def is_triorthogonal(self):
         return self.is_morthogonal(3)
 
+    def weight_enum(self, A, B):
+        G = self.G
+        the_op = None
+        for v in span(G):
+            op = A if v[0]==0 else B
+            for vi in v[1:]:
+                op = op * (A if vi==0 else B)
+            the_op = op if the_op is None else the_op + op
+        return the_op
+
 
 def reed_muller(r, m, puncture=False):
     "Build Reed-Muller code"
@@ -149,6 +159,104 @@ def reed_muller(r, m, puncture=False):
     return code
 
 
+class Tensor(object):
+
+    """ Some kind of graded ring element... I*I*I + X*X*X etc.
+    """
+
+    zero = 0
+    one = 1
+    def __init__(self, items, grade=None):
+        # map key -> coeff, key is ("A", "B") etc.
+        assert items or (grade is not None)
+        keys = list(items.keys())
+        keys.sort()
+        self.items = {}
+        nz = []
+        for key in keys:
+            assert grade is None or grade==len(key)
+            grade = len(key)
+            v = int(items[key])
+            if v != 0:
+                self.items[key] = v # uniquify
+                nz.append(key)
+        self.keys = nz
+        self.grade = grade
+
+    def __add__(self, other):
+        assert self.grade == other.grade
+        items = dict(self.items)
+        for (k, v) in other.items.items():
+            items[k] = items.get(k, self.zero) + v
+        return Tensor(items, self.grade)
+
+    def __sub__(self, other):
+        assert self.grade == other.grade
+        items = dict(self.items)
+        for (k, v) in other.items.items():
+            items[k] = items.get(k, self.zero) - v
+        return Tensor(items, self.grade)
+
+    def __mul__(self, other):
+        items = {}
+        for (k1, v1) in self.items.items():
+          for (k2, v2) in other.items.items():
+            k = k1+k2
+            assert k not in items
+            items[k] = v1*v2
+        return Tensor(items, self.grade+other.grade)
+    tensor = __mul__
+
+    def __rmul__(self, r):
+        items = {}
+        for (k, v) in self.items.items():
+            items[k] = r*v
+        return Tensor(items, self.grade)
+
+    def subs(self, rename):
+        the_op = Tensor({}, self.grade) # zero
+        one = self.one
+        for (k, v) in self.items.items():
+            final = None
+            for ki in k:
+                op = rename.get(ki, Tensor({ki : one}))
+                if final is None:
+                    final = op
+                else:
+                    final = final * op # tensor
+            the_op = the_op + v*final
+        return the_op
+
+    def __str__(self):
+        ss = []
+        for k in self.keys:
+            v = self.items[k]
+            s = ''.join(str(ki) for ki in k)
+            if v == 1:
+                pass
+            elif v == -1:
+                s = "-"+s
+            else:
+                s = str(v)+"*"+s
+            ss.append(s)
+        ss = '+'.join(ss) or "0"
+        ss = ss.replace("+-", "-")
+        return ss
+
+    def __repr__(self):
+        return "Tensor(%s)"%(self.items)
+
+    def __eq__(self, other):
+        return self.items == other.items
+
+    def __ne__(self, other):
+        return self.items != other.items
+
+    def __hash__(self):
+        return hash((str(self), self.grade))
+
+
+
 def test():
 
     for m in range(2, 7):
@@ -171,7 +279,7 @@ def test():
     print("OK")
 
 
-def main():
+def gen():
     r = argv.get("r", 1) # degree
     m = argv.get("m", 3)
 
@@ -202,10 +310,68 @@ def main():
         print()
 
 
+def main():
+    I = Tensor({"I" : 1})
+    X = Tensor({"X" : 1})
+    Y = Tensor({"Y" : 1})
+    Z = Tensor({"Z" : 1})
+
+    II = I*I
+    XI = X*I
+    IX = I*X
+    XX = X*X
+    assert II+II == 2*II
+
+    assert X*(XI + IX) == X*X*I + X*I*X
+
+    assert ((I-Y)*I + I*(I-Y)) == 2*I*I - I*Y - Y*I
+    assert (XI + IX).subs({"X": I-Y}) == ((I-Y)*I + I*(I-Y))
+
+    A = Tensor({"A":1})
+    B = Tensor({"B":1})
+    p = A*A*A + B*B*A + B*A*B + A*B*B
+    q = A*A*A + B*B*B
+    p1 = p.subs({"A": A+B, "B": A-B})
+    assert p1 == 4*A*A*A + 4*B*B*B
+
+    verbose = argv.verbose
+
+    r = argv.get("r", 1) # degree
+    m = argv.get("m", 3)
+
+    code = reed_muller(r, m)
+    code.dump()
+
+    p = code.weight_enum(A, B)
+    if verbose:
+        print("code:")
+        print(p)
+
+    dual = code.get_dual()
+    q = dual.weight_enum(A, B)
+    if verbose:
+        print("dual:")
+        print(q)
+    print("p==q:", p==q)
+    print("code.is_selfdual:", code.is_selfdual())
+
+    #r = p.subs({"A": A+B, "B": A-B})
+    r = code.weight_enum(A+B, A-B)
+    if verbose:
+        print("P(A+B, A-B)")
+        print(r)
+    coeff = 2**len(code.G)
+    print("MacWilliams:", r == coeff*q)
+
+
+    print("OK")
+
 
 if __name__ == "__main__":
 
-    if argv.main:
+    if argv.gen:
+        gen()
+    elif argv.main:
         main()
     else:
         test()
