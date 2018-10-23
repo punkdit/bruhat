@@ -2,6 +2,8 @@
 
 """
 Algebraic groups: matrix groups over Z/pZ.
+
+incomplete / abandoned for now.
 """
 
 

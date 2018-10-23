@@ -8,9 +8,9 @@ Build Reed-Muller codes.
 import numpy
 
 from solve import array2, zeros2, dot2, shortstr, rank, find_kernel, span
-from solve import linear_independent
+from solve import linear_independent, parse, pseudo_inverse, eq2, rand2
 from argv import argv
-from util import choose
+from util import choose, cross
 
 
 class Code(object):
@@ -94,22 +94,10 @@ class Code(object):
         return Code(G)
 
     def is_morthogonal(self, m):
-        G = self.G
-        k = self.k
-        assert m>=2
-        if m>2 and not self.is_morthogonal(m-1):
-            return False
-        items = list(range(k))
-        for idxs in choose(items, m):
-            v = G[idxs[0]]
-            for idx in idxs[1:]:
-                v = v * G[idx]
-            if v.sum()%2 != 0:
-                return False
-        return True
+        return is_morthogonal(self.G, m)
 
     def is_triorthogonal(self):
-        return self.is_morthogonal(3)
+        return is_morthogonal(self.G, 3)
 
     def weight_enum(self, A, B):
         G = self.G
@@ -120,6 +108,21 @@ class Code(object):
                 op = op * (A if vi==0 else B)
             the_op = op if the_op is None else the_op + op
         return the_op
+
+
+def is_morthogonal(G, m):
+    k = len(G)
+    assert m>=2
+    if m>2 and not is_morthogonal(G, m-1):
+        return False
+    items = list(range(k))
+    for idxs in choose(items, m):
+        v = G[idxs[0]]
+        for idx in idxs[1:]:
+            v = v * G[idx]
+        if v.sum()%2 != 0:
+            return False
+    return True
 
 
 def reed_muller(r, m, puncture=False):
@@ -285,18 +288,18 @@ def gen():
 
     code = reed_muller(r, m)
 
-    print(code)
+    #print(code)
     #print("d =", code.get_distance())
-    code.dump()
+    #code.dump()
 
     code = code.puncture(3)
 
-    print(code)
-    code.dump()
-    print("d =", code.get_distance())
+    #print(code)
+    #code.dump()
+    #print("d =", code.get_distance())
 
 
-    for m in range(2, 10):
+    for m in range(2, 6):
       for r in range(0, m+1):
         code = reed_muller(r, m)
         print(code, end=" ")
@@ -308,6 +311,47 @@ def gen():
         if p.is_morthogonal(3):
             print("puncture.is_triorthogonal", end=" ")
         print()
+
+        if p.is_triorthogonal():
+            G = p.G
+            #print(shortstr(G))
+            A = list(span(G))
+            A = array2(A)
+            print(is_morthogonal(A, 3))
+
+
+def test_triorth():
+    code = reed_muller(1, 5)
+    code = code.puncture(0)
+    code.dump()
+
+    print(code.is_triorthogonal())
+    A = array2(list(span(code.G)))
+    print(is_morthogonal(A, 2))
+
+    k = len(A)
+
+    for i in range(k):
+      for j in range(i+1, k):
+        u = A[i]
+        v = A[j]
+        x = (u*v).sum() % 2
+        if x == 0:
+            continue
+        #print(shortstr(u))
+        #print(shortstr(v))
+        #print()
+
+    for a in range(k):
+      for b in range(a+1, k):
+       for c in range(b+1, k):
+        u = A[a]
+        v = A[b]
+        w = A[c]
+        x = (u*v*w).sum() % 2
+        #if x:
+            #print(a, b, c)
+
 
 
 def main():
@@ -367,14 +411,261 @@ def main():
     print("OK")
 
 
+def search():
+    # Bravyi, Haah, 1209.2426v1 sec IX.
+    # https://arxiv.org/pdf/1209.2426.pdf
+
+    m = argv.get("m", 3)
+    n = argv.get("n", 6)
+    k = argv.get("k", None) # number of odd-weight rows
+
+    # these are the variables N_x
+    xs = list(cross([(0, 1)]*m))
+    N = len(xs)
+
+    print(xs)
+
+    lhs = []
+    rhs = []
+
+    # bi-orthogonality
+    for a in range(m):
+      for b in range(a+1, m):
+        v = zeros2(N)
+        for i, x in enumerate(xs):
+            if x[a] == x[b] == 1:
+                v[i] = 1
+        if v.sum():
+            lhs.append(v)
+            rhs.append(0)
+
+    # skip all zeros column
+    v = zeros2(N)
+    v[0] = 1
+    lhs.append(v)
+    rhs.append(0)
+
+    # tri-orthogonality
+    for a in range(m):
+      for b in range(a+1, m):
+       for c in range(b+1, m):
+        v = zeros2(N)
+        for i, x in enumerate(xs):
+            if x[a] == x[b] == x[c] == 1:
+                v[i] = 1
+        if v.sum():
+            lhs.append(v)
+            rhs.append(0)
+
+    if k is not None:
+      assert 0<=k<m
+      for a in range(m):
+        v = zeros2(N)
+        for i, x in enumerate(xs):
+          if x[a] == 1:
+            v[i] = 1
+        lhs.append(v)
+        if a<k:
+            rhs.append(1)
+        else:
+            rhs.append(0)
+
+    A = array2(lhs)
+    rhs = array2(rhs)
+    print(shortstr(A))
+
+    K = array2(list(find_kernel(A)))
+    #print(K)
+    #print( dot2(A, K.transpose()))
+    sols = []
+    #for v in span(K):
+    trials = 1024
+    for trial in range(trials):
+        u = rand2(len(K), 1)
+        v = dot2(K.transpose(), u)
+        assert dot2(A, v).sum()==0
+        #if v.sum() != n:
+        #    continue
+        assert v[0]
+        Gt = []
+        for i, x in enumerate(xs):
+            if v[i]:
+                Gt.append(x)
+        Gt = array2(Gt)
+        G = Gt.transpose()
+        assert is_morthogonal(G, 3)
+        print(shortstr(G))
+        print()
+        sols.append(G)
+        Gx = even_rows(G)
+        assert is_morthogonal(Gx, 3)
+        if len(Gx)==0:
+            continue
+        GGx = array2(list(span(Gx)))
+        assert is_morthogonal(GGx, 3)
+    print("found %d sols" % len(sols))
+
+    if 0:
+        B = pseudo_inverse(A)
+        v = dot2(B, rhs)
+        print("B:")
+        print(shortstr(B))
+        print("v:")
+        print(shortstr(v))
+        assert eq2(dot2(B, v), rhs) 
+
+
+def even_rows(G):
+    Gx = []
+    for u in G:
+        #print(shortstr(u), u.sum()%2)
+        parity = u.sum()%2
+        if parity==0:
+            Gx.append(u)
+    Gx = array2(Gx)
+    return Gx
+
+
+def triortho():
+
+    code = None
+    if argv.toric:
+        G = parse("""
+        1.1.....
+        .1...1..
+        11.11...
+        .111..1.
+        1...11.1
+        """) # l=2 toric code X logops + X stabs 
+    elif argv.toric3:
+        G = parse("""
+        .....1.....1.....1
+        ............1.1.1.
+        .111..........1...
+        ...111..........1.
+        1.....11...1......
+        ..1....111........
+        ....1....111......
+        ......1.....11...1
+        ........1....111..
+        ..........1....111
+        """) # l=3 toric code X logops + X stabs 
+    elif argv.steane:
+        G = parse("""
+        1111111
+        1111...
+        .1.11.1
+        ..11.11
+        """)
+    elif argv.haah:
+        # triorthogonal matrix
+        G = parse("""
+        1111111.......
+        .......1111111
+        1.1.1.11.1.1.1
+        .11..11.11..11
+        ...1111...1111
+        """)
+        G = parse("""
+        1.1.1.11.1.1.1
+        .11..11.11..11
+        ...1111...1111
+        """)
+
+        G = parse("""
+        ..............1111111111111111
+        ......11111111........11111111
+        ..1111....1111....1111....1111
+        .1..11..11..11..11..11..11..11
+        11.1.1.1.1.1.1.1.1.1.1.1.1.1.1
+        """)
+    elif argv.rm:
+        r = argv.get("r", 1)
+        m = argv.get("m", 5)
+        code = reed_muller(r, m)
+        if argv.puncture:
+            code = code.puncture(0)
+    else:
+        return
+
+    if code is None:
+        code = Code(G)
+
+    if argv.dual:
+        code = code.get_dual()
+    code.dump()
+    print(code)
+
+    Gx = []
+    for u in code.G:
+        print(shortstr(u), u.sum()%2)
+        parity = u.sum()%2
+        if parity==0:
+            Gx.append(u)
+    Gx = array2(Gx)
+
+    print("is_triorthogonal:", code.is_triorthogonal())
+
+    A = array2(list(span(Gx)))
+    print("span(Gx) is_morthogonal(2):", is_morthogonal(A, 2))
+    print("span(Gx) is_morthogonal(3):", is_morthogonal(A, 3))
+
+    return
+
+    G = code.G
+
+#    A = array2(list(span(G)))
+#    poly = {}
+#    for v in A:
+#        w = v.sum()
+#        poly[w] = poly.get(w, 0) + 1
+#    print(poly)
+
+    k, n = G.shape
+
+    if 0:
+        from comm import Poly
+        a = Poly({(1,0):1})
+        b = Poly({(0,1):1})
+        poly = Poly.zero(2)
+        for v in span(G):
+            w = v.sum()
+            term = Poly({(n-w,0) : 1}) * Poly({(0,w) : 1})
+            poly = poly + term
+        print(poly)
+
+    # print higher genus weight enumerator
+    genus = argv.get("genus", 1)
+    assert 1<=genus<=4
+    N = 2**genus
+    idxs = list(cross([(0,1)]*genus))
+
+    cs = {} # _coefficients : map exponent to coeff
+    for vs in cross([list(span(G)) for _ in range(genus)]):
+        key = [0]*N
+        for i in range(n):
+            ii = tuple(v[i] for v in vs)
+            idx = idxs.index(ii)
+            key[idx] += 1
+        key = tuple(key)
+        cs[key] = cs.get(key, 0) + 1
+    #print(cs)
+    keys = list(cs.keys())
+    keys.sort()
+    print(idxs)
+    for key in keys:
+        print(key, cs[key])
+            
+
+
 if __name__ == "__main__":
 
-    if argv.gen:
-        gen()
-    elif argv.main:
-        main()
-    else:
+    name = argv.next()
+    if name is None:
         test()
+    else:
+        fn = eval(name)
+        fn()
 
 
 

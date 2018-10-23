@@ -439,8 +439,8 @@ def main():
     x2 = Poly({(0,1,0) : 1})
     x3 = Poly({(0,0,1) : 1})
 
-    #print (x1+x2+x3)**3
-    #print x1*x2*x3
+    #print((x1+x2+x3)**3)
+    #print(x1*x2*x3)
 
     assert ((x1+x2+x3)**2 + I).is_symmetric()
     assert (x1*x2*x3).is_symmetric()
