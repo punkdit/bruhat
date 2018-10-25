@@ -322,7 +322,7 @@ class Map(Element):
 
     def __neg__(a):
         items = [((i, j), -u) for ((i, j), u) in a.items]
-        return Map(items, self.hom)
+        return Map(items, a.hom)
 
     def tensor(a, b):
         hom = a.hom@b.hom

@@ -109,6 +109,17 @@ class Code(object):
             the_op = op if the_op is None else the_op + op
         return the_op
 
+    def tensor_enum(self, A, B):
+        G = self.G
+        the_op = None
+        for v in span(G):
+            op = A if v[0]==0 else B
+            for vi in v[1:]:
+                op = op @ (A if vi==0 else B)
+            the_op = op if the_op is None else the_op + op
+        return the_op
+
+
 
 def is_morthogonal(G, m):
     k = len(G)
@@ -411,6 +422,74 @@ def main():
     print("OK")
 
 
+def test_dual():
+
+    from vec import Space, Hom, Map
+
+    import element
+
+    #ring = element.Z
+    ring = element.Q
+    one = ring.one
+
+    space = Space(2, ring)
+    hom = Hom(space, space)
+
+    I = Map.from_array([[1, 0], [0, 1]], hom)
+    X = Map.from_array([[0, 1], [1, 0]], hom)
+    Z = Map.from_array([[1, 0], [0, -1]], hom)
+
+    assert X+X == (2*X)
+    assert X*Z == -Z*X
+
+    assert (X@X) * (Z@Z) == (Z@Z) * (X@X)
+    assert (I@X@X) * (I@Z@Z) == (I@Z@Z) * (I@X@X)
+
+    if argv.code == "repitition":
+        G = parse("111")
+        H = parse("""
+        11.
+        .11""")
+    elif argv.code == "steane":
+        G = parse("""
+        1111...
+        .1.11.1
+        ..11.11
+        """)
+    else:
+        return
+
+    code = Code(G)
+    if argv.dual:
+        code = code.get_dual()
+
+    dual = code.get_dual()
+
+    code.dump()
+
+    #W = lambda A, B : (A@A@A + B@B@B)
+    #WD = lambda A, B : (A@A@A + B@B@A + B@A@B + A@B@B)
+    W = code.tensor_enum
+    WD = dual.tensor_enum
+
+    a = one/(2**len(code.G))
+    b = one/(2**len(dual.G))
+    A = WD(I, X)
+    B = W(I, Z)
+    assert A*B == B*A
+    AA = W(I+X, I-X)
+    BB = WD(I+Z, I-Z)
+    assert a*AA == A
+    assert b*BB == B
+    assert a*b*AA*BB == A*B
+    #print(W(I+X, I-X))
+    #print(WD(I, X))
+    #print(W(I, Z))
+
+    print("OK")
+
+
+
 def search():
     # Bravyi, Haah, 1209.2426v1 sec IX.
     # https://arxiv.org/pdf/1209.2426.pdf
@@ -422,8 +501,6 @@ def search():
     # these are the variables N_x
     xs = list(cross([(0, 1)]*m))
     N = len(xs)
-
-    print(xs)
 
     lhs = []
     rhs = []
@@ -439,12 +516,6 @@ def search():
             lhs.append(v)
             rhs.append(0)
 
-    # skip all zeros column
-    v = zeros2(N)
-    v[0] = 1
-    lhs.append(v)
-    rhs.append(0)
-
     # tri-orthogonality
     for a in range(m):
       for b in range(a+1, m):
@@ -457,7 +528,16 @@ def search():
             lhs.append(v)
             rhs.append(0)
 
+    # dissallow columns with weight <= 1
+    for i, x in enumerate(xs):
+        if sum(x)<=1:
+            v = zeros2(N)
+            v[i] = 1
+            lhs.append(v)
+            rhs.append(0)
+
     if k is not None:
+      # constrain to k number of odd-weight rows
       assert 0<=k<m
       for a in range(m):
         v = zeros2(N)
@@ -472,38 +552,66 @@ def search():
 
     A = array2(lhs)
     rhs = array2(rhs)
-    print(shortstr(A))
+    #print(shortstr(A))
 
     K = array2(list(find_kernel(A)))
     #print(K)
     #print( dot2(A, K.transpose()))
-    sols = []
+    #sols = []
     #for v in span(K):
-    trials = 1024
+    best = None
+    density = 1.0
+    trials = argv.get("trials", 1024)
+    count = 0
     for trial in range(trials):
         u = rand2(len(K), 1)
         v = dot2(K.transpose(), u)
         assert dot2(A, v).sum()==0
         #if v.sum() != n:
         #    continue
-        assert v[0]
+        assert v[0]==0
         Gt = []
         for i, x in enumerate(xs):
             if v[i]:
                 Gt.append(x)
+        if not Gt:
+            continue
         Gt = array2(Gt)
         G = Gt.transpose()
         assert is_morthogonal(G, 3)
-        print(shortstr(G))
-        print()
-        sols.append(G)
-        Gx = even_rows(G)
-        assert is_morthogonal(Gx, 3)
-        if len(Gx)==0:
+        if G.shape[1]<m:
             continue
-        GGx = array2(list(span(Gx)))
-        assert is_morthogonal(GGx, 3)
-    print("found %d sols" % len(sols))
+
+        #print(shortstr(G))
+#        for g in G:
+#            print(shortstr(g), g.sum())
+#        print()
+
+        _density = float(G.sum()) / (G.shape[0]*G.shape[1])
+        if best is None or _density < density:
+            best = G
+            density = _density
+
+        if 0:
+            #sols.append(G)
+            Gx = even_rows(G)
+            assert is_morthogonal(Gx, 3)
+            if len(Gx)==0:
+                continue
+            GGx = array2(list(span(Gx)))
+            assert is_morthogonal(GGx, 3)
+
+        count += 1
+
+    print("found %d solutions" % count)
+
+    G = best
+    #print(shortstr(G))
+    for g in G:
+        print(shortstr(g), g.sum())
+    print()
+    print("density:", density)
+    
 
     if 0:
         B = pseudo_inverse(A)
@@ -526,10 +634,11 @@ def even_rows(G):
     return Gx
 
 
-def triortho():
+def get_code():
 
+    name = argv.get("code")
     code = None
-    if argv.toric:
+    if name == "toric":
         G = parse("""
         1.1.....
         .1...1..
@@ -537,7 +646,8 @@ def triortho():
         .111..1.
         1...11.1
         """) # l=2 toric code X logops + X stabs 
-    elif argv.toric3:
+
+    elif name == "toric3":
         G = parse("""
         .....1.....1.....1
         ............1.1.1.
@@ -550,14 +660,16 @@ def triortho():
         ........1....111..
         ..........1....111
         """) # l=3 toric code X logops + X stabs 
-    elif argv.steane:
+
+    elif name == "steane":
         G = parse("""
         1111111
         1111...
         .1.11.1
         ..11.11
         """)
-    elif argv.haah:
+
+    elif name == "haah":
         # triorthogonal matrix
         G = parse("""
         1111111.......
@@ -579,20 +691,29 @@ def triortho():
         .1..11..11..11..11..11..11..11
         11.1.1.1.1.1.1.1.1.1.1.1.1.1.1
         """)
-    elif argv.rm:
+
+    elif name == "rm":
         r = argv.get("r", 1)
         m = argv.get("m", 5)
         code = reed_muller(r, m)
         if argv.puncture:
             code = code.puncture(0)
+
     else:
-        return
+        return None
 
     if code is None:
         code = Code(G)
 
     if argv.dual:
         code = code.get_dual()
+
+    return code
+
+
+def triortho():
+    code = get_code()
+
     code.dump()
     print(code)
 

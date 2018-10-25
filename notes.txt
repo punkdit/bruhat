@@ -1,4 +1,18 @@
 
+24/10/18
+========
+
+https://math.stackexchange.com/questions/2232570
+Representation of gl(n,R) on R[X1,…,Xn] over arbitrary ring
+    gl(n,R)  has a representation on the R-module R[X1,…,Xn]
+    of polynomials in nn commuting variables, defined as
+        e_{ij} ↦ X_i∂_j
+
+    The coordinate-free analogue of the polynomial algebra
+    k[x1,…,xn] is the symmetric algebra Sym(V∗).
+
+
+
 21/10/18
 ========
 
