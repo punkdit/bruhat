@@ -356,6 +356,16 @@ class Map(Element):
         items = [((i, j), u*r) for ((i, j), u) in a.items]
         return Map(items, a.hom)
 
+    def __floordiv__(a, r): # a // r
+        r = a.ring.promote(r)
+        items = [((i, j), u//r) for ((i, j), u) in a.items]
+        return Map(items, a.hom)
+
+    def __truediv__(a, r): # a / r
+        r = a.ring.promote(r)
+        items = [((i, j), u/r) for ((i, j), u) in a.items]
+        return Map(items, a.hom)
+
     def transpose(a):
         items = [((j, i), v) for ((i, j), v) in a.items] # conjugate v?
         return Map(items, a.hom.transpose())
@@ -383,6 +393,11 @@ class Map(Element):
 #        print(X, a.src)
         b = Map.from_array(B, hom)
         return b
+
+    def rank(a):
+        A = a.to_array()
+        d = elim.rank(a.ring, A)
+        return d
 
 
 def dot(*maps):

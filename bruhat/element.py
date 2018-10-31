@@ -1502,14 +1502,28 @@ def test():
     G = mulclose([J, M])
     assert len(G) == 192
 
-#    def get_order(A):
-#        count = 1
-#        B = A
-#        while B!=I:
-#            B = A*B
-#            count += 1
-#        return count
-#            
+    assert M in G
+
+    def get_order(A):
+        count = 1
+        B = A
+        while B!=I:
+            B = A*B
+            count += 1
+        return count
+            
+    #for g in G:
+    #    if get_order(g)==4:
+    #        print(g)
+    assert get_order(M)==2
+
+    # Metaplectic Hadamard
+    M1 = GL.get([[1, -i], [-i, 1]])
+    r = x / r2
+    M1 = r*M1
+
+    assert get_order(M1)==4
+
 #    #G = cayley(G)
 #    #orders = [g.order() for g in G]
 #    orders = [get_order(A) for A in G]

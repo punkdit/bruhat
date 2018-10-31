@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Gaussian elimination over a field.
+Gaussian elimination over a field or ring.
 Modified from gelim.py
 """
 

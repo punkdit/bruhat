@@ -1,6 +1,136 @@
 
+30/10/18
+========
+
+Combinatorics of Polyhedra for n-Categories
+Todd Trimble
+September 5, 1999
+http://math.ucr.edu/home/baez/trimble/polyhedra.html
+
+    In these notes, we give some combinatorial techniques for constructing 
+    various polyhedra which appear to be intimately connected with the 
+    geometry of weak n-categories. These include 
+    
+    1. Associahedra (and "monoidahedra"; see below); 
+    2. Permutoassociahedra, and the cellular structure of 
+       Fulton-MacPherson compactifications of moduli spaces 
+    3. "Functoriahedra" (related to the A_n maps of Stasheff) 
+    
+    Our basic techniques use derivations on operads and bar constructions. 
+    In part A, we introduce derivations, which should be regarded as 
+    "boundary operators" on (set-valued) operads satisfying a Leibniz rule. 
+    Such derivations can be used to construct poset-valued operads; taking 
+    nerves, one gets polyhedral operads. In this way we reconstruct the 
+    associahedra and the Fulton-MacPherson compactifications. 
+    
+
+Seminar - Fall 2018 Category Theory John Baez
+http://math.ucr.edu/home/baez/qg-fall2018/
+    Lecture 1 What is pure mathematics all about? The importance of free structures.
+    Lecture 2: The natural numbers as a free structure. Adjoint functors.
+    Lecture 3: Adjoint functors in terms of unit and counit.
+    Lecture 4: 2-Categories. Adjunctions.
+    Lecture 5: 2-Categories and string diagrams. Composing adjunctions.
+    Lecture 6: The 'main spine' of mathematics. Getting a monad from an adjunction.
+    Lecture 7: Definition of a monad. Getting a monad from
+        an adjunction. The augmented simplex category.
+    Lecture 8: The walking monad, the augmented simplex category and the simplex category.
+    Lecture 9: Simplicial abelian groups from simplicial
+        sets. Chain complexes from simplicial abelian groups.
+    Lecture 10: Chain complexes from simplicial abelian groups.
+        The homology of a chain complex.
+    Lecture 11: Comonads from adjunctions. The walking comonad. The bar construction.
+    Lecture 12: The bar construction: getting a simplicial
+        objects from an adjunction. The bar construction for G-sets, previewed.
+    Lecture 13: The adjunction between G-sets and sets.
+
+
+Networks, Crowds, and Markets
+Reasoning about a Highly Connected World
+by David Easley and Jon Kleinberg
+Cambridge University Press, 2010
+http://bactra.org/reviews/networks-crowds-markets.html
+
+Mathematics, Philosophy and Artificial Intelligence
+a conversation with Gian-Carlo Rota and David Sharp
+
+
+
+27/10/18
+========
+
+https://ncatlab.org/nlab/show/Lawvere+theory
+
+https://mathoverflow.net/questions/386/do-all-3d-tqfts-come-from-reshetikhin-turaev
+
+https://mathoverflow.net/questions/23394/applications-of-algebraic-geometry-over-a-field-with-one-element
+    To elaborate on the possible connection with the Riemann
+    hypothesis:
+    One of the parts of the Weil conjectures (which were
+    proved by Deligne, and which also follow from Grothendieck's
+    "standard conjectures") states:
+    ...
+
+    The zeta function Z_X(t) of a variety X is defined
+    to be exp⁡\sum N_r t_r/r), where N_r is the number
+    of F_{q^r}-points of X.
+
+    Now if X=Spec⁡Z were somehow a smooth projective
+    variety of dimension 1 over Spec⁡F1, thenζ_X(s)
+    would be the Riemann zeta function, and...
+
+https://mathoverflow.net/questions/160387/introductory-references-for-geometric-representation-theory
+
+    I am currently reading though the two books already mentioned
+    (Representation Theory and Complex Geometry by Chriss
+    and Ginzburg and D-Modules, Perverse Sheaves, and Representation
+    Theory by Hotta et al) and I definitely recommend them.
+    Two other references that I have found helpful are:
+    
+    Fulton's Young Tableaux. This presents a snapshot of
+    the geometry associated to GLnGLn (e.g. producing irreducible
+    representations from lines bundles on flag varieties).
+    It is also a relatively easy read!
+    
+    Humphreys' Representations of Semisimple Lie Algebras
+    in the BGG Category OO. Whilst this is not so much about
+    the geometric side of the picture, what I got out of
+    it is an appreciation of the types of questions people
+    in this area try to answer.
+
+
+26/10/18
+========
+
+Groups and characters, Grove
+
+https://arxiv.org/abs/1810.10136
+Local Homology of Word Embeddings
+Tadas Temčinas
+(Submitted on 24 Oct 2018)
+    Topological data analysis (TDA) has been widely used
+    to make progress on a number of problems. However, it
+    seems that TDA application in natural language processing
+    (NLP) is at its infancy. In this paper we try to bridge
+    the gap by arguing why TDA tools are a natural choice
+    when it comes to analysing word embedding data. We describe
+    a parallelisable unsupervised learning algorithm based
+    on local homology of datapoints and show some experimental
+    results on word embedding data. We see that local homology
+    of datapoints in word embedding data contains some information
+    that can potentially be used to solve the word sense
+    disambiguation problem.
+
+
 24/10/18
 ========
+
+Claudio Procesi
+Lie Groups: An Approach through Invariants and Representations
+p242
+    the dual of the space of symmetric tensors of degree n is
+    identified with the space of homogeneous polynomials of degree n.
+
 
 https://math.stackexchange.com/questions/2232570
 Representation of gl(n,R) on R[X1,…,Xn] over arbitrary ring
@@ -10,6 +140,7 @@ Representation of gl(n,R) on R[X1,…,Xn] over arbitrary ring
 
     The coordinate-free analogue of the polynomial algebra
     k[x1,…,xn] is the symmetric algebra Sym(V∗).
+    ...
 
 
 
@@ -157,6 +288,7 @@ gen: 7
 15/10/18
 ========
 
+https://mathoverflow.net/questions/215211/what-algebraic-structures-are-related-to-the-mcgee-graph
 sage: g=graphs.McGeeGraph()
 sage: a=g.automorphism_group()    
 sage: a.structure_description()
@@ -980,7 +1112,7 @@ https://ncatlab.org/nlab/show/geometry+of+physics+--+categories+and+toposes
 
     The pivotal role of adjunctions in category theory (Lawvere
     08) and in the foundations of mathematics (Lawvere 69,
-    Lawvere 94 ) was particularly amplified by F. W. Lawvere1.
+    Lawvere 94 ) was particularly amplified by F. W. Lawvere.
     Moreover, Lawvere saw the future of category theory (Lawvere
     91) as concerned with adjunctions expressing systems
     of archetypical dualities that reveal foundations for
