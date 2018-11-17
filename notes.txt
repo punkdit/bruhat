@@ -1,4 +1,433 @@
 
+17/11/18
+========
+
+"Space does not notice time—or discrete moments, or separate units, of change.
+Time is not an intrinsic characteristic of space.
+The body—or even the totality of physical universe—is
+“located” only in space, and only as the apparent simultaneity of mere existence.
+Time is attention to change.
+Time is a characteristic of mind, or attention, or “point
+of view”. Time is a characteristic of an observer.
+Time is a noticing.
+Time is the effect of the mentalizing of the observed.
+Time is a mental notation.
+The mental notation, or noticing and observing, of time requires
+attention.
+Time is an act of attention.
+Attention requires bodily “locatedness” in space—or the pre-
+sumption of “point of view”.
+The noticing and observing of the idea-process of time requires
+bodily-“located” attention to “objectify”—or differentiate,
+or “unitize”— the observed.
+Time is the noticing of suffering.
+Time is the reduction of the body, the universe, and
+Reality Itself to the ego-scale of “point of view”.
+If The Self-Nature, Self-Condition, and Self-State of
+Reality Itself Is Intrinsically Self-Realized, “point
+of view”, and time, and suffer- ing are Intrinsically
+and Perfectly Transcended.
+If the illusion of “present-time” is Transcended in The
+egoless, Indivisible, and Acausal Self-Nature, Self-Condition,
+and Self-State of Reality Itself, space itself is no
+longer desecrated by “point of view”, and suffering, and time itself.
+“Present-time” is a myth in mind." The Aletheon, Adi Da Samraj
+
+16/11/18
+========
+
+https://arxiv.org/abs/1811.06460
+Don't Try This at Home: No-Go Theorems for Distributive Laws
+Maaike Zwart, Dan Marsden
+(Submitted on 15 Nov 2018)
+
+15/11/18
+========
+
+macwilliams2018$ git remote -v
+originalgit@github.com:punkdit/macwilliams2018.git (fetch)
+originalgit@github.com:punkdit/macwilliams2018.git (push)
+macwilliams2018$ git remote set-url origin git@github.com:punkdit/transversal2018.git
+
+
+13/11/18
+========
+
+PROBLEMS IN CATEGORY THEORY — MATH4349 ANU 2016
+SCOTT MORRISON
+https://tqft.net/web/teaching/2016/CategoryTheory/questions.pdf
+
+
+12/11/18
+========
+
+Kleinien integers:
+x**1 = x
+x**2 = -x-2
+x**3 = -x+2
+x**4 = 3*x+2
+x**5 = -x-6
+x**6 = -5*x+2
+x**7 = 7*x+10
+x**8 = 3*x-14
+x**9 = -17*x-6
+x**10 = 11*x+34
+
+
+There are nine Heegner numbers:
+1, 2, 3, 7, 11, 19, 43, 67, 163
+
+corresponding to imaginary quadratic number
+fields with discriminants:
+4, 8, 3, 7, 11, 19, 43, 67, 163
+
+^     ^  ^
++------------ gauss
+      |  |
+      +------ eisenstein
+         |
+         +--- kleinien 
+
+
+SEVEN TREES IN ONE
+Andreas Blass
+https://arxiv.org/pdf/math/9405205.pdf
+    encoding seven-tuples of binary trees (T = 1+T^2)
+    into one tree.
+
+Objects of Categories as Complex Numbers
+Marcelo Fiore Tom Leinster
+https://arxiv.org/pdf/math/0212377.pdf
+
+An Objective Representation of the Gaussian Integers
+Marcelo Fiore Tom Leinster
+https://arxiv.org/pdf/math/0211454.pdf
+    the identity x = x^5
+    in N[x]/(x = 1 + x + x 2) entails an
+    isomorphism (in the language of distributive categories)
+    between Motzkin trees and five-tuples of Motzkin trees
+
+
+Replica trick:
+ln Z = lim_{n->0} (Z^n-1)/n
+
+
+
+
+11/11/18
+========
+
+https://arxiv.org/abs/hep-th/9904088
+Universality and conformal invariance for the Ising model in domains with boundary
+Robert P. Langlands, Marc-Andre Lewis, Yvan Saint-Aubin
+
+
+9/11/18
+=======
+
+
+https://arxiv.org/abs/1701.05277
+Specht Polytopes and Specht Matroids
+John D. Wiltshire-Gordon, Alexander Woo, and Magdalena Zajaczkowska
+
+https://qchu.wordpress.com/2012/11/13/four-flavors-of-schur-weyl-duality/
+Four flavors of Schur-Weyl duality
+November 13, 2012 by Qiaochu Yuan
+
+
+8/11/18
+=======
+
+Russel Brand
+"laughter is a type of breathing.
+Breath is life, life is breath."
+
+spectral sequence
+https://ncatlab.org/nlab/show/spectral+sequence
+
+https://arxiv.org/abs/1203.5801
+Criticality without frustration for quantum spin-1 chains
+Sergey Bravyi, Libor Caha, Ramis Movassagh, Daniel Nagaj, Peter Shor
+Frustration-free (FF) spin chains have a property that
+their ground state minimizes all individual terms in
+the chain Hamiltonian. We ask how entangled the ground
+state of a FF quantum spin-s chain with nearest-neighbor
+interactions can be for small values of s. While FF spin-1/2
+chains are known to have unentangled ground states, the
+case s=1 remains less explored. We propose the first
+example of a FF translation-invariant spin-1 chain that
+has a unique highly entangled ground state and exhibits
+some signatures of a critical behavior. The ground state
+can be viewed as the uniform superposition of balanced
+strings of left and right parentheses separated by empty
+spaces. Entanglement entropy of one half of the chain
+scales as log(n)/2 + O(1), where n is the number of spins.
+We prove that the energy gap above the ground state is
+polynomial in 1/n. The proof relies on a new result concerning
+statistics of Dyck paths which might be of independent interest.
+
+
+https://arxiv.org/abs/1811.00589
+HOLOMORPHIC SCFTS WITH SMALL INDEX
+DAVIDE GAIOTTO AND THEO JOHNSON-FREYD
+Abstract. We observe that every self-dual ternary code
+determines a holomorphic N = 1 superconformal field
+theory. This provides ternary constructions of some well-known
+holomorphic N = 1 SCFTs,
+including Duncan’s “supermoonshine” model and the fermionic
+“beauty and the beast” model
+of Dixon, Ginsparg, and Harvey. Along the way, we clarify
+some issues related to orbifolds of fermionic
+holomorphic CFTs. We give a simple coding-theoretic description
+of the supersymmetric index
+and conjecture that for every self-dual ternary code
+this index is divisible by 24; we are able to
+prove this conjecture except in the case when the code
+has length 12 mod 24. Lastly, we discuss a
+conjecture of Stolz and Teichner relating N = 1 SCFTs
+with Topological Modular Forms. This conjecture
+implies constraints on the supersymmetric indexes of
+arbitrary holomorphic SCFTs, and suggests
+(but does not require) that there should be, for each
+k, a holomorphic N = 1 SCFT of central
+charge 12k and index 24/ gcd(k, 24). We give ternary
+code constructions of SCFTs realizing this
+suggestion for k ≤ 5.
+
+vertex operator algebras & codes
+
+
+http://www.paultaylor.eu/~pt/stable/prot.pdf
+PROOFS AND TYPES
+JEAN-YVES GIRARD
+Translated and with appendices by
+PAUL TAYLOR
+YVES LAFONT
+1 Sense, Denotation and Semantics 1
+1.1 Sense and denotation in logic . . . . . . . . . . . . . . . . . . . . . . 1
+1.1.1 The algebraic tradition . . . . . . . . . . . . . . . . . . . . . . 3
+1.1.2 The syntactic tradition . . . . . . . . . . . . . . . . . . . . . . 3
+1.2 The two semantic traditions . . . . . . . . . . . . . . . . . . . . . . . 4
+1.2.1 Tarski . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+1.2.2 Heyting . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+2 Natural Deduction 8
+2.1 The calculus . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+2.1.1 The rules . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+2.2 Computational significance . . . . . . . . . . . . . . . . . . . . . . . . 10
+2.2.1 Interpretation of the rules . . . . . . . . . . . . . . . . . . . . 11
+2.2.2 Identification of deductions . . . . . . . . . . . . . . . . . . . 13
+3 The Curry-Howard Isomorphism 14
+3.1 Lambda Calculus . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+3.1.1 Types . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+3.1.2 Terms . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+3.2 Denotational significance . . . . . . . . . . . . . . . . . . . . . . . . . 16
+3.3 Operational significance . . . . . . . . . . . . . . . . . . . . . . . . . 17
+3.4 Conversion . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+3.5 Description of the isomorphism . . . . . . . . . . . . . . . . . . . . . 19
+3.6 Relevance of the isomorphism . . . . . . . . . . . . . . . . . . . . . . 20
+4 The Normalisation Theorem 22
+4.1 The Church-Rosser property . . . . . . . . . . . . . . . . . . . . . . . 22
+4.2 The weak normalisation theorem . . . . . . . . . . . . . . . . . . . . 24
+4.3 Proof of the weak normalisation theorem . . . . . . . . . . . . . . . . 24
+4.3.1 Degree and substitution . . . . . . . . . . . . . . . . . . . . . 25
+4.3.2 Degree and conversion . . . . . . . . . . . . . . . . . . . . . . 25
+4.3.3 Conversion of maximal degree . . . . . . . . . . . . . . . . . . 26
+4.3.4 Proof of the theorem . . . . . . . . . . . . . . . . . . . . . . . 26
+iv
+CONTENTS v
+4.4 The strong normalisation theorem . . . . . . . . . . . . . . . . . . . 26
+5 Sequent Calculus 28
+5.1 The calculus . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+5.1.1 Sequents . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+5.1.2 Structural rules . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+5.1.3 The intuitionistic case . . . . . . . . . . . . . . . . . . . . . . 30
+5.1.4 The “identity” group . . . . . . . . . . . . . . . . . . . . . . . 30
+5.1.5 Logical rules . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+5.2 Some properties of the system without cut . . . . . . . . . . . . . . . 32
+5.2.1 The last rule . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+5.2.2 Subformula property . . . . . . . . . . . . . . . . . . . . . . . 33
+5.2.3 Asymmetrical interpretation . . . . . . . . . . . . . . . . . . . 34
+5.3 Sequent Calculus and Natural Deduction . . . . . . . . . . . . . . . . 35
+5.4 Properties of the translation . . . . . . . . . . . . . . . . . . . . . . . 38
+6 Strong Normalisation Theorem 41
+6.1 Reducibility . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 41
+6.2 Properties of reducibility . . . . . . . . . . . . . . . . . . . . . . . . . 42
+6.2.1 Atomic types . . . . . . . . . . . . . . . . . . . . . . . . . . . 42
+6.2.2 Product type . . . . . . . . . . . . . . . . . . . . . . . . . . . 43
+6.2.3 Arrow type . . . . . . . . . . . . . . . . . . . . . . . . . . . . 43
+6.3 Reducibility theorem . . . . . . . . . . . . . . . . . . . . . . . . . . . 44
+6.3.1 Pairing . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 44
+6.3.2 Abstraction . . . . . . . . . . . . . . . . . . . . . . . . . . . . 44
+6.3.3 The theorem . . . . . . . . . . . . . . . . . . . . . . . . . . . 45
+7 G¨odel’s system T 46
+7.1 The calculus . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 47
+7.1.1 Types . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 47
+7.1.2 Terms . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 47
+7.1.3 Intended meaning . . . . . . . . . . . . . . . . . . . . . . . . . 47
+7.1.4 Conversions . . . . . . . . . . . . . . . . . . . . . . . . . . . . 47
+7.2 Normalisation theorem . . . . . . . . . . . . . . . . . . . . . . . . . . 48
+7.3 Expressive power: examples . . . . . . . . . . . . . . . . . . . . . . . 49
+7.3.1 Booleans . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+7.3.2 Integers . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+7.4 Expressive power: results . . . . . . . . . . . . . . . . . . . . . . . . 51
+7.4.1 Canonical forms . . . . . . . . . . . . . . . . . . . . . . . . . . 51
+7.4.2 Representable functions . . . . . . . . . . . . . . . . . . . . . 51
+vi CONTENTS
+8 Coherence Spaces 53
+8.1 General ideas . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 53
+8.2 Coherence Spaces . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 55
+8.2.1 The web of a coherence space . . . . . . . . . . . . . . . . . . 55
+8.2.2 Interpretation . . . . . . . . . . . . . . . . . . . . . . . . . . . 56
+8.3 Stable functions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 57
+8.3.1 Stable functions on a flat space . . . . . . . . . . . . . . . . . 59
+8.3.2 Parallel Or . . . . . . . . . . . . . . . . . . . . . . . . . . . . 59
+8.4 Direct product of two coherence spaces . . . . . . . . . . . . . . . . . 60
+8.5 The Function-Space . . . . . . . . . . . . . . . . . . . . . . . . . . . . 61
+8.5.1 The trace of a stable function . . . . . . . . . . . . . . . . . . 61
+8.5.2 Representation of the function space . . . . . . . . . . . . . . 63
+8.5.3 The Berry order . . . . . . . . . . . . . . . . . . . . . . . . . 64
+8.5.4 Partial functions . . . . . . . . . . . . . . . . . . . . . . . . . 65
+9 Denotational Semantics of T 66
+9.1 Simple typed calculus . . . . . . . . . . . . . . . . . . . . . . . . . . 66
+9.1.1 Types . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 66
+9.1.2 Terms . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 67
+9.2 Properties of the interpretation . . . . . . . . . . . . . . . . . . . . . 68
+9.3 G¨odel’s system . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 69
+9.3.1 Booleans . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 69
+9.3.2 Integers . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 69
+9.3.3 Infinity and fixed point . . . . . . . . . . . . . . . . . . . . . 71
+10 Sums in Natural Deduction 72
+10.1 Defects of the system . . . . . . . . . . . . . . . . . . . . . . . . . . . 72
+10.2 Standard conversions . . . . . . . . . . . . . . . . . . . . . . . . . . . 73
+10.3 The need for extra conversions . . . . . . . . . . . . . . . . . . . . . 74
+10.3.1 Subformula Property . . . . . . . . . . . . . . . . . . . . . . . 75
+10.3.2 Extension to the full fragment . . . . . . . . . . . . . . . . . 76
+10.4 Commuting conversions . . . . . . . . . . . . . . . . . . . . . . . . . 76
+10.5 Properties of conversion . . . . . . . . . . . . . . . . . . . . . . . . . 78
+10.6 The associated functional calculus . . . . . . . . . . . . . . . . . . . 79
+10.6.1 Empty type (corresponding to ⊥) . . . . . . . . . . . . . . . . 79
+10.6.2 Sum type (corresponding to ∨) . . . . . . . . . . . . . . . . . 80
+10.6.3 Additional conversions . . . . . . . . . . . . . . . . . . . . . . 80
+11 System F 81
+11.1 The calculus . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 81
+11.2 Comments . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 82
+11.3 Representation of simple types . . . . . . . . . . . . . . . . . . . . . 83
+11.3.1 Booleans . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 83
+CONTENTS vii
+11.3.2 Product of types . . . . . . . . . . . . . . . . . . . . . . . . . 83
+11.3.3 Empty type . . . . . . . . . . . . . . . . . . . . . . . . . . . . 84
+11.3.4 Sum type . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 84
+11.3.5 Existential type . . . . . . . . . . . . . . . . . . . . . . . . . . 85
+11.4 Representation of a free structure . . . . . . . . . . . . . . . . . . . . 85
+11.4.1 Free structure . . . . . . . . . . . . . . . . . . . . . . . . . . . 86
+11.4.2 Representation of the constructors . . . . . . . . . . . . . . . 87
+11.4.3 Induction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 87
+11.5 Representation of inductive types . . . . . . . . . . . . . . . . . . . . 88
+11.5.1 Integers . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 88
+11.5.2 Lists . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 90
+11.5.3 Binary trees . . . . . . . . . . . . . . . . . . . . . . . . . . . . 92
+11.5.4 Trees of branching type U . . . . . . . . . . . . . . . . . . . . 92
+11.6 The Curry-Howard Isomorphism . . . . . . . . . . . . . . . . . . . . 93
+12 Coherence Semantics of the Sum 94
+12.1 Direct sum . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 95
+12.2 Lifted sum . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 95
+12.2.1 dI-domains . . . . . . . . . . . . . . . . . . . . . . . . . . . . 97
+12.3 Linearity . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 98
+12.3.1 Characterisation in terms of preservation . . . . . . . . . . . . 98
+12.3.2 Linear implication . . . . . . . . . . . . . . . . . . . . . . . . 99
+12.4 Linearisation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 100
+12.5 Linearised sum . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 102
+12.6 Tensor product and units . . . . . . . . . . . . . . . . . . . . . . . . 103
+13 Cut Elimination (Hauptsatz) 104
+13.1 The key cases . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 104
+13.2 The principal lemma . . . . . . . . . . . . . . . . . . . . . . . . . . . 108
+13.3 The Hauptsatz . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 110
+13.4 Resolution . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 111
+14 Strong Normalisation for F 113
+14.1 Idea of the proof . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 114
+14.1.1 Reducibility candidates . . . . . . . . . . . . . . . . . . . . . . 114
+14.1.2 Remarks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 114
+14.1.3 Definitions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 115
+14.2 Reducibility with parameters . . . . . . . . . . . . . . . . . . . . . . 116
+14.2.1 Substitution . . . . . . . . . . . . . . . . . . . . . . . . . . . . 117
+14.2.2 Universal abstraction . . . . . . . . . . . . . . . . . . . . . . . 117
+14.2.3 Universal application . . . . . . . . . . . . . . . . . . . . . . . 117
+14.3 Reducibility theorem . . . . . . . . . . . . . . . . . . . . . . . . . . . 118
+viii CONTENTS
+15 Representation Theorem 119
+15.1 Representable functions . . . . . . . . . . . . . . . . . . . . . . . . . 120
+15.1.1 Numerals . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 120
+15.1.2 Total recursive functions . . . . . . . . . . . . . . . . . . . . . 121
+15.1.3 Provably total functions . . . . . . . . . . . . . . . . . . . . . 122
+15.2 Proofs into programs . . . . . . . . . . . . . . . . . . . . . . . . . . . 123
+15.2.1 Formulation of HA2 . . . . . . . . . . . . . . . . . . . . . . . 124
+15.2.2 Translation of HA2 into F . . . . . . . . . . . . . . . . . . . . 125
+15.2.3 Representation of provably total functions . . . . . . . . . . . 126
+15.2.4 Proof without undefined objects . . . . . . . . . . . . . . . . 128
+A Semantics of System F 131
+A.1 Terms of universal type . . . . . . . . . . . . . . . . . . . . . . . . . 131
+A.1.1 Finite approximation . . . . . . . . . . . . . . . . . . . . . . . 131
+A.1.2 Saturated domains . . . . . . . . . . . . . . . . . . . . . . . . 132
+A.1.3 Uniformity . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 133
+A.2 Rigid Embeddings . . . . . . . . . . . . . . . . . . . . . . . . . . . . 134
+A.2.1 Functoriality of arrow . . . . . . . . . . . . . . . . . . . . . . 135
+A.3 Interpretation of Types . . . . . . . . . . . . . . . . . . . . . . . . . . 136
+A.3.1 Tokens for universal types . . . . . . . . . . . . . . . . . . . . 137
+A.3.2 Linear notation for tokens . . . . . . . . . . . . . . . . . . . . 138
+A.3.3 The three simplest types . . . . . . . . . . . . . . . . . . . . . 139
+A.4 Interpretation of terms . . . . . . . . . . . . . . . . . . . . . . . . . . 140
+A.4.1 Variable coherence spaces . . . . . . . . . . . . . . . . . . . . 140
+A.4.2 Coherence of tokens . . . . . . . . . . . . . . . . . . . . . . . 141
+A.4.3 Interpretation of F . . . . . . . . . . . . . . . . . . . . . . . . 143
+A.5 Examples . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 144
+A.5.1 Of course . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 144
+A.5.2 Natural Numbers . . . . . . . . . . . . . . . . . . . . . . . . . 146
+A.5.3 Linear numerals . . . . . . . . . . . . . . . . . . . . . . . . . . 147
+A.6 Total domains . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 148
+B What is Linear Logic? 149
+B.1 Classical logic is not constructive . . . . . . . . . . . . . . . . . . . . 149
+B.2 Linear Sequent Calculus . . . . . . . . . . . . . . . . . . . . . . . . . 151
+B.3 Proof nets . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 154
+B.4 Cut elimination . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 157
+B.5 Proof nets and natural deduction . . . . . . . . . . . . . . . . . . . . 160
+Bibliography 161
+Index and index of notation 
+
+
+
+6/11/18
+=======
+
+@book{book:4760,
+   title =     {Vertex algebras for beginners},
+   author =    {Victor Kac, Victor  . Kac},
+   publisher = {American Mathematical Society},
+   isbn =      {0821806432,9780821806432},
+   year =      {1997},
+   series =    {University lecture series 10},
+   edition =   {},
+   volume =    {},
+
+1/11/18
+=======
+
+https://golem.ph.utexas.edu/category/2018/10/topoi_of_gsets.html#c055041
+https://ncatlab.org/nlab/show/2-rig
+
+http://www.math.jhu.edu/~eriehl/elements.pdf
+Elements of ∞-Category Theory
+Emily Riehl and Dominic Verity
+APPENDIX B
+An introduction to 2-category theory
+2-categories and the calculus of pasting diagrams
+whiskering
+
+TAI-DANAE BRADLEY
+What is applied category theory?
+https://arxiv.org/pdf/1809.05923.pdf
+
+
+
 30/10/18
 ========
 

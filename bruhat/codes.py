@@ -509,218 +509,6 @@ def test_dual():
 
 
 
-def test_full_weight():
-
-    from vec import Space, Hom, Map
-
-    import element
-
-    ring = element.Z
-    #ring = element.Q
-    one = ring.one
-
-    space = Space(2, ring)
-    hom = Hom(space, space)
-
-    I = Map.from_array([[1, 0], [0, 1]], hom)
-    X = Map.from_array([[0, 1], [1, 0]], hom)
-    Z = Map.from_array([[1, 0], [0, -1]], hom)
-    Y = Z*X
-
-    stab = [I@I, X@X]
-    for g in stab:
-      for h in stab:
-        assert g*h == h*g
-    G = mulclose(stab)
-    assert -(I@I) not in G
-    print("|G| =", len(G))
-
-    fwe = lambda I, Y, X, Z : I@I + X@X
-    fwe_d = lambda I, Y, X, Z : I@I + X@X + Z@Z + Y@Y
-
-    P = fwe_d(I, Y, X, Z)
-    print("P=")
-    print(P)
-    print("P*P=")
-    print(P*P)
-    #assert (P*P) == len(G)*P
-
-    x, y, z, t = I, Y, X, Z
-    Q = fwe(x+y+z+t, x+y-z-t, x-y+z-t, x-y-z+t)
-    print(Q)
-    assert Q == len(G) * P
-
-    print("OK")
-
-
-class Op(object):
-    def __init__(self, desc, sign=1):
-        self.desc = desc
-        for s in desc:
-            assert s in "IXZY"
-        self.sign = sign
-        self.n = len(desc)
-
-    def __mul__(self, other):
-        assert self.n == other.n
-        sign = self.sign * other.sign
-        res = []
-        for a, b in zip(self.desc, other.desc):
-            ab = a+b
-            if a==b:
-                res.append("I")
-            elif a=="I":
-                res.append(b)
-            elif b=="I":
-                res.append(a)
-            elif ab=="XZ":
-                res.append("Y") # Y == XZ
-            elif ab=="XY":
-                res.append("Z") # Y == XZ
-            elif ab=="YX":
-                res.append("Z")
-                sign *= -1
-            elif ab=="ZX":
-                res.append("Y")
-                sign *= -1
-            elif ab=="ZY":
-                res.append("X")
-                sign *= -1
-            elif ab=="YZ":
-                res.append("X")
-            else:
-                assert 0
-        op = Op("".join(res), sign)
-        return op
-
-    def __neg__(self):
-        return Op(self.desc, -self.sign)
-
-    def __str__(self):
-        return self.desc
-    __repr__ = __str__
-
-    def __hash__(self):
-        return hash((self.desc, self.sign))
-
-    def __eq__(self, other):
-        return (self.desc, self.sign) == (other.desc, other.sign)
-
-    def __ne__(self, other):
-        return (self.desc, self.sign) == (other.desc, other.sign)
-
-    def build(self, ns):
-        A = None
-        for g in self.desc:
-            op = ns[g]
-            if A is None:
-                A = op
-            else:
-                A = A@op # tensor
-        return self.sign*A
-
-
-def test_steane():
-
-
-    I = Op("I")
-    X = Op("X")
-    Z = Op("Z")
-    assert I*X == X
-    assert X*X == I
-    assert Z*X == -X*Z
-
-    def build():
-        desc = "1001011 0101101 0010111".split()
-        stab = []
-        for s in desc:
-            s = s.replace("0", "I")
-            gx = s.replace("1", "X")
-            gz = s.replace("1", "Z")
-            stab.append(Op("".join(gx)))
-            stab.append(Op("".join(gz)))
-        for g in stab:
-          for h in stab:
-            assert g*h == h*g
-        G = mulclose(stab)
-        print("|G| =", len(G))
-    
-        return G
-
-    def shortstr(P):
-        s = str(P)
-        s = s.replace("0", ".")
-        s = s.replace(" ", "")
-        return s
-
-    G = build()
-    #print(G)
-
-    from vec import Space, Hom, Map
-    import element
-    ring = element.Z
-    space = Space(2, ring)
-    hom = Hom(space, space)
-    I = Map.from_array([[1, 0], [0, 1]], hom)
-    X = Map.from_array([[0, 1], [1, 0]], hom)
-    Z = Map.from_array([[1, 0], [0, -1]], hom)
-    Y = X*Z
-
-    ns = {"I":I, "X":X, "Z":Z, "Y":Y}
-    ops = [g.build(ns) for g in G]
-
-    P = ops[0]
-    for op in ops[1:]:
-        P = P+op
-    assert P*P == len(G)*P
-
-    x, y, z, t = I, Y, X, Z
-    ns = {"I":x+y+z+t, "Y":x+y-z-t, "X":x-y+z-t, "Z":x-y-z+t}
-    ops = [g.build(ns) for g in G]
-
-    Q = ops[0]
-    for op in ops[1:]:
-        Q = Q+op
-    Q = Q/1024
-    assert Q*Q == 8*Q
-
-    import elim
-    def astr(A):
-        s = str(elim.shortstr(A))
-        s = s.replace(" 0 ", " . ")
-        s = s.replace(" ", "")
-        return s
-    Q = elim.row_reduce(ring, Q.to_array(), truncate=True)
-    print(astr(Q))
-    s = astr(Q)
-    for i, c in enumerate(s):
-        if c=="1":
-            print(bin(i-2))
-    P = elim.row_reduce(ring, P.to_array(), truncate=True)
-    print(astr(P))
-
-    return
-
-    x, y, z, t = I, Y, X, Z
-    I, Y, X, Z = x+y+z+t, x+y-z-t, x-y+z-t, x-y-z+t
-
-
-
-    P = fwe_d(I, Y, X, Z)
-    print("P=")
-    print(P)
-    print("P*P=")
-    print(P*P)
-    #assert (P*P) == len(G)*P
-
-    x, y, z, t = I, Y, X, Z
-    Q = fwe(x+y+z+t, x+y-z-t, x-y+z-t, x-y-z+t)
-    print(Q)
-    assert Q == len(G) * P
-
-    print("OK")
-
-
 
 def search():
     # Bravyi, Haah, 1209.2426v1 sec IX.
@@ -1009,6 +797,239 @@ def triortho():
     for key in keys:
         print(key, cs[key])
             
+
+#def test_full_weight():
+#
+#    from vec import Space, Hom, Map
+#
+#    import element
+#
+#    ring = element.Z
+#    #ring = element.Q
+#    one = ring.one
+#
+#    space = Space(2, ring)
+#    hom = Hom(space, space)
+#
+#    I = Map.from_array([[1, 0], [0, 1]], hom)
+#    X = Map.from_array([[0, 1], [1, 0]], hom)
+#    Z = Map.from_array([[1, 0], [0, -1]], hom)
+#    Y = Z*X
+#
+#    stab = [I@I, X@X]
+#    for g in stab:
+#      for h in stab:
+#        assert g*h == h*g
+#    G = mulclose(stab)
+#    assert -(I@I) not in G
+#    print("|G| =", len(G))
+#
+#    fwe = lambda I, Y, X, Z : I@I + X@X
+#    fwe_d = lambda I, Y, X, Z : I@I + X@X + Z@Z + Y@Y
+#
+#    P = fwe_d(I, Y, X, Z)
+#    print("P=")
+#    print(P)
+#    print("P*P=")
+#    print(P*P)
+#    #assert (P*P) == len(G)*P
+#
+#    x, y, z, t = I, Y, X, Z
+#    Q = fwe(x+y+z+t, x+y-z-t, x-y+z-t, x-y-z+t)
+#    print(Q)
+#    assert Q == len(G) * P # FAIL
+#
+#    print("OK")
+
+
+class Op(object):
+    def __init__(self, desc, sign=1):
+        self.desc = desc
+        for s in desc:
+            assert s in "IXZY"
+        self.sign = sign
+        self.n = len(desc)
+
+    def __mul__(self, other):
+        assert self.n == other.n
+        sign = self.sign * other.sign
+        res = []
+        for a, b in zip(self.desc, other.desc):
+            ab = a+b
+            if a==b:
+                res.append("I")
+            elif a=="I":
+                res.append(b)
+            elif b=="I":
+                res.append(a)
+            elif ab=="XZ":
+                res.append("Y") # Y == XZ
+            elif ab=="XY":
+                res.append("Z") # Y == XZ
+            elif ab=="YX":
+                res.append("Z")
+                sign *= -1
+            elif ab=="ZX":
+                res.append("Y")
+                sign *= -1
+            elif ab=="ZY":
+                res.append("X")
+                sign *= -1
+            elif ab=="YZ":
+                res.append("X")
+            else:
+                assert 0
+        op = Op("".join(res), sign)
+        return op
+
+    def __neg__(self):
+        return Op(self.desc, -self.sign)
+
+    def __str__(self):
+        return self.desc
+    __repr__ = __str__
+
+    def __hash__(self):
+        return hash((self.desc, self.sign))
+
+    def __eq__(self, other):
+        return (self.desc, self.sign) == (other.desc, other.sign)
+
+    def __ne__(self, other):
+        return (self.desc, self.sign) == (other.desc, other.sign)
+
+    def build(self, ns):
+        A = None
+        for g in self.desc:
+            op = ns[g]
+            if A is None:
+                A = op
+            else:
+                A = A@op # tensor
+        return self.sign*A
+
+
+def test_full_weight():
+
+
+    I = Op("I")
+    X = Op("X")
+    Z = Op("Z")
+    assert I*X == X
+    assert X*X == I
+    assert Z*X == -X*Z
+
+    def build():
+        if argv.steane:
+            zops = "1111111 1001011 0101101 0010111".split()
+            xops = "1001011 0101101 0010111".split()
+        elif argv.toric:
+            zops = "111..1.. 1.11...1 .1..111.".split()
+            #xops = "1.1..... .1...1.. 11.11... .111..1. 1...11.1".split()
+            xops = "11.11... .111..1. 1...11.1".split()
+        else:
+            return
+
+        stab = []
+        for s in xops:
+            s = s.replace("0", "I")
+            s = s.replace(".", "I")
+            gx = s.replace("1", "X")
+            stab.append(Op("".join(gx)))
+        for s in zops:
+            s = s.replace("0", "I")
+            s = s.replace(".", "I")
+            gz = s.replace("1", "Z")
+            stab.append(Op("".join(gz)))
+
+        for g in stab:
+          for h in stab:
+            assert g*h == h*g
+        G = mulclose(stab)
+        print("|G| =", len(G))
+    
+        return G
+
+    def shortstr(P):
+        s = str(P)
+        s = s.replace("0", ".")
+        s = s.replace(" ", "")
+        return s
+
+    G = build()
+    #print(G)
+
+    from vec import Space, Hom, Map
+    import element
+    ring = element.Z
+    space = Space(2, ring)
+    hom = Hom(space, space)
+    I = Map.from_array([[1, 0], [0, 1]], hom)
+    X = Map.from_array([[0, 1], [1, 0]], hom)
+    Z = Map.from_array([[1, 0], [0, -1]], hom)
+    Y = X*Z
+
+    ns = {"I":I, "X":X, "Z":Z, "Y":Y}
+    ops = [g.build(ns) for g in G]
+
+    # P is projector onto span(logical |0>, logical |1>)
+    P = ops[0]
+    for op in ops[1:]:
+        P = P+op
+    assert P*P == len(G)*P
+
+    x, y, z, t = I, Y, X, Z
+    ns = {"I":x+y+z+t, "Y":x+y-z-t, "X":x-y+z-t, "Z":x-y-z+t}
+    ops = [g.build(ns) for g in G]
+
+    # Q is projector onto logical |0>
+    Q = ops[0]
+    for op in ops[1:]:
+        Q = Q+op
+    Q = Q/1024
+    #assert Q*Q == 8*Q
+
+    import elim
+    def astr(A):
+        s = str(elim.shortstr(A))
+        s = s.replace(" 0 ", " . ")
+        s = s.replace(" ", "")
+        return s
+
+    Q = elim.row_reduce(ring, Q.to_array(), truncate=True)
+    print("Q:")
+    print(astr(Q))
+
+    #s = astr(Q)
+    #for i, c in enumerate(s):
+    #    if c=="1":
+    #        print(bin(i-2))
+
+    P = elim.row_reduce(ring, P.to_array(), truncate=True)
+    print("P:")
+    print(astr(P))
+
+    return
+
+    x, y, z, t = I, Y, X, Z
+    I, Y, X, Z = x+y+z+t, x+y-z-t, x-y+z-t, x-y-z+t
+
+
+
+    P = fwe_d(I, Y, X, Z)
+    print("P=")
+    print(P)
+    print("P*P=")
+    print(P*P)
+    #assert (P*P) == len(G)*P
+
+    x, y, z, t = I, Y, X, Z
+    Q = fwe(x+y+z+t, x+y-z-t, x-y+z-t, x-y-z+t)
+    print(Q)
+    assert Q == len(G) * P
+
+    print("OK")
+
 
 
 if __name__ == "__main__":

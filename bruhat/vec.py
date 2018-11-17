@@ -45,6 +45,7 @@ class Space(Keyed, Type):
         self.set_gen = set(gen)
         self.dim = len(gen)
         self.ring = ring
+        #self.vec_hom = Hom(self.unit(self.ring), self)
         Type.__init__(self)
         #Keyed.__init__(self, (self.gen, self.ring))
 
@@ -73,11 +74,20 @@ class Space(Keyed, Type):
         "Tensor unit object"
         return cls([cls.the_star], ring)
     
-    def basis(self, i):
+    def basis(self, i=None):
+        if i is None:
+            return [self.basis(i) for i in range(self.dim)]
         assert 0<=i<self.dim
         x = self.gen[i]
         ring = self.ring
-        v = Map([((x, self.the_star), self.ring.one)], Hom(self.unit(self.ring), self))
+#        v = Map([((x, self.the_star), self.ring.one)], Hom(self.unit(self.ring), self))
+        vec_hom = Hom(self.unit(self.ring), self)
+        v = Map([((x, self.the_star), self.ring.one)], vec_hom)
+        return v
+
+    def zero_vector(self):
+        vec_hom = Hom(self.unit(self.ring), self)
+        v = vec_hom.zero_vector()
         return v
 
     def __add__(A, B):
@@ -181,9 +191,13 @@ class Hom(Keyed, Type):
     def __str__(self):
         return "Hom(%s, %s)"%(self.src, self.tgt)
 
-    @property
-    def zero(self):
-        return Map([], self) # the zero map
+#    @property
+#    def zero(self):
+#        return Map([], self) # the zero map
+
+    def zero_vector(self):
+        v = Map([], self)
+        return v
 
     def __getitem__(self, i):
         assert 0<=i<1
@@ -447,8 +461,8 @@ def test_over_ring(ring):
     assert f==f1
 
     assert str(f)
-    assert f-f == f.hom.zero
-    assert f+f.hom.zero == f
+    assert f-f == f.hom.zero_vector()
+    assert f+f.hom.zero_vector() == f
     assert f*A.ident == f
     assert B.ident*f == f
 
@@ -487,11 +501,11 @@ def test_over_ring(ring):
 
     g = f.kernel()
     gf = dot(f, g)
-    assert gf == gf.hom.zero
+    assert gf == gf.hom.zero_vector()
 
     g = f.cokernel()
     fg = dot(g, f)
-    assert fg == fg.hom.zero
+    assert fg == fg.hom.zero_vector()
 
 
 
