@@ -16,6 +16,9 @@ def get_perms(items, parts):
             perm[part[i+1]] = part[i]
             perm = Perm(perm, items)
             perms.append(perm)
+    if not perms:
+        # identity
+        perms = [Perm(dict((item, item) for item in items), items)]
     G = Group.generate(perms)
     return G
 
@@ -81,7 +84,8 @@ def test():
 
 def main():
 
-    ring = element.Z
+    #ring = element.Z
+    ring = element.Q
 
     qubit = Space(2, ring)
 
@@ -151,6 +155,8 @@ def main():
     #print(v)
     #print(HHH * v)
 
+    # ----------------------------------------------------------
+
     items = [0, 1, 2]
     g1 = Perm({0:1, 1:0, 2:2}, items)
     g2 = Perm({0:0, 1:2, 2:1}, items)
@@ -163,6 +169,8 @@ def main():
     for g in G:
       for h in G:
         assert hom[g*h] == hom[g]*hom[h] # check it's a group hom
+
+    # ----------------------------------------------------------
 
     items = [0, 1, 2, 3]
     g1 = Perm({0:1, 1:0, 2:2, 3:3}, items)
@@ -180,6 +188,44 @@ def main():
     for g in G:
       for h in G:
         assert hom[g*h] == hom[g]*hom[h] # check it's a group hom
+
+    projs = []
+    for part in [(4,), (3,1), (2,2)]:
+        t = Young(part)
+
+        rowG = t.get_rowperms()
+        colG = t.get_colperms()
+        horiz = None
+        for g in rowG:
+            P = hom[g]
+            horiz = P if horiz is None else (horiz + P)
+    
+        vert = None
+        for g in colG:
+            P = hom[g]
+            s = g.sign()
+            P = s*P
+            vert = P if vert is None else (vert + P)
+        A = vert * horiz
+
+        assert vert*vert == len(colG) * vert
+        assert horiz*horiz == len(rowG) * horiz
+        projs.append(A)
+
+    for A in projs:
+      for B in projs:
+        assert A*B == B*A
+
+    for A in projs:
+        print("proj:")
+        im = A.image()
+        src, tgt = im.hom
+        for i in src:
+          for j in tgt:
+            v = im[j, i]
+            if v != ring.zero:
+                print("%s*%s"%(v, j), end=" ")
+          print()
 
 
 if __name__ == "__main__":

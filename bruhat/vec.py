@@ -49,6 +49,9 @@ class Space(Keyed, Type):
         Type.__init__(self)
         #Keyed.__init__(self, (self.gen, self.ring))
 
+    def __getitem__(self, i):
+        return self.gen[i]
+
     def __contains__(self, x):
         return x in self.set_gen
 
@@ -200,7 +203,6 @@ class Hom(Keyed, Type):
         return v
 
     def __getitem__(self, i):
-        assert 0<=i<1
         return [self.src, self.tgt][i]
 
     def tensor(a, b):
@@ -248,6 +250,12 @@ class Map(Element):
         self.tgt = hom.tgt
         self.hom = hom
         self.ring = ring
+
+    def __getitem__(self, k):
+        i, j = k
+        assert i in self.tgt
+        assert j in self.src
+        return self.map_items.get(k, self.ring.zero)
 
     def __repr__(self):
         return "Map(%s)"%(str(list(self.items)))
@@ -388,7 +396,7 @@ class Map(Element):
         A = a.to_array()
         B = elim.cokernel(a.ring, A)
         n = B.shape[0]
-        X = Space(list(range(n)), a.ring)
+        X = Space(n, a.ring)
         hom = Hom(a.tgt, X)
         b = Map.from_array(B, hom)
         return b
@@ -397,15 +405,19 @@ class Map(Element):
         A = a.to_array()
         B = elim.kernel(a.ring, A)
         n = B.shape[1] # src
-        X = Space(list(range(n)), a.ring)
+        X = Space(n, a.ring)
         hom = Hom(X, a.src)
-#        print("a.shape:", a.hom.shape)
-#        print(a)
-#        print("B.shape:", B.shape)
-#        print(B)
-#        print("hom.shape:", hom.shape)
-#        print(X, a.src)
         b = Map.from_array(B, hom)
+        return b
+
+    def image(a):
+        A = a.to_array()
+        At = A.transpose()
+        At = elim.row_reduce(a.ring, At, truncate=True)
+        A = At.transpose()
+        X = Space(A.shape[1], a.ring)
+        hom = Hom(X, a.tgt)
+        b = Map.from_array(A, hom)
         return b
 
     def rank(a):
@@ -507,6 +519,12 @@ def test_over_ring(ring):
     fg = dot(g, f)
     assert fg == fg.hom.zero_vector()
 
+    # -----------------------------------------
+
+    A = Space(2, ring)
+    f = Map.from_array([[1, 1], [1, 1]], Hom(A, A))
+    g = f.image()
+    #print(g)
 
 
 

@@ -38,6 +38,7 @@ mulclose = mulclose_fast
 
 
 def mulclose_hom(gen1, gen2, verbose=False, maxsize=None):
+    "build a group hom from generators: gen1 -> gen2"
     hom = {}
     assert len(gen1) == len(gen2)
     for i in range(len(gen1)):
