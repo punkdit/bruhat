@@ -102,7 +102,7 @@ class Specht(object):
             items = []
             for idxs in tspace.gen:
                 jdxs = tuple(idxs[g[i]] for i in range(len(idxs)))
-                items.append(((jdxs, idxs), ring.one))
+                items.append(((idxs, jdxs), ring.one))
                 #print(idxs, "->", jdxs)
             #print()
             swap = Map(items, thom)
@@ -142,9 +142,9 @@ class Specht(object):
             A = A.transpose()
             projs.append(A)
 
-            print(part)
-            print(t)
-            print(A)
+            #print(part)
+            #print(t)
+            #print(A)
 
         self.projs = projs
 
@@ -237,50 +237,6 @@ def main():
     # ----------------------------------------------------------
 
     specht = Specht(3, qubit)
-
-#    return
-#
-#    # ----------------------------------------------------------
-#
-#    items = [0, 1, 2]
-#    g1 = Perm({0:1, 1:0, 2:2}, items)
-#    g2 = Perm({0:0, 1:2, 2:1}, items)
-#
-#    s1 = SWAP @ I
-#    s2 = I @ SWAP
-#
-#    G = mulclose([g1, g2])
-#    hom = mulclose_hom([g1, g2], [s1, s2])
-#    for g in G:
-#      for h in G:
-#        assert hom[g*h] == hom[g]*hom[h] # check it's a group hom
-#
-#    projs = []
-#    for part in [(3,), (2,1)]:
-#        t = Young(part)
-#
-#        rowG = t.get_rowperms()
-#        colG = t.get_colperms()
-#        horiz = None
-#        for g in rowG:
-#            P = hom[g]
-#            horiz = P if horiz is None else (horiz + P)
-#    
-#        vert = None
-#        for g in colG:
-#            P = hom[g]
-#            s = g.sign()
-#            P = s*P
-#            vert = P if vert is None else (vert + P)
-#        A = vert * horiz
-#        #A = horiz * vert
-#
-#        assert vert*vert == len(colG) * vert
-#        assert horiz*horiz == len(rowG) * horiz
-#        #print(t)
-#        #print(A)
-#        projs.append(A)
-
 
     for A in specht.projs:
         print("proj:")

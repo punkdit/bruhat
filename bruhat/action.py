@@ -331,6 +331,14 @@ class Perm(object):
     def __hash__(self):
         return hash(str(self))
 
+    """
+    _hash = None
+    def __hash__(self):
+        if self._hash is None:
+            self._hash = hash(str(self))
+        return self._hash
+    """
+
     def leftmul(self, action):
         perms = [self*perm for perm in action]
         action = Group(perms, action.items)
@@ -2620,8 +2628,9 @@ def is_hom(hom):
 
 def close_hom(hom):
     hom = dict(hom)
-    for g in hom.keys():
-      for h in hom.keys():
+    ks = list(hom.keys())
+    for g in ks:
+      for h in ks:
         k = g*h
         if k in hom:
             if hom[k] != hom[g]*hom[h]:
@@ -2897,5 +2906,6 @@ if __name__ == "__main__":
     if argv.test:
         test_action()
         test()
+        print("OK")
 
 

@@ -6,8 +6,9 @@ category of reps of a finite group...
 """
 
 import string
+from functools import reduce
 
-from bruhat.action import Group, Perm, conjugacy_subgroups
+from bruhat.action import Group, Perm, conjugacy_subgroups, mulclose, mulclose_hom
 from bruhat.element import Type, Keyed, Element
 from bruhat import element
 from bruhat.vec import Space, Hom, Map
@@ -21,6 +22,8 @@ class Cat(Keyed, Type):
     def __init__(self, G, ring):
         Type.__init__(self) 
         Keyed.__init__(self, (G, ring))
+        assert isinstance(G, Group)
+        assert isinstance(ring, Type)
         self.G = G
         self.ring = ring
 
@@ -46,6 +49,7 @@ class Rep(Element): # Object of the category
         assert isinstance(cat, Cat)
         self.send_perms = dict(send_perms)
         self.space = space
+        self.hom = Hom(space, space)
         self.G = cat.G
         self.ring = cat.ring
 
@@ -64,6 +68,9 @@ class Rep(Element): # Object of the category
 
     def __hash__(self, other):
         assert 0, "TODO"
+
+    def action(self, g):
+        return self.send_perms[g]
 
     def check(self):
         G, space, send_perms = self.G, self.space, self.send_perms
@@ -85,9 +92,9 @@ class Rep(Element): # Object of the category
                 rhs = h1*h2
                 if lhs != rhs:
                     print("lhs =")
-                    print(lhs.items)
+                    print(lhs)
                     print("rhs =")
-                    print(rhs.items)
+                    print(rhs)
                     assert 0
 
     #def __add__(self, other):
@@ -271,9 +278,104 @@ def test():
     r2.dump()
 
 
+def specht(n, space):
+
+    assert n>=2
+    d = len(space)
+    ring = space.ring
+
+    items = list(range(n))
+    gen1 = []
+    for i in range(n-1):
+        perm = dict((item, item) for item in items)
+        perm[items[i]] = items[i+1]
+        perm[items[i+1]] = items[i]
+        perm = Perm(perm, items)
+        gen1.append(perm)
+    perms = mulclose(gen1)
+    G = Group(perms, items)
+
+    #I = space.ident
+
+    # tensor power of the space
+    tensor = lambda x, y : x@y 
+    tspace = reduce(tensor, [space]*n)
+
+    # build action of symmetric group on the tensor power
+    thom = Hom(tspace, tspace)
+    gen2 = []
+    for g in gen1:
+        items = []
+        for idxs in tspace.gen:
+            jdxs = tuple(idxs[g[i]] for i in range(len(idxs)))
+            items.append(((idxs, jdxs), ring.one))
+            #print(idxs, "->", jdxs)
+        #print()
+        swap = Map(items, thom)
+        gen2.append(swap)
+
+    action = mulclose_hom(gen1, gen2)
+    for g in G:
+      for h in G:
+        assert action[g*h] == action[g]*action[h] # check it's a group hom
+
+    tp = Cat(G, ring)
+
+    rep = Rep(action, tspace, tp)
+    return rep
+
+    
+def tensor_rep(G, space):
+    "build rep of natural G action on tensor power of space"
+
+    gen = G.items
+    n = len(gen)
+    d = len(space)
+    ring = space.ring
+
+    # tensor power of the space
+    tensor = lambda x, y : x@y 
+    tspace = reduce(tensor, [space]*n)
+
+    # build action on the tensor power
+    thom = Hom(tspace, tspace)
+    send_perms = {}
+    for g in G:
+        #print(g)
+        items = []
+        for idxs in tspace.gen:
+            jdxs = tuple(idxs[g[i]] for i in range(len(idxs)))
+            items.append(((idxs, jdxs), ring.one))
+            #print(idxs, "->", jdxs)
+        #print()
+        swap = Map(items, thom)
+        send_perms[g] = swap
+
+    tp = Cat(G, ring)
+    rep = Rep(send_perms, tspace, tp)
+    return rep
+
+    
+def main():
+
+    ring = element.Z
+    space = Space(2, ring)
+
+    n = argv.get("n", 3)
+
+    rep = specht(n, space)
+    rep.check()
+    rep.dump()
+
+
 if __name__ == "__main__":
 
-    test()
+    fn = argv.next()
+    if fn:
+        fn = eval(fn)
+        fn()
+    else:
+        test()
 
 
 
