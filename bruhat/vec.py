@@ -52,6 +52,9 @@ class Space(Keyed, Type):
     def __getitem__(self, i):
         return self.gen[i]
 
+    def __len__(self):
+        return len(self.gen)
+
     def __contains__(self, x):
         return x in self.set_gen
 

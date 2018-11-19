@@ -139,3 +139,21 @@ def alltuples(items, n):
             yield (item,)+tail
 
 
+def partitions(n, maxn=None):
+    if maxn is None:
+        maxn = n
+    if n==0:
+        yield ()
+    else:
+        for i in range(1, min(n, maxn)+1):
+            for rest in partitions(n-i, i):
+                yield (i,) + rest
+
+
+assert list(partitions(0)) == [()]
+assert list(partitions(1)) == [(1,)]
+assert list(partitions(2)) == [(1, 1), (2,)]
+assert list(partitions(3)) == [(1, 1, 1), (2, 1), (3,)]
+assert list(partitions(4)) == [(1, 1, 1, 1), (2, 1, 1), (2, 2), (3, 1), (4,)]
+
+

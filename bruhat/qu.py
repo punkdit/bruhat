@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
+from functools import reduce
+
 from bruhat import element
 from bruhat.vec import Space, Hom, Map
 from bruhat.action import mulclose, mulclose_hom, Perm, Group
 from bruhat.argv import argv
-from bruhat.util import factorial
+from bruhat.util import factorial, partitions
 
 
 def get_perms(items, parts):
@@ -69,6 +71,83 @@ class Young(object):
             line = pre + '[%s]' %(' '.join("%d"%i for i in row))
             lines.append(line)
         return '\n'.join(lines) + ']'
+
+
+class Specht(object):
+
+    def __init__(self, n, space):
+        assert n>=2
+        d = len(space)
+        ring = space.ring
+
+        items = list(range(n))
+        gen1 = []
+        for i in range(n-1):
+            perm = dict((item, item) for item in items)
+            perm[items[i]] = items[i+1]
+            perm[items[i+1]] = items[i]
+            perm = Perm(perm, items)
+            gen1.append(perm)
+
+        #I = space.ident
+
+        # tensor power of the space
+        tensor = lambda x, y : x@y
+        tspace = reduce(tensor, [space]*n)
+
+        # build action of symmetric group on the tensor power
+        thom = Hom(tspace, tspace)
+        gen2 = []
+        for g in gen1:
+            items = []
+            for idxs in tspace.gen:
+                jdxs = tuple(idxs[g[i]] for i in range(len(idxs)))
+                items.append(((jdxs, idxs), ring.one))
+                #print(idxs, "->", jdxs)
+            #print()
+            swap = Map(items, thom)
+            gen2.append(swap)
+
+        G = mulclose(gen1)
+        action = mulclose_hom(gen1, gen2)
+        for g in G:
+          for h in G:
+            assert action[g*h] == action[g]*action[h] # check it's a group hom
+
+        # Build the young symmetrizers
+        projs = []
+        for part in partitions(n):
+            if len(part) > d:
+                continue
+            t = Young(part)
+    
+            rowG = t.get_rowperms()
+            colG = t.get_colperms()
+            horiz = None
+            for g in rowG:
+                P = action[g]
+                horiz = P if horiz is None else (horiz + P)
+        
+            vert = None
+            for g in colG:
+                P = action[g]
+                s = g.sign()
+                P = s*P
+                vert = P if vert is None else (vert + P)
+            A = vert * horiz
+            #A = horiz * vert
+    
+            assert vert*vert == len(colG) * vert
+            assert horiz*horiz == len(rowG) * horiz
+            A = A.transpose()
+            projs.append(A)
+
+            print(part)
+            print(t)
+            print(A)
+
+        self.projs = projs
+
 
 
 def test():
@@ -157,18 +236,65 @@ def main():
 
     # ----------------------------------------------------------
 
-    items = [0, 1, 2]
-    g1 = Perm({0:1, 1:0, 2:2}, items)
-    g2 = Perm({0:0, 1:2, 2:1}, items)
+    specht = Specht(3, qubit)
 
-    s1 = SWAP @ I
-    s2 = I @ SWAP
+#    return
+#
+#    # ----------------------------------------------------------
+#
+#    items = [0, 1, 2]
+#    g1 = Perm({0:1, 1:0, 2:2}, items)
+#    g2 = Perm({0:0, 1:2, 2:1}, items)
+#
+#    s1 = SWAP @ I
+#    s2 = I @ SWAP
+#
+#    G = mulclose([g1, g2])
+#    hom = mulclose_hom([g1, g2], [s1, s2])
+#    for g in G:
+#      for h in G:
+#        assert hom[g*h] == hom[g]*hom[h] # check it's a group hom
+#
+#    projs = []
+#    for part in [(3,), (2,1)]:
+#        t = Young(part)
+#
+#        rowG = t.get_rowperms()
+#        colG = t.get_colperms()
+#        horiz = None
+#        for g in rowG:
+#            P = hom[g]
+#            horiz = P if horiz is None else (horiz + P)
+#    
+#        vert = None
+#        for g in colG:
+#            P = hom[g]
+#            s = g.sign()
+#            P = s*P
+#            vert = P if vert is None else (vert + P)
+#        A = vert * horiz
+#        #A = horiz * vert
+#
+#        assert vert*vert == len(colG) * vert
+#        assert horiz*horiz == len(rowG) * horiz
+#        #print(t)
+#        #print(A)
+#        projs.append(A)
 
-    G = mulclose([g1, g2])
-    hom = mulclose_hom([g1, g2], [s1, s2])
-    for g in G:
-      for h in G:
-        assert hom[g*h] == hom[g]*hom[h] # check it's a group hom
+
+    for A in specht.projs:
+        print("proj:")
+        im = A.image()
+        #im = A
+        src, tgt = im.hom
+        for i in src:
+          for j in tgt:
+            v = im[j, i]
+            if v != ring.zero:
+                print("%s*%s"%(v, j), end=" ")
+          print()
+
+    return
 
     # ----------------------------------------------------------
 
@@ -207,18 +333,31 @@ def main():
             P = s*P
             vert = P if vert is None else (vert + P)
         A = vert * horiz
+        #A = horiz * vert
 
         assert vert*vert == len(colG) * vert
         assert horiz*horiz == len(rowG) * horiz
+        #print(t)
+        #print(A)
         projs.append(A)
 
     for A in projs:
       for B in projs:
         assert A*B == B*A
 
+#    print()
+#    for A in projs:
+#        for g in G:
+#            P = hom[g]
+#            if P*A != A*P:
+#                print(P*A)
+#                print(A*P)
+#                return
+
     for A in projs:
         print("proj:")
         im = A.image()
+        #im = A
         src, tgt = im.hom
         for i in src:
           for j in tgt:
