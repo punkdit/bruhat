@@ -355,6 +355,72 @@ def tensor_rep(G, space):
     rep = Rep(send_perms, tspace, tp)
     return rep
 
+
+def get_perms(items, parts):
+    perms = []
+    for part in parts:
+        for i in range(len(part)-1):
+            perm = dict((item, item) for item in items)
+            perm[part[i]] = part[i+1]
+            perm[part[i+1]] = part[i]
+            perm = Perm(perm, items)
+            perms.append(perm)
+    if not perms:
+        # identity
+        perms = [Perm(dict((item, item) for item in items), items)]
+    G = Group.generate(perms)
+    return G
+
+
+class Young(object):
+
+    def __init__(self, part, labels=None):
+        assert part
+        n = sum(part)
+        i = part[0]
+        for j in part[1:]:
+            assert j <= i
+            i = j
+        if labels is None:
+            labels = list(range(n))
+        assert len(labels)==n
+        rows = []
+        idx = 0
+        for i in part:
+            row = []
+            for j in range(i):
+                row.append(labels[idx])
+                idx += 1
+            rows.append(row)
+        cols = []
+        for i in range(len(rows[0])):
+            col = []
+            for row in rows:
+                if i < len(row):
+                    col.append(row[i])
+            cols.append(col)
+        self.rows = rows
+        self.cols = cols
+        self.labels = labels
+        self.part = tuple(part)
+        self.n = n
+
+    def get_rowperms(self):
+        return get_perms(self.labels, self.rows)
+
+    def get_colperms(self):
+        return get_perms(self.labels, self.cols)
+
+    def __str__(self):
+        lines = []
+        for row in self.rows:
+            pre = ' ' if lines else '['
+            line = pre + '[%s]' %(' '.join("%d"%i for i in row))
+            lines.append(line)
+        return '\n'.join(lines) + ']'
+
+
+
     
 def main():
 

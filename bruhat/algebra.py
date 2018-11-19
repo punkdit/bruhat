@@ -11,7 +11,8 @@ from bruhat import element
 from bruhat import elim
 from bruhat.element import Keyed, Type, Element, GenericElement
 from bruhat.vec import Space, Map
-from bruhat.rep import Rep, Cat, tensor_rep
+from bruhat.rep import Rep, Cat, tensor_rep, Young
+from bruhat.util import partitions
 
 # _based on bruhat.vec.Map:
 
@@ -245,7 +246,52 @@ def test():
     rep.check()
 
     module = algebra.extend(rep)
-    print(module.action(v))
+    #print(module.action(v))
+
+    # ---------------------------------------
+
+    d = len(space)
+
+    # Build the young symmetrizers
+    projs = []
+    for part in partitions(n):
+        if len(part) > d:
+            continue
+        t = Young(part)
+
+        rowG = t.get_rowperms()
+        colG = t.get_colperms()
+        horiz = None
+        for g in rowG:
+            P = algebra.promote(g)
+            horiz = P if horiz is None else (horiz + P)
+
+        vert = None
+        for g in colG:
+            P = algebra.promote(g)
+            s = g.sign()
+            P = s*P
+            vert = P if vert is None else (vert + P)
+        A = vert * horiz
+        A = horiz * vert
+
+        assert vert*vert == len(colG) * vert
+        assert horiz*horiz == len(rowG) * horiz
+        print("part:", part)
+        print("H:")
+        print(module.action(horiz))
+        print("V:")
+        print(module.action(vert))
+        print("H*V:")
+        print(A)
+        print(module.action(A))
+        projs.append(A)
+
+        #print(part)
+        #print(t)
+        #print(A)
+
+
 
 
 
