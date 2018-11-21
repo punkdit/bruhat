@@ -125,6 +125,9 @@ class Space(Keyed, Type):
         # XX um...
         return self
 
+    def endo_hom(self):
+        return Hom(self, self)
+
     @property
     def ident(self): # XX cache me
         "ident: A --> A"
@@ -252,6 +255,7 @@ class Map(Element):
         self.src = hom.src
         self.tgt = hom.tgt
         self.hom = hom
+        self.shape = hom.shape
         self.ring = ring
 
     def __getitem__(self, k):

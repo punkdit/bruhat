@@ -10,7 +10,7 @@ from bruhat.action import Group
 from bruhat import element
 from bruhat import elim
 from bruhat.element import Keyed, Type, Element, GenericElement
-from bruhat.vec import Space, Map
+from bruhat.vec import Space, Map, Hom
 from bruhat.rep import Rep, Cat, tensor_rep, Young
 from bruhat.util import partitions
 
@@ -153,6 +153,10 @@ class Vector(Element):
         return "[%s]" % (', '.join(str(val) for val in vals))
     __repr__ = __str__
 
+    def to_array(self):
+        vals = [self[k] for k in self.algebra]
+        return vals
+
     def __eq__(a, b):
         return a.map_items == b.map_items
 
@@ -212,7 +216,7 @@ class Vector(Element):
 
 def test():
 
-    ring = element.Z
+    ring = element.Q
 
     n = argv.get("n", 3)
     G = Group.symmetric(n)
@@ -243,7 +247,7 @@ def test():
 
     space = Space(2, ring)
     rep = tensor_rep(G, space)
-    rep.check()
+    #rep.check()
 
     module = algebra.extend(rep)
     #print(module.action(v))
@@ -255,41 +259,60 @@ def test():
     # Build the young symmetrizers
     projs = []
     for part in partitions(n):
-        if len(part) > d:
-            continue
         t = Young(part)
 
         rowG = t.get_rowperms()
         colG = t.get_colperms()
-        horiz = None
+        H = None
         for g in rowG:
             P = algebra.promote(g)
-            horiz = P if horiz is None else (horiz + P)
+            H = P if H is None else (H + P)
 
-        vert = None
+        V = None
         for g in colG:
             P = algebra.promote(g)
             s = g.sign()
             P = s*P
-            vert = P if vert is None else (vert + P)
-        A = vert * horiz
-        A = horiz * vert
+            V = P if V is None else (V + P)
+        A = V * H
 
-        assert vert*vert == len(colG) * vert
-        assert horiz*horiz == len(rowG) * horiz
+        assert V*V == len(colG) * V
+        assert H*H == len(rowG) * H
         print("part:", part)
-        print("H:")
-        print(module.action(horiz))
-        print("V:")
-        print(module.action(vert))
-        print("H*V:")
-        print(A)
-        print(module.action(A))
-        projs.append(A)
+        #print("H:")
+        #print(module.action(H))
+        #print("V:")
+        #print(module.action(V))
 
-        #print(part)
-        #print(t)
-        #print(A)
+        specht = []
+        for v in algebra.basis:
+            u = v*A
+            specht.append(u.to_array())
+        hom = Space(len(G), ring).endo_hom()
+        specht = Map.from_array(specht, hom)
+        specht = specht.transpose()
+        #print(specht)
+        specht = specht.image()
+        dim = specht.shape[1]
+        print("dim:", dim)
+
+        if len(part) > d:
+            continue
+
+        P = module.action(A)
+        P = P.transpose()
+        print(P.rank())
+
+#        break
+#        print("H*V + V*H:")
+#        print(H*V + V*H)
+#        print(module.action(H*V + V*H))
+#        projs.append(A)
+#
+#        break
+#        #print(part)
+#        #print(t)
+#        #print(A)
 
 
 
