@@ -216,7 +216,7 @@ def burnside(tp): # make it a method
         rep = Rep.mk_rep(act, tp)
         reps[act.name] = rep
 
-    arg = argv.next()
+    arg = argv.next() or "B*C"
     assert "*" in arg
     left, right = arg.split("*")
 

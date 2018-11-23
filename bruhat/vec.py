@@ -80,9 +80,9 @@ class Space(Keyed, Type):
         "Tensor unit object"
         return cls([cls.the_star], ring)
     
-    def basis(self, i=None):
+    def get_basis(self, i=None):
         if i is None:
-            return [self.basis(i) for i in range(self.dim)]
+            return [self.get_basis(i) for i in range(self.dim)]
         assert 0<=i<self.dim
         x = self.gen[i]
         ring = self.ring
@@ -267,8 +267,8 @@ class Map(Element):
     def __repr__(self):
         return "Map(%s)"%(str(list(self.items)))
 
-    def __str__(self):
-        zero = self.ring.zero
+    def str(self, labels=False, hide_zero=False):
+        zero = '.' if hide_zero else self.ring.zero
         map_items = self.map_items
         rows = [[str(map_items.get((i, j), zero)) 
             for j in self.src.gen] for i in self.tgt.gen]
@@ -287,10 +287,16 @@ class Map(Element):
                 row = row+"]"
             else:
                 row = row+","
+            if labels:
+                row += ' ' + str(self.tgt.gen[i])
             lines.append(row)
         s = '\n'.join(lines) or "[]"
-        s += str(self.hom.shape)
+        #s += str(self.hom.shape)
         return s
+    __str__ = str
+
+    def longstr(self):
+        return self.str(labels=True, hide_zero=True)
 
     def to_array(self):
         zero = self.ring.zero
@@ -465,9 +471,9 @@ def test_over_ring(ring):
     assert zero@A == A@zero == zero
     assert A@(B+C) == A@B + A@C
 
-    a = A.basis(0)
-    u = B.basis(0)
-    v = B.basis(0)
+    a = A.get_basis(0)
+    u = B.get_basis(0)
+    v = B.get_basis(0)
 
     f = (a.transpose()@u) # kind of a mess...
     #print(f.hom)

@@ -1,4 +1,13 @@
 
+23/11/18
+========
+
+Causal Inference by String Diagram Surgery
+Bart Jacobs1 , Aleks Kissinger1 , and Fabio Zanasi2
+https://arxiv.org/abs/1811.08338
+
+
+
 19/11/18
 ========
 

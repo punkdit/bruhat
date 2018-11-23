@@ -14,6 +14,24 @@ from bruhat.vec import Space, Map, Hom
 from bruhat.rep import Rep, Cat, tensor_rep, Young
 from bruhat.util import partitions
 
+
+# TODO: move to bruhat.vec
+def find_span(vs):
+    rows = []
+    for v in vs:
+        v = v.transpose()
+        row = v.to_array()
+        assert row.shape[0] == 1
+        rows.append(row[0])
+    ring = v.ring
+    src = v.src
+    hom = Hom(src, Space(len(vs), ring))
+    A = Map.from_array(rows, hom)
+    A = A.transpose()
+    A = A.image()
+    return A
+
+
 # _based on bruhat.vec.Map:
 
 class Algebra(Type):
@@ -119,6 +137,16 @@ class GroupAlgebra(Algebra):
         assert rep.G is self.G
         return GModule(self, rep)
 
+    def get_center(self):
+        center = []
+        for cls in self.G.cgy_cls():
+            v = self.zero
+            for g in cls:
+                v = v+g
+            center.append(v)
+    
+        return center
+
 
 class Vector(Element):
 
@@ -219,19 +247,29 @@ def test():
     ring = element.Q
 
     n = argv.get("n", 3)
+    d = argv.get("d", 2)
+
     G = Group.symmetric(n)
 
     algebra = GroupAlgebra(G, ring)
     v = algebra.zero
     for g in G:
-        g = algebra.promote(g)
         v = v+g
     assert 2*v == v+v
     assert v-v == algebra.zero
 
     for g in algebra.basis:
-        assert g*v == v # oh yeah !
-        assert v*g == v # come get it!
+        assert g*v == v
+        assert v*g == v
+
+    center = algebra.get_center()
+    for v in center:
+        for g in algebra.basis:
+            assert g*v == v*g
+
+    # ---------------------------------------
+
+    # build standard representation of symmetric group
 
     act = G.left_action(list(range(n)))
     #print(act)
@@ -245,7 +283,9 @@ def test():
 
     # ---------------------------------------
 
-    space = Space(2, ring)
+    # build representation of symmetric group on tensor product
+
+    space = Space(d, ring)
     rep = tensor_rep(G, space)
     #rep.check()
 
@@ -253,8 +293,6 @@ def test():
     #print(module.action(v))
 
     # ---------------------------------------
-
-    d = len(space)
 
     # Build the young symmetrizers
     projs = []
@@ -278,7 +316,7 @@ def test():
 
         assert V*V == len(colG) * V
         assert H*H == len(rowG) * H
-        print("part:", part)
+        print("partition:", part)
         #print("H:")
         #print(module.action(H))
         #print("V:")
@@ -290,32 +328,34 @@ def test():
             specht.append(u.to_array())
         hom = Space(len(G), ring).endo_hom()
         specht = Map.from_array(specht, hom)
-        specht = specht.transpose()
-        #print(specht)
         specht = specht.image()
+        #print(specht)
         dim = specht.shape[1]
-        print("dim:", dim)
+        print("Specht dim:", dim)
 
         if len(part) > d:
             continue
 
         P = module.action(A)
-        P = P.transpose()
-        print(P.rank())
+        #P = P.transpose()
+        P = P.image()
+        print(P.longstr())
 
-#        break
-#        print("H*V + V*H:")
-#        print(H*V + V*H)
-#        print(module.action(H*V + V*H))
-#        projs.append(A)
-#
-#        break
-#        #print(part)
-#        #print(t)
-#        #print(A)
+        src = P.src
+        for v in src.get_basis():
+            u = P*v
+            #print(u.longstr())
+            items = []
+            for g in algebra.basis:
+                g = module.action(g)
+                w = g*u
+                #print(w.longstr())
+                items.append(w)
+            A = find_span(items)
+            print("span:")
+            print(A.longstr())
 
-
-
+        #break
 
 
 if __name__ == "__main__":
