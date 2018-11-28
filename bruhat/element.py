@@ -5,10 +5,10 @@
 
 import sys, os
 
-from action import mulclose, Perm, Group, burnside
+from bruhat.action import mulclose, Perm, Group, burnside
 
-from util import cross
-from argv import argv
+from bruhat.util import cross
+from bruhat.argv import argv
 
 
 def divisors(n):

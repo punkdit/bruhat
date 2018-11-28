@@ -267,16 +267,16 @@ class Map(Element):
     def __repr__(self):
         return "Map(%s)"%(str(list(self.items)))
 
-    def str(self, labels=False, hide_zero=False):
+    def str(self, labels=False, hide_zero=False, element_str=str, sep=' '):
         zero = '.' if hide_zero else self.ring.zero
         map_items = self.map_items
-        rows = [[str(map_items.get((i, j), zero)) 
+        rows = [[element_str(map_items.get((i, j), zero)) 
             for j in self.src.gen] for i in self.tgt.gen]
         w = 1
         for row in rows:
             for col in row: 
                 w = max(w, len(col))
-        rows = ['[%s]'%' '.join(s.rjust(w) for s in row) for row in rows]
+        rows = ['[%s]'%sep.join(s.rjust(w) for s in row) for row in rows]
         lines = [] 
         for i, row in enumerate(rows):
             if i==0:

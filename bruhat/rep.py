@@ -374,7 +374,7 @@ def get_perms(items, parts):
 
 class Young(object):
 
-    def __init__(self, part, labels=None):
+    def __init__(self, G, part, labels=None):
         assert part
         n = sum(part)
         i = part[0]
@@ -404,12 +404,15 @@ class Young(object):
         self.labels = labels
         self.part = tuple(part)
         self.n = n
+        self.G = G
 
     def get_rowperms(self):
-        return get_perms(self.labels, self.rows)
+        #return get_perms(self.labels, self.rows)
+        return self.G.preserve_partition(self.rows)
 
     def get_colperms(self):
-        return get_perms(self.labels, self.cols)
+        #return get_perms(self.labels, self.cols)
+        return self.G.preserve_partition(self.cols)
 
     def __str__(self):
         lines = []

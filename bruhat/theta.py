@@ -4,8 +4,9 @@ import sys, os
 
 from heapq import *
 
-from smap import SMap
-from argv import argv
+from bruhat.util import all_primes
+from bruhat.smap import SMap
+from bruhat.argv import argv
 
 
 class Point(object):
@@ -126,26 +127,6 @@ def nsquares(n, ncoeffs):
         items[key] = counts[key]
     return items
 
-
-
-def all_primes(n, ps=None):
-    "list of primes < n"
-
-    items = [0]*n
-    p = 2 
-
-    while p**2 < n:
-        i = 2 
-        while p*i < n:
-            items[p*i] = 1 
-            i += 1
-
-        p += 1
-        while p < n and items[p]:
-            p += 1
-
-    ps = [i for i in range(2, n) if items[i]==0]
-    return ps
 
 
 def divisors(n):

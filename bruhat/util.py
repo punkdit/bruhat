@@ -157,3 +157,23 @@ assert list(partitions(3)) == [(1, 1, 1), (2, 1), (3,)]
 assert list(partitions(4)) == [(1, 1, 1, 1), (2, 1, 1), (2, 2), (3, 1), (4,)]
 
 
+def all_primes(n, ps=None):
+    "list of primes < n"
+
+    items = [0]*n
+    p = 2 
+
+    while p**2 < n:
+        i = 2 
+        while p*i < n:
+            items[p*i] = 1 
+            i += 1
+
+        p += 1
+        while p < n and items[p]:
+            p += 1
+
+    ps = [i for i in range(2, n) if items[i]==0]
+    return ps
+
+

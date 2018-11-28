@@ -218,7 +218,7 @@ class Perm(object):
         while not g.is_identity():
             g = self*g
             i += 1
-            assert i <= len(self.items)
+            assert i <= len(self.items)+1
         return i
 
     def restrict(self, items, *args, **kw):
@@ -430,6 +430,14 @@ class Perm(object):
         sizes = [len(orbit) for orbit in orbits]
         sizes.sort() # uniq
         return tuple(sizes)
+
+    def preserves_partition(self, part):
+        for items in part:
+            for item in items:
+                jtem = self.perm[item]
+                if jtem not in items:
+                    return False
+        return True
 
 
 #class Species(object):
@@ -813,6 +821,10 @@ class Group(object):
             if items1.issubset(items):
                 perms.append(g)
         return Group(perms, self.items)
+
+    def preserve_partition(self, part):
+        H = [g for g in self if g.preserves_partition(part)]
+        return Group(H, self.items)
 
     def orbit(self, item):
         items = set(g(item) for g in self.perms)

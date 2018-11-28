@@ -14,7 +14,7 @@ except ImportError:
 if sys.version_info.major>=3:
     long = int
 
-from util import write
+from bruhat.util import write
 
 
 class Point(object):
@@ -743,9 +743,7 @@ def test():
     assert len(list(search(bag0, bag1))) == 5
 
 
-from argv import Argv 
-argv = Argv()
-seed(0)
+from bruhat.argv import argv
 
 
 if __name__ == "__main__":

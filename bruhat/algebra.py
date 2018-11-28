@@ -147,6 +147,26 @@ class GroupAlgebra(Algebra):
     
         return center
 
+    def get_symmetrizer(self, tableau):
+        rowG = tableau.get_rowperms()
+        colG = tableau.get_colperms()
+        H = None
+        for g in rowG:
+            P = self.promote(g)
+            H = P if H is None else (H + P)
+
+        V = None
+        for g in colG:
+            P = self.promote(g)
+            s = g.sign()
+            P = s*P
+            V = P if V is None else (V + P)
+        A = V * H
+
+        assert V*V == len(colG) * V
+        assert H*H == len(rowG) * H
+        return A
+
 
 class Vector(Element):
 
@@ -296,31 +316,28 @@ def test():
 
     # Build the young symmetrizers
     projs = []
-    for part in partitions(n):
-        t = Young(part)
+    part = argv.get("part")
+    parts = [part] if part else partitions(n)
+    for part in parts:
 
-        rowG = t.get_rowperms()
-        colG = t.get_colperms()
-        H = None
-        for g in rowG:
-            P = algebra.promote(g)
-            H = P if H is None else (H + P)
+        items = G.items
+        A = algebra.zero
+        for g in G:
+            labels = [g[item] for item in items]
+            tableau = Young(G, part, labels)
+            P = algebra.get_symmetrizer(tableau)
+            A = A+P
 
-        V = None
-        for g in colG:
-            P = algebra.promote(g)
-            s = g.sign()
-            P = s*P
-            V = P if V is None else (V + P)
-        A = V * H
+        #tableau = Young(G, part)
+        #A = algebra.get_symmetrizer(tableau)
 
-        assert V*V == len(colG) * V
-        assert H*H == len(rowG) * H
         print("partition:", part)
         #print("H:")
         #print(module.action(H))
         #print("V:")
         #print(module.action(V))
+
+        print([g*A == A*g for g in algebra.basis])
 
         specht = []
         for v in algebra.basis:
@@ -331,15 +348,20 @@ def test():
         specht = specht.image()
         #print(specht)
         dim = specht.shape[1]
-        print("Specht dim:", dim)
+        print("S(n)-algebra dim:", dim)
 
         if len(part) > d:
             continue
 
+        print("A:", A)
         P = module.action(A)
         #P = P.transpose()
         P = P.image()
         print(P.longstr())
+
+        print(P.shape)
+        return
+        print("multiplicity:", P.shape[1])
 
         src = P.src
         for v in src.get_basis():
@@ -352,8 +374,8 @@ def test():
                 #print(w.longstr())
                 items.append(w)
             A = find_span(items)
-            print("span:")
-            print(A.longstr())
+            print("dimension:", A.shape[1])
+            #print(A.longstr())
 
         #break
 
