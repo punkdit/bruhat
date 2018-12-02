@@ -8,6 +8,8 @@ import sys, os
 
 from argv import argv
 
+from util import all_primes
+
 
 class Field(object):
 
@@ -176,8 +178,6 @@ def get_genus(p, verbose=False):
 
     return genus
 
-
-from theta import all_primes
 
 def main():
 

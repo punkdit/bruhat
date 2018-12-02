@@ -9,7 +9,8 @@ from bruhat.vec import Space, Hom, Map
 from bruhat.action import mulclose
 from bruhat.util import all_primes
 
-
+# Finite field notation in gap
+# https://www.gap-system.org/Manuals/doc/ref/chap59.html
 # [ [ Z(3)^0, Z(3)^0,   Z(3) ], [   Z(3), 0*Z(3),   Z(3) ], [ 0*Z(3),   Z(3), 0*Z(3) ] ]
 
 
@@ -68,12 +69,13 @@ def build_gates(ring, i4, root2, i8):
     #gen = [X, Z, S, H] # generates 192 elements
     gen = [X, Z, S, H, T]
 
-    print("G := Group(")
-    ms = []
-    for g in gen:
-        m = gapstr(g)
-        ms.append(m)
-    print(",\n".join(ms)+");;")
+    if argv.gap:
+        print("G := Group(")
+        ms = []
+        for g in gen:
+            m = gapstr(g)
+            ms.append(m)
+        print(",\n".join(ms)+");;")
 
     if ring.p <= 41:
         G = mulclose(gen)

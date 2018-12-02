@@ -79,16 +79,17 @@ def order_sl(n, q):
     return order//(q-1)
 
 
-def order_sp(m, q):
+def order_sp(n, q):
     # n = 2*m
+    assert n%2==0
+    m = n//2
     N = q**(m**2)
     for i in range(m):
         N *= (q**(2*(i+1)) - 1)
     return N
 
-assert order_sp(1, 2)==6     # 3!
-assert order_sp(2, 2)==720   # 6!
-#print(order_sp(3, 2)*(4**3))
+assert order_sp(2, 2)==6     # 3!
+assert order_sp(4, 2)==720   # 6!
 
 
 def SL(n, p):
@@ -124,7 +125,8 @@ def main():
 
     print("|GL(%d, %d)| = %d"%(p, n, order_gl(n, p)))
     print("|SL(%d, %d)| = %d"%(p, n, order_sl(n, p)))
-    print("|Sp(%d, %d)| = %d"%(p, n, order_sp(n, p)))
+    if n%2 == 0:
+        print("|Sp(%d, %d)| = %d"%(p, n, order_sp(n, p)))
 
     if argv.SL:
         G = SL(n, p)
