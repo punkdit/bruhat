@@ -177,3 +177,9 @@ def all_primes(n, ps=None):
     return ps
 
 
+def set_seed(i=0):
+    import numpy
+    from random import seed
+    seed(i)
+    numpy.random.seed(i)
+

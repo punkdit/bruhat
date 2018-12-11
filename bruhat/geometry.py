@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Working with abstract incidence geometries.
@@ -9,14 +9,14 @@ import os, sys
 import numpy
 import networkx as nx
 
-from solve import zeros2, enum2, row_reduce, span, shortstr, shortstrx, solve, rank, find_kernel, find_logops, identity2
-import isomorph
-from isomorph import Bag, Point, write
-from coxeter import BruhatMonoid
-from action import Perm, Group
-from util import all_subsets, factorial, choose
+from bruhat.solve import zeros2, enum2, row_reduce, span, shortstr, shortstrx, solve, rank, find_kernel, find_logops, identity2
+from bruhat import isomorph
+from bruhat.isomorph import Bag, Point, write
+from bruhat.coxeter import BruhatMonoid
+from bruhat.action import Perm, Group
+from bruhat.util import all_subsets, factorial, choose
 
-from argv import Argv
+from bruhat.argv import Argv
 argv = Argv()
 
 
@@ -62,7 +62,7 @@ class Geometry(object):
                 nbd[i].append(j)
             if i not in nbd[j]:
                 nbd[j].append(i)
-        for jtems in nbd.values():
+        for jtems in list(nbd.values()):
             assert len(set(jtems))==len(jtems), "nbd:%s"%nbd # uniq
 
         for i in items:
@@ -70,7 +70,7 @@ class Geometry(object):
             try:
                 i==j
             except ValueError:
-                print "cant compare %r and %r" % (i, j)
+                print("cant compare %r and %r" % (i, j))
                 raise
         for i in items:
             if i not in nbd[i]:
@@ -83,18 +83,18 @@ class Geometry(object):
                 if i not in nbd[j]:
                     nbd[j].append(i)
 
-        for t in tpmap.values():
+        for t in list(tpmap.values()):
             tplookup[t] = []
-        for item, t in tpmap.items():
+        for item, t in list(tpmap.items()):
             tplookup[t].append(item)
-        for jtems in nbd.values():
+        for jtems in list(nbd.values()):
             assert len(set(jtems))==len(jtems), "nbd:%s"%nbd # uniq
 
         incidence = [] # rebuild this
-        for item, jtems in nbd.items():
+        for item, jtems in list(nbd.items()):
             for jtem in jtems:
                 incidence.append((item, jtem))
-        incidence.sort()
+        incidence.sort(key = lambda s:str(s))
 
         self.incidence = set(incidence) # incidence relation: list of pairs (i, j)
         self.tpmap = dict(tpmap) # map item -> type
@@ -135,7 +135,7 @@ class Geometry(object):
 
     @classmethod
     def simplex(cls, dim):
-        tps = range(dim+1)
+        tps = list(range(dim+1))
         items = [tuple(idxs) for idxs in all_subsets(dim+1) if idxs] # skip empty set
         incidence = []
         tpmap = {}
@@ -198,15 +198,15 @@ class Geometry(object):
 
     def is_flag(self, flag):
         if not len(set(flag))==len(flag):
-            print "X"
+            print("X")
             return False
         for i in flag:
             if not i in self.items:
-                print "I"
+                print("I")
                 return False
             for j in flag:
                 if not (i, j) in self.incidence:
-                    print "C"
+                    print("C")
                     return False
         #print "."
         return True
@@ -227,10 +227,10 @@ class Geometry(object):
     def all_flags(self):
         flags = [flag for flag in self.ordered_flags()]
         for flag in flags:
-            flag.sort()
+            flag.sort(key = str)
         flags = [tuple(flag) for flag in flags]
         flags = list(set(flags))
-        flags.sort()
+        flags.sort(key=str)
         return flags
 
     def maximal_flags(self):
@@ -275,7 +275,7 @@ class Geometry(object):
         # every maximal flag is a chamber
         for flag in self.maximal_flags():
             if len(flag)!=self.rank:
-                print "flag %s is not a chamber (rank=%d)"%(flag, self.rank)
+                print("flag %s is not a chamber (rank=%d)"%(flag, self.rank))
                 assert 0
 
     def is_digon(self):
@@ -350,7 +350,7 @@ class Geometry(object):
                 continue
             ilines = set(nbd[i]).intersection(set(nbd[j]))
             if len(ilines)!=1:
-                print "L"
+                print("L")
                 return False
             line = list(ilines)[0]
             assert self.tpmap[line]==ltp
@@ -433,7 +433,7 @@ class System(object):
         for i in flags:
             graph.add_node(i)
 
-        for tp, equ in graphs.items():
+        for tp, equ in list(graphs.items()):
             for flag, _flag in nx.edges(equ):
                 graph.add_edge(flag, _flag, tp=tp)
 
@@ -491,8 +491,8 @@ class System(object):
     def build_weyl(self, monoid):
         mul = monoid.mul
         words = monoid.words
-        print "words:", len(words)
-        print words
+        print("words:", len(words))
+        print(words)
         self.monoid = monoid
         self.mul = monoid.mul
         self.words = monoid.words
@@ -516,7 +516,7 @@ class System(object):
         desc = {}
         for i, j in diagram:
             desc[gen[i], gen[j]] = 3
-        print "BruhatMonoid(%s, %s)" % (gen, desc)
+        print("BruhatMonoid(%s, %s)" % (gen, desc))
         monoid = BruhatMonoid(gen, desc)
         words = monoid.build()
         self.build_weyl(monoid)
@@ -540,7 +540,7 @@ class System(object):
             p = Point("f", len(lookup))
             lookup[flag] = p
             points.append(p)
-        for tp, flagss in equs.items():
+        for tp, flagss in list(equs.items()):
             p = Point("t", len(lookup))
             lookup[tp] = p
             points.append(p)
@@ -602,7 +602,7 @@ class System(object):
         flags = self.flags
         weyl = self.weyl
         chains = []
-        for key, value in weyl.items():
+        for key, value in list(weyl.items()):
             if value in accept:
                 chains.append(key)
         return chains
@@ -612,7 +612,7 @@ class System(object):
         weyl = self.weyl
         chains = []
         mul = self.mul
-        for k, v in weyl.items():
+        for k, v in list(weyl.items()):
             a, b = k
             for c in flags:
                 if mul[v, weyl[b, c]] in accept:
@@ -624,7 +624,7 @@ class System(object):
         weyl = self.weyl
         chains = []
         mul = self.mul
-        for k, v in weyl.items():
+        for k, v in list(weyl.items()):
             a, b = k
             for c in flags:
               w = mul[v, weyl[b, c]]
@@ -676,7 +676,7 @@ class MonoidSystem(System):
         for i in flags:
             graph.add_node(i)
 
-        for tp, equ in graphs.items():
+        for tp, equ in list(graphs.items()):
             for flag, _flag in nx.edges(equ):
                 graph.add_edge(flag, _flag, tp=tp)
 
@@ -707,8 +707,8 @@ class MonoidSystem(System):
         path = nx.shortest_path(graph, c, d)
         assert path[0] == c
         assert path[-1] == d
-        print "get_geodesic %20s" % ((c, d),),
-        print "path:", path
+        print("get_geodesic %20s" % ((c, d),), end=' ')
+        print("path:", path)
         i = 0
         while i+1 < len(path):
             a, b = path[i:i+2]
@@ -729,8 +729,8 @@ class MonoidSystem(System):
     def build_weyl(self, monoid):
         mul = monoid.mul
         words = monoid.words
-        print "words:", len(words)
-        print words
+        print("words:", len(words))
+        print(words)
         self.monoid = monoid
         self.mul = monoid.mul
         self.words = monoid.words
@@ -774,9 +774,9 @@ def tesellate_3d(n=3):
         for di,dj,dk in genidx(2,2,2):
             v = verts[(i+di)%n, (j+dj)%n, (k+dk)%n]
             incidence.append((c, v))
-    for c in cubes.values():
+    for c in list(cubes.values()):
         tpmap[c] = 'c'
-    for v in verts.values():
+    for v in list(verts.values()):
         tpmap[v] = 'v'
     g = Geometry(incidence, tpmap)
     return g
@@ -785,7 +785,7 @@ def tesellate_3d(n=3):
 
 def fano():
     # https://www.maa.org/sites/default/files/pdf/upload_library/22/Ford/Lam305-318.pdf
-    points = range(1, 8)
+    points = list(range(1, 8))
     lines = [(1,2,4), (2,3,5), (3,4,6), (4,5,7), (5,6,1), (6,7,2), (7,1,3)]
     assert len(lines)==7
     incidence = []
@@ -812,7 +812,7 @@ def test_fano():
         lines = [p for p in bag if p.desc=='l']
         bags.append(bag)
 
-    print(len(bag))
+    print((len(bag)))
 
     # just hack it....
     N = 3
@@ -1052,7 +1052,7 @@ def test():
         #s.get_symmetry()
         return
 
-    print "OK"
+    print("OK")
 
 
 def hecke(self):
@@ -1062,16 +1062,16 @@ def hecke(self):
 
     points = [p for p in bag0 if p.desc=='0']
     lines = [p for p in bag0 if p.desc=='1']
-    print points
-    print lines
+    print(points)
+    print(lines)
     flags = []
     for p in points:
         ls = [l for l in p.nbd if l!=p]
-        print p, ls
+        print(p, ls)
         for l in ls:
             flags.append((p, l))
 
-    print "flags:", len(flags)
+    print("flags:", len(flags))
 
 #    for point in bag0:
 #        print point, repr(point.desc)
@@ -1088,7 +1088,7 @@ def hecke(self):
     perms = []
     for f in isomorph.search(bag0, bag1):
         #print f
-        g = dict((bag0[idx], bag0[f[idx]]) for idx in f.keys())
+        g = dict((bag0[idx], bag0[f[idx]]) for idx in list(f.keys()))
         perm = {}
         for a, b in items:
             a1 = (g[a[0]], g[a[1]])
@@ -1098,14 +1098,14 @@ def hecke(self):
         perm = Perm(perm, items)
         perms.append(perm)
         write('.')
-    print
+    print()
 
     g = Group(perms, items)
-    print "group:", len(g)
+    print("group:", len(g))
 
     orbits = g.orbits()
     #print orbits
-    print "orbits:", len(orbits)
+    print("orbits:", len(orbits))
 
     eq = numpy.allclose
     dot = numpy.dot
@@ -1119,8 +1119,8 @@ def hecke(self):
         #print orbits
         for a, b in orbit:
             A[flags.index(a), flags.index(b)] = 1
-        print shortstr(A)
-        print A.sum()
+        print(shortstr(A))
+        print(A.sum())
         #print
 
         basis.append(A)
@@ -1184,7 +1184,7 @@ def magnitude_homology(geometry=None, system=None):
     I, P, L, S = "", "P", "L", "S"
 
     if system is None:
-        print "find_building"
+        print("find_building")
         assert geometry is not None
         assert geometry.rank <= 3, "really?"
         system = System(geometry)
@@ -1192,7 +1192,7 @@ def magnitude_homology(geometry=None, system=None):
         system.build(letters)
 
     flags = system.flags
-    print "flags:", len(flags)
+    print("flags:", len(flags))
 
     chains = {}
 
@@ -1207,17 +1207,17 @@ def magnitude_homology(geometry=None, system=None):
         accept = (accept,) # tuple-ize
     for l in accept:
         assert l in system.words
-    print "accept:", repr(accept)
+    print("accept:", repr(accept))
 
     N = argv.get("N", 2)
     for n in range(N):
         chains[n] = system.get_nchains(n, accept)
-        print "|%d-chains|=%d" % (n, len(chains[n]))
+        print("|%d-chains|=%d" % (n, len(chains[n])))
 
     bdys = {} # map 
     for n in range(N-1):
         # bdy maps n+1 chains to n chains
-        print "bdy: chains[%d] -> chains[%d]" % (n+1, n),
+        print("bdy: chains[%d] -> chains[%d]" % (n+1, n), end=' ')
         bdy = {}
         source = chains[n+1]
         target = chains[n]
@@ -1232,7 +1232,7 @@ def magnitude_homology(geometry=None, system=None):
                     #assert len(set(chain1))==n+1 # uniq NOT !
                     row = target.index(chain1)
                     bdy[row, col] = bdy.get((row, col), 0) + (-1)**i
-        print "nnz:", len(bdy), "range:", set(bdy.values())
+        print("nnz:", len(bdy), "range:", set(bdy.values()))
         bdys[n+1] = bdy
 
     # bdys[n]: map n-chains to (n-1)-chains
@@ -1244,7 +1244,7 @@ def magnitude_homology(geometry=None, system=None):
         b1, b2 = bdys[i], bdys[i+1]
         b12 = compose(b1, b2)
         #print "len(bdy*bdy):", len(b12.values())
-        for value in b12.values():
+        for value in list(b12.values()):
             assert value == 0, value
 
         if argv.Z2:
@@ -1259,17 +1259,17 @@ def magnitude_homology(geometry=None, system=None):
 
 def find_homology(g, f, *dims):
 
-    print "find_homology"
-    print dims[2], "--f-->", dims[1], "--g-->", dims[0]
+    print("find_homology")
+    print(dims[2], "--f-->", dims[1], "--g-->", dims[0])
 
     F = numpy.zeros((dims[1], dims[2]))
-    for row, col in f.keys():
+    for row, col in list(f.keys()):
         v = f[row, col]
         F[row, col] = v
     #print shortstr(F)
 
     G = numpy.zeros((dims[0], dims[1]))
-    for row, col in g.keys():
+    for row, col in list(g.keys()):
         v = g[row, col]
         G[row, col] = v
     #print shortstr(G)
@@ -1278,10 +1278,10 @@ def find_homology(g, f, *dims):
     #print shortstr(GF)
     assert numpy.abs(GF).sum() == 0
 
-    import homology
+    from . import homology
     if f and g:
         d = homology.bettiNumber(G, F)
-        print "MH:", d
+        print("MH:", d)
 
 # See also:
 # http://stackoverflow.com/questions/15638650/is-there-a-standard-solution-for-gauss-elimination-in-python
@@ -1289,18 +1289,18 @@ def find_homology(g, f, *dims):
 
 def find_homology_2(g, f, *dims):
 
-    print "find_homology"
-    print dims[2], "--f-->", dims[1], "--g-->", dims[0]
+    print("find_homology")
+    print(dims[2], "--f-->", dims[1], "--g-->", dims[0])
 
     F = numpy.zeros((dims[1], dims[2]))
-    for row, col in f.keys():
+    for row, col in list(f.keys()):
         v = f[row, col]
         F[row, col] = v % 2
     #print shortstr(F.transpose())
     #print
 
     G = numpy.zeros((dims[0], dims[1]))
-    for row, col in g.keys():
+    for row, col in list(g.keys()):
         v = g[row, col]
         G[row, col] = v % 2
     #print shortstr(G)
@@ -1310,19 +1310,19 @@ def find_homology_2(g, f, *dims):
         code = CSSCode(Hx=F.transpose(), Hz=G)
         code.build()
         code = code.prune_deadbits()
-        print code
+        print(code)
         name = argv.get("name")
         if name.endswith(".ldpc"):
-            print "saving", name
+            print("saving", name)
             code.save(name)
 
     if argv.logops:
         L = find_logops(G, F.transpose())
         w = min([v.sum() for v in L])
-        print "logops weight:", w
+        print("logops weight:", w)
         L = find_logops(F, G.transpose())
         w = min([v.sum() for v in L])
-        print "logops weight:", w
+        print("logops weight:", w)
 
     GF = numpy.dot(G, F) % 2
     #print shortstr(GF)
@@ -1331,10 +1331,10 @@ def find_homology_2(g, f, *dims):
     F = F.astype(numpy.int32)
     G = G.astype(numpy.int32)
 
-    print "rank(f)=%d, rank(g)=%d" % (rank(F), rank(G))
+    print("rank(f)=%d, rank(g)=%d" % (rank(F), rank(G)))
     if g:
         kerg = find_kernel(G)
-        print "ker(g):", len(kerg)
+        print("ker(g):", len(kerg))
     #if f:
     #    kerf = find_kernel(F)
     #    print "ker(f):", len(kerf)
@@ -1346,8 +1346,8 @@ def compose(g, f):
     # first f then g
     h = {}
     #print g.keys()
-    for row, c in g.keys():
-        for r, col in f.keys():
+    for row, c in list(g.keys()):
+        for r, col in list(f.keys()):
             if c==r:
                 #print row, col
                 h[row, col] = h.get((row, col), 0) + g[row, c] * f[r, col]
@@ -1374,7 +1374,7 @@ def thaw(items):
 
 
 def all_chains(n, above, chain=()):
-    elements = above.keys()
+    elements = list(above.keys())
 
     if n==1:
         for a in elements:
@@ -1397,7 +1397,7 @@ def all_chains(n, above, chain=()):
     tpl = "(" + ','.join('a%d'%i for i in range(n)) + ")"
     lines.append(indent + "yield %s"%tpl)
     #print '\n'.join(lines)
-    exec ''.join(l+'\n' for l in lines)
+    exec(''.join(l+'\n' for l in lines))
 
     for chain in get_all(elements, above):
         yield chain
@@ -1426,7 +1426,7 @@ def poset_homology(elements, order):
 
         n += 1
 
-    print "poset_homology:", homology, "=", r
+    print("poset_homology:", homology, "=", r)
 
     return r
 

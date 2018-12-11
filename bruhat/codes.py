@@ -514,8 +514,7 @@ def search():
     # Bravyi, Haah, 1209.2426v1 sec IX.
     # https://arxiv.org/pdf/1209.2426.pdf
 
-    m = argv.get("m", 3)
-    n = argv.get("n", 6)
+    m = argv.get("m", 6) # number of rows
     k = argv.get("k", None) # number of odd-weight rows
 
     # these are the variables N_x
@@ -586,6 +585,8 @@ def search():
     for trial in range(trials):
         u = rand2(len(K), 1)
         v = dot2(K.transpose(), u)
+        #print(v)
+        assert eq2(dot2(A, v), rhs)
         assert dot2(A, v).sum()==0
         #if v.sum() != n:
         #    continue
@@ -600,6 +601,9 @@ def search():
         G = Gt.transpose()
         assert is_morthogonal(G, 3)
         if G.shape[1]<m:
+            continue
+
+        if 0 in G.sum(1):
             continue
 
         #print(shortstr(G))
@@ -642,6 +646,294 @@ def search():
         print(shortstr(v))
         assert eq2(dot2(B, v), rhs) 
 
+
+def build_toric(l=3, allgen=True):
+    keys = []
+    keymap = {}
+    for i in range(l):
+      for j in range(l):
+        for k in (0, 1):
+            m = len(keys)
+            keys.append((i, j, k))
+            for di in (-l, 0, l):
+              for dj in (-l, 0, l):
+                keymap[i+di, j+dj, k] = m
+
+    if l>2:
+        assert keys[keymap[2, 1, 0]] == (2, 1, 0)
+
+    if allgen:
+        m = l**2 # rows (constraints)
+    else:
+        m = l**2-1 # rows (constraints)
+    n = len(keys) # cols (bits)
+    assert n == 2*(l**2)
+
+    Lx = zeros2(2, n)
+    Lz = zeros2(2, n)
+    Hx = zeros2(m, n)
+    Tz = zeros2(m, n)
+    Hz = zeros2(m, n)
+    Tx = zeros2(m, n)
+
+    for i in range(l):
+        Lx[0, keymap[i, l-1, 1]] = 1
+        Lx[1, keymap[l-1, i, 0]] = 1
+        Lz[0, keymap[0, i, 1]] = 1
+        Lz[1, keymap[i, 0, 0]] = 1
+
+    row = 0
+    xmap = {}
+    for i in range(l):
+      for j in range(l):
+        if (i, j)==(0, 0) and not allgen:
+            continue
+        Hx[row, keymap[i, j, 0]] = 1
+        Hx[row, keymap[i, j, 1]] = 1
+        Hx[row, keymap[i-1, j, 0]] = 1
+        Hx[row, keymap[i, j-1, 1]] = 1
+        xmap[i, j] = row
+        i1 = i
+        while i1>0:
+            Tz[row, keymap[i1-1, j, 0]] = 1
+            i1 -= 1
+        j1 = j
+        while j1>0:
+            Tz[row, keymap[i1, j1-1, 1]] = 1
+            j1 -= 1
+        row += 1
+
+    row = 0
+    zmap = {}
+    for i in range(l):
+      for j in range(l):
+        if i==l-1 and j==l-1 and not allgen:
+            continue
+        Hz[row, keymap[i, j, 0]] = 1
+        Hz[row, keymap[i, j, 1]] = 1
+        Hz[row, keymap[i+1, j, 1]] = 1
+        Hz[row, keymap[i, j+1, 0]] = 1
+        zmap[i, j] = row
+        i1 = i
+        while i1<l-1:
+            Tx[row, keymap[i1+1, j, 1]] = 1
+            i1 += 1
+        j1 = j
+        while j1<l-1:
+            Tx[row, keymap[i1, j1+1, 0]] = 1
+            j1 += 1
+        row += 1
+
+    return Hx
+
+
+def search_extend():
+    # Extend the checks of a random code to make it triorthogonal.
+    # Based on the search function above.
+
+    verbose = argv.get("verbose")
+
+    m = argv.get("m", 6)
+    n = argv.get("n", m+2)
+    k = argv.get("k") # odd numbered rows ( logical operators)
+    code = argv.get("code", "rand")
+
+    if code == "rand":
+        while 1:
+            G0 = rand2(m, n)
+            counts = G0.sum(0)
+            if min(counts)==2 and rank(G0) == m:
+                cols = set()
+                for i in range(n):
+                    cols.add(tuple(G0[:, i]))
+                if len(cols) == n: # no repeated cols
+                    break
+
+    elif code == "toric":
+        G0 = parse("""
+        11.11...
+        .111..1.
+        1...11.1
+        """) # l=2 toric code X logops + X stabs 
+
+        l = argv.get("l", 3)
+        G0 = build_toric(l)
+
+        m, n = G0.shape
+    else:
+        return
+
+    code = Code(G0, check=False)
+    print(shortstr(G0))
+    print("is_triorthogonal:", code.is_triorthogonal())
+
+    # these are the variables N_x
+    xs = list(cross([(0, 1)]*m))
+    N = len(xs)
+
+    lookup = {}
+    for i, x in enumerate(xs):
+        lookup[x] = i
+
+    lhs = []
+    rhs = []
+
+    taken = set()
+    for i in range(n):
+        x = G0[:, i]
+        idx = lookup[tuple(x)]
+        assert idx not in taken
+        taken.add(idx)
+
+    if verbose:
+        for idx in range(N):
+            print(idx, xs[idx], "*" if idx in taken else "")
+
+    for idx in taken:
+        v = zeros2(N)
+        v[idx] = 1
+        lhs.append(v)
+        rhs.append(1)
+
+    # bi-orthogonality
+    for a in range(m):
+      for b in range(a+1, m):
+        v = zeros2(N)
+        for i, x in enumerate(xs):
+            if x[a] == x[b] == 1:
+                v[i] += 1
+        assert v.sum()
+        lhs.append(v)
+        rhs.append(0)
+
+    # tri-orthogonality
+    for a in range(m):
+      for b in range(a+1, m):
+       for c in range(b+1, m):
+        v = zeros2(N)
+        for i, x in enumerate(xs):
+            if x[a] == x[b] == x[c] == 1:
+                v[i] += 1
+        assert v.sum()
+        lhs.append(v)
+        rhs.append(0)
+
+    # dissallow columns with weight <= 1
+    for i, x in enumerate(xs):
+        if sum(x)<=1:
+            v = zeros2(N)
+            v[i] = 1
+            lhs.append(v)
+            rhs.append(0)
+
+    if k is not None:
+      # constrain to k number of odd-weight rows
+      assert 0<=k<m
+      for a in range(m):
+        v = zeros2(N)
+        for i, x in enumerate(xs):
+          if x[a] == 1:
+            v[i] = 1
+        lhs.append(v)
+        if a<k:
+            rhs.append(1)
+        else:
+            rhs.append(0)
+
+    A = array2(lhs)
+    rhs = array2(rhs)
+
+    if verbose:
+        print("lhs:")
+        print(shortstr(A))
+    
+        print("rhs:")
+        print(shortstr(rhs))
+
+    B = pseudo_inverse(A)
+    soln = dot2(B, rhs)
+    if not eq2(dot2(A, soln), rhs):
+        print("no solution")
+        return
+    if verbose:
+        print("soln:")
+        print(shortstr(soln))
+
+    soln.shape = (N, 1)
+    rhs.shape = A.shape[0], 1
+
+    K = array2(list(find_kernel(A)))
+
+    best = None
+    density = 1.0
+    size = 9999*n
+    trials = argv.get("trials", 1024)
+    count = 0
+    for trial in range(trials):
+        u = rand2(len(K), 1)
+        v = dot2(K.transpose(), u)
+        #print(v)
+        assert dot2(A, v).sum()==0
+        #if v.sum() != n:
+        #    continue
+        assert v[0]==0
+        v = (v+soln)%2
+        assert eq2(dot2(A, v), rhs)
+
+        Gt = list(G0.transpose())
+        for i, x in enumerate(xs):
+            if v[i] and not i in taken:
+                Gt.append(x)
+        if not Gt:
+            continue
+        Gt = array2(Gt)
+        G = Gt.transpose()
+        if verbose:
+            print("G0")
+            print(shortstr(G0))
+            print("solution:")
+            print(shortstr(G))
+        assert is_morthogonal(G, 3)
+        if G.shape[1]<m:
+            continue
+
+        if 0 in G.sum(1):
+            continue
+
+        #print(shortstr(G))
+#        for g in G:
+#            print(shortstr(g), g.sum())
+#        print()
+
+        _density = float(G.sum()) / (G.shape[0]*G.shape[1])
+        #if best is None or _density < density:
+        if best is None or G.shape[1] < size:
+            best = G
+            density = _density
+            size = G.shape[1]
+
+        if 0:
+            #sols.append(G)
+            Gx = even_rows(G)
+            assert is_morthogonal(Gx, 3)
+            if len(Gx)==0:
+                continue
+            GGx = array2(list(span(Gx)))
+            assert is_morthogonal(GGx, 3)
+
+        count += 1
+
+    print("found %d solutions" % count)
+
+    G = best
+    #print(shortstr(G))
+    for g in G:
+        print(shortstr(g), g.sum())
+    print()
+    print("density:", density)
+
+    #print(dot2(G, G.transpose())) # yes it's self-dual
+    
 
 def even_rows(G):
     Gx = []
@@ -1033,6 +1325,11 @@ def test_full_weight():
 
 
 if __name__ == "__main__":
+
+    _seed = argv.get("seed")
+    if _seed is not None:
+        from util import set_seed
+        set_seed(_seed)
 
     name = argv.next()
     if name is None:

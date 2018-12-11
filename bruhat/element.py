@@ -1287,6 +1287,26 @@ def test():
     A = GL2.get([[1, 1], [0, 1]])
 
     # -------------------------
+    # 
+
+    field = FiniteField(2)
+    GL = Linear(3, field)
+
+    gen = [
+        [[1, 1, 0], [0, 1, 0], [0, 0, 1]],
+        [[1, 0, 0], [0, 1, 1], [0, 0, 1]],
+        [[1, 0, 0], [1, 1, 0], [0, 0, 1]],
+        [[1, 0, 0], [0, 1, 0], [0, 1, 1]],
+    ]
+    gen = [GL.get(g) for g in gen]
+
+    GL3_2 = mulclose(gen)
+    assert len(GL3_2) == 168
+
+    if argv.GL3_2:
+        burnside(cayley(GL3_2)) # high memory usage
+
+    # -------------------------
 
     field = FiniteField(3)
     GL = Linear(2, field)

@@ -6,10 +6,10 @@ from math import sin, cos, pi
 
 import numpy
 
-from action import Perm, Group
-from argv import argv
-import isomorph
-import inteigs
+from bruhat.action import Perm, Group
+from bruhat.argv import argv
+import bruhat.isomorph
+import bruhat.inteigs
 
 
 if 1:

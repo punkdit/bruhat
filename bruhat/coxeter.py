@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys, os
 
@@ -140,9 +140,10 @@ class Coxeter(object):
         items = tuple(items)
         reduced[orig] = items
         lookup = self.lookup
+        #print(len(lookup[items]), orig)
         if items not in lookup:
             lookup[items] = orig
-        elif len(lookup[items]) > orig:
+        elif str(len(lookup[items])) > orig:
             lookup[items] = orig
         return items
 
@@ -180,7 +181,7 @@ class Coxeter(object):
                 break
             pairs = newpairs
         self.mul = mul
-        self.words = lookup.values()
+        self.words = list(lookup.values())
         self.check()
         return self.words
 
@@ -234,7 +235,7 @@ def main():
     if argv.F_4:
         F_4 = Coxeter("ABCD", {("A", "B"):3, ("A", "C"):4, ("A", "D"):3})
         g = F_4.build()
-        print len(g)
+        print(len(g))
         assert len(g)==1152
 
     if argv.D_4:
@@ -252,7 +253,7 @@ def main():
         A_4 = Coxeter("LPSH", {("L", "P") : 3, ("L", "S"):3, ("S", "H"):3})
         assert len(A_4.build())==120
 
-    print "OK"
+    print("OK")
 
 
 
