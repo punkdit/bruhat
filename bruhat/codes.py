@@ -7,6 +7,7 @@ Construct triorthogonal matrices.
 MacWilliams identities.
 """
 
+from random import random, randint
 
 import numpy
 
@@ -514,11 +515,20 @@ def search():
     # Bravyi, Haah, 1209.2426v1 sec IX.
     # https://arxiv.org/pdf/1209.2426.pdf
 
+    verbose = argv.get("verbose")
     m = argv.get("m", 6) # number of rows
     k = argv.get("k", None) # number of odd-weight rows
 
     # these are the variables N_x
     xs = list(cross([(0, 1)]*m))
+
+    maxweight = argv.maxweight
+    minweight = argv.get("minweight", 1)
+
+    xs = [x for x in xs if minweight <= sum(x)]
+    if maxweight:
+        xs = [x for x in xs if sum(x) <= maxweight]
+
     N = len(xs)
 
     lhs = []
@@ -547,13 +557,13 @@ def search():
             lhs.append(v)
             rhs.append(0)
 
-    # dissallow columns with weight <= 1
-    for i, x in enumerate(xs):
-        if sum(x)<=1:
-            v = zeros2(N)
-            v[i] = 1
-            lhs.append(v)
-            rhs.append(0)
+#    # dissallow columns with weight <= 1
+#    for i, x in enumerate(xs):
+#        if sum(x)<=1:
+#            v = zeros2(N)
+#            v[i] = 1
+#            lhs.append(v)
+#            rhs.append(0)
 
     if k is not None:
       # constrain to k number of odd-weight rows
@@ -573,6 +583,18 @@ def search():
     rhs = array2(rhs)
     #print(shortstr(A))
 
+    B = pseudo_inverse(A)
+    soln = dot2(B, rhs)
+    if not eq2(dot2(A, soln), rhs):
+        print("no solution")
+        return
+    if verbose:
+        print("soln:")
+        print(shortstr(soln))
+
+    soln.shape = (N, 1)
+    rhs.shape = A.shape[0], 1
+
     K = array2(list(find_kernel(A)))
     #print(K)
     #print( dot2(A, K.transpose()))
@@ -580,17 +602,20 @@ def search():
     #for v in span(K):
     best = None
     density = 1.0
+    size = 99*N
     trials = argv.get("trials", 1024)
     count = 0
     for trial in range(trials):
         u = rand2(len(K), 1)
         v = dot2(K.transpose(), u)
         #print(v)
+        v = (v+soln)%2
         assert eq2(dot2(A, v), rhs)
-        assert dot2(A, v).sum()==0
-        #if v.sum() != n:
-        #    continue
-        assert v[0]==0
+
+        if v.sum() > size:
+            continue
+        size = v.sum()
+
         Gt = []
         for i, x in enumerate(xs):
             if v[i]:
@@ -612,8 +637,10 @@ def search():
 #        print()
 
         _density = float(G.sum()) / (G.shape[0]*G.shape[1])
-        if best is None or _density < density:
+        #if best is None or _density < density:
+        if best is None or G.shape[1] <= size:
             best = G
+            size = G.shape[1]
             density = _density
 
         if 0:
@@ -628,6 +655,8 @@ def search():
         count += 1
 
     print("found %d solutions" % count)
+    if best is None:
+        return
 
     G = best
     #print(shortstr(G))
@@ -635,6 +664,7 @@ def search():
         print(shortstr(g), g.sum())
     print()
     print("density:", density)
+    print("shape:", G.shape)
     
 
     if 0:
@@ -934,6 +964,196 @@ def search_extend():
 
     #print(dot2(G, G.transpose())) # yes it's self-dual
     
+
+def search_selfdual():
+
+    verbose = argv.get("verbose")
+    m = argv.get("m", 6) # number of rows
+    k = argv.get("k", None) # number of odd-weight rows
+
+
+    maxweight = argv.get("maxweight", m)
+    minweight = argv.get("minweight", 1)
+
+    # these are the variables N_x
+    print("building xs...")
+
+    if 0:
+        xs = cross([(0, 1)]*m)
+        xs = [x for x in xs if minweight <= sum(x) <= maxweight]
+    
+        prune = argv.get("prune", 0.5)
+        xs = [x for x in xs if random() < prune]
+
+    xs = []
+    N = argv.get("N", m*100)
+    colweight = argv.get("colweight", maxweight)
+    assert colweight <= m
+    for i in range(N):
+        x = [0]*m
+        total = 0
+        while total < colweight:
+            idx = randint(0, m-1)
+            if x[idx] == 0:
+                x[idx] = 1
+                total += 1
+        xs.append(x)
+
+    N = len(xs)
+
+    lhs = []
+    rhs = []
+
+    # bi-orthogonality
+    for a in range(m):
+      for b in range(a+1, m):
+        v = zeros2(N)
+        for i, x in enumerate(xs):
+            if x[a] == x[b] == 1:
+                v[i] = 1
+        if v.sum():
+            lhs.append(v)
+            rhs.append(0)
+
+    k = 0 # all rows must have even weight
+    # constrain to k number of odd-weight rows
+    assert 0<=k<m
+    for a in range(m):
+      v = zeros2(N)
+      for i, x in enumerate(xs):
+        if x[a] == 1:
+          v[i] = 1
+      lhs.append(v)
+      if a<k:
+          rhs.append(1)
+      else:
+          rhs.append(0)
+
+    logops = argv.logops
+
+    A = array2(lhs)
+    rhs = array2(rhs)
+    #print(shortstr(A))
+
+    print("solve...")
+    B = pseudo_inverse(A)
+    soln = dot2(B, rhs)
+    if not eq2(dot2(A, soln), rhs):
+        print("no solution")
+        return
+
+    if verbose:
+        print("soln:")
+        print(shortstr(soln))
+
+    soln.shape = (N, 1)
+    rhs.shape = A.shape[0], 1
+
+    K = array2(list(find_kernel(A)))
+    print("kernel:", K.shape)
+    if len(K)==0:
+        return
+    #print(K)
+    #print( dot2(A, K.transpose()))
+    #sols = []
+    #for v in span(K):
+    best = None
+    density = 1.0
+    size = 99*N
+    trials = argv.get("trials", 1024)
+    count = 0
+    print("trials...")
+    for trial in range(trials):
+        u = rand2(len(K), 1)
+        v = dot2(K.transpose(), u)
+        #print(v)
+        v = (v+soln)%2
+        assert eq2(dot2(A, v), rhs)
+
+        if v.sum() >= size:
+            continue
+
+        if v.sum() < m:
+            continue
+
+        if v.sum():
+            print(v.sum(), end=" ", flush=True)
+
+        size = v.sum()
+
+        if logops is not None and size != 2*m+logops:
+            continue
+
+        Gt = []
+        for i, x in enumerate(xs):
+            if v[i]:
+                Gt.append(x)
+
+        Gt = array2(Gt)
+        G = Gt.transpose()
+        if dot2(G, Gt).sum() != 0:
+            # not self-dual
+            print(shortstr(dot2(G, Gt)))
+            assert 0
+            return
+
+        #if G.shape[1]<m:
+        #    continue
+
+        if 0 in G.sum(1):
+            print(".", end="", flush=True)
+            continue
+
+        #print(shortstr(G))
+#        for g in G:
+#            print(shortstr(g), g.sum())
+#        print()
+
+        _density = float(G.sum()) / (G.shape[0]*G.shape[1])
+        #if best is None or _density < density:
+        if best is None or G.shape[1] <= size:
+            best = G
+            size = G.shape[1]
+            density = _density
+
+        if 0:
+            #sols.append(G)
+            Gx = even_rows(G)
+            assert is_morthogonal(Gx, 3)
+            if len(Gx)==0:
+                continue
+            GGx = array2(list(span(Gx)))
+            assert is_morthogonal(GGx, 3)
+
+        count += 1
+
+    print("found %d solutions" % count)
+    if best is None:
+        return
+
+    G = best
+    #print(shortstr(G))
+    f = open("selfdual.ldpc", "w")
+    for spec in ["Hx =", "Hz ="]:
+        print(spec, file=f)
+        for g in G:
+            print(shortstr(g), file=f)
+    f.close()
+
+    print()
+    print("density:", density)
+    print("shape:", G.shape)
+    
+
+    if 0:
+        B = pseudo_inverse(A)
+        v = dot2(B, rhs)
+        print("B:")
+        print(shortstr(B))
+        print("v:")
+        print(shortstr(v))
+        assert eq2(dot2(B, v), rhs) 
+
 
 def even_rows(G):
     Gx = []
