@@ -1,4 +1,87 @@
 
+12/12/18
+=========
+
+GL(2, 2), order = 6
+conjugacy classes = 3
+
+GL(2, 3), order = 48
+conjugacy classes = 8
+
+GF(4)
+GL(2, 4), order = 180
+conjugacy classes = 15
+
+GL(2, 5), order = 480
+conjugacy classes = 24
+
+GL(2, 7), order = 2016
+conjugacy classes = 48
+
+
+GL(2, 3) order = 48, conjugacy classes: 8
+classes from Jordan canonical form:
+1 0
+0 2
+    [[1 1], [0 2]] [[2 0], [1 1]] [[1 0], [0 2]] [[2 2], [0 1]] [[2 1], [0 1]]
+    [[1 0], [1 2]] [[1 2], [0 2]] [[0 2], [2 0]] [[1 0], [2 2]] [[2 0], [0 1]]
+    [[2 0], [2 1]] [[0 1], [1 0]]
+    
+2 0
+1 2
+    [[1 1], [2 0]] [[0 2], [1 1]] [[2 0], [1 2]] [[1 2], [1 0]]
+    [[0 1], [2 1]] [[2 2], [0 2]] [[2 1], [0 2]] [[2 0], [2 2]]
+    
+1 0
+1 1
+    [[2 2], [1 0]] [[0 2], [1 2]] [[1 1], [0 1]] [[0 1], [2 2]]
+    [[1 2], [0 1]] [[1 0], [1 1]] [[2 1], [2 0]] [[1 0], [2 1]]
+    
+1 0
+0 1
+    [[1 0], [0 1]]
+    
+2 0
+0 2
+    [[2 0], [0 2]]
+
+classes from GF(9) rep in GL(2, 3):
+x, 2*x
+    [[0 1], [2 0]] [[1 2], [2 2]] [[2 1], [1 1]] [[0 2], [1 0]]
+    [[2 2], [2 1]] [[1 1], [1 2]]
+    
+x+2, 2*x+2
+    [[2 2], [1 2]] [[2 1], [2 2]] [[0 2], [2 1]] [[0 1], [1 1]]
+    [[1 2], [2 0]] [[1 1], [1 0]]
+    
+2*x+1, x+1
+    [[1 2], [1 1]] [[1 1], [2 1]] [[0 1], [1 2]] [[2 2], [2 0]]
+    [[0 2], [2 2]] [[2 1], [1 0]]
+    
+
+hom GL(1, GF(9)) -> GL(2, 3)
+Galois action        <-->
+[[1 0], [0 1]] 1     fixed
+[[2 0], [0 2]] 2     fixed
+[[0 2], [1 0]] x     <--> [[0 1], [2 0]] 2*x
+[[1 1], [2 1]] 2*x+1 <--> [[1 2], [1 1]] x+1
+[[2 2], [1 2]] x+2   <--> [[2 1], [2 2]] 2*x+2
+
+
+
+
+http://www.theory.caltech.edu/~preskill/talks/Preskill-Q2B-2018.pdf
+Q2B: Quantum Computing for Business
+John Preskill
+11 December 2018
+
+https://arxiv.org/pdf/1811.08461.pdf
+Towards low overhead magic state distillation
+Anirudh Krishna Jean-Pierre Tillich
+
+
+
+
 11/12/18
 ========
 

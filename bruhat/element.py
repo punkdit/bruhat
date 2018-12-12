@@ -358,6 +358,14 @@ class FiniteField(Ring):
         self.p = p
         self.one = FieldElement(1, self)
         self.zero = FieldElement(0, self)
+        self.elements = [self.promote(i) for i in range(p)]
+
+    def __len__(self):
+        return self.p
+
+    def __str__(self):
+        return "FiniteField(%d)"%(self.p)
+    __repr__ = __str__
 
     def nonzero_els(self):
         for i in range(1, self.p):
@@ -429,6 +437,11 @@ class FiniteField(Ring):
         value = value % self.p
         return FieldElement(value, self)
 
+    def extend(self, deg):
+        ring = PolynomialRing(self)
+        poly = ring.find_irreducible(deg)
+        field = GaloisField(ring, poly)
+        return field
 
 
 class FieldElement(Integer):
@@ -528,20 +541,6 @@ class PolynomialRing(Keyed, Ring):
         a = self.content(A)
         return A/a
 
-#    def gcd(self, a, b):
-#        assert a.tp == self
-#        assert b.tp == self
-#        args = (a, b)
-#        print("gcd(%s, %s):"%(a, b))
-#        seen = set([(a, b)])           # remove me
-#        while b != self.zero:
-#            a, b = b, a%b
-#            print("\t%s, %s"%(a, b))
-#            assert (a, b) not in seen, "gcd(%s, %s): %s"%args  # remove me
-#            seen.add((a, b))           # remove me
-#            #print("gcd", a, b)
-#        return a
-
     def pseudo_div(self, A, B):
         # algorithm 3.1.2, p112 (Cohen, 1993)
         assert A.tp == self
@@ -600,6 +599,41 @@ class PolynomialRing(Keyed, Ring):
 #        print("\tB=%s"%B)
         assert B is not None
         return B
+
+    def find_irreducible(ring, deg):
+        assert isinstance(ring.base, FiniteField)
+        assert deg > 1 
+        field = ring.base
+        x = ring.x
+        vals = list(range(field.p))
+        poly = None
+        for coefs in cross([vals]*deg):
+            #f = ring.promote(coefs[0])
+            f = ring.one
+            for c in coefs:
+                f = x*f + c 
+            #print(coefs, f)
+            for i in range(field.p):
+                if f(i)==0:
+                    break
+            else:
+                poly = f 
+            if poly is not None:
+                break
+        return poly
+
+    def evaluate(self, poly, x=None):
+        if x is None:
+            x = self.x
+        assert x.tp == self
+        ns = {"x" : x}
+        s = str(poly)
+        if "x" not in s:
+            poly = eval(s) # slightly evil hack
+            poly = self.promote(s)
+        else:
+            poly = eval(s, ns, ns) # slightly evil hack
+        return poly
 
 
 
@@ -792,9 +826,13 @@ class GaloisField(ModuloRing):
         self.elements = elements
         assert len(elements) == len(els) ** dim, len(elements)
 
+        self.mod = mod 
         self.zero = ModuloElement(ring.zero, self)
         self.one = ModuloElement(one, self)
         self.x = ModuloElement(x, self)
+
+    def __len__(self):
+        return len(self.elements)
 
     def truediv(self, a, b):
         ring = self.ring
