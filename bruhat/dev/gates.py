@@ -4,7 +4,7 @@ Here we look at universal quantum gate sets over a finite field.
 """
 
 from bruhat.argv import argv
-from bruhat.element import FiniteField, PolynomialRing
+from bruhat.element import FiniteField, PolynomialRing, CyclotomicField
 from bruhat.vec import Space, Hom, Map
 from bruhat.action import mulclose
 from bruhat.util import all_primes
@@ -126,6 +126,12 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    fn = argv.next()
+    if fn is None:
+        main()
+    else:
+        fn = eval(fn)
+        fn()
+
 
 

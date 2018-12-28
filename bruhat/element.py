@@ -3,10 +3,9 @@
 """
 """
 
-import sys, os
+from functools import total_ordering
 
 from bruhat.action import mulclose, Perm, Group, burnside
-
 from bruhat.util import cross
 from bruhat.argv import argv
 
@@ -44,7 +43,7 @@ class Type(object):
         raise TypeError("Not implemented for Type %s"%self)
 
     def floordiv(self, a, b):
-        raise TypeError("Not implemented for Type %s"%self)
+        raise TypeError("Not implemented: %s//%s for Type %s"%(a, b, self))
 
     # etc...
 
@@ -147,6 +146,7 @@ class Element(Type):
         if other is None:
             return NotImplemented
         a = tp.floordiv(self, other)
+        assert a is not None
         return a
 
     def __rfloordiv__(self, other):
@@ -163,6 +163,7 @@ class Element(Type):
         if other is None:
             return NotImplemented
         a = tp.truediv(self, other)
+        assert a is not None, "%s//%s"%(self, other)
         return a
 
     def __rtruediv__(self, other):
@@ -328,6 +329,7 @@ class IntegerRing(Ring):
         return factor
 
 
+@total_ordering
 class Integer(GenericElement):
 
     def reduce(a, b):
@@ -342,6 +344,11 @@ class Integer(GenericElement):
         div = a//b
         rem = a%b
         return div, rem
+
+    def __lt__(a, b):
+        b = a.tp.promote(b)
+        return a.value < b.value
+
 
 
 
@@ -921,8 +928,22 @@ class FieldOfFractions(Ring):
         if bot == self.zero:
             raise Exception("cannot divide %s by %s"%(a, b))
         return Fraction((top, bot), self)
+    floordiv = truediv
+
+    def mod(self, a, b):
+        if a==b:
+            return self.zero
+        #assert a > 0, "%s %% %s"%(a, b)
+        assert b > 0, "%s %% %s"%(a, b)
+        while a < 0:
+            a += b # i'm so lazy
+        while a > b:
+            a -= b # i'm so lazy
+        assert a < b
+        return a
     
 
+@total_ordering
 class Fraction(GenericElement):
     def __init__(self, value, tp):
         top, bot = value
@@ -935,12 +956,34 @@ class Fraction(GenericElement):
         value = (top, bot)
         GenericElement.__init__(self, value, tp)
 
+    @property
+    def top(self):
+        return self.value[0]
+
+    @property
+    def bot(self):
+        return self.value[1]
+
+    def __lt__(a, b):
+        b = a.tp.promote(b)
+        atop, abot = a.value
+        btop, bbot = b.value
+        assert abot > 0
+        assert bbot > 0
+        return atop*bbot < abot*btop
+
     def __str__(self):
         top, bot = self.value
         one = self.tp.base.one
         if bot==one:
             return str(top)
-        return "(%s/%s)"%(top, bot)
+        top = str(top)
+        bot = str(bot)
+        if len(top) > 1:
+            top = "(%s)"%top
+        if len(bot) > 1:
+            bot = "(%s)"%bot
+        return "%s/%s"%(top, bot)
 
 
 
@@ -1137,6 +1180,25 @@ def cyclotomic(ring, n): # make this a method ?
 
 Z = IntegerRing()
 Q = FieldOfFractions(Z)
+
+
+def CyclotomicField_FAIL(n):
+    # FAIL to calculate x**2+1//-x**3+x in CyclotomicField(8)
+    ring = PolynomialRing(Q)
+    p = cyclotomic(ring, n)
+    ring = ring / p
+    return ring
+
+
+def CyclotomicField_FAIL(n):
+    ring = PolynomialRing(Z)
+    p = cyclotomic(ring, n)
+    ring = ring / p
+    field = FieldOfFractions(ring)
+    field.x = field.promote(ring.x)
+    # does not yield canonical elements... FAIL
+    return field
+
 
 
 # ----------------------------------------------------------------------------
@@ -1476,7 +1538,7 @@ def test():
     assert 2*half == 1
 
     assert 4*one/4 == one
-    assert str(18*one/4) == "(9/2)"
+    assert str(18*one/4) == "9/2"
 
     # -------------------------
 

@@ -300,7 +300,7 @@ def test():
 
 def gen():
     r = argv.get("r", 1) # degree
-    m = argv.get("m", 3)
+    m = argv.get("m", 4)
 
     code = reed_muller(r, m)
 
@@ -308,11 +308,13 @@ def gen():
     #print("d =", code.get_distance())
     #code.dump()
 
-    code = code.puncture(3)
+    #code = code.puncture(3)
 
     #print(code)
-    #code.dump()
+    code.dump()
     #print("d =", code.get_distance())
+
+    return
 
 
     for m in range(2, 6):

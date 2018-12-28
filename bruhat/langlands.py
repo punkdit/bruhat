@@ -7,7 +7,7 @@ with complex irreducible representations of G.
 """
 
 from bruhat.element import FiniteField, PolynomialRing, GaloisField, Linear
-from bruhat.action import mulclose
+from bruhat.action import mulclose, Perm, Group
 from bruhat.util import cross
 from bruhat.argv import argv
 
@@ -95,21 +95,33 @@ def main():
     print(field.mod)
     print()
 
-    ring = PolynomialRing(field)
-    poly = ring.evaluate(field.mod)
-    assert str(poly) == str(field.mod)
-    assert poly(field.x) == 0
-    subs = []
-    for a in field.elements:
-        if poly(a) == field.zero:
-            subs.append(a)
-            print(a)
+    items = [a for a in field.elements if a!=0]
+    perm = Perm(dict((a, a**p) for a in items), items)
+    G = Group.generate([perm])
+    print("|G| =", len(G))
 
-#    subs = [ring.evaluate(a) for a in subs]
-#    for a in subs:
-#      for b in subs:
-#        print(ring.evaluate(a, b))
+    orbits = G.orbits()
+    print("orbits:", len(orbits), end=", ")
+    fixed = 0
+    for orbit in orbits:
+        if len(orbit)==1:
+            fixed += 1
+        print(len(orbit), end=" ")
+    print()
+    print("fixed points:", fixed)
 
+    if 0:
+        # find other solutions to the extension polynomial
+        ring = PolynomialRing(field)
+        poly = ring.evaluate(field.mod)
+        assert str(poly) == str(field.mod)
+        assert poly(field.x) == 0
+        subs = []
+        for a in field.elements:
+            if poly(a) == field.zero:
+                subs.append(a)
+                print(a)
+    
     return
 
     lin = Linear(deg, base)
