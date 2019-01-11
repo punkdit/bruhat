@@ -8,8 +8,7 @@ import numpy
 
 from bruhat.action import Perm, Group
 from bruhat.argv import argv
-import bruhat.isomorph
-import bruhat.inteigs
+from bruhat import isomorph, inteigs
 
 
 if 1:
@@ -319,11 +318,14 @@ class Graph(object):
                 c.stroke(p, [color, style.linewidth.THick]+trafo)
     
         if name is not None:
-            print("renderings/"+name)
-            c.writePDFfile("renderings/"+name)
-            c.writeSVGfile("renderings/"+name)
-            c.writePDFfile("integral_cubic/"+name)
-            c.writeSVGfile("integral_cubic/"+name)
+            print("save:", name)
+            c.writePDFfile(name)
+            c.writeSVGfile(name)
+#            print("renderings/"+name)
+#            c.writePDFfile("renderings/"+name)
+#            c.writeSVGfile("renderings/"+name)
+#            c.writePDFfile("integral_cubic/"+name)
+#            c.writeSVGfile("integral_cubic/"+name)
 
 
 class Vec(object):
@@ -767,6 +769,28 @@ def desargues_graph():
 
     yield Graph(nodes, edges, layout) # decagonal layout
 
+    r0 = 3.
+
+    edges = []
+    for i in range(20):
+        edges.append((i, (i+1)%20))
+    for i in range(20):
+        if i%4==0:
+            edges.append((i, (i+9)%20))
+        if i%4==1:
+            edges.append((i, (i-9)%20))
+        if i%4==2:
+            edges.append((i, (i+5)%20))
+        if i%4==3:
+            edges.append((i, (i-5)%20))
+
+    w = 2*pi / 20
+    for i in range(20):
+        theta = w*(i-0.5)
+        layout[i] = r0*sin(theta), r0*cos(theta)
+
+    yield Graph(nodes, edges, layout) # 20-sided polygonal layout
+
 
 # TODO: find closed path that visits all nodes with autos that act by rotation.
 # layout in a circle.
@@ -811,6 +835,7 @@ def main():
     eigval = argv.get("eigval", vals[0])
 
     name = argv.get("name", "output")
+    graph.draw(name=name)
 
     for vec in graph.get_inteigs(eigval):
         #print(vec)

@@ -1,7 +1,522 @@
 
+10/1/19
+=======
+
+cartoons:
+https://mathwithbaddrawings.com/2019/01/09/a-brief-case-against-limits/
+
+
+Hub and spoke vs Point to point.
+https://twitter.com/XRPTrump/status/1083154736734298114
+
+
+9/1/19
+======
+
+https://arxiv.org/abs/1901.02011
+Homological Tools for the Quantum Mechanic
+Tom Mainiero
+(Submitted on 7 Jan 2019)
+This paper is an introduction to work motivated by the
+question "can multipartite entanglement be detected by
+homological algebra?" We introduce cochain complexes
+associated to multipartite density states whose cohomology
+detects factorizability. The kth cohomology components
+of such cochain complexes produce tuples of (k+1)-body
+operators that are non-locally correlated due to the
+non-factorizability of the state. Associated Poincare
+polynomials are invariant under local invertible linear
+transformations (automorphisms that decompose as tensor
+products). These complexes can be considered as a step
+toward realizing mutual information as an Euler characteristic.
+...
+
+
+8/1/19
+======
+
+time nice ./su2.py test_internal_series_fast  G2=Icosa degree=6 fast full
+...
+YYYYYY: -17.5*XXXXXX-0.5*XXXXXZ-0.5*XXXXZX-3*XXXXZZ+3.5*XXXXYY-0.5*XXXZXX-3*XXXZXZ-3*XXXZZX-0.5*XXXZYY+3.5*XXXYXY-0.5*XXXYZY+3.5*XXXYYX-0.5*XXXYYZ-0.5*XXZXXX-3*XXZXXZ-3*XXZXZX-0.5*XXZXYY-3*XXZZXX-4*XXZZZZ+XXZZYY-0.5*XXZYXY+XXZYZY-0.5*XXZYYX+XXZYYZ+3.5*XXYXXY-0.5*XXYXZY+3.5*XXYXYX-0.5*XXYXYZ-0.5*XXYZXY+XXYZZY-0.5*XXYZYX+XXYZYZ+3.5*XXYYXX-0.5*XXYYXZ-0.5*XXYYZX+XXYYZZ-3.5*XXYYYY-0.5*XZXXXX-3*XZXXXZ-3*XZXXZX-0.5*XZXXYY-3*XZXZXX-4*XZXZZZ+XZXZYY-0.5*XZXYXY+XZXYZY-0.5*XZXYYX+XZXYYZ-3*XZZXXX-4*XZZXZZ+XZZXYY-4*XZZZXZ-4*XZZZZX+XZZYXY+XZZYYX-0.5*XZYXXY+XZYXZY-0.5*XZYXYX+XZYXYZ+XZYZXY+XZYZYX-0.5*XZYYXX+XZYYXZ+XZYYZX-0.5*XZYYYY+3.5*XYXXXY-0.5*XYXXZY+3.5*XYXXYX-0.5*XYXXYZ-0.5*XYXZXY+XYXZZY-0.5*XYXZYX+XYXZYZ+3.5*XYXYXX-0.5*XYXYXZ-0.5*XYXYZX+XYXYZZ-3.5*XYXYYY-0.5*XYZXXY+XYZXZY-0.5*XYZXYX+XYZXYZ+XYZZXY+XYZZYX-0.5*XYZYXX+XYZYXZ+XYZYZX-0.5*XYZYYY+3.5*XYYXXX-0.5*XYYXXZ-0.5*XYYXZX+XYYXZZ-3.5*XYYXYY-0.5*XYYZXX+XYYZXZ+XYYZZX-0.5*XYYZYY-3.5*XYYYXY-0.5*XYYYZY-3.5*XYYYYX-0.5*XYYYYZ-0.5*ZXXXXX-3*ZXXXXZ-3*ZXXXZX-0.5*ZXXXYY-3*ZXXZXX-4*ZXXZZZ+ZXXZYY-0.5*ZXXYXY+ZXXYZY-0.5*ZXXYYX+ZXXYYZ-3*ZXZXXX-4*ZXZXZZ+ZXZXYY-4*ZXZZXZ-4*ZXZZZX+ZXZYXY+ZXZYYX-0.5*ZXYXXY+ZXYXZY-0.5*ZXYXYX+ZXYXYZ+ZXYZXY+ZXYZYX-0.5*ZXYYXX+ZXYYXZ+ZXYYZX-0.5*ZXYYYY-3*ZZXXXX-4*ZZXXZZ+ZZXXYY-4*ZZXZXZ-4*ZZXZZX+ZZXYXY+ZZXYYX-4*ZZZXXZ-4*ZZZXZX-4*ZZZZXX-16*ZZZZZZ+4*ZZZZYY+4*ZZZYZY+4*ZZZYYZ+ZZYXXY+ZZYXYX+4*ZZYZZY+4*ZZYZYZ+ZZYYXX+4*ZZYYZZ-3*ZZYYYY-0.5*ZYXXXY+ZYXXZY-0.5*ZYXXYX+ZYXXYZ+ZYXZXY+ZYXZYX-0.5*ZYXYXX+ZYXYXZ+ZYXYZX-0.5*ZYXYYY+ZYZXXY+ZYZXYX+4*ZYZZZY+4*ZYZZYZ+ZYZYXX+4*ZYZYZZ-3*ZYZYYY-0.5*ZYYXXX+ZYYXXZ+ZYYXZX-0.5*ZYYXYY+ZYYZXX+4*ZYYZZZ-3*ZYYZYY-0.5*ZYYYXY-3*ZYYYZY-0.5*ZYYYYX-3*ZYYYYZ+3.5*YXXXXY-0.5*YXXXZY+3.5*YXXXYX-0.5*YXXXYZ-0.5*YXXZXY+YXXZZY-0.5*YXXZYX+YXXZYZ+3.5*YXXYXX-0.5*YXXYXZ-0.5*YXXYZX+YXXYZZ-3.5*YXXYYY-0.5*YXZXXY+YXZXZY-0.5*YXZXYX+YXZXYZ+YXZZXY+YXZZYX-0.5*YXZYXX+YXZYXZ+YXZYZX-0.5*YXZYYY+3.5*YXYXXX-0.5*YXYXXZ-0.5*YXYXZX+YXYXZZ-3.5*YXYXYY-0.5*YXYZXX+YXYZXZ+YXYZZX-0.5*YXYZYY-3.5*YXYYXY-0.5*YXYYZY-3.5*YXYYYX-0.5*YXYYYZ-0.5*YZXXXY+YZXXZY-0.5*YZXXYX+YZXXYZ+YZXZXY+YZXZYX-0.5*YZXYXX+YZXYXZ+YZXYZX-0.5*YZXYYY+YZZXXY+YZZXYX+4*YZZZZY+4*YZZZYZ+YZZYXX+4*YZZYZZ-3*YZZYYY-0.5*YZYXXX+YZYXXZ+YZYXZX-0.5*YZYXYY+YZYZXX+4*YZYZZZ-3*YZYZYY-0.5*YZYYXY-3*YZYYZY-0.5*YZYYYX-3*YZYYYZ+3.5*YYXXXX-0.5*YYXXXZ-0.5*YYXXZX+YYXXZZ-3.5*YYXXYY-0.5*YYXZXX+YYXZXZ+YYXZZX-0.5*YYXZYY-3.5*YYXYXY-0.5*YYXYZY-3.5*YYXYYX-0.5*YYXYYZ-0.5*YYZXXX+YYZXXZ+YYZXZX-0.5*YYZXYY+YYZZXX+4*YYZZZZ-3*YYZZYY-0.5*YYZYXY-3*YYZYZY-0.5*YYZYYX-3*YYZYYZ-3.5*YYYXXY-0.5*YYYXZY-3.5*YYYXYX-0.5*YYYXYZ-0.5*YYYZXY-3*YYYZZY-0.5*YYYZYX-3*YYYZYZ-3.5*YYYYXX-0.5*YYYYXZ-0.5*YYYYZX-3*YYYYZZ+17.5*YYYYYY
+found ops: 279
+dimension: 16
+
+
+
+"Implicit model of other people’s visual attention as
+an invisible, force-carrying beam projecting from the eyes"
+December 2018
+https://www.pnas.org/content/116/1/328.long
+
+
+“analysis using ring theory and homological algebra”
+some theorems about smooth manifolds and smooth complex algebraic varieties
+sheaves & derived categories
+intersection cohomology
+perverse sheaves
+https://joemathjoe.wordpress.com/2019/01/07/algebraic-analysis-notes-7-jan-2019/
+
+
+7/1/19
+======
+
+Herbertsmithite and the Search for the Quantum Spin Liquid
+M. R. Norman
+https://arxiv.org/abs/1604.03048
+
+
+5/1/19
+======
+
+./su2.py find_commutative_invariants invariant.icosa.5.txt 
+loading invariant.icosa.5.txt
+-40*IXXII-40*IZZII+40*IYYII
+-40*IXIXI-40*IZIZI+40*IYIYI
+-40*IXIIX-40*IZIIZ+40*IYIIY
+-40*IIXXI-40*IIZZI+40*IIYYI
+-40*IIXIX-40*IIZIZ+40*IIYIY
+-40*IIIXX-40*IIIZZ+40*IIIYY
+-40*XIXII-40*ZIZII+40*YIYII
+-40*XIIXI-40*ZIIZI+40*YIIYI
+-40*XIIIX-40*ZIIIZ+40*YIIIY
+-40*XXIII-40*ZZIII+40*YYIII
+40*XIXII+40*ZIZII-40*YIYII
+40*XIIXI+40*ZIIZI-40*YIIYI
+40*XIIIX+40*ZIIIZ-40*YIIIY
+40*XXIII+40*ZZIII-40*YYIII
+40*IXXII+40*IZZII-40*IYYII
+40*IXIXI+40*IZIZI-40*IYIYI
+40*IXIIX+40*IZIIZ-40*IYIIY
+40*IIXXI+40*IIZZI-40*IIYYI
+40*IIXIX+40*IIZIZ-40*IIYIY
+40*IIIXX+40*IIIZZ-40*IIIYY
+40*XIIXI+40*ZIIZI-40*YIIYI
+40*XIIIX+40*ZIIIZ-40*YIIIY
+40*XIXII+40*ZIZII-40*YIYII
+40*XXIII+40*ZZIII-40*YYIII
+40*IXIXI+40*IZIZI-40*IYIYI
+40*IXIIX+40*IZIIZ-40*IYIIY
+40*IXXII+40*IZZII-40*IYYII
+40*IIXXI+40*IIZZI-40*IIYYI
+40*IIXIX+40*IIZIZ-40*IIYIY
+40*IIIXX+40*IIIZZ-40*IIIYY
+120*IIIII
+
+
+
+4/1/19
+======
+
+time ./su2.py test_molien G2=Icosa degree=20
+1 0 1 0 2 0 5 0 14 0 42 0 133 0 442 0 1534 0 5525 0 20502
+
+$ time ./su2.py test_molien G2=Cliff degree=40
+1 0 0 0 0 0 0 0 
+15 0 0 0 0 0 0 0 
+2795 0 0 0 0 0 0 0 
+700075 0 0 0 0 0 0 0 
+178973355 0 0 0 0 0 0 0 
+45813246635
+
+
+
+
+
+time ./su2.py test_internal_series_fast  G2=Octa degree=5 fast
+importing _algebra
+|G2| = 48
+transverse operators
+opis: 1024
+XXXZY 8*XXXZY-8*XXXYZ-8*ZZZXY+8*ZZZYX-8*YYYXZ+8*YYYZX
+XXXYZ -8*XXXZY+8*XXXYZ+8*ZZZXY-8*ZZZYX+8*YYYXZ-8*YYYZX
+XXZXY 8*XXZXY-8*XXYXZ-8*ZZXZY+8*ZZYZX-8*YYXYZ+8*YYZYX
+...
+
+
+./su2.py test_internal_series  G2=Cliff degree=4
+
+IXZY ->
+32*IXZY-32*IXYZ-32*IZXY+32*IZYX+32*IYXZ-32*IYZX
+
+Comes from degree=3 invariant:
+    +XZY
+    +ZYX
+    +YXZ
+    -XYZ
+    -ZXY
+    -YZX
+
+3/1/19
+======
+
+simon@hero:~/home/github/qupy/qupy/dev$ ./symplectic.py bruhat n=6 m=2 q=5
+points: 101556
+
+
+>>> f = lambda q:1+3*q+3*(q-1)*q+(q-1)**2*q+3*q**3+3*(q-1)*(q**3)+(q-1)**2*(q**3)+q**6
+>>> f(2)
+135
+>>> f(3)
+1120
+>>> print(f(x))
+x**6+x**5+x**4+2*x**3+x**2+x+1
+>>> 
+
+
+simon@hero:~/home/github/qupy/qupy/dev$ ./symplectic.py bruhat n=6 m=3 q=3
+points: 1120
+borel: 5832
+16 orbits:
+size = 1    #  1
+size = 3    #  q
+size = 3    #  q
+size = 3    #  q
+size = 6    #  (q-1)*q
+size = 6    #  (q-1)*q
+size = 6    #  (q-1)*q
+size = 12   #  (q-1)**2 * q
+size = 27   #  q**3
+size = 27   #  q**3
+size = 27   #  q**3
+size = 54   #  (q-1)*q**3
+size = 54   #  (q-1)*q**3
+size = 54   #  (q-1)*q**3
+size = 108   #  (q-1)**2 *q**3
+size = 729   #  q**6
+
+simon@hero:~/home/github/qupy/qupy/dev$ ./symplectic.py bruhat n=6 m=3 q=2
+points: 135
+borel: 64
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+16 orbits:
+size = 1
+size = 2
+size = 2
+size = 2
+size = 2
+size = 2
+size = 2
+size = 2
+size = 8
+size = 8
+size = 8
+size = 8
+size = 8
+size = 8
+size = 8
+size = 64
+
+
+####################################################
+
+
+>>> f = lambda q : 3 + 3*(q-1) + (q-1)**2 + 6*q**2 + 9*(q-1)*(q**2) + 7*((q-1)**2) * (q**2) + 3*(q**5) + 3*(q-1)*(q**5) + (q-1)**2 * (q**5)
+>>> f(2)
+319 # FAIL
+>>> f(3)
+3640
+
+>>> f = lambda q : 3 + 3*(q-1) + (q-1)**2 + 6*q**2 + (q-2)*(q-1)*(q**2) + 8*(q-1)*(q**2) + 7*((q-1)**2) * (q**2) + 3*(q**5) + 3*(q-1)*(q**5) + (q-1)**2 * (q**5)
+>>> f(2)
+315
+>>> f(3)
+3640
+>>> f(5)
+100956 # FAIL   
+>>> 
+
+
+
+simon@hero:~/home/github/qupy/qupy/dev$ ./symplectic.py bruhat n=6 m=2 q=3
+points: 3640
+borel: 5832
+orbits:
+size = 1    #  1
+size = 1    #  1
+size = 1    #  1
+size = 2    #  q-1
+size = 2    # 
+size = 2    # 
+size = 4    #  (q-1)**2
+size = 9    #  q**2
+size = 9    # 
+size = 9    # 
+size = 9    # 
+size = 9    # 
+size = 9    # 
+size = 18    #  (q-2)*(q-1)*(q**2)
+size = 18    #  (q-1)*(q**2)
+size = 18    # 
+size = 18    # 
+size = 18    # 
+size = 18    # 
+size = 18    # 
+size = 18    # 
+size = 18    # 
+size = 36    #  (q-1)**2 * (q**2)
+size = 36    # 
+size = 36    # 
+size = 36    # 
+size = 36    # 
+size = 36    # 
+size = 36    # 
+size = 243    #  (q**5)
+size = 243    #  (q**5)
+size = 243    #  (q**5)
+size = 486    #  (q-1) * (q**5)
+size = 486    #  (q-1) * (q**5)
+size = 486    #  (q-1) * (q**5)
+size = 972    #  (q-1)**2 * (q**5)
+
+36 orbits
+
+
+simon@hero:~/home/github/qupy/qupy/dev$ ./symplectic.py bruhat n=6 m=2 q=2
+points: 315
+borel: 64
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+35 orbits:
+size = 1
+size = 1
+size = 1
+size = 1
+size = 1
+size = 1
+size = 1
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 4
+size = 32
+size = 32
+size = 32
+size = 32
+size = 32
+size = 32
+size = 32
+
+
+
+
+####################################################
+
+
+
+>>> from bruhat import element
+>>> R = element.PolynomialRing(element.Z)
+>>> x = R.x
+>>> print(f(x))
+x**5+x**4+x**3+x**2+x+1
+
+f(x) == x**5+x**4+x**3+x**2+x+1
+
+
+f = lambda q : 3 + 3*(q-1) + (q-1)**2 + 3*(q**3) + 3*(q-1)*(q**3) + (q-1)**2 * (q**3)
+f(2) == 63
+f(5) == 3906
+f(3) == 364
+
+
+
+./symplectic.py bruhat n=6 m=1 q=5
+points: 3906
+
+
+simon@hero:~/home/github/qupy/qupy/dev$ ./symplectic.py bruhat n=6 m=1 q=3
+points: 364
+borel: 5832
+orbits:
+size = 1   # 1
+size = 1   # 1
+size = 1   # 1
+size = 2   # q-1
+size = 2   # q-1
+size = 2   # q-1
+size = 4   # (q-1)^2
+size = 27  # q^3
+size = 27  # q^3
+size = 27  # q^3
+size = 54  # (q-1)*q^3
+size = 54  # (q-1)*q^3
+size = 54  # (q-1)*q^3
+size = 108 # (q-1)^2 * q^3
+
+simon@hero:~/home/github/qupy/qupy/dev$ ./symplectic.py bruhat n=6 m=1 q=2
+points: 63
+borel: 64
+orbits:
+size = 1
+size = 1
+size = 1
+size = 1
+size = 1
+size = 1
+size = 1
+size = 8
+size = 8
+size = 8
+size = 8
+size = 8
+size = 8
+size = 8
+
+
+
+2/1/19
+======
+
+./symplectic.py bruhat n=4 m=2 q=3
+points: 40
+borel: 108
+orbits:
+size = 1
+[[0 0 0 1]
+ [0 0 1 0]]
+size = 3
+[[0 0 1 0]
+ [0 1 0 0]]
+[[0 0 1 0]
+ [0 1 0 2]]
+[[0 0 1 0]
+ [0 1 0 1]]
+size = 3
+[[0 0 0 1]
+ [1 0 0 0]]
+[[0 0 0 1]
+ [1 0 1 0]]
+[[0 0 0 1]
+ [1 0 2 0]]
+size = 6
+[[0 0 1 2]
+ [1 1 0 1]]
+[[0 0 1 2]
+ [1 1 0 0]]
+[[0 0 1 1]
+ [1 2 0 1]]
+[[0 0 1 1]
+ [1 2 0 2]]
+[[0 0 1 2]
+ [1 1 0 2]]
+[[0 0 1 1]
+ [1 2 0 0]]
+...
+
+./symplectic.py bruhat n=4 m=2 q=2 
+points: 15
+borel: 8
+orbits:
+size = 1
+[[0 0 1 0]
+ [0 0 0 1]]
+size = 2
+[[1 0 0 0]
+ [0 0 0 1]]
+[[1 0 1 0]
+ [0 0 0 1]]
+size = 2
+[[1 1 0 0]
+ [0 0 1 1]]
+[[1 1 0 1]
+ [0 0 1 1]]
+size = 2
+[[0 1 0 0]
+ [0 0 1 0]]
+[[0 1 0 1]
+ [0 0 1 0]]
+size = 8
+[[1 0 0 0]
+ [0 1 0 0]]
+[[1 0 0 0]
+ [0 1 0 1]]
+[[1 0 1 0]
+ [0 1 0 0]]
+[[1 0 0 1]
+ [0 1 1 0]]
+[[1 0 1 0]
+ [0 1 0 1]]
+[[1 0 1 1]
+ [0 1 1 0]]
+[[1 0 1 1]
+ [0 1 1 1]]
+[[1 0 0 1]
+ [0 1 1 1]]
+
+
+size = 8
+[[1 0 0 0] [0 1 0 0]]
+[[1 0 0 0] [0 1 0 1]]
+[[1 0 0 1] [0 1 1 0]]
+[[1 0 0 1] [0 1 1 1]]
+[[1 0 1 0] [0 1 0 0]]
+[[1 0 1 0] [0 1 0 1]]
+[[1 0 1 1] [0 1 1 0]]
+[[1 0 1 1] [0 1 1 1]]
+
+
+Subgroups of Linear Algebraic Groups
+https://www.dpmms.cam.ac.uk/~nd332/alg_gps.pdf
+
+1/1/19
+======
+
+
+Orbits Under Symplectic Transvections I
+Article  in  Proceedings of the London Mathematical Society · May 1986
+DOI: 10.1112/plms/s3-52.3.517 · Source: OAI
+Ronald Brown, Humphries
+
+
+29/12/18
+========
+
+time ./su2.py test_molien
+-1 -1 2 -1 1 -1 1 0 0 0 0 0 1 -1 1 -1 1 -1 1 -1 0 1 1 -2 
+
+
+
+
+http://dl.lateralis.org/public/sagebook/sagebook-ba6596d.pdf
+Computational
+Mathematics
+with SageMath
+
+
+
+https://oeis.org/search?q=1%2C2%2C6%2C22%2C86%2C342&sort=&language=english&go=Search
+1, 2, 6, 22, 86, 342,
+Counts closed walks of length 2n at a vertex of the cyclic graph on 6 nodes C_6
+
+https://arxiv.org/abs/1110.6628
+Appendix: The subgroups of the
+binary polyhedral groups
+
 
 28/12/18
 ========
+
+https://twitter.com/_julesh_/status/1078663148322861058
+    The thing they have in common is traced monoidal categories.
+    Computable functions form traced cartesian monoidal categories,
+    and quantum things are compact closed which are traced
+    monoidal in particular
+
 
 Five qubit code:
 IIIII
@@ -14,11 +529,16 @@ IIIII
 
 comes from degree 5 invariants:
 IIIII 24*IIIII
+
 XZZXI 8*XZZXI-8*ZYYZI-8*YXXYI
 IXZZX 8*IXZZX-8*IZYYZ-8*IYXXY
 XIXZZ 8*XIXZZ-8*ZIZYY-8*YIYXX
 ZXIXZ -8*XYIYX+8*ZXIXZ-8*YZIZY
 ZZXIX -8*XXYIY+8*ZZXIX-8*YYZIZ
+
+each of the non-identity operators have spectrum:
+-8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 -8 
+24 24 24 24 24 24 24 24
 
 
 
