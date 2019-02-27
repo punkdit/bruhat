@@ -221,8 +221,8 @@ def main():
     G_2 = Coxeter("LP", {("L", "P") : 6})
     assert len(G_2.build())==12
 
-    #H_3 = Coxeter("ABC", {("A", "B") : 5, ("B", "C") : 3})
-    #assert len(H_3.build())==120
+    H_3 = Coxeter("ABC", {("A", "B") : 5, ("B", "C") : 3})
+    assert len(H_3.build())==120
 
     I_4 = Coxeter("XZ", {("X", "Z") : 4})
     assert len(I_4.build()) == 8

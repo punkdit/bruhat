@@ -1,4 +1,1064 @@
 
+
+
+23/2/19
+=======
+
+There are nine Heegner numbers:
+1, 2, 3, 7, 11, 19, 43, 67, 163
+https://mathoverflow.net/questions/300385/why-does-this-quasi-modular-function-have-integral-values
+
+https://mathoverflow.net/questions/51204/is-there-a-crash-course-book-on-abelian-varieties-e-g-an-introduction-for-p
+
+https://mathoverflow.net/questions/204176/group-theory-in-machine-learning
+
+
+>>> import gmpy2
+>>> gmpy2.get_context().precision=1000
+>>> pi = 2*gmpy2.acos(0.)
+>>> f = lambda i : gmpy2.exp(pi * gmpy2.sqrt(i))
+>>> f(163)
+mpfr('262537412640768743.99999999999925007259719818568...
+>>> f(67)
+mpfr('147197952743.99999866245...
+>>> f(43)
+mpfr('884736743.999777466034906...
+
+
+https://www.ams.org/journals/notices/201903/rnoti-p341.pdf
+The Mathematics of Joan Birman
+
+Birman exact sequence:
+    1 -> pi_1(C_n(S), P) -> MCG(S, P) -> MCG(S) -> 1
+    As a special case,
+    when S is the disk, we conclude that B_n is isomorphic to
+    the mapping class group of a disk with n marked points.
+
+Surface of genus g: S_g
+Torelli group: I(S_g)
+Short exact sequence:
+    1 -> I(S_g) -> MCG(S_g) -> Sp_{2g}(Z) -> 1
+Sp_{2g}(Z) is isomorphic to the automorphism 
+group of H_1(S_g, Z), which is the symplectic
+space Z^{2g} with symplectic form the algebraic
+intersection form.
+
+In any short exact sequence of groups
+    1 -> H -> G -> E -> 1
+the defining relations of E correspond to
+generators of H.
+
+Generators of I(S_g) correspond to Dehn twists
+around separating curves, and bounding pair maps:
+    T_a T_b^{-1}
+where a and b are disjoint, homologous, nonseparating curves.
+
+The manifold M = PSL_2(R) / PSL_2(Z)
+is homeomorphic to the complement in S^3
+of the trefoil knot, and also the unit tangent
+bundle of the modular surface 
+    H / PSL_2(Z).
+This bundle has a geodesic flow, closed orbits
+of which are in bijection with Lorentz knots.
+
+
+
+22/2/19
+=======
+
+https://twitter.com/preskill/status/1099004656410288128
+    Braidonium. Sergey Frolov explains the complexity of
+    braiding Majoranas. “The theory is well established,
+    but the technical challenges are large.”
+
+21/2/19
+=======
+
+
+
+https://web.ma.utexas.edu/users/dafr/cobordism.pdf
+    The cobordism hypothesis was conjectured by Baez-Dolan
+    [BD] in the mid 1990s. It has now
+    been proved by Hopkins-Lurie in dimension two and by
+    Lurie in higher dimensions. There are many
+    complicated foundational issues which lie behind the
+    definitions and the proof, and only a detailed
+    sketch [L1] has appeared so far.1 The history of the
+    Baez-Dolan conjecture goes most directly
+    through quantum field theory and its adaptation to low-dimensional
+    topology. Yet in retrospect it
+    is a theorem about the structure of manifolds in all
+    dimensions, and at the core of the proof lies
+    Morse theory. Hence there are two routes to the cobordism
+    hypothesis: algebraic topology and
+    quantum field theory.
+
+
+https://en.wikipedia.org/wiki/File:Atomic-orbital-clouds_spdf_m0.png
+
+19/2/19
+=======
+
+https://math.stackexchange.com/questions/2462453/bridge-presentation-of-a-knot/2465692#2465692
+
+16/2/19
+=======
+
+./css.py code=qr7 decode=lookup+oe p=0.12 N=409600
+error rate = 0.17180176
+fail rate = 0.00000000
+nonuniq = 12549
+distance <= 3
+
+./css.py code=qr17 decode=lookup+oe p=0.12 N=409600
+error rate = 0.17469482
+fail rate = 0.00000000
+nonuniq = 53213
+distance <= 5
+
+
+./css.py code=qr23 decode=lookup+oe p=0.12 N=409600
+error rate = 0.20994629
+fail rate = 0.00000000
+nonuniq = 35461
+distance <= 7
+
+./css.py code=qr31 decode=lookup+oe p=0.12 N=409600
+error rate = 0.18582520
+fail rate = 0.00000000
+nonuniq = 87868
+distance <= 7
+
+./css.py code=qr41 decode=lookup+oe p=0.12 N=40960
+error rate = 0.20500488
+fail rate = 0.00000000
+nonuniq = 8801
+distance <= 9
+
+./css.py code=qr47 decode=lookup+oe p=0.12 N=40960
+error rate = 0.20986328
+fail rate = 0.00000000
+nonuniq = 11934
+distance <= 11
+
+
+15/2/19
+=======
+
+ time nice ./css.py code=toric l=6 N=1024 p=0.11 decode=oe | tail -8
+2019-02-15 12:46:50
+./css.py code=toric l=6 N=1024 p=0.11 decode=oe
+error rate = 0.27734375
+fail rate = 0.00000000
+nonuniq = 727
+distance <= 6
+OEDecoder.t0 = 7.6974711418151855
+OEDecoder.t1 = 13.371972560882568
+
+real0m21.591s
+users0m180m21.559s
+system0m00m0.073s
+simon@hero:~/home/github/qupy/qupy/ldpc$ time nice ./css.py code=toric l=8 N=1024 p=0.11 decode=oe | tail -8
+
+2019-02-15 12:47:44
+./css.py code=toric l=8 N=1024 p=0.11 decode=oe
+error rate = 0.29492188
+fail rate = 0.00000000
+nonuniq = 722
+distance <= 10
+OEDecoder.t0 = 13.818528175354004
+OEDecoder.t1 = 1841.2401721477509
+
+
+
+14/2/19
+=======
+
+time nice ./css.py code=gallager r=6 n=8 l=3 m=4 decode=oe N=10 p=0.05
+[[1 0 1 0 1 0 1 0]
+ [0 1 0 1 0 1 0 1]
+ [1 1 1 1 0 0 0 0]
+ [1 1 0 0 0 1 1 0]]
+dist: 4
+li:build:find_logops(Lz):n=80, mx=32, mz=32, k=16
+find_logops(Lx):Find(Tz):Find(Tx):
+checking...done
+CSSCode(n=80, Lx:16, Lz:16, Hx:32, Tz:32, Hz:32, Tx:32, Gx:None, Gz:None)
+Lx(4:7:12, 0:1:10)
+Lz(12:12:12, 0:2:9)
+Hx(5:6:7, 1:2:4)
+Tz(1:2:3, 0:1:3)
+Hz(5:6:7, 1:2:4)
+Tx(1:5:12, 0:2:12)
+OEDecoder: size=65536
+decoder: OEDecoder
+6:s16:10:/\. 4:s8:7:/\. 2:s5:7:/\. 9:s10:25:/\x 4:s14:13:/\. 7:s12:18:/\x 4:s2:8:/\x 2:s4:6:/\. 4:s4:0:/\. 1:s4:0:/\. 
+2019-02-14 15:15:44
+./css.py code=gallager r=6 n=8 l=3 m=4 decode=oe N=10 p=0.05
+error rate = 0.30000000
+fail rate = 0.00000000
+nonuniq = 5
+distance <= 8
+
+real 56m41.033s
+
+
+12/2/19
+=======
+
+simon@hero:~/home/github/qupy/qupy/ldpc$ time ./css.py code=toric l=8 N=10 p=0.05 decode=oe
+li:build:find_logops(Lz):n=128, mx=63, mz=63, k=2
+find_logops(Lx):Find(Tz):Find(Tx):
+checking...done
+CSSCode(n=128, Lx:2, Lz:2, Hx:63, Tz:63, Hz:63, Tx:63, Gx:None, Gz:None)
+Lx(8:8:8, 0:0:1)
+Lz(8:8:8, 0:0:1)
+Hx(4:4:4, 1:2:2)
+Tz(1:7:14, 0:4:56)
+Hz(4:4:4, 1:2:2)
+Tx(1:13:22, 0:7:56)
+OEDecoder: size=262144
+decoder: OEDecoder
+9:s16:24:/\. 2:s4:4:/\. 8:s7:24:/\x 5:s10:14:/\. 5:s10:36:/\. 4:s8:16:/\. 6:s10:18:/\. 7:s10:34:/\. 10:s17:48:/\x 6:s11:12:/\. 
+2019-02-12 20:06:12
+./css.py code=toric l=8 N=10 p=0.05 decode=oe
+error rate = 0.20000000
+fail rate = 0.00000000
+nonuniq = 8
+distance <= 24
+
+really0m18.558s
+users0m18.514s
+system0m0.044s
+
+simon@hero:~/home/github/qupy/qupy/ldpc$ time ./css.py code=torichie l=8 N=10 p=0.05 decode=oe
+li:build:find_logops(Lz):n=128, mx=63, mz=63, k=2
+find_logops(Lx):Find(Tz):Find(Tx):
+checking...done
+CSSCode(n=128, Lx:2, Lz:2, Hx:63, Tz:63, Hz:63, Tx:63, Gx:None, Gz:None)
+Lx(8:12:16, 0:0:2)
+Lz(8:12:16, 0:0:2)
+Hx(4:5:16, 1:3:6)
+Tz(1:6:17, 0:3:26)
+Hz(4:5:16, 1:3:6)
+Tx(1:7:16, 0:4:26)
+OEDecoder: size=262144
+decoder: OEDecoder
+2:s2:0:/\. 7:s15:28:/\. 1:s2:10:/\. 9:s21:30:/\. 7:s14:28:/\. 8:s15:24:/\. 4:s10:20:/\. 7:s16:20:/\. 7:s16:26:/\. 6:s12:18:/\. 
+2019-02-12 20:06:36
+./css.py code=torichie l=8 N=10 p=0.05 decode=oe
+error rate = 0.00000000
+fail rate = 0.00000000
+nonuniq = 9
+distance <= 128
+
+really0m29.126s
+users0m29.092s
+system0m0.033s
+
+
+https://news.ycombinator.com/item?id=19137459
+    The honeycomb lattice mentioned in the article resonated with me.
+    I’ll go out on a limb and share a personal anecdote:
+    In high school I took magic mushrooms with my friends,
+    and at one point in the experience the world disappeared
+    and I saw an undulating fabric in a honeycomb pattern.
+    In the center of each “hole” in the fabric was a link
+    to a memory, a time and a place.
+
+https://samharris.org/podcasts/148-jack-dorsey/
+    00:19:00    
+    "we've been spending a lot more time
+    not looking at the content that people are saying 
+    but the behaviours
+    and the connections between accounts
+    and interactions and replies"
+    - Jack Dorsey, CEO twitter
+
+https://arxiv.org/pdf/1804.01950.pdf
+    As demonstrated by Wegner[35], a general Ising model
+    with the partition function (4) has a dual representation,
+    which is a generalization of Kramers-Wannier[37]
+    duality. The same duality has been first established in
+    coding theory by MacWilliams[38] as a relation between
+    weight polynomials of two dual codes. 
+
+
+7/2/19
+======
+
+http://pi.math.cornell.edu/~hatcher/TN/TNpage.html
+Topology of Numbers
+Alan Hatcher
+elementary number theory from a geometric point of view
+
+
+http://math.harvard.edu/~ctm/home/text/books/adams/knot_book/knot_book.pdf
+The Knot Book
+Colin C Adams
+1994
+
+
+https://www.scottaaronson.com/blog/?p=4021
+Why are amplitudes complex?
+
+https://arxiv.org/pdf/1101.5690.pdf
+Division Algebras and Quantum Theory
+John C. Baez
+
+
+https://arxiv.org/abs/quant-ph/0308151
+Graphical description of the action of local Clifford transformations on graph states
+Maarten Van den Nest, Jeroen Dehaene, Bart De Moor
+Each stabilizer state is equivalent to a graph
+state under local Clifford operations.
+
+
+https://arxiv.org/abs/1710.01060
+The mathematical foundation of our scheme is a unitary error
+basis which is permuted up to
+a phase by the conjugation action of the group. We completely
+classify such unitary error
+bases for qubits, exhibit constructions in higher dimension,
+and provide a method for proving nonexistence in some cases.
+
+
+
+https://www.physicsforums.com/insights/supersymmetry-delignes-theorem/
+Tannakian reconstruction of tensor categories. 
+Wigner’s classification of fundamental particles.
+What are all possible symmetry groups such that their
+irreducible representations behave like elementary particle species?
+Under which conditions is such a tensor category the
+representation category of some group, and if so, of
+which kind of group?
+Every  k-linear tensor category is of this form;
+the class of groups arising this way are precisely the (algebraic) super-groups.
+
+
+https://arxiv.org/abs/math/0401347
+TENSOR CATEGORIES (AFTER P. DELIGNE)
+VIKTOR OSTRIK
+
+
+https://math.stackexchange.com/questions/2045336/
+rational canonical form 
+
+
+https://simons.berkeley.edu/events/openlectures2014-fall-4
+Simons Institute Open Lecture: The Unreasonable Effectiveness
+of Spectral Graph Theory: A Confluence of Algorithms,
+Geometry, and Physics
+Starting with a basic physical process (heat diffusion),
+we will recall how the evolution of the system can be
+understood in terms of eigenmodes and their associated
+eigenvalues. The physical view has immediate computational
+import; for instance, Google models its users as agents
+diffusing over the web graph. This family of ideas describes
+the "reasonable" effectiveness of spectral graph theory.
+But then we will see that spectral objects can also precisely
+describe other phenomena in a surprisingly unreasonable
+way. This will lead us to confront some of the most fundamental
+problems in algorithms and complexity theory from a spectral
+perspective.
+
+
+I have another random question... i'm wondering if the
+genus of a complex curve is assocated with a level of
+categorification ... if you have noticed anything like this.
+So, a genus 3 curve would correspond somehow to a 3-category.
+I've been reading about jacobian varieties, and there
+is a sense in which this genus indexes a dimension of
+a torus. But my question here is slightly different.
+I guess if you consider n-dimensional spaces and n-categories
+as the same (somehow!) then the answer to my above question is yes...
+This question is really motivated from quantum codes
+& topological field theory stuff, but it's entirely possible
+that I have no clue what i'm talking about.
+
+https://www.reddit.com/r/QuantumComputing/comments/alv99j/open_source_simulation_of_quantum_computers_with/
+I wrote up an example of using an open source library
+I maintain to simulate quantum circuits with tensor networks:
+https://quimb.readthedocs.io/en/develop/examples/ex_quantum_circuit.html
+
+6/2/19
+======
+
+The Map Is Not the Territory
+https://fs.blog/2015/11/map-and-territory/
+
+
+https://ncatlab.org/nlab/show/homotopy.io
+
+
+3/2/19
+======
+
+https://arxiv.org/abs/1802.01139
+Two-dimensional algebra in lattice gauge theory
+
+
+https://www.scottaaronson.com/blog/?p=613
+    Over the years, I’ve developed what I call the Minus-Sign
+    Test, a reliable way to rate popularizations of quantum
+    mechanics.  To pass the Minus-Sign Test, all a popularization
+    needs to do is mention the minus signs: i.e., interference
+    between positive and negative amplitudes, the defining
+    feature of quantum mechanics, the thing that makes it
+    different from classical probability theory, the reason
+    why we can’t say Schrödinger’s cat is “really either
+    dead or alive,” and we simply don’t know which one, the
+    reason why the entangled particles can’t have just agreed
+    in advance that one would spin up and the other would
+    spin down.  Another name for the Minus-Sign Test is the
+    High-School Student Test, since it’s the thing that determines
+    whether a bright high-school student, meeting quantum
+    mechanics for the first time through the popularization,
+    would come away thinking of superposition as
+    
+    (a) one of the coolest discoveries about Nature ever made, or
+    (b) a synonym used by some famous authority figures for ignorance.
+    
+    Despite the low bar set by the Minus-Sign Test, I’m afraid
+    almost every popular article about quantum mechanics
+    ever written has failed it, the present piece included.
+
+
+2/2/19
+======
+
+https://math.stackexchange.com/questions/816124/what-is-the-central-idempotent-of-a-representation
+
+Algorithms for finite-dimensional Lie algebras
+1997
+https://pure.tue.nl/ws/files/1475343/495936.pdf
+
+Associative Algebras, Pierce, 1982
+Sec. 3.2 , exercises 3.
+    (a) A is semisimple iff every right ideal of A has
+    the form eA for some idempotent element e in A.
+    (b) If A is semisimple, and M < A_A, then M^2 = M.
+    (c) If A is semisimple and I is an ideal of A,
+    then there is a unique central idempotent e,
+    such that I = eA. Conversely, if e is a central
+    idempotent, then eA is an ideal of A.
+    (d) If 1 = e_1 + ... + e_r, with each e_i a central idempotent,
+    and if e_i e_j = 0 for i!=j, then A = e_1 A + ... + a_r A.
+
+
+1/2/19
+======
+
+central idempotent invariant containing the five qubit code projector:
+
+    (3/8)*IIIII
+    + (1/24) * 
+    (-IIIXX -IIIZZ +IIIYY -IIXIX -IIXXI -IIZIZ -IIZZI +IIYIY +IIYYI
+    -IXIIX -IXIXI -IXXII +IXXXX +IXXZZ -IXXYY +IXZXZ +IXZZX -IXYXY
+    -IXYYX -IZIIZ -IZIZI +IZXXZ +IZXZX -IZZII +IZZXX +IZZZZ -IZZYY
+    -IZYZY -IZYYZ +IYIIY +IYIYI -IYXXY -IYXYX -IYZZY -IYZYZ +IYYII
+    -IYYXX -IYYZZ +IYYYY -XIIIX -XIIXI -XIXII +XIXXX +XIXZZ -XIXYY
+    +XIZXZ +XIZZX -XIYXY -XIYYX -XXIII +XXIXX +XXIZZ -XXIYY +XXXIX
+    +XXXXI +XXZIZ +XXZZI -XXYIY -XXYYI +XZIXZ +XZIZX +XZXIZ +XZXZI
+    +XZZIX +XZZXI -XYIXY -XYIYX -XYXIY -XYXYI -XYYIX -XYYXI -ZIIIZ
+    -ZIIZI +ZIXXZ +ZIXZX -ZIZII +ZIZXX +ZIZZZ -ZIZYY -ZIYZY -ZIYYZ
+    +ZXIXZ +ZXIZX +ZXXIZ +ZXXZI +ZXZIX +ZXZXI -ZZIII +ZZIXX +ZZIZZ
+    -ZZIYY +ZZXIX +ZZXXI +ZZZIZ +ZZZZI -ZZYIY -ZZYYI -ZYIZY -ZYIYZ
+    -ZYZIY -ZYZYI -ZYYIZ -ZYYZI +YIIIY +YIIYI -YIXXY -YIXYX -YIZZY
+    -YIZYZ +YIYII -YIYXX -YIYZZ +YIYYY -YXIXY -YXIYX -YXXIY -YXXYI
+    -YXYIX -YXYXI -YZIZY -YZIYZ -YZZIY -YZZYI -YZYIZ -YZYZI +YYIII
+    -YYIXX -YYIZZ +YYIYY -YYXIX -YYXXI -YYZIZ -YYZZI +YYYIY +YYYYI)
+
+This preserves a 36 dimensional subalgebra of the center of Inv^5,
+therefore it belongs to the 6x6 matrix algebra of intertwiners of
+6*Nat -> 6*Nat.
+
+
+https://twitter.com/sigfpe/status/1091192852065902592
+distributivity:
+    Added another row to my dictionary of Legendre transforms
+    <-> Fourier transforms. I suddenly realised the Fourier
+    projection-slice theorem has an analogue in convex analysis.
+
+
+30/1/19
+=======
+
+https://www.wired.co.uk/article/trials-and-errors
+    This assumption -- that understanding a system's constituent
+    parts means we also understand the causes within the
+    system -- is not limited to the pharmaceutical industry
+    or even to biology. It defines modern science. In general,
+    we believe that the so-called problem of causation can
+    be cured by more information. Scientists refer to this
+    process as reductionism. By breaking down a process,
+    we can see how everything fits together; the complex
+    mystery is distilled into a list of ingredients. 
+
+    ...
+    The problem with this assumption is that causes are a
+    strange kind of knowledge. This was first pointed out
+    by David Hume, the 18th-century philosopher. He realised
+    that, although people talk about causes as if they are
+    real facts -- tangible things that can be discovered
+    -- they're actually not at all factual. Instead, Hume
+    said, every cause is just a slippery story, a catchy
+    conjecture, a "lively conception produced by habit". 
+
+
+
+29/1/19
+=======
+
+Why Visual Programming Doesn’t Suck
+https://blog.statebox.org/why-visual-programming-doesnt-suck-2c1ece2a414e
+
+Seven Sketches in Compositionality: An Invitation to Applied Category Theory
+Brendan Fong, David I Spivak
+https://arxiv.org/abs/1803.05316
+
+
+https://graphicallinearalgebra.net/2015/08/04/causality-feedback-and-relations/
+    Causality is an enchanting, seductive idea. Imagine:
+    we interact with the world by giving it inputs, and the
+    world responds by returning nice, easily predictable
+    outputs. Life would just be so easy and pleasant if everything
+    around us behaved as functions in the mathematical sense:
+    for every input x there would be an output f(x). And,
+    the cherry on top, imagine if f had a closed form. A
+    nice little theory of everything.
+    
+    Unfortunately, reality is somewhat more brutal. In 1912,
+    the year the Titanic sunk, Bertrand Russell published
+    a very nice philosophical paper entitled On the notion
+    of cause. It is full of delightful quotes, and here is
+    one of my favourites:
+    
+        The law of causality, I believe, like much that passes
+        muster among philosophers, is a relic of a bygone age,
+        surviving like the monarchy, only because it is erroneously
+        supposed to do no harm.
+    
+    Clearly, Russell was a republican. But his paper is mainly
+    a scathing attack on the facile idea of causality: viewing
+    the various components of the physical world as cause-and-effect
+    systems.
+
+
+Composing PROPs
+Stephen Lack
+http://www.tac.mta.ca/tac/volumes/13/9/13-09abs.html
+
+
+https://www.physicsforums.com/insights/supersymmetry-delignes-theorem/
+    In 2002, Pierre Deligne proved a remarkable theorem on
+    what mathematically is called Tannakian reconstruction
+    of tensor categories. 
+
+
+28/1/19
+=======
+
+./su2.py test_internal_series_fast fast degree=4 G2=Icosa idx=0 full
+-2*XXXX+XXZZ-XXYY-4*XZXZ+XZZX+4*XYXY-XYYX+ZXXZ-4*ZXZX+ZZXX-2*ZZZZ-ZZYY+4*ZYZY-ZYYZ-YXXY+4*YXYX-YZZY+4*YZYZ-YYXX-YYZZ-2*YYYY
+-XXZZ+XXYY+XZXZ-XYXY+ZXZX-ZZXX+ZZYY-ZYZY-YXYX-YZYZ+YYXX+YYZZ
+XZXZ-XZZX-XYXY+XYYX-ZXXZ+ZXZX-ZYZY+ZYYZ+YXXY-YXYX+YZZY-YZYZ
+
+
+
+./su2.py test_molien G2=Sym3 degree=20 
+(1.41421356237-3.33066907388e-16j)
+1 0 1 1 3 5 11 21 43 85 171 341 683 1365 2731 5461 10923 21845 43691 87381 174763
+
+https://oeis.org/A007583
+      1, 3, 11,   43,   171,    683,     2731,     10923,      43691,      174763, ...
+
+
+27/1/19
+=======
+
+./su2.py test_molien G2=Tetra degree=20 idx=0
+1 0 1 0 2 0 6 0 22 0 86 0 342 0 1366 0 5462 0 21846 0 87382
+
+./su2.py test_molien G2=Tetra degree=20 idx=1
+1 0 1 0 2 0 6 0 22 0 86 0 342 0 1366 0 5462 0 21846 0 87382
+
+./su2.py test_molien G2=Tetra degree=20 idx=2
+1 0 0 0 1 0 6 0 21 0 85 0 342 0 1365 0 5461 0 21846 0 87381
+./su2.py test_internal_series_fast fast degree=4 G2=Tetra idx=2
+dimension: 22
+
+time ./su2.py test_molien G2=Tetra degree=20 idx=3
+1 0 0 0 1 0 6 0 21 0 85 0 342 0 1365 0 5461 0 21846 0 87381
+
+
+Binary Octahedral group:
+gap> G:=SmallGroup(48,28);
+<pc group of size 48 with 5 generators>
+gap> Irr(G);
+[ Character( CharacterTable( <pc group of size 48 with 5 generators> ),
+  [ 1, 1, 1, 1, 1, 1, 1, 1 ] ), Character( CharacterTable( <pc group of size 48 with 
+    5 generators> ), [ 1, -1, 1, 1, 1, -1, 1, -1 ] ), 
+  Character( CharacterTable( <pc group of size 48 with 5 generators> ),
+  [ 2, 0, -1, 2, 2, 0, -1, 0 ] ), Character( CharacterTable( <pc group of size 48 with 
+    5 generators> ), [ 2, 0, -1, 0, -2, -E(8)+E(8)^3, 1, E(8)-E(8)^3 ] ), 
+  Character( CharacterTable( <pc group of size 48 with 5 generators> ),
+  [ 2, 0, -1, 0, -2, E(8)-E(8)^3, 1, -E(8)+E(8)^3 ] ), 
+  Character( CharacterTable( <pc group of size 48 with 5 generators> ),
+  [ 3, 1, 0, -1, 3, -1, 0, -1 ] ), Character( CharacterTable( <pc group of size 48 with 
+    5 generators> ), [ 3, -1, 0, -1, 3, 1, 0, 1 ] ), 
+  Character( CharacterTable( <pc group of size 48 with 5 generators> ),
+  [ 4, 0, 1, 0, -4, 0, -1, 0 ] ) ]
+gap> IrreducibleRepresentations(G);
+[ [ f1, f2, f3, f4, f5 ] -> [ [ [ 1 ] ], [ [ 1 ] ], [ [ 1 ] ], [ [ 1 ] ], [ [ 1 ] ] ], 
+  [ f1, f2, f3, f4, f5 ] -> [ [ [ -1 ] ], [ [ 1 ] ], [ [ 1 ] ], [ [ 1 ] ], [ [ 1 ] ] ], 
+  [ f1, f2, f3, f4, f5 ] -> [ [ [ 0, 1 ], [ 1, 0 ] ], [ [ 0, 1 ], [ -1, -1 ] ], 
+      [ [ 1, 0 ], [ 0, 1 ] ], [ [ 1, 0 ], [ 0, 1 ] ], [ [ 1, 0 ], [ 0, 1 ] ] ], 
+  [ f1, f2, f3, f4, f5 ] -> 
+    [ 
+      [ [ 1/3*E(8)-1/3*E(8)^2-1/3*E(8)^3, 2/3+2/3*E(8)+2/3*E(8)^3 ], 
+          [ -1/3+2/3*E(8)+2/3*E(8)^3, -1/3*E(8)+1/3*E(8)^2+1/3*E(8)^3 ] ], 
+      [ [ -2/3+1/3*E(8)+1/3*E(8)^3, 1/3*E(8)-1/3*E(8)^2-1/3*E(8)^3 ], 
+          [ -2/3*E(8)-1/3*E(8)^2+2/3*E(8)^3, -1/3-1/3*E(8)-1/3*E(8)^3 ] ], 
+      [ [ 1/3+1/3*E(8)+1/3*E(8)^3, 1/3*E(8)+2/3*E(8)^2-1/3*E(8)^3 ], 
+          [ -2/3*E(8)+2/3*E(8)^2+2/3*E(8)^3, -1/3-1/3*E(8)-1/3*E(8)^3 ] ], 
+      [ [ 1/3-2/3*E(8)-2/3*E(8)^3, 1/3*E(8)+2/3*E(8)^2-1/3*E(8)^3 ], 
+          [ 1/3*E(8)+2/3*E(8)^2-1/3*E(8)^3, -1/3+2/3*E(8)+2/3*E(8)^3 ] ], 
+      [ [ -1, 0 ], [ 0, -1 ] ] ], 
+  [ f1, f2, f3, f4, f5 ] -> [ [ [ E(4), 1 ], [ 0, -E(4) ] ], 
+      [ [ -2/3-1/3*E(8)-1/3*E(8)^3, 1/3*E(8)+1/3*E(8)^2-1/3*E(8)^3 ], 
+          [ -2/3*E(8)+1/3*E(8)^2+2/3*E(8)^3, -1/3+1/3*E(8)+1/3*E(8)^3 ] ], 
+      [ [ -1/3-2/3*E(8)-2/3*E(8)^3, -1/3*E(8)+2/3*E(8)^2+1/3*E(8)^3 ], 
+          [ -1/3*E(8)+2/3*E(8)^2+1/3*E(8)^3, 1/3+2/3*E(8)+2/3*E(8)^3 ] ], 
+      [ [ 1/3-1/3*E(8)-1/3*E(8)^3, -2/3*E(8)-2/3*E(8)^2+2/3*E(8)^3 ], 
+          [ 1/3*E(8)-2/3*E(8)^2-1/3*E(8)^3, -1/3+1/3*E(8)+1/3*E(8)^3 ] ], 
+      [ [ -1, 0 ], [ 0, -1 ] ] ], 
+  [ f1, f2, f3, f4, f5 ] -> [ [ [ 1, 0, 0 ], [ 0, 0, -1 ], [ 0, -1, 0 ] ], 
+      [ [ 1, -1, 0 ], [ 0, -1, -1 ], [ 0, 1, 0 ] ], 
+      [ [ 0, 1, 1 ], [ 1, 0, 1 ], [ 0, 0, -1 ] ], 
+      [ [ 0, -1, -1 ], [ 0, -1, 0 ], [ -1, 1, 0 ] ], 
+      [ [ 1, 0, 0 ], [ 0, 1, 0 ], [ 0, 0, 1 ] ] ], 
+  [ f1, f2, f3, f4, f5 ] -> [ [ [ 0, 0, 1 ], [ 0, -1, 0 ], [ 1, 0, 0 ] ], 
+      [ [ -1, 0, -1 ], [ 1, 1, 0 ], [ 1, 0, 0 ] ], 
+      [ [ 0, -1, 1 ], [ -1, 0, -1 ], [ 0, 0, -1 ] ], 
+      [ [ -1, 0, 0 ], [ 1, 0, 1 ], [ 1, 1, 0 ] ], [ [ 1, 0, 0 ], [ 0, 1, 0 ], [ 0, 0, 1 ] ] 
+     ], 
+  [ f1, f2, f3, f4, f5 ] -> 
+    [ [ [ 0, 0, -E(3)^2, -1 ], [ 0, 0, 0, -1 ], [ E(3), -E(3), 0, 0 ], [ 0, 1, 0, 0 ] ], 
+      [ [ 0, 1, 0, 0 ], [ -E(3), -E(3)^2, 0, 0 ], [ 0, 0, E(3)^2, 0 ], [ 0, 0, E(3)^2, 1 ] ]
+        , [ [ -E(3)^2, -1, 0, 0 ], [ -E(3)^2, E(3)^2, 0, 0 ], [ 0, 0, E(3), -E(3) ], 
+          [ 0, 0, -1, -E(3) ] ], 
+      [ [ 0, E(3)^2, 0, 0 ], [ -E(3), 0, 0, 0 ], [ 0, 0, 0, E(3)^2 ], [ 0, 0, -E(3), 0 ] ], 
+      [ [ -1, 0, 0, 0 ], [ 0, -1, 0, 0 ], [ 0, 0, -1, 0 ], [ 0, 0, 0, -1 ] ] ] ]
+
+
+24/1/19
+=======
+
+https://en.wikipedia.org/wiki/Polarization_identity
+https://en.wikipedia.org/wiki/Polarization_of_an_algebraic_form
+
+Abelian varieties, Theta functions and the Fourier transform,
+Cambridge University Press (2003)
+http://math1.unice.fr/~beauvill/pubs/poli.pdf
+
+Symmetric multilinear forms and polarization of polynomials
+https://arxiv.org/abs/1509.05707
+
+
+23/1/19
+=======
+
+https://kelvinmcqueen.com/
+    (i) The many worlds interpretation of quantum mechanics.
+    Does it explain the Born probability rule? Does it restore
+    locality to quantum physics? How are worlds characterized?
+    
+    (ii) The integrated information theory of consciousness.
+    Does it explain consciousness or does it just describe
+    its physical correlates? What evidence justifies it?
+    Which philosophy of mind is it best paired with?
+    
+    (iii) The nature of scientific explanation. Do reductive
+    explanations require a priori entailment? Do proofs in
+    pure mathematics sometimes explain what is proved?
+    
+    
+
+22/1/19
+=======
+
+John Baez:
+https://twitter.com/johncarlosbaez/status/1087950284477874177
+    Galois theory is one of the most beautiful branches of
+    math because it explains the connection between topology
+    (covering spaces), commutative algebra (field extensions)
+    and symmetry (groups of deck transformations and Galois
+    groups).  However, it's almost never taught this way.
+    
+    In the end it boils down to this: a map of commutative
+    rings R -> R' is the same as a map of affine schemes
+    Spec(R') -> Spec(R).  This is just the definition of
+    affine schemes, but you have to see that affine schemes
+    really are "spaces", and connected to topology.
+    
+    If R -> R' is monic, like a "field extension", then Spec(R')
+    -> Spec(R) is epic, and often it gives a "branched covering
+    space", like the Riemann surface for the function sqrt(z).
+    The group of "deck transformations" of Spec(R') -> Spec(R)
+    is the "Galois group" of R -> R'.
+
+
+time ./icosa.py G=pauli get_reflects
+6
+40
+288
+2176
+16896
+133120
+
+Counting reflections in tensor power of binary platonic groups:
+./icosa.py G=tetra get_reflects
+2
+40
+224
+2176
+15872
+
+./icosa.py G=octa get_reflects
+2
+328
+1952
+112768
+1075712
+
+time ./icosa.py 
+2
+904
+5408
+831616
+
+
+./wenum.py test_poly
+x**32 + 16*x**28*y**4 + 32*x**26*y**6 + 212*x**24*y**8 + 864*x**22*y**10 + 3344*x**20*y**12 + 6784*x**18*y**14 + 10262*x**16*y**16 + 6784*x**14*y**18 + 3344*x**12*y**20 + 864*x**10*y**22 + 212*x**8*y**24 + 32*x**6*y**26 + 16*x**4*y**28 + y**32
+x**32 + 24*x**28*y**4 + 128*x**26*y**6 + 876*x**24*y**8 + 3584*x**22*y**10 + 13160*x**20*y**12 + 28032*x**18*y**14 + 39462*x**16*y**16 + 28032*x**14*y**18 + 13160*x**12*y**20 + 3584*x**10*y**22 + 876*x**8*y**24 + 128*x**6*y**26 + 24*x**4*y**28 + y**32
+
+
+
+Law without law: from observer states to physics via algorithmic information theory
+Markus P. Mueller
+
+
+./element.py Dic n=2
+order = 8
+A subgroup order = 8, number of cosets = 1, conjugates = 1
+B subgroup order = 4, number of cosets = 2, conjugates = 1, cyclic
+C subgroup order = 4, number of cosets = 2, conjugates = 1, cyclic
+D subgroup order = 4, number of cosets = 2, conjugates = 1, cyclic
+E subgroup order = 2, number of cosets = 4, conjugates = 1, cyclic
+F subgroup order = 1, number of cosets = 8, conjugates = 1, cyclic
+  | A B  C  D  E  F  
+--+------------------
+A | A B  C  D  E  F  
+B | B 2B E  E  2E 2F 
+C | C E  2C E  2E 2F 
+D | D E  E  2D 2E 2F 
+E | E 2E 2E 2E 4E 4F 
+F | F 2F 2F 2F 4F 8F 
+[[1 1 1 1 1 1]
+ [0 1 0 0 1 1]
+ [0 0 1 0 1 1]
+ [0 0 0 1 1 1]
+ [0 0 0 0 0 4]]
+
+
+./element.py Dic n=5
+A subgroup order = 20, number of cosets = 1, conjugates = 1
+B subgroup order = 10, number of cosets = 2, conjugates = 1, cyclic
+C subgroup order = 5, number of cosets = 4, conjugates = 1, cyclic
+D subgroup order = 4, number of cosets = 5, conjugates = 5, cyclic
+E subgroup order = 2, number of cosets = 10, conjugates = 1, cyclic
+F subgroup order = 1, number of cosets = 20, conjugates = 1, cyclic
+  | A B  C  D    E   F   
+--+----------------------
+A | A B  C  D    E   F   
+B | B 2B 2C E    2E  2F  
+C | C 2C 4C F    2F  4F  
+D | D E  F  D+2E 5E  5F  
+E | E 2E 2F 5E   10E 10F 
+F | F 2F 4F 5F   10F 20F 
+[[1 1 1 1 1 1]
+ [0 1 1 0 1 1]
+ [0 0 2 0 0 2]
+ [0 0 0 2 4 4]
+ [0 0 0 0 0 8]]
+
+
+./element.py Dic n=7
+[[ 1  1  1  1  1  1]
+ [ 0  1  1  0  1  1]
+ [ 0  0  2  0  0  2]
+ [ 0  0  0  3  6  6]
+ [ 0  0  0  0  0 12]]
+
+./element.py Dic n=11
+[[ 1  1  1  1  1  1]
+ [ 0  1  1  0  1  1]
+ [ 0  0  2  0  0  2]
+ [ 0  0  0  5 10 10]
+ [ 0  0  0  0  0 20]]
+
+./element.py Dic n=13
+[[ 1  1  1  1  1  1]
+ [ 0  1  1  0  1  1]
+ [ 0  0  2  0  0  2]
+ [ 0  0  0  6 12 12]
+ [ 0  0  0  0  0 24]]
+
+
+gap> G := DicyclicGroup(5*4);
+<pc group of size 20 with 3 generators>
+gap> Irr(G);
+[ Character( CharacterTable( <pc group of size 20 with 3 generators> ),
+  [ 1, 1, 1, 1, 1, 1, 1, 1 ] ), 
+  Character( CharacterTable( <pc group of size 20 with 3 generators> ), 
+  [ 1, -1, 1, 1, -1, 1, 1, 1 ] ), 
+  Character( CharacterTable( <pc group of size 20 with 3 generators> ),
+  [ 1, -E(4), -1, -1, E(4), 1, 1, -1 ] ), 
+  Character( CharacterTable( <pc group of size 20 with 3 generators> ), 
+  [ 1, E(4), -1, -1, -E(4), 1, 1, -1 ] ), 
+  Character( CharacterTable( <pc group of size 20 with 3 generators> ),
+  [ 2, 0, -E(5)-E(5)^4, -2, 0, E(5)^2+E(5)^3, E(5)+E(5)^4, -E(5)^2-E(5)^3 ] ), 
+  Character( CharacterTable( <pc group of size 20 with 3 generators> ),
+  [ 2, 0, -E(5)^2-E(5)^3, -2, 0, E(5)+E(5)^4, E(5)^2+E(5)^3, -E(5)-E(5)^4 ] ), 
+  Character( CharacterTable( <pc group of size 20 with 3 generators> ),
+  [ 2, 0, E(5)^2+E(5)^3, 2, 0, E(5)+E(5)^4, E(5)^2+E(5)^3, E(5)+E(5)^4 ] ), 
+  Character( CharacterTable( <pc group of size 20 with 3 generators> ),
+  [ 2, 0, E(5)+E(5)^4, 2, 0, E(5)^2+E(5)^3, E(5)+E(5)^4, E(5)^2+E(5)^3 ] ) ]
+
+
+19/1/19
+=======
+
+https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.ndindex.html
+>>> for index in numpy.ndindex(3, 2, 1):
+...     print(index)
+(0, 0, 0)
+(0, 1, 0)
+(1, 0, 0)
+(1, 1, 0)
+(2, 0, 0)
+(2, 1, 0)
+
+
+18/1/19
+=======
+
+
+sage: W = CoxeterGroup([[1, 6, 3], [6, 1, 10], [3, 10, 1]])
+sage: W.base_ring()
+Universal Cyclotomic Field
+sage: ring = W.base_ring()
+sage: W = CoxeterGroup(['H',3], implementation="reflection", base_ring=ring)
+sage: W
+Finite Coxeter group over Universal Cyclotomic Field with Coxeter matrix:
+[1 3 2]
+[3 1 5]
+[2 5 1]
+sage: W.gens()
+(
+[-1  1  0]  [               1                0                0]
+[ 0  1  0]  [               1               -1 -E(5)^2 - E(5)^3]
+[ 0  0  1], [               0                0                1],
+
+[               1                0                0]
+[               0                1                0]
+[               0 -E(5)^2 - E(5)^3               -1]
+)
+
+
+
+sage: s = gap("TableOfMarks(DicyclicGroup(12))")
+sage: gap.function_call("Display", [s])
+1:  12
+2:   6 6
+3:   4 . 4
+4:   3 3 . 1
+5:   2 2 2 . 2
+6:   1 1 1 1 1 1
+sage: s = gap.function_call("Display", [s])
+sage: type(s)
+<class 'sage.interfaces.interface.AsciiArtString'>
+sage: s[0]
+'1'
+sage: s[1]
+':'
+sage: s[10]
+' '
+
+
+gap> tom := TableOfMarks(DicyclicGroup(24));
+TableOfMarks( <pc group of size 24 with 4 generators> )
+gap> mt := MatTom(tom);
+[ [ 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ], [ 12, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ], 
+  [ 8, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0 ], [ 6, 6, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0 ], 
+  [ 6, 6, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0 ], [ 6, 6, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0 ], 
+  [ 4, 4, 4, 0, 0, 0, 4, 0, 0, 0, 0, 0 ], [ 3, 3, 0, 1, 3, 1, 0, 1, 0, 0, 0, 0 ], 
+  [ 2, 2, 2, 2, 0, 0, 2, 0, 2, 0, 0, 0 ], [ 2, 2, 2, 0, 2, 0, 2, 0, 0, 2, 0, 0 ], 
+  [ 2, 2, 2, 0, 0, 2, 2, 0, 0, 0, 2, 0 ], [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ] ]
+gap> IsMatrix(mt);
+true
+gap> Inverse(mt);
+[ [ 1/24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ], [ -1/24, 1/12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ], 
+  [ -1/24, 0, 1/8, 0, 0, 0, 0, 0, 0, 0, 0, 0 ], [ 0, -1/4, 0, 1/2, 0, 0, 0, 0, 0, 0, 0, 0 ], 
+  [ 0, -1/12, 0, 0, 1/6, 0, 0, 0, 0, 0, 0, 0 ], [ 0, -1/4, 0, 0, 0, 1/2, 0, 0, 0, 0, 0, 0 ], 
+  [ 1/24, -1/12, -1/8, 0, 0, 0, 1/4, 0, 0, 0, 0, 0 ], 
+  [ 0, 1/2, 0, -1/2, -1/2, -1/2, 0, 1, 0, 0, 0, 0 ], 
+  [ 0, 1/4, 0, -1/2, 0, 0, -1/4, 0, 1/2, 0, 0, 0 ], 
+  [ 0, 1/12, 0, 0, -1/6, 0, -1/4, 0, 0, 1/2, 0, 0 ], 
+  [ 0, 1/4, 0, 0, 0, -1/2, -1/4, 0, 0, 0, 1/2, 0 ], 
+  [ 0, -1/2, 0, 1/2, 1/2, 1/2, 1/2, -1, -1/2, -1/2, -1/2, 1 ] ]
+
+
+
+
+17/1/19
+=======
+
+https://twitter.com/_julesh_/status/1085906022936600576
+Secretly, in the kleisli category of the distribtion/Giry
+monad, morphisms are conditional probabilities
+
+16/1/19
+=======
+
+
+Classification of translation invariant topological Pauli stabilizer codes for
+prime dimensional qudits on two-dimensional lattices
+Jeongwan Haah
+https://arxiv.org/pdf/1812.11193.pdf
+
+
+The Category of Representations of the General Linear Groups over a Finite Field
+Joyal A. Street R.
+Journal of Algebra
+Volume 176, Issue 3, 15 September 1995, Pages 908-946
+joyal1995.pdf
+
+
+
+
+Linear codes from Schubert Varieties
+James S. Wolper
+Published 1996
+A family of linear \Algebraic{Geometric" codes is constructed
+from line bundles on Schubert varieties and analyzed
+using techniques from Representation Theory.
+
+
+https://docs.python.org/3/library/xml.etree.elementtree.html
+
+SVG animations:
+http://www.joningram.co.uk/article/svg-smil-frame-animation/
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160">
+ <g>
+  <rect
+    style="fill:#edd154;fill-opacity:1;stroke:#3c352d;stroke-width:2;stroke-opacity:1;"
+    id="square"
+    width="100"
+    height="100"
+    x="30"
+    y="30">
+    <animate
+      id="frame1"
+      attributeName="display"
+      values="inline;none;none;none"
+      keyTimes="0;0.33;0.66;1"
+      dur="1s"
+      begin="0s"
+      repeatCount="indefinite" />
+  </rect>
+  <path
+    style="fill:#edd154;fill-opacity:1;stroke:#3c352d;stroke-width:2;stroke-opacity:1;"
+    id="circle"
+    d="m 125,80 a 45,45 0 1 1 -90,0 45,45 0 1 1 90,0 z">
+    <animate
+      id="frame2"
+      attributeName="display"
+      values="none;inline;none;none"
+      keyTimes="0;0.33;0.66;1"
+      dur="1s"
+      begin="0s"
+      repeatCount="indefinite" />
+  </path>
+  <path
+    style="fill:#edd154;fill-opacity:1;stroke:#3c352d;stroke-width:2;stroke-opacity:1;"
+    id="triangle"
+    d="M 105,105 47,89 89,46 105,105 z">
+    <animate
+      id="frame3"
+      attributeName="display"
+      values="none;none;inline;none"
+      keyTimes="0;0.33;0.66;1"
+      dur="1s"
+      begin="0s"
+      repeatCount="indefinite" />
+  </path>
+ </g>
+</svg>
+
+
+
+14/1/19
+=======
+
+emojipedia !
+https://emojipedia.org/face-with-rolling-eyes/
+
+13/1/19
+=======
+
+Creating a Physical Biology: The Three-Man Paper and Early Molecular Biology
+edited by Phillip R. Sloan, Brandon Fogel
+University of Chicago Press, 1 Dec 2011
+p65 Pascual Jordan's amplifier theory
+
+The earliest missionaries of the Copenhagen spirit [article]
+J. L. Heilbron
+Revue d'histoire des sciences  Année 1985  38-3-4  pp. 195-230
+
+Jordan, Pascual. "Die Quantenmechanik und die Grundprobleme
+der Biologie und Psychologie." Naturwissenschaften 20.45
+(1932): 815-821.
+
+Targeting the Organism: The Scientific and Cultural Context
+of Pascual Jordan's Quantum Biology, 1932-1947
+Author(s): Richard H. Beyler
+Source: Isis, Vol. 87, No. 2 (Jun., 1996), pp. 248-273
+Published by: The University of Chicago Press on behalf
+of The History of Science Society
+Stable URL: http://www.jstor.org/stable/236063 .
+
+How Beauty Is Making Scientists Rethink Evolution
+By Ferris Jabr
+Jan. 9, 2019
+https://www.nytimes.com/2019/01/09/magazine/beauty-evolution-animal.html
+
+Debussy’s Radical Search for Simplicity
+A biography published 100 years after the composer’s
+death reveals the worldly trials of an artist known for
+his airy fantasies.
+https://www.theatlantic.com/entertainment/archive/2019/01/debussy-stephen-walsh-review/579601/
+
+
+HOMOTOPY IN THE CATEGORY OF GRAPHS
+T. CHIH AND L. SCULL
+https://arxiv.org/abs/1901.01619
+
+
+
+
+
 10/1/19
 =======
 
@@ -941,6 +2001,25 @@ gap> StructureDescription(G);
     +ZXIXZ
     -ZYYZI
     +ZZXIX
+
+steane code projector:
+IIIIIII
++IIXXXXI+IIZZZZI+IIYYYYI+IXIXXIX
++IXXIIXX+IXZYYZX+IXYZZYX+IZIZZIZ
++IZXYYXZ+IZZIIZZ+IZYXXYZ+IYIYYIY
++IYXZZXY+IYZXXZY+IYYIIYY+XIIXIXX
++XIXIXIX+XIZYZYX+XIYZYZX+XXIIXXI
++XXXXIII+XXZZYYI+XXYYZZI+XZIYZXY
++XZXZYIY+XZZXIYY+XZYIXZY+XYIZYXZ
++XYXYZIZ+XYZIXYZ+XYYXIZZ+ZIIZIZZ
++ZIXYXYZ+ZIZIZIZ+ZIYXYXZ+ZXIYXZY
++ZXXZIYY+ZXZXYIY+ZXYIZXY+ZZIIZZI
++ZZXXYYI+ZZZZIII+ZZYYXXI+ZYIXYZX
++ZYXIZYX+ZYZYXIX+ZYYZIXX+YIIYIYY
++YIXZXZY+YIZXZXY+YIYIYIY+YXIZXYZ
++YXXYIZZ+YXZIYXZ+YXYXZIZ+YZIXZYX
++YZXIYZX+YZZYIXX+YZYZXIX+YYIIYYI
++YYXXZZI+YYZZXXI+YYYYIII
 
 
 ./su2.py test_code five find_transversal G2=Octa
@@ -9457,6 +10536,48 @@ Structure and Symmetry
 
 What is structure?
 This is any kind of regularity or pattern that we can observe.
+
+
+-------------------------------
+
+What is a name?
+
+https://www.lrb.co.uk/v39/n16/john-lanchester/you-are-the-product
+```
+    For example, if Bed, Bath and Beyond wants to get my
+    attention with one of its wonderful 20 per cent off coupons,
+    it calls out:
+    
+    Antonio García Martínez
+    1 Clarence Place #13
+    San Francisco, CA 94107
+    
+    If it wants to reach me on my mobile device, my name there is:
+    
+    38400000-8cfo-11bd-b23e-10b96e40000d
+    
+    That’s my quasi-immutable device ID, broadcast hundreds
+    of times a day on mobile ad exchanges.
+    
+    On my laptop, my name is this:
+    
+    07J6yJPMB9juTowar.AWXGQnGPA1MCmThgb9wN4vLoUpg.BUUtWg.rg.FTN.0.AWUxZtUf
+    
+    This is the content of the Facebook re-targeting cookie,
+    which is used to target ads-are-you based on your mobile browsing.
+    
+    Though it may not be obvious, each of these keys is associated
+    with a wealth of our personal behaviour data: every website
+    we’ve been to, many things we’ve bought in physical stores,
+    and every app we’ve used and what we did there … The
+    biggest thing going on in marketing right now, what is
+    generating tens of billions of dollars in investment
+    and endless scheming inside the bowels of Facebook, Google,
+    Amazon and Apple, is how to tie these different sets
+    of names together, and who controls the links. That’s it.
+'''
+
+
 
 
 

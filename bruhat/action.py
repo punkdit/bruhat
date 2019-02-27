@@ -2439,6 +2439,9 @@ def burnside(G, Hs=None):
             row.append(r"")
         rows.append(row)
 
+    if argv.subgroups_only:
+        return
+
     if argv.latex:
         print()
         print(r"\noindent Subgroups:")
@@ -2562,6 +2565,7 @@ def burnside(G, Hs=None):
     import zelim
     import numpy
     A = zelim.parse(s)
+    print(repr(A))
 
     if argv.latex:
         print()

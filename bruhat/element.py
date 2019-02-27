@@ -1502,7 +1502,7 @@ def test():
 
     # -------------------------
 
-    for n in range(2, 9):
+    for n in range(2, 20):
 
         p = cyclotomic(PolynomialRing(Z), 2*n)
     
@@ -1527,6 +1527,7 @@ def test():
         assert len(Di) == 4*n
 
         if argv.Dic and n==argv.get("n"):
+            print("order =", len(Di))
             burnside(cayley(Di))
 
     # -------------------------

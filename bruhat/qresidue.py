@@ -22,6 +22,7 @@ import numpy
 
 from argv import argv
 from solve import zeros2, shortstr, find_kernel, dot2, array2, span, eq2, rank
+from solve import linear_independent
 from action import Perm, Group
 
 
@@ -45,10 +46,15 @@ def main():
             assert 0
         return (-j)%p
 
+    nonresidues = set(range(1, p))
     residues = set()
     for i in range(1, p):
-        residues.add((i*i)%p)
+        j = (i*i)%p
+        if j not in residues:
+            residues.add(j)
+            nonresidues.remove(j)
     print("residues:", residues)
+    print("non-residues:", nonresidues)
 
     # extended binary quadratic _residue code
     N = p+1
@@ -83,18 +89,18 @@ def main():
     H = find_kernel(G)
     H = array2(H)
     print()
+    print("H =")
     print(shortstr(H))
-
-    return
 
     # -----------------------------------
 
     print()
     print("non extended:")
+    print("G =")
     G1 = G[:-1, :-1]
     print(shortstr(G1))
 
-    print("det:", numpy.linalg.det(G1.astype(numpy.float)))
+    #print("det:", numpy.linalg.det(G1.astype(numpy.float)))
 
     m = rank(G1)
     print("rank =", m)
@@ -103,7 +109,35 @@ def main():
     H1 = find_kernel(G1)
     H1 = array2(H1)
     print()
+    print("H =")
     print(shortstr(H1))
+
+    GG = dot2(G, G.transpose())
+    if GG.sum()==0:
+        print("self-dual code")
+    else:
+        print("not a self-dual code")
+
+    i = iter(nonresidues).__next__()
+    idxs = [(j*i)%p for j in range(p)]
+    assert len(set(idxs)) == p
+    NG1 = G1[:, idxs]
+    print("G~ =")
+    print(shortstr(NG1))
+    print("G . G~ =")
+    print(dot2(G1, NG1.transpose()).sum())
+
+    NH1 = find_kernel(NG1)
+    NH1 = array2(NH1)
+    print()
+    print("NH =")
+    print(shortstr(NH1))
+    #print(dot2(H1, NH1.transpose()))
+
+    print("linear_independent(G):")
+    print(shortstr(linear_independent(G1)))
+    print("linear_independent(G~):")
+    print(shortstr(linear_independent(NG1)))
 
     # -----------------------------------
     # code should be fixed by PSL(2, p).
