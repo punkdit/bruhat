@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Try to construct the Langlands correspondence
+Try to construct the "baby" Langlands correspondence
 between conjugacy classes of elements of G = GL(n, q)
 with complex irreducible representations of G.
 """

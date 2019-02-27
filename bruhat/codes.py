@@ -311,13 +311,14 @@ def gen():
     #code = code.puncture(3)
 
     #print(code)
+    if argv.puncture:
+        code = code.puncture(0)
     code.dump()
     #print("d =", code.get_distance())
 
-    return
+    #return
 
-
-    for m in range(2, 6):
+    for m in range(2, 8):
       for r in range(0, m+1):
         code = reed_muller(r, m)
         print(code, end=" ")
@@ -325,12 +326,18 @@ def gen():
             print("is_selfdual", end=" ")
         if code.is_morthogonal(3):
             print("is_triorthogonal", end=" ")
+        if dot2(code.H, code.H.transpose()).sum()==0:
+            print("***", end=" ")
         p = code.puncture(0)
         if p.is_morthogonal(3):
             print("puncture.is_triorthogonal", end=" ")
+        if p.is_selfdual():
+            print("puncture.is_selfdual", end=" ")
+        if dot2(p.H, p.H.transpose()).sum()==0:
+            print("***", end=" ")
         print()
 
-        if p.is_triorthogonal():
+        if p.is_triorthogonal() and p.k < 20:
             G = p.G
             #print(shortstr(G))
             A = list(span(G))
@@ -518,8 +525,8 @@ def search():
     # https://arxiv.org/pdf/1209.2426.pdf
 
     verbose = argv.get("verbose")
-    m = argv.get("m", 6) # number of rows
-    k = argv.get("k", None) # number of odd-weight rows
+    m = argv.get("m", 6) # _number of rows
+    k = argv.get("k", None) # _number of odd-weight rows
 
     # these are the variables N_x
     xs = list(cross([(0, 1)]*m))
@@ -568,7 +575,7 @@ def search():
 #            rhs.append(0)
 
     if k is not None:
-      # constrain to k number of odd-weight rows
+      # constrain to k _number of odd-weight rows
       assert 0<=k<m
       for a in range(m):
         v = zeros2(N)
@@ -668,6 +675,7 @@ def search():
     print("density:", density)
     print("shape:", G.shape)
     
+    print(shortstr(dot2(G, G.transpose())))
 
     if 0:
         B = pseudo_inverse(A)
@@ -767,7 +775,7 @@ def search_extend():
 
     m = argv.get("m", 6)
     n = argv.get("n", m+2)
-    k = argv.get("k") # odd numbered rows ( logical operators)
+    k = argv.get("k") # odd _numbered rows ( logical operators)
     code = argv.get("code", "rand")
 
     if code == "rand":
@@ -859,7 +867,7 @@ def search_extend():
             rhs.append(0)
 
     if k is not None:
-      # constrain to k number of odd-weight rows
+      # constrain to k _number of odd-weight rows
       assert 0<=k<m
       for a in range(m):
         v = zeros2(N)
@@ -970,8 +978,8 @@ def search_extend():
 def search_selfdual():
 
     verbose = argv.get("verbose")
-    m = argv.get("m", 6) # number of rows
-    k = argv.get("k", None) # number of odd-weight rows
+    m = argv.get("m", 6) # _number of rows
+    k = argv.get("k", None) # _number of odd-weight rows
 
 
     maxweight = argv.get("maxweight", m)
@@ -1018,7 +1026,7 @@ def search_selfdual():
             rhs.append(0)
 
     k = 0 # all rows must have even weight
-    # constrain to k number of odd-weight rows
+    # constrain to k _number of odd-weight rows
     assert 0<=k<m
     for a in range(m):
       v = zeros2(N)
