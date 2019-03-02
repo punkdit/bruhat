@@ -1,4 +1,35 @@
 
+1/3/19
+======
+
+SDiff = category of smooth manifolds. 
+
+A group object in Set is a group.
+A group object internel to SDiff is a Lie group.
+A group object in Grp is an abelian group.
+A group object in Cat is a strict 2-group.
+A group object in CRingop ^{op} is a commutative Hopf algebra.
+
+Internal monoids in monoidal categories:
+    A monoid object internal to (Ab, \otimes) is a ring
+    A monoid object internal to (Vect, \otimes) is a ring
+    A monoid object internal to (Cat, \times) is a strict monoidal category
+    
+A category object internal to Vect is a (Baez-Crans) 2-vector space.
+
+A crossed module ...
+
+
+
+
+
+28/2/19
+=======
+
+https://arxiv.org/pdf/1902.00967.pdf
+Lecture Notes on the Theory of Open Quantum Systems
+Daniel A. Lidar
+
 
 
 23/2/19
