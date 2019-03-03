@@ -1,4 +1,15 @@
 
+3/3/19
+======
+
+https://twitter.com/_julesh_/status/1102175506387083264
+    Further adventures in "should duality in a compact closed
+    category be tensor-preserving or tensor-reversing": Joyal-Street-Verity
+    define the Int-construction to have a tensor-reversing
+    duality, whereas Girard and Abramsky define it to have
+    a tensor-preserving duality
+
+
 1/3/19
 ======
 
