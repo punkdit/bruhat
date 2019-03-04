@@ -1,4 +1,32 @@
 
+4/3/19
+======
+
+http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.235.8049&rep=rep1&type=pdf
+https://arxiv.org/pdf/math/0509474.pdf
+"An analogue of Hecke-operators in coding theory" Nebe 
+F is family of self-dual codes of length N (of a given type).
+V is the \Complex-linear space on the set of equivalence classes of codes.
+Kneser-Hecke-operators for codes
+For 0<=k<=n/2, two codes C, D are called k-neighbors
+if dim(C \cup D) = dim(C) - k.
+Define a linear operator , the Kneser-Hecke operator,
+    T_k([C]) = \sum_{D ~_k C} [D]
+this is a self-adjoint linear operator on V.
+The eigenspace decomposition of T_k is given by ...
+the analogue of the space of Siegel cusp-forms
+of genus m.
+
+
+https://users.math.msu.edu/users/jhall/classes/codenotes/Mod.pdf
+Modifying Codes [n, k] with r=n-k
+(i) Augmenting. Fix n; increase k; decrease r.
+(ii) Expurgating. Fix n; decrease k; increase r.
+(iii) Extending. Fix k; increase n; increase r.
+(iv) Puncturing. Fix k; decrease n; decrease r.
+(v) Lengthening. Fix r; increase n; increase k.
+(vi) Shortening. Fix r; decrease n; decrease k.
+
 3/3/19
 ======
 
@@ -25,13 +53,39 @@ Internal monoids in monoidal categories:
     A monoid object internal to (Ab, \otimes) is a ring
     A monoid object internal to (Vect, \otimes) is a ring
     A monoid object internal to (Cat, \times) is a strict monoidal category
+
+    A commutative monoid object internal to (Vect_k, \otimes) is
+        a commutative k-algebra.
     
 A category object internal to Vect is a (Baez-Crans) 2-vector space.
 
-A crossed module ...
+A category object internal to Grp is a crossed module of groups.
 
+Internal category in Grp  ~=  Internal group in Cat
 
+Bicategory, aka weak 2-category
 
+For example:
+given a base category C,
+a span a -|-> b is a diagram:
+    a <-- v --> b
+The bicategory span(C) has
+    0-cells : objects of C
+    1-cells : spans of C with composition the pullback:
+
+              v <-- u --> w
+              |           |
+              |           |
+              V           V
+        a <-- v --> b <-- w --> c
+
+    2-cells : maps x:v-->v' such that
+
+        a <-- v  --> b
+        |     |      |
+       =|    x|      |=
+        V     V      V
+        a <-- v' --> b
 
 
 28/2/19
