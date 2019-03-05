@@ -1,4 +1,16 @@
 
+5/3/19
+======
+
+https://arxiv.org/pdf/q-alg/9609018.pdf
+Higher-Dimensional Algebra II: 2-Hilbert Spaces
+John C. Baez
+page 8: The category Hilb is the categorification of
+the complex numbers. Categorification of conjugation
+is a functor, Hilb -> Hilb.
+
+
+
 4/3/19
 ======
 
@@ -63,6 +75,24 @@ A category object internal to Grp is a crossed module of groups.
 
 Internal category in Grp  ~=  Internal group in Cat
 
+An algebraic group is a group object in the category of algebraic varieties
+    eg. SL(n)
+
+An affine algebraic group is a group object in the category of affine varieties
+
+A linear algebraic group is a Zariski-closed subgroup of GL(n).
+
+Theorem: An algebraic group is linear iff it is affine.
+
+A group scheme (over R) is a group object in the category of schemes over a commutative ring R.
+An affine group scheme has underlying scheme affine.
+The category of affine group schemes is the opposite of the category of commutative Hopf algebras.
+
+Given a field, k, a connected algebraic group has underlying variety projective.
+These are commutative, and called abelian varieties.
+In dimension 1 these are the elliptic curves.
+
+
 Bicategory, aka weak 2-category
 
 For example:
@@ -86,6 +116,24 @@ The bicategory span(C) has
        =|    x|      |=
         V     V      V
         a <-- v' --> b
+
+
+https://arxiv.org/pdf/q-alg/9702014.pdf
+Higher-Dimensional Algebra III: n-Categories and the Algebra of Opetopes
+John C. Baez and James Dolan
+
+We may generalize the notion of ‘monoid’
+to that of a monoid object in any monoidal category.
+The notion of ‘monoidal category’ is a categorification of the notion of ‘monoid'.
+
+the microcosm principle:
+    certain algebraic structures can be defined in any category
+    equipped with a categorified version of the same structure.
+
+eg. HDA0, commutative monoid object in a symmetric monoidal category.
+
+A 2-rig is a categorified rig.
+
 
 
 28/2/19
