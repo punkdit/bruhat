@@ -1,4 +1,10 @@
 
+6/3/19
+======
+
+self-dual CSS codes with k=1 and weight-(0 mod 4) stabilisers have transversal Cliffords
+https://twitter.com/BenCriger/status/1102912046474104832
+
 5/3/19
 ======
 
