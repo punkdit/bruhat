@@ -264,6 +264,19 @@ count: 31
 self-dual CSS codes with k=1 and weight-(0 mod 4) stabilisers have transversal Cliffords
 https://twitter.com/BenCriger/status/1102912046474104832
 
+
+https://twitter.com/SciTech_Cat/status/1103313556479664128
+So I wrote a story for @WiredUK on #quantum computing.
+Amount of hype & misconceptions around it is insane!
+
+ @Microsoft thinks it's smarter than NISQ & ions folks
+& working on topological qubits, 3rd approach. After
+years of research, it's still to make a single one. If
+it does, it'll be of much better quality than NISQ/ions
+& it'll be easier to scale.
+
+
+
 5/3/19
 ======
 
