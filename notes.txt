@@ -1,4 +1,28 @@
 
+14/3/19
+=======
+
+https://arxiv.org/pdf/1804.01950.pdf
+ Duality
+As demonstrated by Wegner[35], a general Ising model
+with the partition function (4) has a dual representation, which is a generalization of Kramers-Wannier[37]
+duality. The same duality has been first established in
+coding theory by MacWilliams[38] as a relation between
+weight polynomials of two dual codes. 
+
+13/3/19
+=======
+
+https://twitter.com/sigfpe/status/1105874731595517952
+    I think bra-ket notation is great for probability theory
+    as well as quantum mechanics but this is the first time
+    I've ever seen it outside of my own personal scribbles:
+    https://arxiv.org/abs/1810.05814 
+Categorical Aspects of Parameter Learning
+Bart Jacobs
+https://arxiv.org/abs/1810.05814
+
+
 7/3/19
 ======
 
