@@ -1,4 +1,39 @@
 
+22/3/19
+=======
+
+
+Fantastic Quantum Theories and Where to Find Them
+Stefano Gogioso
+https://arxiv.org/abs/1703.10576
+
+Entropy modulo a prime
+Tom Leinster∗
+https://arxiv.org/pdf/1903.06961.pdf
+
+https://golem.ph.utexas.edu/category/2019/03/entropy_mod_p.html
+
+https://golem.ph.utexas.edu/category/2019/03/how_much_work_can_it_be_to_add.html
+
+21/3/19
+=======
+
+Towards a Categorical Account of Conditional Probability
+Robert Furber and Bart Jacobs
+https://arxiv.org/abs/1306.0831
+
+Probabilities, Distribution Monads, and Convex Categories
+Bart Jacobs
+http://www.cs.ru.nl/B.Jacobs/PAPERS/triangle.pdf
+
+Causal Inference by String Diagram Surgery
+Bart Jacobs1 , Aleks Kissinger1 , and Fabio Zanasi
+http://www.zanasi.com/fabio/files/paperFossacs19.pdf
+
+The Logical Essentials of Bayesian Reasoning
+Bart Jacobs1 and Fabio Zanasi2
+http://www.zanasi.com/fabio/files/paperBook19.pdf
+
 17/3/19
 =======
 
