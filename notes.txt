@@ -1,4 +1,44 @@
 
+26/3/19
+=======
+
+The Hecke Bicategory
+Alexander E. Hoffnung
+Axioms 2012, 1, 291-323; doi:10.3390/axioms1030291
+
+Basic Bicategories
+Tom Leinster
+https://arxiv.org/abs/math/9810017
+
+An Objective Representation of the Gaussian Integers
+Marcelo Fiore, Tom Leinster
+https://arxiv.org/abs/math/0211454
+
+25/3/19
+=======
+
+
+Bimonoidal Structure of Probability Monads
+Tobias Fritz, Paolo Perrone
+https://arxiv.org/abs/1804.03527
+    ...a semicartesian monoidal category is a monoidal category in which the
+    monoidal unit 1 is a terminal object. For probability theory, this is a very appealing
+    feature of a category, because such an object can be interpreted as a trivial space, having
+    only one possible state. In other words, the object 1 would have the property that for
+    every object X, X ⊗ 1 ∼= X (monoidal unit), so that tensoring with 1 does not increase
+    the number of possible states, and moreover there is a unique map ! : X → 1 (terminal
+    object), which we can think of as “forgetting the state of X”. Cartesian monoidal
+    categories are in particular semicartesian.
+
+
+https://golem.ph.utexas.edu/category/2009/09/traces_in_bicategories.html
+SHADOWS AND TRACES IN BICATEGORIES
+KATE PONTO AND MICHAEL SHULMAN
+https://arxiv.org/abs/0910.1306
+    In the bicategorical context, duals are also frequently called adjoints, since in
+    the bicategory Cat (see Remark 3.5) a dual pair is just an adjoint pair of functors.
+
+
 22/3/19
 =======
 
@@ -3613,7 +3653,7 @@ An Objective Representation of the Gaussian Integers
 Marcelo Fiore Tom Leinster
 https://arxiv.org/pdf/math/0211454.pdf
     the identity x = x^5
-    in N[x]/(x = 1 + x + x 2) entails an
+    in N[x]/(x = 1 + x + x^2) entails an
     isomorphism (in the language of distributive categories)
     between Motzkin trees and five-tuples of Motzkin trees
 
