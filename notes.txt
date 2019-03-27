@@ -1,4 +1,11 @@
 
+27/3/19
+=======
+
+Topics in Category Theory: Hopf Algebras
+http://pi.math.cornell.edu/~dmehrle/notes/partiii/hopfalg_partiii_notes.pdf
+
+
 26/3/19
 =======
 
@@ -474,6 +481,9 @@ A category object internal to Vect is a (Baez-Crans) 2-vector space.
 A category object internal to Grp is a crossed module of groups.
 
 Internal category in Grp  ~=  Internal group in Cat
+
+A Hopf monoid in Vect is a Hopf Algebra.
+http://pi.math.cornell.edu/~dmehrle/notes/partiii/hopfalg_partiii_notes.pdf
 
 An algebraic group is a group object in the category of algebraic varieties
     eg. SL(n)
