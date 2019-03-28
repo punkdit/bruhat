@@ -49,6 +49,10 @@ simon@monic:~/home/github/qupy/qupy/dev$ time ./su2.py fast G2=RealCliff test_mo
 1 0 1 0 3 0 10 0 36 0 136 0 528 0 2080 0 8256 0 32896 0 131328
 
 
+time ./su2.py test_internal_series_fast fast G2=PauliS degree=4
+...
+
+
 27/3/19
 =======
 
