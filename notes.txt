@@ -1,4 +1,14 @@
 
+28/3/19
+=======
+
+https://twitter.com/_julesh_/status/1111211092360003584
+    SYCO 3 day 2/2
+    Our second invited speaker: Marie Kerjean on "differentiating
+    proofs and programs", talking about solving PDEs using
+    cut elimination for linear logic
+
+
 27/3/19
 =======
 
