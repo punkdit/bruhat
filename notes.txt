@@ -9,6 +9,46 @@ https://twitter.com/_julesh_/status/1111211092360003584
     cut elimination for linear logic
 
 
+simon@monic:~/home/github/qupy/qupy/dev$ time ./su2.py fast G2=Tetra test_molien4
+|G2| = 24
+1 1 1 1 1 1 4 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 4 0 
+1 1 2 6 22 86 342 1366 5462 21846 87382
+
+simon@monic:~/home/github/qupy/qupy/dev$ time ./su2.py fast G2=Octa test_molien4
+|G2| = 48
+1 1 2 5 15 51 187 715 2795 11051 43947
+
+simon@monic:~/home/github/qupy/qupy/dev$ time ./su2.py fast G2=Icosa test_molien4
+|G2| = 120
+1 1 2 5 14 42 133 442 1534 5525 20502
+
+simon@monic:~/home/github/qupy/qupy/dev$ time ./su2.py fast G2=Pauli test_molien4
+|G2| = 16
+1 1 4 16 64 256 1024 4096 16384 65536 262144
+
+simon@monic:~/home/github/qupy/qupy/dev$ time ./su2.py fast G2=RealPauli test_molien4
+|G2| = 8
+1 1 4 16 64 256 1024 4096 16384 65536 262144
+
+simon@monic:~/home/github/qupy/qupy/dev$ time ./su2.py fast G2=RealCliff test_molien4
+|G2| = 16
+1 1 3 10 36 136 528 2080 8256 32896 131328
+
+simon@monic:~/home/github/qupy/qupy/dev$ time ./su2.py fast G2=Cliff test_molien4
+|G2| = 192
+1 1 2 5 15 51 187 715 2795 11051 43947
+
+simon@monic:~/home/github/qupy/qupy/dev$ time ./su2.py fast G2=PauliT test_molien4
+|G2| = 128
+1 1 3 10 35 126 462 1716 6436 24328 92568
+
+simon@monic:~/home/github/qupy/qupy/dev$ time ./su2.py fast G2=PauliT test_molien
+1 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 6436 0 0 0 0
+
+simon@monic:~/home/github/qupy/qupy/dev$ time ./su2.py fast G2=RealCliff test_molien
+1 0 1 0 3 0 10 0 36 0 136 0 528 0 2080 0 8256 0 32896 0 131328
+
+
 27/3/19
 =======
 
