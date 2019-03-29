@@ -1,4 +1,85 @@
 
+29/3/19
+=======
+
+https://mathoverflow.net/questions/64610/codes-lattices-vertex-operator-algebras
+    If you have a code, there are methods to construct lattices
+    using it, but some of the constructions (like the Leech
+    lattice) require special properties of the code. If you
+    have a lattice, there are methods to construct vertex
+    operator algebras using it (e.g., the lattice VOA), but
+    some of the constructions, like orbifolds, depend on
+    properties of the lattice, like the existence of automorphisms
+    of certain orders. In the case of the moonshine module,
+    we need the −1−1 automorphism of Leech, which isn't particularly
+    special for lattices. Conjecturally (see work of Dong,
+    Mason, and Montague 1994-95), we could use any fixed-point
+    free automorphism of Leech to get an isomorphic VOA,
+    and that is somewhat more special.
+    
+    One class of "baby examples" that arise is when you take
+    the root lattice of a simple (or more generally, reductive)
+    algebraic group. This lattice has an action of the Weyl
+    group. The lattice vertex operator algebra of this lattice
+    has an action of the corresponding Kac-Moody Lie algebra
+    (more generally, I think the centrally extended loop
+    group acts). This is one of the more natural ways to
+    construct E8E8 from its lattice.
+
+
+https://mathoverflow.net/questions/14402/semiadditivity-and-dualizability-of-2
+    A dual for an object X of C is another object X* together
+    with maps 1 → X ⊗ X* and X* ⊗ X → 1 which satisfy the
+    triangular identities; see wikipedia for more details.
+    The data of X* together with these maps is unique up
+    to unique isomorphism if it exists, so it makes sense
+    to ask whether an object has a dual or not.
+
+http://math.ucr.edu/home/baez/week185.html
+    There are actually different ways to categorify the concept
+    of rig and get a notion of "2-rig", but one nice way
+    is to define it as a category with colimits equipped
+    with a monoidal structure that distributes over the colimits.
+    Having colimits is like having addition; the monoidal
+    structure is like multiplication. We call a 2-rig "symmetric"
+    if the monoidal structure is symmetric; this is like
+    being commutative. The most important 2-rig of all is
+    the category Set, since this is the free 2-rig on no
+    generators. It's also the free symmetric 2-rig on no generators.
+    
+    The free commutative rig on one generator is N[x], the
+    rig of polynomials in x with natural number coefficients.
+    We need to do a kind of "completion" process, throwing
+    in certain infinite sums, to get N[[x]], the rig of formal
+    power series in x with natural number coefficients. The
+    theory of 2-rigs allows infinite sums automatically,
+    so the free symmetric 2-rig on one generator is called
+    Set[[x]] - and this is the category of structure types!
+    Addition and multiplication in this 2-rig turn out to
+    work exactly as I've already described.
+    
+    There's a lot more to say about this, but the interesting
+    thing to me now is that when we q-deform Set[[x]], we
+    get the category of structures on projective spaces over
+    the field with q elements. And the really interesting
+    part is that while this is a monoidal category, it's
+    no longer symmetric. However, it's almost braided. Actually,
+    Joyal and Street showed this in a related situation,
+    namely where one considers not a set of structures on
+    a projective space, but a complex vector space of structures:
+    
+    10) Andre Joyal and Ross Street, The category of representations
+    of the general linear groups over a finite field, Jour. Alg. 176 (1995), 908-945.
+
+
+https://www.perell.com/blog/what-the-hell-is-going-on
+https://twitter.com/david_perell
+https://praxis.fortelabs.co/writeofpassage/
+
+
+https://www.turingtumble.com/
+
+
 28/3/19
 =======
 
