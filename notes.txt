@@ -2,6 +2,128 @@
 29/3/19
 =======
 
+https://mathoverflow.net/questions/114245/i-know-that-you-know
+Agreeing to Disagree
+Robert J. Aumann
+The Annals of Statistics, Vol. 4, No. 6. (Nov., 1976), pp. 1236-1239.
+http://www.dklevine.com/archive/refs4512.pdf
+
+James:
+    before we start i want to make a quick stab at writing
+    down here my (delayed ...) immediate reactions to your
+    suggestions about hopf algebras as unifying group theory
+    and probability in some ways ....
+    so my first reaction is to mention a couple of contrasting
+    flavors of hopf algebras with potentially very contrasting
+    geometric and/or conceptual interpretations ....  to
+    begin with, there's commutative hopf algebras vs cocommutative
+    ones .....  (and then there's also those that are both or neither ....
+    more about those later i guess ....) so
+    there's a pretty big contrast between the commutative
+    ones and the cococmmutative ones ....
+    the commutative ones generally have an interpretation
+    as algebras of _functions_ on a group (with multiplication
+    being pointwise and thus commutative) whereas the cocommutative
+    ones generally have an interpretation as algebras of
+    _measures_ on a group (with multiplication being convolution,
+    which isn't commutative on a nonabelian group .... though
+    the _co_multiplication ends up being cocommutative for
+    some good reason) ....  so
+    that strongly suggests to me that the hopf algebras you're
+    interested in here are to begin with mainly the _co_commutative
+    ones, because their elements are sensibly interpreted
+    as measures (aka "unnormalized probability distributions")
+    
+    (i hope my writing instead of talking at the moment isn't
+    too annoying ... it's helping me think a bit .... as
+    i have something relatively "canned" to say, and not
+    very deep or sustained, and it might help to have these
+    comments saved in written form on the chatboard here ....)
+
+    second : now that you mention it it seems like i _should_
+    try to combine ideas about the probabilistic aspect of
+    hecke operators and hecke algebras with ideas about the
+    probabilistic aspect of cocomutative hopf algebras, but
+    i probably haven't actually done that too much yet ....
+    however there's one pretty simple idea along these lines
+    probably worth mentioning here :
+    some people think of hecke algebras as being certain
+    sorts of subquotients of group algebras ....
+    (i tend to associate this idea with vaughan jones of
+    "jones knot polynomial" fame because that's probably
+    where i learned the idea from, but the idea is probably
+    pretty much older ....)
+    (i hope that "subquotient" is the correct terminology
+    and correct idea here, but i'm not going to worry about
+    the details too much at the moment .... the rough idea
+    is to think of the elements of a hecke algebra as _special_
+    probability measures on a group g, that "respect" a subgroup
+    h ..... or something like that; i'm being really sloppy
+    here .... but i hope you can get a sense here of how
+    there's a relationship to thinking of the elements of
+    a cocommutative hopf algebra as probability measures on a group g ....)
+    third:
+    this is an attempt to respond more conceptually though
+    also more vaguely to your general vague idea of relating
+    "ambiguity" with ["probability" and/or "non-determinism"] ..... :
+    there's a mathematician named (i think) persi diaconis
+    whose work i'm vaguely familiar with though i never looked
+    at in that much detail .... perhaps i should have looked
+    at it more because it looked interesting .... and perhaps
+    there might be a lot of other people working on similar ideas  ....
+    i think i first heard of persi diaconis because they
+    were one of those people that martin gardner used to
+    talk about .... someone who was both a mathematician
+    and a (?semi-pro) stage magician and so forth ....
+    and i think they did some serious/ish work dealing with
+    the probabilistic mathematics of card-shuffling, in connection
+    with card-shuffling stage-magic tricks, but also dealing
+    with it in a more serious way ....
+    
+    and i'm hoping that it's semi-obvious how this might
+    connect to the ideas you're sort-of suggesting about
+    hopf algebras and probability theory and so forth ....
+    except that i  might not be doing a good job of conveying
+    how this work might actually involve seriously inteesting
+    ideas, even if i used the word "serious" several times ....
+    so maybe i should stop right about here, in large part
+    because i don't have very much more intelligent to say
+    yet about the ideas here .... just that i think the ideas
+    may be worth pursuing ....
+
+    ...
+
+    i mentioned how cocommutative measure hopf algebras seem
+    more directly related to probability ideas than commutative
+    function hopf algebras do, but there's all sorts of "duality"
+    games that you can play here ....
+    actually now i'm struggling to remember how probability-theorists
+    exploit this kind of "fourier duality" .... i guess they
+    talk about some sort of "characteristic function" and/or
+    "generating function" of a probability distribution sometimes,
+    meaning some kind of fourier-ish transform .....
+    however there's another idea worth mentioning here, which
+    again involves vaughan jones, and which might relate
+    to fourier duality in some way, but which seems like
+    an independent idea in its own right ....
+    namely, just the still mysterious/ish (to me) ideas about
+    how hopf algebras which are _neither_ commutative nor
+    cocommutative may nevertheless exhibit a sort of "braiding"
+    behavior, and this may not only give interesting knot
+    invariants, but perhaps more interestingly relate to
+    "quantum" ideas .... though as often happens you might
+    have to be somewhat skeptical about how literally the
+    adjective "quantum" should be interpreted in terminology
+    such as "quantum group" ....
+    
+    i guess that i'm vaguely wondering here about whether
+    the probabilistic / non-deterministic aspect of quantum
+    physics could seriously relate to the algebra of [neither
+    commutative nor cocommutative but "braided"] hopf algebras
+    in some way .... again, vaguely inspired by your vague
+    idea about hopf algebra and probability ....
+
+
 https://mathoverflow.net/questions/64610/codes-lattices-vertex-operator-algebras
     If you have a code, there are methods to construct lattices
     using it, but some of the constructions (like the Leech
