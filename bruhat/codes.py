@@ -1568,6 +1568,7 @@ if __name__ == "__main__":
         print(name+"()")
         fn = eval(name)
         fn()
+        print("OK.")
 
 
 
