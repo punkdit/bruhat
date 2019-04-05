@@ -1,4 +1,12 @@
 
+5/4/19
+======
+
+https://ncatlab.org/nlab/show/vertical+categorification
+    In the sense of “weakly internalizing in a higher categorical
+    context” we have the following examples of categorification:
+    the categorification of sheaf is stack,
+
 4/4/19
 ======
 
