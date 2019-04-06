@@ -67,7 +67,9 @@ def shortstr(*items, **kw):
         s = s.rjust(dw-1)
         smap[i, j*dw+1] = s
 
-    return smap
+    s = str(smap)
+    s = s.replace(" 0 ", " . ")
+    return s
 
 
 def shortstrx(*items, **kw):
