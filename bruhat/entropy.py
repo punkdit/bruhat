@@ -4,6 +4,7 @@ import sys
 from math import log
 
 import numpy
+from matplotlib import pyplot
 
 #from bruhat.gelim import row_reduce, shortstr, kernel
 from qupy.dev import linalg
@@ -57,10 +58,96 @@ def astr(A):
     return '\n'.join(lines)
 
 
-N0 = argv.get("N", 9)
+def zeros(n):
+    return numpy.zeros((n,), dtype=int)
 
-for N in range(4, N0+1):
-    
+
+def support(A):
+    # non-zero indexes
+    return numpy.where(A)[0]
+
+
+def propagate(A, x):
+
+    x = x.copy()
+    m, n = A.shape
+
+    changed = True
+    while changed:
+        changed = False
+
+        #print("propagate", x)
+
+        for i in range(m):
+            row = A[i]
+            freevar = None
+            value = 0
+            for j in support(row):
+                if x[j] != 0:
+                    value += row[j] * x[j]
+                elif freevar is None:
+                    freevar = j
+                else:
+                    # too many free variables
+                    break
+            else:
+                if freevar is None and numpy.dot(row, x) != 0:
+                    return None # no freevar and not a solution. Fail.
+
+                if freevar is not None:
+                    #print("row:", row, "freevar =", freevar, "value =", value)
+                    value = -row[freevar] * value
+                    if value > 0:
+                        x[freevar] = value
+                        changed = True
+                    else:
+                        return None # no positive solution
+
+    return x
+
+
+_maxdepth = 0
+def solve(A, x=None, depth=0, maxval=5):
+
+    global _maxdepth
+    _maxdepth = max(depth, _maxdepth)
+
+    m, n = A.shape
+
+    x = x.copy()
+
+    freevars = numpy.where(x==0)[0]
+    #print('  '*depth, "solve")
+    #print('  '*depth, "freevars:", freevars)
+
+    if len(freevars) == 0:
+        y = numpy.dot(A, x)
+        if numpy.allclose(y, 0):
+            yield x
+
+        else:
+            # Fail, backtrack... ?
+            return
+
+    else:
+        idx = freevars[0]
+
+        for val in range(1, maxval+1):
+
+            x[idx] = val
+            x1 = propagate(A, x)
+            if x1 is None:
+                continue
+
+            for x2 in solve(A, x1, depth+1, maxval):
+                yield x2
+
+
+
+def main():
+
+    N = argv.get("N", 9)
+
     # build a linear system of equations
     rows = []
     keys = set()
@@ -127,25 +214,60 @@ for N in range(4, N0+1):
     
     m = len(rows)
     n = len(keys)
-    A = numpy.zeros((m, n), dtype=object)
+    #A = numpy.zeros((m, n), dtype=object)
+    A = numpy.zeros((m, n), dtype=int)
     for i, row in enumerate(rows):
         for j, key in enumerate(keys):
             value = row.get(key, 0)
             A[i, j] = value
     
-    print("A.shape:", A.shape)
-    print(A)
+    #print("A.shape:", A.shape)
+    #print(A)
+    print(keys)
 
-    v = numpy.array([W(i, j) for (i, j) in keys])
+    x = zeros(n)
+    x[0] = argv.get("x0", 1)
+    x = propagate(A, x)
 
-    #print(numpy.dot(A, v))
+    count = 0
+    for v in solve(A, x, maxval=2*N):
+        s = ' '.join(str(x).ljust(2) for x in v)
+        print("solution:", s)
+        count += 1
+
+        vec = []
+        for i in range(1, N):
+            if i < N-i:
+                idx = keys.index((N-i, i))
+            else:
+                idx = keys.index((i, N-i))
+            vec.append(v[idx])
+        print("vec:", vec)
+        pyplot.plot(vec)
+
+    vec = []
+    for i in range(1, N):
+        vec.append(W(i, N-i))
+    pyplot.plot(vec, 'x-')
+    
+
+    print("_maxdepth:", _maxdepth)
+    print("solutions:", count)
+
+    pyplot.show()
+
+    return
 
     A = A.astype(float)
     B = linalg.row_reduce(A, truncate=True)
     print("B.shape:", B.shape)
     print(B)
 
+    v = numpy.array([W(i, j) for (i, j) in keys])
+    #print(numpy.dot(A, v))
     assert numpy.abs(numpy.dot(B, v)).sum() < EPSILON
+
+    return
 
     K = linalg.kernel(B)
     BK = numpy.dot(B, K)
@@ -160,106 +282,16 @@ for N in range(4, N0+1):
     print(astr(K))
 
     if N==6:
-        v = [1, 1, 2, 2, 1, 2, 2,2, 3]
+        v = [1, 1, 2, 2, 1, 2, 2, 2, 3]
+        v = [1, 2, 1, 2, 1, 1, 4, 4, 3]
+        v = [1, 2, 1, 2, 2, 2, 3, 4, 3]
         print(numpy.dot(B, v))
 
-    continue
-    
-    # _number of free variables follows
-    # https://oeis.org/A056171
-    # """ the _number of unitary prime divisors of n!. A prime
-    # divisor of n is unitary iff its exponent is 1 in the
-    # prime power factorization of n. In general, gcd(p, n/p) = 1 or p.
-    # Here we count the cases when gcd(p, n/p) = 1. """
-    # Starting at N=4:
-    # 1, 2, 1, 2, 2, 2, 1, 2, 2, 3, 2, 2, 2, 3, 3, 4, 4, 4, 3, 4, 4, ...
-    print("N = %d, free vars = %d" % (N, B.shape[1]-B.shape[0]))
-    #print("N = %d" % N)
 
-    s = ' '.join(str(k) for k in keys)
-    s = s.replace(', ', ',')
-    print(s)
-    
-    K = kernel(B)
-    K = row_reduce(K)
-    
-    B = B.astype(int)
-    K = K.astype(int)
-    
-    print(shortstr(K))
 
-    if 0:
-        
-        
-        leading = []
-        m, n = K.shape
-        j = 0
-        for i in range(m):
-            while K[i,j]==0 and j<n:
-                #print("K[%d, %d] = %d" % (i, j, K[i, j]))
-                j += 1
-            #print(i, j)
-            val = K[i, j]
-            if val < 0:
-                K[i, :] *= -1
-            #print("K[%d, %d] = %d" % (i, j, K[i, j]))
-            assert n>j>=i
-            leading.append(j)
-        
-        #print("kernel:")
-    
-    if 0:
-        
-        # Rewrite kernel so that every entry is positive
-        # while maintaining row reduced form. This means we 
-        # can add lower rows to higher rows only.
-        i = 0 # row
-        j = 0 # col
-        while i < m and j < n:
-        
-            if 0:
-                print(i, j)
-                print(shortstr(K))
-        
-            # loop invariant:
-            for i0 in range(i):
-              for j0 in range(j):
-                assert K[i0, j0] >= 0, (i0, j0)
-        
-            # look for a positive entry in this column
-            i0 = i
-            while i0 >= 0 and K[i0, j] <= 0:
-                if K[i0, j] < 0:
-                    assert 0
-                i0 -= 1
-        
-            if i0 >= 0:
-                assert K[i0, j] > 0
-            
-            i1 = i0-1
-            while i1 >= 0:
-                while K[i1, j] < 0: # HACK
-                    K[i1, :] += K[i0, :]
-                i1 -= 1
-        
-        
-            if i+1 < m:
-                i += 1
-                j += 1
-            else:
-                j += 1
-                
-            
-        print("kernel:")
-        s = shortstr(K)
-        s = s.replace(" ", "")
-        print(s)
-        
-        BK = numpy.dot(B, K.transpose())
-        assert numpy.abs(BK).sum() == 0
-        
-        #B = B.astype(int)
-    
-    print(flush=True)
+if __name__ == "__main__":
+
+    main()
+
 
 
