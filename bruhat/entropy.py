@@ -143,6 +143,25 @@ def solve(A, x=None, depth=0, maxval=5):
                 yield x2
 
 
+def latex_nosep(rows, desc):
+    n = len(rows[0])
+    lines = []
+    #lines.append("$$")
+    lines.append(r"\begin{array}{%s}"%(desc))
+    for i, row in enumerate(rows):
+        row = list(row)
+        if type(row)==list:
+            line = " & ".join(str(fld) for fld in row) + r" \\"
+        else:
+            line = str(row)
+        lines.append(line)
+    lines.append(r"\end{array}")
+    #lines.append("$$")
+    s = "\n".join(lines)
+    return s
+
+
+
 
 def main():
 
@@ -225,12 +244,25 @@ def main():
     #print(A)
     print(keys)
 
+    if 0:
+        desc = ''.join(['r' for key in keys])
+        rows = [list(row) for row in A]
+        header = ['W(%d,%d)'%key for key in keys]
+        s = latex_nosep([header]+rows, desc)
+    
+        print(s)
+        return
+
+    maxval = argv.get("maxval", 2*N)
+
     x = zeros(n)
     x[0] = argv.get("x0", 1)
     x = propagate(A, x)
 
     count = 0
-    for v in solve(A, x, maxval=2*N):
+    solutions = []
+    for v in solve(A, x, maxval=maxval):
+        solutions.append(list(v))
         s = ' '.join(str(x).ljust(2) for x in v)
         print("solution:", s)
         count += 1
@@ -242,8 +274,10 @@ def main():
             else:
                 idx = keys.index((i, N-i))
             vec.append(v[idx])
-        print("vec:", vec)
-        pyplot.plot(vec)
+        #print("vec:", vec)
+        pyplot.plot(vec, 'b')
+
+    #s = latex_nosep(solutions)
 
     vec = []
     for i in range(1, N):
@@ -254,7 +288,8 @@ def main():
     print("_maxdepth:", _maxdepth)
     print("solutions:", count)
 
-    pyplot.show()
+    if argv.plot:
+        pyplot.show()
 
     return
 
