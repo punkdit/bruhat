@@ -275,7 +275,7 @@ def main():
                 idx = keys.index((i, N-i))
             vec.append(v[idx])
         #print("vec:", vec)
-        pyplot.plot(vec, 'b')
+        pyplot.plot(vec)
 
     #s = latex_nosep(solutions)
 
