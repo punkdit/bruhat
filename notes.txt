@@ -1,4 +1,11 @@
 
+8/4/19
+======
+
+Kleisli categories and their associated monads
+https://math.stackexchange.com/questions/174475/kleisli-category-examples
+
+
 5/4/19
 ======
 

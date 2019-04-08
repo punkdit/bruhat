@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 
+"""
+https://golem.ph.utexas.edu/category/2019/03/how_much_work_can_it_be_to_add.html#c055688
+"""
+
 import sys
 from math import log
+from random import shuffle
 
 import numpy
 from matplotlib import pyplot
@@ -127,16 +132,21 @@ def solve(A, x=None, depth=0, maxval=5):
 
         else:
             # Fail, backtrack... ?
+            assert 0, "how did we get here... do we care?"
             return
 
     else:
         idx = freevars[0]
 
-        for val in range(1, maxval+1):
+        vals = list(range(1, maxval+1))
+        if argv.random:
+            shuffle(vals)
+        for val in vals:
 
             x[idx] = val
             x1 = propagate(A, x)
             if x1 is None:
+                #print("X", end="", flush=True)
                 continue
 
             for x2 in solve(A, x1, depth+1, maxval):
@@ -256,39 +266,88 @@ def main():
     maxval = argv.get("maxval", 2*N)
 
     x = zeros(n)
-    x[0] = argv.get("x0", 1)
+    x[0] = x0 = argv.get("x0", 1)
     x = propagate(A, x)
 
-    count = 0
-    solutions = []
-    for v in solve(A, x, maxval=maxval):
-        solutions.append(list(v))
-        s = ' '.join(str(x).ljust(2) for x in v)
-        print("solution:", s)
-        count += 1
+    maxcount = argv.maxcount
+    N0 = argv.get("N0", N)
+    ys = range(1, N0)
 
-        vec = []
-        for i in range(1, N):
-            if i < N-i:
-                idx = keys.index((N-i, i))
-            else:
-                idx = keys.index((i, N-i))
-            vec.append(v[idx])
-        #print("vec:", vec)
-        pyplot.plot(vec)
+    solutions = []
+    if argv.random:
+
+        assert argv.maxcount is not None
+        while len(solutions) < argv.maxcount:
+            v = solve(A, x, maxval=maxval).__next__()
+            solutions.append(list(v))
+
+    else:
+        for v in solve(A, x, maxval=maxval):
+            solutions.append(list(v))
+    
+            if argv.verbose:
+                s = ' '.join(str(x).ljust(2) for x in v)
+                print("solution:", s)
+    
+            if maxcount is not None and len(solutions)>maxcount:
+                break
 
     #s = latex_nosep(solutions)
 
-    vec = []
-    for i in range(1, N):
-        vec.append(W(i, N-i))
-    pyplot.plot(vec, 'x-')
-    
-
     print("_maxdepth:", _maxdepth)
-    print("solutions:", count)
+    print("solutions:", len(solutions))
 
-    if argv.plot:
+    #lookup
+
+    if argv.plot and not argv.random:
+        vecs = set()
+        for v in solutions:
+            vec = []
+            for i in range(1, N0):
+                if i < N0-i:
+                    idx = keys.index((N0-i, i))
+                else:
+                    idx = keys.index((i, N0-i))
+                vec.append(v[idx])
+            #print("vec:", vec)
+            vec = tuple(vec)
+            vecs.add(vec)
+        print("vecs:", len(vecs))
+
+        v0 = sum(vec[0] for vec in vecs) / len(vecs)
+        for vec in vecs:
+            pyplot.plot(ys, vec)
+
+        vec = []
+        r = v0 / W(1, N0-1)
+        for i in range(1, N0):
+            vec.append(r*W(i, N0-i))
+        pyplot.plot(ys, vec, 'x-')
+        pyplot.show()
+
+    elif argv.plot:
+
+        idxs = []
+        for i in range(1, N0):
+            if i < N0-i:
+                idx = keys.index((N0-i, i))
+            else:
+                idx = keys.index((i, N0-i))
+            idxs.append(idx)
+
+        vec = []
+        for idx in idxs:
+            val = sum(v[idx] for v in solutions) / len(solutions)
+            vec.append(val)
+        pyplot.plot(ys, vec)
+
+        #r = vec[0] / W(1, N0-1)
+        r = x0 / W(1, 1)
+        vec = []
+        for i in range(1, N0):
+            vec.append(r*W(i, N0-i))
+        pyplot.plot(ys, vec, 'x-')
+
         pyplot.show()
 
     return
