@@ -6,7 +6,7 @@ https://golem.ph.utexas.edu/category/2019/03/how_much_work_can_it_be_to_add.html
 
 import sys
 from math import log
-from random import shuffle
+from random import shuffle, choice
 
 import numpy
 from matplotlib import pyplot
@@ -136,12 +136,17 @@ def solve(A, x=None, depth=0, maxval=5):
             return
 
     else:
-        idx = freevars[0]
 
         vals = list(range(1, maxval+1))
         if argv.random:
             shuffle(vals)
+
         for val in vals:
+
+            if argv.random and 0:
+                idx = choice(freevars)
+            else:
+                idx = freevars[0]
 
             x[idx] = val
             x1 = propagate(A, x)
@@ -252,7 +257,7 @@ def main():
     
     #print("A.shape:", A.shape)
     #print(A)
-    print(keys)
+    #print(keys)
 
     if 0:
         desc = ''.join(['r' for key in keys])
@@ -263,7 +268,16 @@ def main():
         print(s)
         return
 
+    if argv.kernel:
+        A = A.astype(float)
+        B = linalg.row_reduce(A, truncate=True)
+        m, n = B.shape
+        print("B.shape:", B.shape)
+        print("kernel:", n-m)
+        return
+
     maxval = argv.get("maxval", 2*N)
+    print("maxval:", maxval)
 
     x = zeros(n)
     x[0] = x0 = argv.get("x0", 1)
@@ -278,9 +292,16 @@ def main():
 
         assert argv.maxcount is not None
         while len(solutions) < argv.maxcount:
-            v = solve(A, x, maxval=maxval).__next__()
+            try:
+                v = solve(A, x, maxval=maxval).__next__()
+            except StopIteration:
+                continue
             solutions.append(list(v))
 
+            if argv.verbose:
+                s = ' '.join(str(x).ljust(2) for x in v)
+                print("solution:", s)
+    
     else:
         for v in solve(A, x, maxval=maxval):
             solutions.append(list(v))
@@ -294,7 +315,7 @@ def main():
 
     #s = latex_nosep(solutions)
 
-    print("_maxdepth:", _maxdepth)
+    print("maxdepth:", _maxdepth)
     print("solutions:", len(solutions))
 
     #lookup
@@ -335,11 +356,16 @@ def main():
                 idx = keys.index((i, N0-i))
             idxs.append(idx)
 
-        vec = []
-        for idx in idxs:
-            val = sum(v[idx] for v in solutions) / len(solutions)
-            vec.append(val)
-        pyplot.plot(ys, vec)
+        if argv.average:
+            vec = []
+            for idx in idxs:
+                val = sum(v[idx] for v in solutions) / len(solutions)
+                vec.append(val)
+            pyplot.plot(ys, vec)
+        else:
+            for v in solutions:
+                vec = [v[idx] for idx in idxs]
+                pyplot.plot(ys, vec)
 
         #r = vec[0] / W(1, N0-1)
         r = x0 / W(1, 1)

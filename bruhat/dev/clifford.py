@@ -10,9 +10,6 @@ from random import shuffle
 import numpy
 
 from bruhat.argv import argv
-#from bruhat.element import FiniteField, PolynomialRing
-#from bruhat.vec import Space, Hom, Map
-from bruhat.action import mulclose
 from bruhat.util import all_primes
 
 # Finite field notation in gap
@@ -233,7 +230,12 @@ def test():
     print("obs:", len(obs))
     for ob in obs:
         print(len(ob), end=" ")
+            
+    print()
 
+    for ob in obs:
+        if len(ob) == len(C2):
+            assert set(ob) == set(C2_lookup)
 
 
 if __name__ == "__main__":
