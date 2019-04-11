@@ -1,4 +1,13 @@
 
+11/9/19
+=======
+
+A Characterization of Entropy in Terms of Information Loss
+John C. Baez, Tobias Fritz, Tom Leinster
+https://arxiv.org/abs/1106.1791
+
+
+
 9/4/19
 ======
 

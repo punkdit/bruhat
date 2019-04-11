@@ -177,6 +177,44 @@ def latex_nosep(rows, desc):
 
 
 
+def do_pulp(keys, rows):
+    # Try to refute entropy inequalities using linear programming.
+    import pulp
+    system = pulp.LpProblem("system", pulp.LpMinimize)
+
+    names = {}
+    vs = {}
+    for (i, j) in keys:
+        name = "W_%d_%d"%(i, j)
+        names[i, j] = name
+        var = pulp.LpVariable(name)
+        vs[i, j] = var
+        system += var >= 1.0
+
+    for i, row in enumerate(rows):
+        expr = 0
+        for j, key in enumerate(keys):
+            value = row.get(key, 0)
+            expr += value * vs[key]
+        #print(expr)
+        system += expr == 0.0
+
+    #system += vs[3, 1] >= vs[2, 2] # Infeasible at N=9
+    #system += vs[5, 1] >= vs[4, 2] # Infeasible at N=25
+    system += vs[4, 2] >= vs[3, 3]  # Infeasible at N=64
+
+    status = system.solve()
+    s = pulp.LpStatus[status]
+    print("pulp:", s)
+    if s == "Infeasible":
+        return
+
+    if 0:
+        for key in keys:
+            v = vs[key]
+            print(v, "=", pulp.value(v))
+        
+
 
 def main():
 
@@ -227,7 +265,7 @@ def main():
                 row[key] = -1
                 keys.add(key)
         
-    #        print(row)
+            #print(row)
             rows.append(row)
     
     for key in keys:
@@ -245,6 +283,9 @@ def main():
     keys = list(keys)
     keys.sort(key = namerank)
     #print("keys:", keys)
+
+    for k in keys:
+        print("W(%d,%d)"%k)
     
     m = len(rows)
     n = len(keys)
@@ -254,6 +295,10 @@ def main():
         for j, key in enumerate(keys):
             value = row.get(key, 0)
             A[i, j] = value
+
+    if argv.pulp:
+        do_pulp(keys, rows)
+        return
     
     #print("A.shape:", A.shape)
     #print(A)
