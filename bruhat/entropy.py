@@ -219,6 +219,7 @@ def do_pulp(keys, rows):
 def main():
 
     N = argv.get("N", 9)
+    modulo = argv.get("modulo")
 
     # build a linear system of equations
     rows = []
@@ -284,8 +285,8 @@ def main():
     keys.sort(key = namerank)
     #print("keys:", keys)
 
-    for k in keys:
-        print("W(%d,%d)"%k)
+    #for k in keys:
+    #    print("W(%d,%d)"%k)
     
     m = len(rows)
     n = len(keys)
@@ -357,6 +358,17 @@ def main():
     
             if maxcount is not None and len(solutions)>maxcount:
                 break
+
+
+    if 0:
+        for v in solutions:
+            for idx, k in enumerate(keys):
+                value = v[idx]
+                if argv.modulo is not None:
+                    value %= argv.modulo
+                i, j = k
+                print("W(%d,%d)=%s"%(i, j, value), end=" ")
+            print()
 
     #s = latex_nosep(solutions)
 

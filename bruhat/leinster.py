@@ -48,7 +48,7 @@ def h(x):
 
 
 for x in range(1, p):
-    print(h(x), end=" ")
+    print("h(%d)=%d" % (x, h(x)), end=" ")
 print()
 
 
