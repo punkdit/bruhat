@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
 Here we look at universal quantum gate sets over a finite field.
+
+See also: clifford.py
 """
 
 from random import shuffle
