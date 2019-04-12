@@ -6,6 +6,7 @@ See https://golem.ph.utexas.edu/category/2019/03/entropy_mod_p.html
 """
 
 from bruhat.action import Perm, Group
+from bruhat.util import factorial
 from bruhat.argv import argv
 
 
@@ -47,8 +48,26 @@ def h(x):
     return total%p
 
 
+def h2(x1, x2):
+    x1 %= p
+    x2 %= p
+    total = 0
+    for r1 in range(p):
+      for r2 in range(p):
+        if r1+r2 != p:
+            continue
+        total += - div( (x1**r1) * (x2**r2) % p, factorial(r1)*factorial(r2)%p )
+    return total%p
+
+
 for x in range(1, p):
     print("h(%d)=%d" % (x, h(x)), end=" ")
 print()
+
+for x in range(1, p):
+    print("h2(%d)=%d" % (x, h2(x, 1-x)), end=" ")
+print()
+
+print("h(1,1)", h2(1, 1))
 
 

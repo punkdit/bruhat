@@ -1,4 +1,76 @@
 
+12/4/19
+=======
+
+https://arxiv.org/abs/math/0605779
+Division by three
+Peter G. Doyle, John Horton Conway
+(Submitted on 31 May 2006)
+    We prove without appeal to the Axiom of Choice that for
+    any sets A and B, if there is a one-to-one correspondence
+    between 3 cross A and 3 cross B then there is a one-to-one
+    correspondence between A and B. The first such proof,
+    due to Lindenbaum, was announced by Lindenbaum and Tarski
+    in 1926, and subsequently `lost'; Tarski published an
+    alternative proof in 1949. We argue that the proof presented
+    here follows Lindenbaum's original.
+Figure 11: Subtraction, illustrated in this figure, is as simple as following the
+arrows. It’s really just 0-dimensional cobordism theory in disguise.
+
+https://mathoverflow.net/questions/202505/dividing-by-two-in-the-category-of-vector-spaces
+
+https://arxiv.org/abs/1504.01402
+Division by four
+Peter G. Doyle Cecil Qiu
+    Write A  B if there is an injection from A to B, and A ≍ B if
+    there is a bijection. We give a simple proof that for finite n, n × A
+    n × B implies A  B. From the Cantor-Bernstein theorem it then
+    follows that n × A ≍ n × B implies A ≍ B. These results have
+    a long and tangled history, of which this paper is meant to be the
+    culmination.
+
+Producing New Bijections from Old
+April 22, 1994 David Feldman James Propp
+http://faculty.uml.edu/jpropp/cancel.pdf
+
+
+https://golem.ph.utexas.edu/category/2019/03/how_much_work_can_it_be_to_add.html#comments
+From numerical simulation it looks like the above system
+of equations truncated to $n$ has kernel with dimension
+equal to the number of prime factors in $n$. I'm guessing
+this corresponds to the choice of value of $\log(p)$ for prime $p$.
+
+Also, I finally found a proof that $W(3,1)\lt W(2,2).$ It uses the two equations
+$$
+\begin{array}{c}
+W(2,1) + W(3,1) = W(1,1) + W(2,2) \\
+W(6,2) + W(8,1) = W(2,1) + W(6,3).
+\end{array}
+$$
+
+These simplify to
+$$
+\begin{array}{c}
+W(2,1) + W(3,1) = 3W(1,1)\\
+2W(3,1) + W(8,1) = 4W(2,1).
+\end{array}
+$$
+Multiplying the first equation by 4 and then combining
+with the second equation we get
+$$
+6W(3,1) + W(8,1) = 12W(1,1) = 6W(2,2)
+$$
+and because $W(a,b)\gt 0$ the result follows, as long
+as we are willing to cancel the factor of 6.
+
+All of this makes me think that entropy can be defined
+taking values in a rig, or 2-rig, or traced monoidal
+category, or some other gadget like that. Working just
+over the natural numbers I would hope to see the "real"
+entropy show up as a colimit, similar to how Paolo Perrone
+explains 
+<a href="https://golem.ph.utexas.edu/category/2019/03/the_kantorovich_monad.html">here</a> .
+
 
 
 11/9/19

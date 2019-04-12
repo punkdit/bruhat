@@ -360,14 +360,15 @@ def main():
                 break
 
 
-    if 0:
+    if 1:
         for v in solutions:
             for idx, k in enumerate(keys):
                 value = v[idx]
                 if argv.modulo is not None:
                     value %= argv.modulo
                 i, j = k
-                print("W(%d,%d)=%s"%(i, j, value), end=" ")
+                if i+j == 5:
+                    print("W(%d,%d)=%s"%(i, j, value), end=" ")
             print()
 
     #s = latex_nosep(solutions)
