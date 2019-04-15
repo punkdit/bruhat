@@ -12,6 +12,8 @@ import numpy
 from bruhat.argv import argv
 from bruhat.util import all_primes
 
+print(all_primes(100))
+
 # Finite field notation in gap
 # https://www.gap-system.org/Manuals/doc/ref/chap59.html
 # [ [ Z(3)^0, Z(3)^0,   Z(3) ], [   Z(3), 0*Z(3),   Z(3) ], [ 0*Z(3),   Z(3), 0*Z(3) ] ]
@@ -20,6 +22,7 @@ from bruhat.util import all_primes
 def test():
 
     p = argv.get("p", 17)
+    print("p =", p)
     
     for fgen in range(1, p):
         items = set()
@@ -42,29 +45,37 @@ def test():
 
     #print("fgen:", fgen)
 
-    has_imag = [i for i in items if i*i%p == p-1]
+    # look for a square root of -1
+    has_i4 = [i for i in items if i*i%p == p-1]
     
-    #print(p, has_imag)
-    if not has_imag:
+    if not has_i4:
         assert 0
 
-    i4 = has_imag[0]
-    assert p-i4 == has_imag[1]
+    i4 = has_i4[0]
+    assert p-i4 == has_i4[1]
 
-    has_root2 = [i for i in items if i*i%p == 2]
-    if not has_root2:
+    # look for a square root of 2
+    has_r2 = [i for i in items if i*i%p == 2]
+    if not has_r2:
         assert 0
-    r2 = has_root2[0]
-    assert p-r2 == has_root2[1]
+    r2 = has_r2[0]
+    assert p-r2 == has_r2[1]
 
+    # look for a square root of i4
     has_i8 = [i for i in items if i*i%p == i4]
     if not has_i8:
         assert 0
     i8 = has_i8[0]
     assert p-i8 == has_i8[1]
 
-    print("p =", p)
-    #print(i4, r2, i8)
+    # look for a square root of i8... ?
+    has_i16 = [i for i in items if i*i%p == i8]
+    if has_i16:
+        i16 = has_i16[0]
+        assert p-i16 == has_i16[1]
+        #print(i16**15%p)
+        print(i4, r2, i8, i16)
+
 
     def array(items):
         A = numpy.array(items, dtype=int) % p
@@ -173,6 +184,15 @@ def test():
     C3_lookup = set(g.tostring() for g in C3)
 
     shuffle(C3)
+
+    if 0:
+        a = i16**15%p
+        b = i16**3%p
+        H = array([[a, b], [b, a]])
+        print(H)
+        print(H.tostring() in C3_lookup)
+        return
+    
 
     def src(a):
         return set([b.tostring() for b in C3 if mul(a, b).tostring() in C3_lookup])

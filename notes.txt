@@ -1,4 +1,32 @@
 
+14/4/19
+=======
+
+http://bastian.rieck.me/blog/posts/2019/on_writing/
+    Rule 1: When in doubt, start in the middle
+    While text typically is quite linear when reading (although
+    for reviewing a paper, for example, this might not be
+    the best strategy, but I digress), there is no need for
+    linearity when writing. More to the point, some people
+    are actually scared of starting to write. The reason
+    for this is the “fear of the empty page”, which I like
+    to refer to as the horror vacui of writing.
+    
+    The best remedy, it seems, is to start with the parts
+    that one deems to be easy. In a scientific paper, this
+    could be the part containing details about your new method,
+    for example. In a report, it could be a description of
+    the results you achieved—and so on.
+    
+    I find that the hard part is starting the writing process,
+    so if I start with something that I consider to be easy,
+    the writing will be flowing better afterwards. As a short
+    aside, this is why I typically write the outer parts
+    of a scientific paper, i.e. conclusion, introduction,
+    and related work, at the very end once everything else
+    is in place already—and once I have achieved sufficient
+    speed, or momentum, to actually tackle those sections.
+
 12/4/19
 =======
 
