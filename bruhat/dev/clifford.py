@@ -186,11 +186,11 @@ def test():
     shuffle(C3)
 
     if 0:
-        a = i16**15%p
-        b = i16**3%p
+        a = ir2*i16**15%p
+        b = ir2*i16**3%p
         H = array([[a, b], [b, a]])
         print(H)
-        print(H.tostring() in C3_lookup)
+        print(H.tostring() in C3_lookup) # True
         return
     
 
