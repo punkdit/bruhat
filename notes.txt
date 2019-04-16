@@ -1,4 +1,20 @@
 
+16/4/19
+=======
+
+Shaded Tangles for the design and verification of quantum circuits
+David J. Reutter1 and Jamie Vicary1,2
+https://royalsocietypublishing.org/doi/pdf/10.1098/rspa.2018.0338
+
+
+https://www.youtube.com/watch?v=fmht16zig7A
+Shaolan Hsueh: "Chineasy"
+Learning Chinese is hard, and ShaoLan made it her mission
+to simplify it as much as possible. Her system, Chineasy,
+associates the complex Chinese characters with easy to
+understand beautiful illustrations of their meaning.
+
+
 14/4/19
 =======
 
