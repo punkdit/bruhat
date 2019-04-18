@@ -1,4 +1,26 @@
 
+17/4/19
+=======
+
+The dynamics of 2-generator subgroups of PSL(2,C)
+Brooks, Matelski
+http://abel.math.harvard.edu/archive/118r_spring_05/docs/brooksmatelski.pdf
+    If 
+    [[1 1] 
+     [0 1]]
+    and
+    [[a b] 
+     [c d]]
+    generate a discrete subgroup of PSL(2,C)
+    then either c==0 or |c|>=1.
+
+
+https://www.geogebra.org/m/Npd3kBKn
+Mandelbrot Iteration Orbits
+Ben Sparks
+
+
+
 16/4/19
 =======
 
