@@ -68,6 +68,32 @@ Mandelbrot Iteration Orbits
 Ben Sparks
 
 
+18/4/19
+========
+
+Day convolution product of two presheaves
+https://golem.ph.utexas.edu/category/2008/01/the_concept_of_a_space_of_stat.html#c014365
+
+Quantum theory is a quasi-stochastic process theory
+John van de Wetering
+https://qpl.science.ru.nl/papers/QPL_2017_paper_37.pdf
+http://vdwetering.name/pdfs/presentation-qstoch.pdf
+
+Probabilities, distribution monads, and convex categories
+Bart Jacobs
+Theoretical Computer Science 412 (2011) 3323–3336
+
+
+
+17/4/19
+=======
+
+A PRESENTATION OF THE CATEGORY OF STOCHASTIC
+MATRICES
+TOBIAS FRITZ
+https://arxiv.org/pdf/0902.2554.pdf
+
+
 
 16/4/19
 =======
