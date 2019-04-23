@@ -1,4 +1,52 @@
 
+20/4/19
+=======
+
+https://ncatlab.org/johnbaez/show/Schur+functors+II
+    The ring of symmetric functions, commonly called Λ \Lambda,
+    has a wealth of fascinating structure. It is not only
+    a commutative ring, but also a ‘cocommutative coring’,
+    and these structures are compatible in way that makes
+    it into a ‘biring’. As noted by Tall and Wraith (ref),
+    the category of birings has an interesting monoidal structure
+    that makes Λ \Lambda into is a monoid object. Borger
+    and Wieland have dubbed a monoid object in the category
+    of birings a ‘plethory’.
+    
+    But what is Λ \Lambda, and why is it a plethory? While
+    Λ \Lambda may be defined using generators and relations,
+    a more elegant definition is also possible: it is the
+    Grothendieck group of the category of ‘Schur functors’,
+    which we denote by Schur Schur This fact not only allows
+    us to efficiently obtain the plethory structure on Λ
+    \Lambda, it allows us to ‘categorify’ all this structure:
+    that is, to see it as present in the category Schur Schur.
+    That is our aim here.
+
+
+"The Mess We're In" by Joe Armstrong
+https://www.youtube.com/watch?v=lKXe3HUG2l4
+causality, names, hashes, compression algorithms
+byzantine generals problem
+
+
+https://youtu.be/rY5jCvRHEFk?t=742
+Russell Brand
+"the way that the system re-asserted itself was
+magnificent to watch... the system itself is
+beyond individual decisions."
+
+
+
+19/4/19
+=======
+
+Generic figures and their glueings
+A constructive approach to functor categories
+Marie La Palme Reyes, Gonzalo E. Reyes and Houman Zolfaghari
+2004
+
+
 17/4/19
 =======
 
