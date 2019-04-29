@@ -1,4 +1,216 @@
 
+29/4/19
+=======
+
+https://arxiv.org/abs/1407.3807
+Beyond the Shannon-Khinchin Formulation: The Composability
+Axiom and the Universal Group Entropy
+Piergiulio Tempesta
+    the notion of entropy is intimately related with group theory. 
+    Indeed, admissible entropies
+    have associated a formal group law, controlling crucially their properties.
+    ...
+    Another important aspect that deserves to be clarified
+    is the possible numbertheoretical content of the notion
+    of universal group entropy. In [45], a connection between
+    a set of entropic functionals and a class of Dirichlet series has been
+    established. It has been proved that the formal group exponentials defining a
+    specific family of entropies can be used to define L-functions.
+    The most paradigmatic case is offered by Tsallis entropy,
+    directly related to the Riemann zeta
+    function. A construction of universal congruences and generalized Bernoulli
+    polynomials connected with formal groups has been provided in [46] and in [43].
+
+NEW COMPUTABLE ENTANGLEMENT MONOTONES
+AND WITNESSES FROM FORMAL GROUP THEORY
+JOSE CARRASCO, GIUSEPPE MARMO, AND PIERGIULIO TEMPESTA
+https://arxiv.org/pdf/1904.10691.pdf
+
+
+Lie product formula
+exp(A+B) = lim_{n -> infty} ( exp(A/n) exp(B/n) ) ^ n
+
+Baker–Campbell–Hausdorff formula
+given exp(A)exp(B) = exp(C)
+then
+C = A + B + 1/2 [A, B] + (1/12)[A, [A, B]] - (1/12)[B, [A, B]] + ...
+
+A Bayesian Probability Calculus for Density Matrices∗
+Manfred K. Warmuth and Dima Kuzmin
+https://arxiv.org/abs/1408.3100
+    For symmetric and strictly positive definite matrices we define odot  as:
+    S odot  T := exp(log S + log T ),
+    For just symmetric and positive definite:
+    S odot  T := lim_{n -> infty} ( A^(1/n) B^(1/n) ) ^ n
+    result is also symmetric and positive definite
+
+More Secrets of the Associahedra
+https://golem.ph.utexas.edu/category/2018/01/more_secrets_of_the_associahed.html
+take a formal power series like this:
+C(x)=x+c1x2+c2x3+⋯
+C(x) = x + c_1 x^2 + c_2 x^3 + \cdots
+If you take its right inverse under composition, meaning the power series D D with
+C(D(x))=x
+C(D(x)) = x
+you get another formal power series of the same type:
+D(x)=x+d1x2+d2x3+⋯
+D(x) = x + d_1 x^2 + d_2 x^3 + \cdots
+How are the dn d_n related to the cn c_n?
+What are these coefficients? They’re controlled by the associahedra!
+
+https://ncatlab.org/nlab/show/formal+group
+Any power series of the form f(x)=x+a2x2+a3x3+… 
+f(x) = x + a_2 x^2 + a_3 x^3 + \ldots in R[[x]] R[ [x] ] 
+has a functional or compositional inverse f−1(x) f^{-1}(x) 
+in the monoid xR[[x]] x R[ [x] ] under composition. 
+Thus we may define a 1-dimensional formal group law 
+by the formula μ(x,y)=f−1(f(x)+f(y)) \mu(x, y) = f^{-1}(f(x) + f(y)).
+
+Marcelo Aguiar and Swapneel Mahajan. 
+Hopf monoids in the category of species. 
+http://pi.math.cornell.edu/~maguiar/hmonoid.pdf
+
+Marcelo Aguiar and Federico Ardila. 
+Hopf monoids and generalized permutahedra. arXiv:1709.07504
+https://arxiv.org/abs/1709.07504
+
+Formal group laws and hypergraph colorings
+Jair Taylor
+https://digital.lib.washington.edu/researchworks/handle/1773/36757
+
+
+---------------------
+
+
+
+The Mermin-Peres (MP) square
+
+    XI    IX    XX   -->  I
+
+    IZ    ZI    ZZ   -->  I
+
+    XZ    ZX    YY   -->  I
+    |     |     |
+    v     v     v
+    I     I     -I
+
+Theorem: It is not possible to assign values phi in {-1, 1} to
+every member of the 2-qubit pauli group such that
+    phi(XI)*phi(IX)*phi(XX) = 1
+    phi(IZ)*phi(ZI)*phi(ZZ) = 1
+    phi(XZ)*phi(ZX)*phi(YY) = 1
+    phi(XI)*phi(IZ)*phi(XX) = 1
+    phi(IX)*phi(ZI)*phi(ZZ) = 1
+    phi(XX)*phi(ZX)*phi(YY) = -1
+
+
+A Contextual ψ-Epistemic Model of the n-Qubit Stabilizer Formalism
+https://arxiv.org/pdf/1904.04268.pdf
+
+Uncertainty from Heisenberg to Today
+Reinhard F. Werner and Terry Farrelly
+https://arxiv.org/pdf/1904.06139.pdf
+    uncertainty and statistics arise at “Heisenberg’s cut”,
+    which separates the quantum object from the instruments used for
+    observation.
+
+    The semi-classical language contributes much to uncertainty
+    about the question of what exactly the “Copenhagen interpretation”
+    is. The name suggests that
+    there should exist a manifesto from which one may learn
+    this interpretation. But neither proponents nor opponents
+    of the Copenhagen interpretation
+    have ever found such a manifesto, which could count as the
+    interpretation of the theory
+    on the level of 1927 (the new quantum mechanics). Moreover,
+    Heisenberg and Bohr were not of one mind on many important questions
+    and also changed their minds over the course of time. The most plausible answer
+    to the question “Who invented the Copenhagen Interpretation?” comes from Don
+    Howard in an article with that title [24]. The answer is “Heisenberg
+    in the 1950s”. Before that, there were hints of the “Copenhagen spirit” and of individual
+    statements, but one cannot identify a distinct doctrine. 
+
+Degenerate Quantum LDPC Codes With Good Finite Length Performance
+Pavel Panteleev, Gleb Kalachev
+https://scirate.com/arxiv/1904.02703
+
+Modified belief propagation decoders for quantum LDPC codes
+Alex Rigby, JC Olivier, Peter Jarvis
+https://scirate.com/arxiv/1903.07404
+
+Constraints on order and disorder parameters in quantum spin chains
+Michael Levin
+https://scirate.com/arxiv/1903.09028
+
+Mathematical open problems in Projected Entangled Pair States (PEPS)
+J. Ignacio Cirac, José Garre-Rubio, David Pérez-García
+https://scirate.com/arxiv/1903.09439
+     one of the key features of PEPS is that they
+    are conjectured to correspond to the set of ground states of gapped and locally
+    interacting Hamiltonians
+
+Compactifying fracton stabilizer models
+Arpit Dua, Dominic J. Williamson, Jeongwan Haah, Meng Cheng
+https://scirate.com/arxiv/1903.12246
+
+Towards a mathematical formalism for classifying phases of matter
+Andreas Bauer, Jens Eisert, Carolin Wille
+    6.1.8 Extended TQFTs
+    We conjecture that the CTL framework is also capable
+    of describing extended TQFTs [73]. Ordinary axiomatic
+    TQFTs associate numbers to n-manifolds and vector spaces to (n − 1)-
+    manifolds. A d-extended TQFT also associates (higher)
+    categories to (n − 2)-manifolds (n − 3)-manifolds,.., (n − d)-
+    manifolds.
+
+
+The Ten-Fold Way (Part 1)
+https://golem.ph.utexas.edu/category/2014/07/the_tenfold_way.html
+
+    if you have an irreducible unitary representation of
+    a group on a complex Hilbert space H H, there are three possibilities:
+    The representation is isomorphic to its dual via an invariant
+    symmetric bilinear pairing g:H×H→C g : H \times H \to
+    \mathbb{C}. In this case it has an invariant antiunitary
+    operator J:H→H J : H \to H with J2=1 J^2 = 1. This lets
+    us write our representation as the complexification of a real one.
+    
+    The representation is isomorphic to its dual via an invariant
+    antisymmetric bilinear pairing ω:H×H→C \omega : H \times
+    H \to \mathbb{C}. In this case it has an invariant antiunitary
+    operator J:H→H J : H \to H with J2=−1 J^2 = -1. This
+    lets us promote our representation to a quaternionic one.
+    
+    The representation is not isomorphic to its dual. In
+    this case we say it’s truly complex.
+
+The Super Brauer Group and Super Division Algebras
+Todd Trimble
+http://math.ucr.edu/home/baez/trimble/superdivision.html
+    Let V be the category of finite-dimensional super vector
+    spaces over R.  By super algebra I mean a monoid in this
+    category.  There's a bicategory whose objects are super
+    algebras A, whose 1-cells  M: A --> B  are left A- right B-
+    modules in V, and whose 2-cells are homomorphisms
+    between modules.  This is a symmetric monoidal bicategory
+    under the usual tensor product on V.
+
+Topological insulators and superconductors: ten-fold way and dimensional hierarchy
+Shinsei Ryu, Andreas Schnyder, Akira Furusaki, Andreas Ludwig
+https://arxiv.org/abs/0912.2157
+topological insulators (superconductors) in
+different dimensions and different classes can be related via “dimensional reduction” by
+compactifying one or more spatial dimensions (in “Kaluza-Klein”-like fashion).
+
+Periodic table for topological insulators and superconductors
+Alexei Kitaev
+https://arxiv.org/abs/0901.2686
+Gapped phases of noninteracting fermions, with and without
+charge conservation and time-reversal symmetry,
+are classified using Bott periodicity.
+
+
+    
 28/4/19
 =======
 
@@ -1265,6 +1477,21 @@ Internal category in Grp  ~=  Internal group in Cat
 
 A Hopf monoid in Vect is a Hopf Algebra.
 http://pi.math.cornell.edu/~dmehrle/notes/partiii/hopfalg_partiii_notes.pdf
+
+https://ncatlab.org/nlab/show/formal+group
+A formal group is a group object internal to infinitesimal spaces.
+    More general than Lie algebras, which are group objects
+    in first order infinitesimal spaces, formal groups may
+    be of arbitrary infinitesimal order. They sit between
+    Lie algebras and finite Lie groups or algebraic groups.
+    
+    Since infinitesimal spaces are typically modeled as formal
+    duals to algebras, formal groups are typically conceived
+    as group objects in formal duals to formal power series algebras.
+    
+    Specifically, fixing a formal coordinate chart, then
+    the product operation of a formal group is entirely expressed
+    as a formal power series in two variables, satisfying conditions.
 
 An algebraic group is a group object in the category of algebraic varieties
     eg. SL(n)
