@@ -1,4 +1,27 @@
 
+28/4/19
+=======
+
+The Theory of 2-Categories
+https://kerodon.net/tag/007K
+
+
+
+27/4/19
+=======
+
+https://ncatlab.org/nlab/show/distributive+law
+Jon Beck, Distributive laws
+http://www.tac.mta.ca/tac/reprints/articles/18/tr18abs.html
+
+
+26/4/19
+=======
+
+The Way of the Dagger
+Martti Karvonen
+https://arxiv.org/abs/1904.10805v1#
+
 25/4/19
 =======
 
