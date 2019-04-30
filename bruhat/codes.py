@@ -128,8 +128,32 @@ class Code(object):
 
 def is_morthogonal(G, m):
     k = len(G)
-    assert m>=2
+    if m==1:
+        for v in G:
+            if v.sum()%2 != 0:
+                return False
+        return True
     if m>2 and not is_morthogonal(G, m-1):
+        return False
+    items = list(range(k))
+    for idxs in choose(items, m):
+        v = G[idxs[0]]
+        for idx in idxs[1:]:
+            v = v * G[idx]
+        if v.sum()%2 != 0:
+            return False
+    return True
+
+
+def strong_morthogonal(G, m):
+    k = len(G)
+    assert m>=1
+    if m==1:
+        for v in G:
+            if v.sum()%2 != 0:
+                return False
+        return True
+    if not strong_morthogonal(G, m-1):
         return False
     items = list(range(k))
     for idxs in choose(items, m):
@@ -298,25 +322,51 @@ def test():
     print("OK")
 
 
+def test_rm():
+    for m in range(2, 8):
+     for r in range(0, m+1):
+        #code = reed_muller(r, m)
+      for code in [ reed_muller(r, m), reed_muller(r, m).puncture(0) ]:
+        if code.k >= 16:
+            continue
+        G = code.G
+        A = array2(list(span(code.G)))
+        print(code)
+        for i in [1, 2, 3]:
+            assert strong_morthogonal(G, i) == strong_morthogonal(A, i)
+#        print(
+#            strong_morthogonal(G, 1),
+#            strong_morthogonal(G, 2),
+#            strong_morthogonal(G, 3),
+#            strong_morthogonal(A, 1),
+#            strong_morthogonal(A, 2),
+#            strong_morthogonal(A, 3),
+#        )
+
+
 def gen():
-    r = argv.get("r", 1) # degree
-    m = argv.get("m", 4)
+    r = argv.get("r", None) # degree
+    m = argv.get("m", None)
 
-    code = reed_muller(r, m)
-
-    #print(code)
-    #print("d =", code.get_distance())
-    #code.dump()
-
-    #code = code.puncture(3)
-
-    #print(code)
-    if argv.puncture:
+    if r is not None and m is not None:
+        code = reed_muller(r, m)
+    
+        #print(code)
+        #print("d =", code.get_distance())
+        #code.dump()
+    
+        #code = code.puncture(3)
+    
+        #print(code)
         code = code.puncture(0)
-    code.dump()
-    #print("d =", code.get_distance())
-
-    #return
+        print(code)
+        for g in code.G:
+            print(shortstr(g), g.sum())
+        print()
+        #code.dump()
+        #print("d =", code.get_distance())
+    
+        return
 
     for m in range(2, 8):
       for r in range(0, m+1):
@@ -324,6 +374,8 @@ def gen():
         print(code, end=" ")
         if code.is_selfdual():
             print("is_selfdual", end=" ")
+        if code.is_morthogonal(2):
+            print("is_biorthogonal", end=" ")
         if code.is_morthogonal(3):
             print("is_triorthogonal", end=" ")
         if dot2(code.H, code.H.transpose()).sum()==0:
@@ -353,6 +405,7 @@ def test_triorth():
     print(code.is_triorthogonal())
     A = array2(list(span(code.G)))
     print(is_morthogonal(A, 2))
+    #print(shortstr(A))
 
     k = len(A)
 
@@ -377,6 +430,16 @@ def test_triorth():
         #if x:
             #print(a, b, c)
 
+
+def test_hamming():
+    G = parse("""
+    1....111
+    .1..1.11
+    ..1.11.1
+    ...1111.
+    """)
+
+    print(strong_morthogonal(G, 2))
 
 
 def main():
@@ -640,6 +703,9 @@ def search():
         if 0 in G.sum(1):
             continue
 
+        if argv.strong_morthogonal and not strong_morthogonal(G, 3):
+            continue
+
         #print(shortstr(G))
 #        for g in G:
 #            print(shortstr(g), g.sum())
@@ -674,8 +740,14 @@ def search():
     print()
     print("density:", density)
     print("shape:", G.shape)
+
+    G = linear_independent(G)
+    A = list(span(G))
+    print(strong_morthogonal(A, 1))
+    print(strong_morthogonal(A, 2))
+    print(strong_morthogonal(A, 3))
     
-    print(shortstr(dot2(G, G.transpose())))
+    #print(shortstr(dot2(G, G.transpose())))
 
     if 0:
         B = pseudo_inverse(A)

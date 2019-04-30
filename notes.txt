@@ -1,3 +1,51 @@
+30/4/19
+=======
+
+https://mattermost.com/
+Mattermost is a flexible, open source messaging platform
+that meets even the most demanding privacy and security standards
+
+Topology in Condensed Matter
+https://topocondmat.org/
+
+
+https://blog.qutech.nl/index.php/2019/04/28/whos-afraid-of-majorana-qubits-part-i/
+
+----------------------------------------------------------------
+
+bruhat/bruhat$ ./codes.py search trials=1024000 strong_morthogonal
+
+Lemma: strong m-orthogonality of the generator matrix iff strong m-orthogonality
+of the span.
+
+strong tri-orthogonal matrices:
+
+.......11111111 8
+...1111....1111 8
+.11..11..11..11 8
+1.1.1.1.1.1.1.1 8
+(the even part of the punctured 1,4 reed_muller code)
+
+...........111111111111 12
+.....111111......111111 12
+...11....11....11....11 8
+..1.1...1.1.111.1.111.1 12
+.1..1..1..1...11....11. 8
+111.1.1..1...1..11.111. 12
+
+
+The punctured 1,4 reed_muller code:
+./codes.py gen r=1 m=4
+gen()
+Code([[15, 5, None]])
+111111111111111 15
+1.1.1.1.1.1.1.1 8
+.11..11..11..11 8
+...1111....1111 8
+.......11111111 8
+
+
+
 
 29/4/19
 =======
@@ -99,9 +147,10 @@ every member of the 2-qubit pauli group such that
     phi(XI)*phi(IX)*phi(XX) = 1
     phi(IZ)*phi(ZI)*phi(ZZ) = 1
     phi(XZ)*phi(ZX)*phi(YY) = 1
-    phi(XI)*phi(IZ)*phi(XX) = 1
-    phi(IX)*phi(ZI)*phi(ZZ) = 1
-    phi(XX)*phi(ZX)*phi(YY) = -1
+    phi(XI)*phi(IZ)*phi(XZ) = 1
+    phi(IX)*phi(ZI)*phi(ZX) = 1
+    phi(XX)*phi(ZZ)*phi(YY) = -1
+
 
 
 A Contextual ψ-Epistemic Model of the n-Qubit Stabilizer Formalism
