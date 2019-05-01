@@ -1,3 +1,85 @@
+
+1/5/19
+======
+
+
+https://twitter.com/johncarlosbaez/status/1123614807381331970
+Now they've discovered that if you put one layer of graphene
+on another, rotated by about 1.08 degrees, they become a superconductor!
+https://physicsworld.com/a/researchers-solve-magic-angle-mystery/
+https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.122.106405
+https://www.quantamagazine.org/how-twisted-graphene-became-the-big-thing-in-physics-20190430/
+https://www.nature.com/articles/nature26160
+
+
+
+
+./main.py code=rm  puncture r=2 m=5 decode=oe p=0.07 N=1000
+CSSCode(n=31, Lx:1, Lz:1, Hx:15, Tz:15, Hz:15, Tx:15, Gx:None, Gz:None)
+Lx(15:15:15, 0:0:1)
+Lz(15:15:15, 0:0:1)
+Hx(8:11:16, 1:5:15)
+Tz(1:2:3, 0:1:5)
+Hz(8:11:16, 1:5:15)
+Tx(7:11:13, 0:5:15)
+2019-05-01 16:02:05
+error rate = 0.03300000
+fail rate = 0.00000000
+nonuniq = 620
+distance <= 7
+
+
+simon@monic:~/home/github/bruhat/bruhat$ ./codes.py test_rm  puncture
+test_rm()
+Code([[4, 3, 2]], "reed_muller(1, 2)") puncture [3, 2, .] (1)
+Code([[8, 4, 4]], "reed_muller(1, 3)") puncture [7, 3, .] (1)(2) # bi-orthogonal
+Code([[8, 7, 2]], "reed_muller(2, 3)") puncture [7, 6, .] (1)
+Code([[16, 5, 8]], "reed_muller(1, 4)") puncture [15, 4, .] (1)(2)(3) # tri-orthogonal
+Code([[16, 11, 4]], "reed_muller(2, 4)") puncture [15, 10, .] (1)
+Code([[16, 15, 2]], "reed_muller(3, 4)") puncture [15, 14, .] (1)
+Code([[32, 6, 16]], "reed_muller(1, 5)") puncture [31, 5, .] (1)(2)(3)(4) # quad-orthogonal 
+Code([[32, 16, 8]], "reed_muller(2, 5)") puncture [31, 15, .] (1)(2)
+Code([[32, 26, 4]], "reed_muller(3, 5)") puncture [31, 25, .] (1)
+Code([[32, 31, 2]], "reed_muller(4, 5)") puncture [31, 30, .] (1)
+Code([[64, 7, 32]], "reed_muller(1, 6)") puncture [63, 6, .] (1)(2)(3)(4)(5) # etc.
+Code([[64, 22, 16]], "reed_muller(2, 6)") puncture [63, 21, .] (1)(2)
+Code([[64, 42, 8]], "reed_muller(3, 6)") puncture [63, 41, .] (1)
+Code([[64, 57, 4]], "reed_muller(4, 6)") puncture [63, 56, .] (1)
+Code([[64, 63, 2]], "reed_muller(5, 6)") puncture [63, 62, .] (1)
+Code([[128, 8, 64]], "reed_muller(1, 7)") puncture [127, 7, .] (1)(2)(3)(4)(5)(6)
+Code([[128, 29, 32]], "reed_muller(2, 7)") puncture [127, 28, .] (1)(2)(3)
+Code([[128, 64, 16]], "reed_muller(3, 7)") puncture [127, 63, .] (1)(2)
+Code([[128, 99, 8]], "reed_muller(4, 7)") puncture [127, 98, .] (1)
+Code([[128, 120, 4]], "reed_muller(5, 7)") puncture [127, 119, .] (1)
+Code([[128, 127, 2]], "reed_muller(6, 7)") puncture [127, 126, .] (1)
+OK.
+simon@monic:~/home/github/bruhat/bruhat$ ./codes.py test_rm
+test_rm()
+Code([[4, 3, 2]], "reed_muller(1, 2)") (1)
+Code([[8, 4, 4]], "reed_muller(1, 3)") (1)(2)
+Code([[8, 7, 2]], "reed_muller(2, 3)") (1)
+Code([[16, 5, 8]], "reed_muller(1, 4)") (1)(2)(3)
+Code([[16, 11, 4]], "reed_muller(2, 4)") (1)
+Code([[16, 15, 2]], "reed_muller(3, 4)") (1)
+Code([[32, 6, 16]], "reed_muller(1, 5)") (1)(2)(3)(4)
+Code([[32, 16, 8]], "reed_muller(2, 5)") (1)(2)
+Code([[32, 26, 4]], "reed_muller(3, 5)") (1)
+Code([[32, 31, 2]], "reed_muller(4, 5)") (1)
+Code([[64, 7, 32]], "reed_muller(1, 6)") (1)(2)(3)(4)(5)
+Code([[64, 22, 16]], "reed_muller(2, 6)") (1)(2)
+Code([[64, 42, 8]], "reed_muller(3, 6)") (1)
+Code([[64, 57, 4]], "reed_muller(4, 6)") (1)
+Code([[64, 63, 2]], "reed_muller(5, 6)") (1)
+Code([[128, 8, 64]], "reed_muller(1, 7)") (1)(2)(3)(4)(5)(6)
+Code([[128, 29, 32]], "reed_muller(2, 7)") (1)(2)(3)
+Code([[128, 64, 16]], "reed_muller(3, 7)") (1)(2)
+Code([[128, 99, 8]], "reed_muller(4, 7)") (1)
+Code([[128, 120, 4]], "reed_muller(5, 7)") (1)
+Code([[128, 127, 2]], "reed_muller(6, 7)") (1)
+OK.
+
+
+
 30/4/19
 =======
 

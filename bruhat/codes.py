@@ -11,11 +11,11 @@ from random import random, randint
 
 import numpy
 
-from solve import array2, zeros2, dot2, shortstr, rank, find_kernel, span
-from solve import linear_independent, parse, pseudo_inverse, eq2, rand2
-from action import mulclose
-from argv import argv
-from util import choose, cross
+from bruhat.solve import array2, zeros2, dot2, shortstr, rank, find_kernel, span
+from bruhat.solve import linear_independent, parse, pseudo_inverse, eq2, rand2
+from bruhat.action import mulclose
+from bruhat.argv import argv
+from bruhat.util import choose, cross
 
 
 class Code(object):
@@ -96,6 +96,12 @@ class Code(object):
         B = G[:, i+1:]
         G = numpy.concatenate((A, B), axis=1)
         G = linear_independent(G, check=True)
+        return Code(G)
+
+    def get_even(self):
+        G = self.G
+        rows = [row for row in G if row.sum()%2==0]
+        G = array2(rows)
         return Code(G)
 
     def is_morthogonal(self, m):
@@ -319,30 +325,84 @@ def test():
             #print(m-r-1 == r, dual.eq(code), code)
             assert code1.eq(dual)
 
+    test_hamming()
+
     print("OK")
 
 
-def test_rm():
-    for m in range(2, 8):
-     for r in range(0, m+1):
-        #code = reed_muller(r, m)
-      for code in [ reed_muller(r, m), reed_muller(r, m).puncture(0) ]:
-        if code.k >= 16:
+def test_tri_rm():
+    r = argv.get("r", 1) # degree
+    m = argv.get("m", 4)
+    puncture = argv.puncture
+    code = reed_muller(r, m, puncture)
+    G = code.G
+    rows = [row for row in G if row.sum()%2==0]
+    G = array2(rows)
+    k = len(rows)
+    print(G.shape)
+    for i in range(1, 10):
+        # statistical test for m-orthogonality
+        for trials in range(10000):
+            vecs = [rows[randint(0, k-1)] for j in range(i)]
+            v = vecs[0].copy()
+            for w in vecs[1:]:
+                v = v*w
+            if v.sum()%2 != 0:
+                break
+        else:
+            print("(%d)"%i, end=" ", flush=True)
             continue
-        G = code.G
-        A = array2(list(span(code.G)))
-        print(code)
+        break
+    print()
+
+
+def test_rm():
+    params = [(r, m) for m in range(2, 8) for r in range(1, m)]
+    r = argv.get("r", None) # degree
+    m = argv.get("m", None)
+    if r is not None and m is not None:
+        params = [(r, m)]
+    
+    for (r, m) in params:
+        #code = reed_muller(r, m)
+#      for code in [ reed_muller(r, m), reed_muller(r, m).puncture(0) ]:
+      for code in [reed_muller(r, m)]:
+        if argv.puncture:
+            print(code, end=" ", flush=True)
+            code = code.puncture(0)
+            code = code.get_even()
+            if argv.puncture==2:
+                code = code.puncture(0)
+                code = code.get_even()
+            G = code.G
+            k, n = G.shape
+            #code = Code(G)
+            #d = code.get_distance()
+            d = "."
+            print("puncture [%d, %d, %s]" % (n, k, d), end=" ", flush=True)
+        else:
+            G = code.G
+            print(code, end=" ", flush=True)
+        i = 1
+        while i<8:
+            if (is_morthogonal(G, i)):
+                print("(%d)"%i, end="", flush=True)
+                i += 1
+            else:
+                break
+            if i > code.k:
+                print("*", end="")
+                break
+        print()
+        if argv.show:
+            print(G.shape)
+            print(shortstr(G))
+            print(dot2(G, G.transpose()).sum())
+        if len(G) >= 14:
+            continue
+        A = array2(list(span(G)))
         for i in [1, 2, 3]:
             assert strong_morthogonal(G, i) == strong_morthogonal(A, i)
-#        print(
-#            strong_morthogonal(G, 1),
-#            strong_morthogonal(G, 2),
-#            strong_morthogonal(G, 3),
-#            strong_morthogonal(A, 1),
-#            strong_morthogonal(A, 2),
-#            strong_morthogonal(A, 3),
-#        )
-
 
 def gen():
     r = argv.get("r", None) # degree
@@ -439,7 +499,7 @@ def test_hamming():
     ...1111.
     """)
 
-    print(strong_morthogonal(G, 2))
+    assert strong_morthogonal(G, 2)
 
 
 def main():
