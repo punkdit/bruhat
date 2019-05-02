@@ -1,4 +1,21 @@
 
+
+
+2/5/19
+======
+
+https://quantumcomputing.stackexchange.com/questions/5164/efficient-implementation-of-the-clifford-group-for-n-qubits
+
+self-dual CSS codes with k=1 and weight-(0 mod 4) stabilisers have transversal Cliffords
+https://twitter.com/BenCriger/status/1102912046474104832
+https://arxiv.org/pdf/quant-ph/9605011.pdf
+
+https://www.youtube.com/watch?v=XGulRS2IyF8
+t=11m
+What Is Entanglement Anyway? Chris Fields
+"there are no paranthesis: A + B + C = (A + B) + C = ..."
+#distributivity
+
 1/5/19
 ======
 

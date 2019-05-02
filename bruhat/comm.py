@@ -5,8 +5,7 @@ Commutative _polynomials.
 
 """
 
-# Code taken from cpoly.py 
-# converted to python3 by 2to3
+# Code converted to python3 from cpoly.py by 2to3
 
 
 import sys, os
@@ -57,7 +56,7 @@ class Poly(object):
         Commutative _polynomial in <rank> many variables x_1,...,x_<rank> .
     """
 
-    def __init__(self, cs, rank=None):
+    def __init__(self, cs, rank=None, names=None):
         coefs = {}
         degree = 0
         head = None
@@ -77,27 +76,30 @@ class Poly(object):
         self.rank = rank
         self.degree = degree
         self.head = head
+        self.names = names
+        if names is not None:
+            assert len(names) == rank
         assert sum(head) == degree, str(self)
 
     @classmethod
-    def identity(cls, rank):
+    def identity(cls, rank, names=None):
         key = (0,)*rank
         return cls({key : 1}, rank)
 
     @classmethod
-    def zero(cls, rank):
+    def zero(cls, rank, names=None):
         return cls({}, rank)
 
     def get_zero(self):
-        return Poly({}, self.rank)
+        return Poly({}, self.rank, self.names)
 
     def get_identity(self):
         key = (0,)*self.rank
-        return Poly({key : 1}, self.rank)
+        return Poly({key : 1}, self.rank, self.names)
 
     def promote(self, x):
         if is_scalar(x):
-            return Poly({(0,)*self.rank : x})
+            return Poly({(0,)*self.rank : x}, self.rank, self.names)
         if isinstance(x, Poly):
             return x
         raise TypeError(repr(x))
@@ -128,48 +130,48 @@ class Poly(object):
 
     def __add__(self, other):
         if is_scalar(other):
-            return self + Poly({(0,)*self.rank : other})
+            return self + Poly({(0,)*self.rank : other}, self.rank, self.names)
         assert self.rank == other.rank
         cs = dict(self.cs)
         for key, value in list(other.cs.items()):
             cs[key] = cs.get(key, 0) + value
-        return Poly(cs, self.rank)
+        return Poly(cs, self.rank, self.names)
 
     def __sub__(self, other):
         if is_scalar(other):
-            return self - Poly({(0,)*self.rank : other})
+            return self - Poly({(0,)*self.rank : other}, self.rank, self.names)
         assert self.rank == other.rank
         cs = dict(self.cs)
         for key, value in list(other.cs.items()):
             cs[key] = cs.get(key, 0) - value
-        return Poly(cs, self.rank)
+        return Poly(cs, self.rank, self.names)
 
     def __neg__(self):
         cs = {}
         for key, value in list(self.cs.items()):
             cs[key] = -value
-        return Poly(cs, self.rank)
+        return Poly(cs, self.rank, self.names)
 
     def __rmul__(self, r):
         cs = {}
         for key, value in list(self.cs.items()):
             cs[key] = r * value
-        return Poly(cs, self.rank)
+        return Poly(cs, self.rank, self.names)
 
     def __mul__(self, other):
         if is_scalar(other):
-            return self * Poly({(0,)*self.rank : other})
+            return self * Poly({(0,)*self.rank : other}, self.rank, self.names)
         assert self.rank == other.rank
         cs = {}
         for k1, v1 in list(self.cs.items()):
           for k2, v2 in list(other.cs.items()):
             k = tpl_add(k1, k2)
             cs[k] = cs.get(k, 0) + v1*v2
-        return Poly(cs, self.rank)
+        return Poly(cs, self.rank, self.names)
 
     def __pow__(self, n):
         if n==0:
-            return Poly.identity(self.rank)
+            return Poly.identity(self.rank, self.names)
         assert n>0
         p = self
         for i in range(n-1):
@@ -180,7 +182,9 @@ class Poly(object):
         rank = self.rank
 #        if rank==0:
 #            return 
-        if rank>1:
+        if self.names is not None:
+            names = self.names
+        elif rank>1:
             names = ["x_%d"%(i+1) for i in range(rank)]
         else:
             names = ["x"]
@@ -270,7 +274,7 @@ class Poly(object):
         #print "reduce: m1 = ", m1
         m2 = tpl_sub(m1, m0)
         #print "reduce: m1-m0 = ", m2
-        m2 = Poly({m2:1})
+        m2 = Poly({m2:1}, P.rank, P.names)
         #print "m2:", m2
         R = (Q[m1]/P[m0]) * m2
         S = Q - R * P
@@ -301,7 +305,7 @@ class Poly(object):
     def __div__(self, other):
         if is_scalar(other):
             other = Fraction(1, other)
-            other = Poly({(0,)*self.rank : other})
+            other = Poly({(0,)*self.rank : other}, self.rank, self.names)
             return other * self
         R, S = other.reduce(self)
         return R
@@ -321,12 +325,12 @@ class Poly(object):
             key[i], key[j] = key[j], key[i]
             key = tuple(key)
             cs[key] = value
-        return Poly(cs, rank)
+        return Poly(cs, rank, self.names)
 
     def basis(self, i):
         key = [0 for j in range(self.rank)]
         key[i] = 1
-        return Poly({tuple(key) : 1})
+        return Poly({tuple(key) : 1}, self.rank, self.names)
 
     def delta(P, i):
         "divided difference operator"
@@ -354,8 +358,8 @@ class Poly(object):
         m = tpl_union(P.head, Q.head)
         mi = tpl_sub(m, P.head)
         mj = tpl_sub(m, Q.head)
-        mi = Poly({mi:1})
-        mj = Poly({mj:1})
+        mi = Poly({mi:1}, P.rank, P.names)
+        mj = Poly({mj:1}, P.rank, P.names)
         S = mi * P - mj * Q
         return S
 

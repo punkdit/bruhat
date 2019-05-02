@@ -3,6 +3,7 @@
 """
 Commutative _polynomials.
 
+See comm.py for python3 version.
 """
 
 import sys, os

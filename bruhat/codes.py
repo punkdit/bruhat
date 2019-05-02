@@ -8,12 +8,15 @@ MacWilliams identities.
 """
 
 from random import random, randint
+from functools import reduce
+from operator import mul
 
 import numpy
 
 from bruhat.solve import array2, zeros2, dot2, shortstr, rank, find_kernel, span
 from bruhat.solve import linear_independent, parse, pseudo_inverse, eq2, rand2
 from bruhat.action import mulclose
+from bruhat.comm import Poly
 from bruhat.argv import argv
 from bruhat.util import choose, cross
 
@@ -208,6 +211,8 @@ def reed_muller(r, m, puncture=False):
     return code
 
 
+
+
 class Tensor(object):
 
     """ Some kind of graded ring element... I*I*I + X*X*X etc.
@@ -329,6 +334,38 @@ def test():
 
     print("OK")
 
+
+def genus_enum():
+    r = argv.get("r", 1) # degree
+    m = argv.get("m", 3)
+    puncture = argv.puncture
+    code = reed_muller(r, m, puncture)
+    G = code.G
+    print(shortstr(G))
+    m, n = G.shape
+
+    poly = lambda cs : Poly(cs, 4, "x_{00} x_{01} x_{10} x_{11}".split())
+    x11 = poly({(0, 0, 0, 1) : 1})
+    x10 = poly({(0, 0, 1, 0) : 1})
+    x01 = poly({(0, 1, 0, 0) : 1})
+    x00 = poly({(1, 0, 0, 0) : 1})
+    p = poly({})
+    xs = [[x00, x01], [x10, x11]]
+    cs = {}
+    for v0 in span(G):
+        print(".",end='',flush=True)
+        for v1 in span(G):
+            exp = [0, 0, 0, 0]
+            #vv = numpy.array([2*v0, v1])
+            for i in range(n):
+                exp[2*v0[i] + v1[i]] += 1
+            exp = tuple(exp)
+            cs[exp] = cs.get(exp, 0) + 1
+        #break
+    print()
+    p = poly(cs)
+    print(p)
+    
 
 def test_tri_rm():
     r = argv.get("r", 1) # degree
