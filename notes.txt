@@ -1,5 +1,18 @@
 
 
+3/5/19
+======
+
+Database of Self-Dual Quantum Codes
+http://www.ii.uib.no/~larsed/vncorbits/
+
+"On Self-Dual Quantum Codes, Graphs, and Boolean Functions"
+Lars Eirik Danielsen
+http://www.ii.uib.no/~larsed/mscthesis.pdf
+
+
+
+
 
 2/5/19
 ======
