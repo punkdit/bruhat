@@ -2,6 +2,9 @@
 
 """
 https://golem.ph.utexas.edu/category/2019/03/how_much_work_can_it_be_to_add.html#c055688
+
+see also: huffman.py
+
 """
 
 import sys

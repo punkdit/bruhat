@@ -1,4 +1,63 @@
 
+6/5/19
+======
+
+Introduction to the Theory of
+Species of Structures
+Fran¸cois Bergeron, Gilbert Labelle, and Pierre Leroux
+November 25, 2013
+http://bergeron.math.uqam.ca/wp-content/uploads/2013/11/book.pdf
+
+
+https://ncatlab.org/johnbaez/show/Entropy+as+a+functor
+
+https://golem.ph.utexas.edu/category/2011/05/an_operadic_introduction_to_en.html#c038309
+    strong subadditivity is the statement that given any
+    probability distribution on three variables, A, B, C,
+    a certain combination of entropies of non-negative: SAB+SBC−SB−SABC≥0
+    S_{AB}+S_{BC}-S_B-S_{ABC}\geq 0. It is trivial to prove
+    this inequality classically (repeated application of
+    the chain rule) and yet for quantum states it is a very
+    difficult theorem that was first proven by Lieb and Ruskai.
+    Since then, multiple other proofs for quantum systems
+    have been found, yet there still is none that is really
+    elementary. So, even a new proof of that would be of
+    interest, as well as understanding the various inequalities
+    that might hold on four-or-more variable systems.
+
+
+https://golem.ph.utexas.edu/category/2011/06/categorytheoretic_characteriza_2.html#c038435
+    I like to think of a matrix algebra Mn(C) M_n(\mathbb{C})
+    as the groupoid algebra of the groupoid on n n objects
+    in which any two objects are isomorphic via a unique isomorphism. 
+
+Young diagrams classify finite-dimensional C*-algebras:
+     if every finite-dimensional C*-algebra is isomorphic
+    to a finite direct sum of matrix algebras, and each finite-dimensional
+    matrix algebra is of the form Mn(C) M_n(\mathbb{C}),
+    then each could be associated to a multiset of positive integers.
+
+https://golem.ph.utexas.edu/category/2011/05/categorytheoretic_characteriza.html#c037616
+we have several ways of thinking about the same category:
+    the category of finite sets and stochastic maps
+    the category of natural numbers and stochastic matrices
+    the opposite of the Lawvere theory of convex algebras
+    the full subcategory of the Kleisli category of the theory
+        of convex algebras consisting of only the finite sets
+    the category of finitely generated free convex algebras
+    the category of simplices and convex-combination-preserving maps.
+
+When Data Compression and Statistics Disagree
+Two Frequentist Challenges for the Minimum Description Length Principle
+https://openaccess.leidenuniv.nl/bitstream/handle/1887/15879/full-text%28goed%29.pdf?sequence=7
+
+5/5/19
+======
+
+The inner automorphism 3-group of a strict 2-group
+David Michael Roberts and Urs Schreiber
+https://arxiv.org/abs/0708.1741
+
 
 3/5/19
 ======
