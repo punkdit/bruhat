@@ -106,6 +106,9 @@ class Multiset(object):
     def total_length(self):
         n = sum([len(k)*v for (k, v) in self.cs.items()], 0)
         return n
+
+    def W(self): # brain fart the name
+        return self.huffman().encode().total_length()
     
 
 
@@ -168,6 +171,7 @@ def main():
     tree = (X*X).huffman()
     print(tree.encode())
     assert tree.encode().total_length() == 27
+    assert (X*X).W() == 27
 
 
 
