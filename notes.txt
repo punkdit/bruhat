@@ -2,11 +2,22 @@
 6/5/19
 ======
 
+
+the function f:x↦−xlogx f: x \mapsto -x\log x is a derivation: f(xy)=f(x)y+xf(y) f(x y) = f(x)y + x f(y).
+https://golem.ph.utexas.edu/category/2008/10/entropy_diversity_and_cardinal.html
+ finding a good characterization of entropy in operadic terms.
+
+
+
 Introduction to the Theory of
 Species of Structures
 Fran¸cois Bergeron, Gilbert Labelle, and Pierre Leroux
 November 25, 2013
 http://bergeron.math.uqam.ca/wp-content/uploads/2013/11/book.pdf
+
+
+https://en.wikipedia.org/wiki/LogSumExp
+https://en.wikipedia.org/wiki/Log_semiring
 
 
 https://ncatlab.org/johnbaez/show/Entropy+as+a+functor

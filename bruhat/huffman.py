@@ -9,8 +9,8 @@ see also entropy.py
 import sys
 from functools import reduce
 from operator import add
-from math import log
-from random import shuffle, choice
+from math import log, log2
+from random import shuffle, choice, randint, seed
 
 #import numpy
 #from matplotlib import pyplot
@@ -20,18 +20,30 @@ from random import shuffle, choice
 
 from bruhat.argv import argv
 
+
 EPSILON = 1e-8
 
 def is_close(a, b):
     return abs(a-b) < EPSILON
 
-def W(items):
 
+def entropy(items, base=2):
+    "un-normalized entropy"
+    k = log(base)
     sitems = sum(items)
     r = 0.
     for n in items:
-        r += n * log(n)
-    return -1*(r - sitems*log(sitems))
+        r += n * log(n) / k
+    return -1*(r - sitems*log(sitems) / k)
+
+
+def entropy(items):
+    "un-normalized entropy"
+    sitems = sum(items)
+    r = 0.
+    for n in items:
+        r += n * log2(n)
+    return -1*(r - sitems*log2(sitems))
 
 
 class Multiset(object):
@@ -39,6 +51,7 @@ class Multiset(object):
 
     def __init__(self, cs={}):
         self.cs = dict(cs) # map item -> count
+        self._len = sum(self.cs.values(), 0)
 
     def __str__(self):
         cs = self.cs
@@ -69,17 +82,18 @@ class Multiset(object):
         return Multiset(cs)
 
     def __len__(self):
-        return sum(self.cs.values(), 0)
+        return self._len
 
     def entropy(self):
         "un-normalized entropy"
         cs = self.cs
         items = [n for n in cs.values() if n>0]
-        return W(items)
+        return entropy(items)
 
     def huffman(self):
         cs = self.cs
         keys = list(cs.keys())
+        keys.sort()
 
         # build a tree, start with the leaves:
         nodes = [Node(Multiset({key : cs[key]})) for key in keys]
@@ -103,6 +117,14 @@ class Multiset(object):
 
         return nodes[0]
 
+    def product_tree(self):
+        cs = self.cs
+        keys = list(cs.keys())
+        keys.sort()
+        for k in keys:
+            assert len(k) == 2
+            # fail..
+
     def total_length(self):
         n = sum([len(k)*v for (k, v) in self.cs.items()], 0)
         return n
@@ -111,15 +133,19 @@ class Multiset(object):
         return self.huffman().encode().total_length()
     
 
+def W(X):
+    return X.W()
+
 
 class Node(object):
     def __init__(self, X, left=None, right=None):
         self.X = X
+        self._cost = len(X)
         self.left = left
         self.right = right
 
     def cost(self):
-        return len(self.X)
+        return self._cost
 
     def encode(self):
         " the (un-normalized) distribution of encoded words "
@@ -144,6 +170,9 @@ class Node(object):
         assert left and right
         return "(%s : %s)" % (left, right)
 
+#    def __mul__(S, T):
+#        # argh...
+
 
 
 def main():
@@ -155,7 +184,6 @@ def main():
     #print(X, X.entropy())
 
     XX = X*X
-    #print(XX, XX.entropy())
 
     Y = Multiset({"A":2, "B":2})
     #print(Y, Y.entropy())
@@ -165,13 +193,97 @@ def main():
 
     tree = X.huffman()
     assert tree.X == X
-    print(tree)
-    print(tree.encode())
 
-    tree = (X*X).huffman()
-    print(tree.encode())
-    assert tree.encode().total_length() == 27
-    assert (X*X).W() == 27
+    #assert str(tree) == "({B} : {A,A,A})", repr(str(tree))
+    #assert str(tree.encode()) == "{0,1,1,1}"
+
+    tree = XX.huffman()
+    assert str(tree.encode()) == "{0,0,0,0,0,0,0,0,0,10,10,10,110,110,110,111}"
+
+    assert XX.W() == 27
+
+    A = Multiset({"A" : 1})
+    B = Multiset({"B" : 1})
+    C = Multiset({"C" : 1})
+    D = Multiset({"D" : 1})
+    E = Multiset({"E" : 1})
+    F = Multiset({"F" : 1})
+
+    def mkrand(a=1, b=3):
+        Z = randint(a, b)*A + randint(a, b)*B + randint(a, b)*C + randint(a, b)*D + randint(a, b)*E
+        return Z
+
+    for trial in range(100):
+        X = mkrand()
+        n = randint(2, 5)
+        assert n*X.W() == (n*X).W()
+    #    print(Z.entropy(), Z.W())
+
+    X = 3*A + B
+    #print(X.huffman())
+    lhs, rhs = (X*X).W(), len(X)*X.W() + len(X)*X.W()
+    #print(lhs, rhs)
+    assert lhs < rhs
+    assert lhs == 27
+    assert rhs == 32
+
+    for trial in range(100):
+        X = mkrand(1, 3)
+        Y = mkrand(1, 3)
+        lhs, rhs = (X*Y).W(), len(X)*Y.W() + len(Y)*X.W()
+        assert lhs<=rhs
+
+        lhs, rhs = (X*Y).entropy(), len(X)*Y.entropy() + len(Y)*X.entropy()
+        assert is_close(lhs, rhs)
+
+#    Z = 25*A + 25*B + 20*C + 15*D + 15*E
+
+    def mkrand(items, a=1, b=3):
+        Z = Multiset()
+        for A in items:
+            Z = Z + randint(a, b)*A
+        return Z
+
+    for trial in range(100):
+
+        X = mkrand([A, B, C])
+        Y = mkrand([D, E, F])
+
+        #print(X, Y)
+        #print(X+Y)
+
+        lhs = W(X+Y)
+        rhs = W(X + len(Y)*D) + W(Y)
+        #print(lhs, rhs)
+        assert lhs <= rhs
+
+        lhs = (X+Y).entropy()
+        rhs = (X + len(Y)*D).entropy() + (Y).entropy()
+        assert is_close(lhs, rhs)
+        #print(lhs, rhs)
+        #print()
+
+
+        #break
+        
+    
+    #X = 5*A + 1*B + C + 1*D
+    X = 1*A + 1*B + 1*C
+    X1 = 1
+    h = X.entropy()
+    print(h)
+    n = 1
+    while 1:
+        X1 = X1*X
+        lhs, rhs = (X1.W(), X1.entropy())
+        r = n * (len(X)**(n-1))
+        assert is_close(rhs/r, h)
+        print('\t', lhs / r)
+#        if len(X1) > 10000000:
+#            break
+        n += 1
+
+    print(len(X1))
 
 
 
