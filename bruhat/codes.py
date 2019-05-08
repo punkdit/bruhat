@@ -335,7 +335,7 @@ def test():
     print("OK")
 
 
-def genus_enum():
+def genus_enum2():
     r = argv.get("r", 1) # degree
     m = argv.get("m", 3)
     puncture = argv.puncture
@@ -359,6 +359,43 @@ def genus_enum():
             #vv = numpy.array([2*v0, v1])
             for i in range(n):
                 exp[2*v0[i] + v1[i]] += 1
+            exp = tuple(exp)
+            cs[exp] = cs.get(exp, 0) + 1
+        #break
+    print()
+    p = poly(cs)
+    print(p)
+    
+
+def genus_enum3():
+    r = argv.get("r", 1) # degree
+    m = argv.get("m", 4)
+    puncture = argv.puncture
+    code = reed_muller(r, m, puncture)
+    G = code.G
+    print(shortstr(G))
+    m, n = G.shape
+
+    poly = lambda cs : Poly(cs, 8, 
+        "x_{000} x_{001} x_{010} x_{011} x_{100} x_{101} x_{110} x_{111}".split())
+    x011 = poly({(0, 0, 0, 0, 0, 0, 0, 1) : 1})
+    x010 = poly({(0, 0, 0, 0, 0, 0, 1, 0) : 1})
+    x001 = poly({(0, 0, 0, 0, 0, 1, 0, 0) : 1})
+    x000 = poly({(0, 0, 0, 0, 1, 0, 0, 0) : 1})
+    x111 = poly({(0, 0, 0, 1, 0, 0, 0, 0) : 1})
+    x110 = poly({(0, 0, 1, 0, 0, 0, 0, 0) : 1})
+    x101 = poly({(0, 1, 0, 0, 0, 0, 0, 0) : 1})
+    x100 = poly({(1, 0, 0, 0, 0, 0, 0, 0) : 1})
+    p = poly({})
+    cs = {}
+    for v0 in span(G):
+        print(".",end='',flush=True)
+        for v1 in span(G):
+          for v2 in span(G):
+            exp = [0, 0, 0, 0, 0, 0, 0, 0]
+            #vv = numpy.array([2*v0, v1])
+            for i in range(n):
+                exp[4*v0[i] + 2*v1[i] + v2[i]] += 1
             exp = tuple(exp)
             cs[exp] = cs.get(exp, 0) + 1
         #break
