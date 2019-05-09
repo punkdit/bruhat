@@ -65,8 +65,14 @@ class Multiset(object):
         items = reduce(add, [(str(key),)*cs[key] for key in keys], ())
         items = ','.join(items)
         return '{%s}'%items
-
     __repr__ = __str__
+
+    def get_str(self):
+        cs = self.cs
+        keys = self.keys
+        items = [(key if cs[key]==1 else "%d%s"%(cs[key], key)) for key in keys]
+        items = '+'.join(items)
+        return items
 
     def __eq__(self, other):
         return self.cs == other.cs
@@ -188,9 +194,6 @@ class Node(object):
 
     def cost(self):
         return self._cost
-
-    def W(self):
-        return self.encode().total_length()
 
     def check(self):
         X = self.X
@@ -327,6 +330,9 @@ class Node(object):
         right = Multiset(dict(('1'+k, v) for (k, v) in right.cs.items()))
         return left + right
 
+    def W(self):
+        return self.encode().total_length()
+
     def __str__(self):
         X = self.X
         left = self.left
@@ -414,28 +420,155 @@ class Node(object):
 
         return top
 
+    def get_bbox(self, R=1.0):
+        "find (width,height) of bounding box for render"
+        X = self.X
+        left = self.left
+        right = self.right
+        if not self.has_children:
+            s = X.get_str()
+            W = (1 + 0.1*len(s)) * R # fudge this
+            return (W, R) # square
+        lbb = left.get_bbox(R)
+        rbb = right.get_bbox(R)
+        W = lbb[0] + rbb[0] 
+        H = max(lbb[1], rbb[1]) + R
+        return (W, H)
+
+    def render(self, x=0, y=0, R=1.0, r=0.2, can=None, name=None):
+        "(x, y) is top center of this tree"
+
+        if can is None:
+            can = pyx.canvas.canvas()
+
+        X = self.X
+        left = self.left
+        right = self.right
+
+        can.fill(path.circle(x, y, r), [white])
+        can.stroke(path.circle(x, y, r))
+
+        if not self.has_children:
+            can.text(x, y-2.4*r, X.get_str(), south)
+
+        else:
+
+            w0, h0 = left.get_bbox(R)
+            w1, h1 = right.get_bbox(R)
+
+            w, h = self.get_bbox(R)
+            x0 = x-0.5*w+0.5*w0
+            x1 = x+0.5*w-0.5*w1
+            y0 = y1 = y-R
+
+            # render self...
+            can.fill(path.circle(x, y, 0.4*r), [black])
+            can.stroke(path.line(x0, y0, x, y), st_Thick)
+            can.stroke(path.line(x1, y1, x, y), st_Thick)
+
+            left.render(x0, y0, can=can)
+            right.render(x1, y1, can=can)
+
+        if name is not None:
+            can.writePDFfile(name)
+
+class Box(object):
+    pass
+
+class HBox(Box):
+    def __init__(self, items, align="center"):
+        self.items = list(items)
+        self.align = align
+
+    def render(self, x=0., y=0., can=None, name=None, **kw):
+        "(x, y) is top center of this box"
+        if can is None:
+            can = pyx.canvas.canvas()
+        items = self.items
+        boxs = [item.get_bbox(**kw) for item in items]
+        w = sum(b[0] for b in boxs) # sum widths
+        h = max([b[1] for b in boxs]) # max of heights
+        x0 = x - 0.5*w
+        y0 = y - 0.5*h
+
+        align = self.align
+        for i, item in enumerate(self.items):
+            b = boxs[i]
+            if align == "center":
+                item.render(x0 + 0.5*b[0], y0+0.5*b[1], can=can, **kw)
+            x0 += b[0]
+
+        if name is not None:
+            can.writePDFfile(name)
+
+
+class TextBox(Box):
+    def __init__(self, s, w=1, h=1):
+        self.s = s
+        self.w = w
+        self.h = h
+
+    def get_bbox(self):
+        return self.w, self.h
+
+    def render(self, x=0., y=0., can=None, name=None, **kw):
+        can.text(x, y-self.h, s, south)
+
+
+def render():
+    head = "transversal2018/"
+
+    a = Multiset({"a" : 1})
+    b = Multiset({"b" : 1})
+    c = Multiset({"c" : 1})
+    
+    T = Node(a+b+2*c, Node(a+b, Node(a), Node(b)), Node(2*c))
+    #T.render(name="pic_a_b_2c.pdf")
+
+    ((a+b)*T).render(name=head+"pic_left_a_b_2c.pdf")
+    #T = T*T
+    
+    S = Node(a+b, Node(a), Node(b))
+    (S*T).render(name=head+"pic_prod.pdf")
+    
+    box = HBox([S, T, S*T])
+    box.render(name="pic-1.pdf")
+
+    print("OK")
+
+
+def randtree(X):
+    "random complete tree on X"
+    nodes = [Node(Y) for Y in X.terms()]
+    while len(nodes)>1:
+        left = nodes.pop(randint(0, len(nodes)-1))
+        right = nodes.pop(randint(0, len(nodes)-1))
+        node = Node(left.X+right.X, left, right)
+        nodes.append(node)
+    return nodes[0]
+
 
 def main():
 
-    X = Multiset({"A":3, "B":1})
+    X = Multiset({"a":3, "b":1})
 
-    assert (X+X) == Multiset({"A":6, "B":2})
+    assert (X+X) == Multiset({"a":6, "b":2})
     assert (X+X) == 2*X
     #print(X, X.entropy())
 
     XX = X*X
 
-    Y = Multiset({"A":2, "B":2})
+    Y = Multiset({"a":2, "b":2})
     #print(Y, Y.entropy())
-    assert str(Y) == "{A,A,B,B}"
+    assert str(Y) == "{a,a,b,b}"
 
-    A = Multiset({"A" : 1})
-    B = Multiset({"B" : 1})
-    C = Multiset({"C" : 1})
-    D = Multiset({"D" : 1})
-    E = Multiset({"E" : 1})
-    F = Multiset({"F" : 1})
-    G = Multiset({"G" : 1})
+    A = Multiset({"a" : 1})
+    B = Multiset({"b" : 1})
+    C = Multiset({"c" : 1})
+    D = Multiset({"d" : 1})
+    E = Multiset({"e" : 1})
+    F = Multiset({"f" : 1})
+    G = Multiset({"g" : 1})
 
     assert A.disjoint(B)
     assert not (A+B).disjoint(B)
@@ -485,7 +618,22 @@ def main():
 
     T = Node(A+B, Node(A), Node(B))
     S = Node(A+B+2*C, Node(A+B, Node(A), Node(B)), Node(2*C))
-    assert str(T*S) == "((((AA) : (BA)) : ((AB) : (BB))) : ((AC,AC) : (BC,BC)))"
+    assert str(T*S) == "((((aa) : (ba)) : ((ab) : (bb))) : ((ac,ac) : (bc,bc)))"
+
+    def randmultiset(a=0, b=4):
+        Z = randint(a, b)*A + randint(a, b)*B + randint(a, b)*C + randint(a, b)*D + randint(a, b)*E
+        return Z
+
+    for trial in range(100):
+        X = randmultiset()
+        TX = randtree(X)
+        assert X.entropy() <= W(X) <= W(TX)
+        
+        Y = randmultiset()
+        TY = randtree(Y)
+
+        # W is a derivation on complete trees
+        assert W(TX*TY) == len(X)*W(TY) + W(TX)*len(Y)
 
     # ---------------------------------------------------------------------
 
@@ -753,6 +901,54 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    if argv.render:
+        # yay globals...
+        import pyx
+        from pyx import path, deco, trafo, style, text, color, deformer
+        from pyx.color import rgb, cmyk
+        from pyx.color import rgbfromhexstring as rgbhex
+    
+        black = rgb(0., 0., 0.)
+        blue = rgb(0., 0., 0.8)
+        lred = rgb(1., 0.4, 0.4)
+        red = rgb(1., 0.0, 0.0)
+        white = rgb(1., 1., 1.)
+
+        grey = rgb(0.75, 0.75, 0.75)
+        shade = grey
+        shade0 = rgb(0.25, 0.25, 0.25)
+        shade1 = rgb(0.80, 0.80, 0.80)
+        shade2 = rgb(0.85, 0.85, 0.85)
+        
+        light_shade = rgb(0.85, 0.65, 0.1)
+        light_shade = rgb(0.9, 0.75, 0.4)
+        
+        
+        north = [text.halign.boxcenter, text.valign.top]
+        northeast = [text.halign.boxright, text.valign.top]
+        northwest = [text.halign.boxleft, text.valign.top]
+        south = [text.halign.boxcenter, text.valign.bottom]
+        southeast = [text.halign.boxright, text.valign.bottom]
+        southwest = [text.halign.boxleft, text.valign.bottom]
+        east = [text.halign.boxright, text.valign.middle]
+        west = [text.halign.boxleft, text.valign.middle]
+        center = [text.halign.boxcenter, text.valign.middle]
+        
+        
+        st_dashed = [style.linestyle.dashed]
+        st_dotted = [style.linestyle.dotted]
+        st_round = [style.linecap.round]
+        #st_mitre = [style.linecap.square]
+        
+        st_thick = [style.linewidth.thick]
+        st_Thick = [style.linewidth.Thick]
+        st_THick = [style.linewidth.THick]
+        st_THIck = [style.linewidth.THIck]
+        st_THICk = [style.linewidth.THICk]
+        st_THICK = [style.linewidth.THICK]
+
+        render()
+    else:
+        main()
 
 
