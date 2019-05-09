@@ -171,8 +171,8 @@ class Multiset(object):
         return self.huffman().encode().total_length()
     
 
-def W(X):
-    return X.W()
+def W(item):
+    return item.W()
 
 
 class Node(object):
@@ -188,6 +188,9 @@ class Node(object):
 
     def cost(self):
         return self._cost
+
+    def W(self):
+        return self.encode().total_length()
 
     def check(self):
         X = self.X
@@ -500,13 +503,11 @@ def main():
 
     assert XX.W() == 27
 
-    return
-
     def mkrand(a=1, b=3):
         Z = randint(a, b)*A + randint(a, b)*B + randint(a, b)*C  #+ randint(a, b)*D + randint(a, b)*E
         return Z
 
-    seed(0)
+    #seed(0)
 
     for trial in range(1000):
         X = mkrand(1, 5)
@@ -534,6 +535,43 @@ def main():
         #    print(X)
         #else:
         #    print("*")
+
+    for trial in range(100):
+        X = mkrand()
+        Y = mkrand()
+        S = X.huffman()
+        T = Y.huffman()
+        ST = (X*Y).huffman()
+        lhs = W(ST) 
+        rhs = len(X)*W(T) + W(S)*len(Y)
+        #print(lhs, rhs)
+        assert lhs<=rhs
+    
+    def mkdyadic(a=0, b=4, terms=[A, B, C, D, E]):
+        while 1:
+            cs = [2**randint(a, b) for t in terms]
+            c = sum(cs)
+            if bin(c).count('1')==1: # is power of 2
+                break
+        Z = reduce(add, [c*term for (c, term) in zip(cs, terms)])
+        return Z
+
+    for trial in range(100):
+        X = mkdyadic()
+        Y = mkdyadic()
+        #print(X, Y)
+        S = X.huffman()
+        T = Y.huffman()
+        ST = (X*Y).huffman()
+        lhs = W(ST) 
+        rhs = len(X)*W(T) + W(S)*len(Y)
+        #print(lhs, rhs)
+        assert lhs==rhs
+        assert X.entropy() == W(X)
+        assert Y.entropy() == W(Y)
+        assert (X*Y).entropy() == lhs
+
+    return
     
     for trial in range(1000):
         a = randint(1, 3)
