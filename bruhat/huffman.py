@@ -108,11 +108,18 @@ class Multiset(object):
         return [Multiset({k:cs[k]}) for k in self.keys]
 
     def disjoint(X, Y):
+        # We only keep non-zero keys, so this works
         lhs = set(X.cs.keys())
         rhs = set(Y.cs.keys())
-        #print("disjoint:", lhs, rhs)
-        #print("disjoint:", lhs.intersection(rhs))
         return not bool(lhs.intersection(rhs))
+
+    def contains(self, other):
+        "self contains other"
+        cs = self.cs
+        for k,v in other.cs.items():
+            if v > cs.get(k, 0):
+                return False
+        return True
 
     def __len__(self):
         return self._len
@@ -130,7 +137,7 @@ class Multiset(object):
         items = [n for n in cs.values() if n>0]
         return entropy(items)
 
-    def huffman(self):
+    def huffman(self, sort=False):
         cs = self.cs
         keys = list(cs.keys())
         keys.sort()
@@ -142,7 +149,10 @@ class Multiset(object):
         nodes = [Node(Multiset({key : cs[key]})) for key in keys]
 
         while len(nodes) > 1:
-            shuffle(nodes)
+            if not sort:
+                shuffle(nodes)
+            else:
+                nodes.sort(key = str)
             n = len(nodes)
             best = (0, 1)
             value = nodes[0].cost() + nodes[1].cost()
@@ -420,6 +430,31 @@ class Node(object):
 
         return top
 
+    def __add__(self, other):
+        assert self.X.contains(other.X)
+        X = self.X
+        left = self.left
+        right = self.right
+        if not self.has_children:
+            assert self.X == other.X
+            return other
+        elif left.X == other.X:
+            assert not left.has_children
+            left = other
+        elif right.X == other.X:
+            assert not right.has_children
+            right = other
+        elif left.X.contains(other.X):
+            left = left+other # recurse
+        elif right.X.contains(other.X):
+            right = right+other # recurse
+        else:
+            assert 0, (self, other)
+
+        return Node(X, left, right)
+
+    # ------------- rendering ----------------------
+
     def get_bbox(self, R=1.0):
         "find (width,height) of bounding box for render"
         X = self.X
@@ -512,27 +547,56 @@ class TextBox(Box):
         return self.w, self.h
 
     def render(self, x=0., y=0., can=None, name=None, **kw):
-        can.text(x, y-self.h, s, south)
+        can.text(x, y-self.h, self.s, south)
 
 
 def render():
     head = "transversal2018/"
+    seed(0)
 
     a = Multiset({"a" : 1})
     b = Multiset({"b" : 1})
     c = Multiset({"c" : 1})
+    d = Multiset({"d" : 1})
+    d = Multiset({"d" : 1})
+    e = Multiset({"e" : 1})
+    f = Multiset({"f" : 1})
+    g = Multiset({"g" : 1})
     
+    def mkrand(items, a=1, b=3):
+        Z = Multiset()
+        for A in items:
+            Z = Z + randint(a, b)*A
+        return Z
+
     T = Node(a+b+2*c, Node(a+b, Node(a), Node(b)), Node(2*c))
     #T.render(name="pic_a_b_2c.pdf")
 
-    ((a+b)*T).render(name=head+"pic_left_a_b_2c.pdf")
+    S = ((a+b)*T)
+    S.render(name=head+"pic_left_a_b_2c.pdf")
     #T = T*T
+
+    U = Node(a*a+b*a, Node(a*a), Node(b*a))
+    SU = S+U
+    box = HBox([S, TextBox("$+$"), U, TextBox("$=$"), SU])
+    box.render(name=head+"pic_add.pdf")
     
     S = Node(a+b, Node(a), Node(b))
-    (S*T).render(name=head+"pic_prod.pdf")
+    #(S*T).render(name=head+"pic_prod.pdf")
     
-    box = HBox([S, T, S*T])
-    box.render(name="pic-1.pdf")
+    box = HBox([S, TextBox(r"$\times$"), T, TextBox("$=$"), S*T])
+    box.render(name=head+"pic_prod.pdf")
+
+    X = mkrand([a,b,c,d,e,f,g])
+    TX = X.huffman(sort=True)
+    print(W(TX))
+    box = HBox([TX])
+    box.render(name=head+"pic_huffman.pdf")
+
+    X = a + b + 2*c + 4*d
+    TX = X.huffman(sort=True)
+    box = HBox([TX])
+    box.render(name=head+"pic_dyadic.pdf")
 
     print("OK")
 
@@ -574,6 +638,10 @@ def main():
     assert not (A+B).disjoint(B)
 
     assert (A+2*B).terms() == [A, 2*B]
+
+    assert not A.contains(B)
+    assert (A+B).contains(B)
+    assert not (A+B).contains(2*B)
 
     # ---------------------------------------------------------------------
 
