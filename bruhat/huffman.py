@@ -55,12 +55,14 @@ class Multiset(object):
         cs = dict(items)
         self.cs = dict(cs) # map item -> count
         self._len = sum(self.cs.values(), 0)
+        keys = list(cs.keys())
+        keys.sort() # canonicalize
+        self.keys = keys 
 
     def __str__(self):
         cs = self.cs
-        keys = list(cs.keys())
-        keys.sort()
-        items = reduce(add, [ (str(key),)*cs[key] for key in keys ], ())
+        keys = self.keys
+        items = reduce(add, [(str(key),)*cs[key] for key in keys], ())
         items = ','.join(items)
         return '{%s}'%items
 
@@ -74,9 +76,11 @@ class Multiset(object):
 
     def __mul__(X, Y): 
         "cartesian product of multisets"
-        xcs, ycs = X.cs, Y.cs
-        cs = dict((x+y, xcs[x]*ycs[y]) for x in xcs for y in ycs)
-        return Multiset(cs)
+        if isinstance(Y, Multiset):
+            xcs, ycs = X.cs, Y.cs
+            cs = dict((x+y, xcs[x]*ycs[y]) for x in xcs for y in ycs)
+            return Multiset(cs)
+        return NotImplemented
 
     def __rmul__(self, r):
         "left multiplication by a number"
@@ -92,6 +96,17 @@ class Multiset(object):
         for k, v in ycs.items():
             cs[k] = cs.get(k, 0) + v
         return Multiset(cs)
+
+    def terms(self):
+        cs = self.cs
+        return [Multiset({k:cs[k]}) for k in self.keys]
+
+    def disjoint(X, Y):
+        lhs = set(X.cs.keys())
+        rhs = set(Y.cs.keys())
+        #print("disjoint:", lhs, rhs)
+        #print("disjoint:", lhs.intersection(rhs))
+        return not bool(lhs.intersection(rhs))
 
     def __len__(self):
         return self._len
@@ -162,11 +177,14 @@ def W(X):
 
 class Node(object):
     "A tree over a multiset"
+    "mutable !!"
+
     def __init__(self, X, left=None, right=None):
         self.X = X
         self._cost = len(X)
         self.left = left
         self.right = right
+        assert self.check(), str(self)
 
     def cost(self):
         return self._cost
@@ -176,8 +194,10 @@ class Node(object):
         left = self.left
         right = self.right
         if left is None and right is None:
-            return 
-        assert X == left.X + right.X
+            return True
+        if not left.X.disjoint(right.X):
+            return False
+        return X == left.X + right.X and left.check() and right.check()
 
     def __eq__(self, other):
         X = self.X
@@ -191,6 +211,49 @@ class Node(object):
 
     def __ne__(self, other):
         return not (self==other)
+    
+    def clone(self):
+        X = self.X
+        left = self.left
+        right = self.right
+        if left is None and right is None:
+            return Node(self.X) # X is immutable.... for now..
+        return Node(self.X, left.clone(), right.clone())
+
+    def __getitem__(self, idx):
+        if type(idx) is int:
+            assert idx==0 or idx==1
+            node = [self.left, self.right][idx]
+        elif type(idx) is tuple:
+            node = self
+            for i in idx:
+                node = node[i] # recurse
+        else:
+            raise TypeError
+        return node
+
+    def __setitem__(self, idx, node):
+        assert isinstance(node, Node), node
+        if type(idx) is tuple and len(idx)==1:
+            idx = idx[0]
+        if type(idx) is int:
+            assert idx==0 or idx==1
+            assert self.has_children
+            child = [self.left, self.right][idx]
+            assert node.X == child.X
+            if idx==0:
+                self.left = node
+            else:
+                self.right = node
+        elif type(idx) is tuple:
+            assert len(idx)>1
+            child = self
+            for i in idx[:-1]:
+                child = child[i]
+            child[idx[-1]] = node # recurse
+        else:
+            raise TypeError
+        assert self.check()
 
     @property
     def has_children(self):
@@ -275,6 +338,42 @@ class Node(object):
         return "(%s : %s)" % (left, right)
     __repr__ = __str__
 
+    def idxs(self): # dict .keys()
+        X = self.X
+        left = self.left
+        right = self.right
+        if left is None and right is None:
+            yield ()
+        else:
+            for idx, X in left.idxs():
+                yield (0,)+idx
+            for idx, X in right.idxs():
+                yield (1,)+idx
+
+    def leaves(self): # dict .values()
+        X = self.X
+        left = self.left
+        right = self.right
+        if left is None and right is None:
+            yield X
+        else:
+            for X in left.leaves():
+                yield X
+            for X in right.leaves():
+                yield X
+
+    def items(self): # dict .items()
+        X = self.X
+        left = self.left
+        right = self.right
+        if left is None and right is None:
+            yield ((), X)
+        else:
+            for idx, X in left.items():
+                yield ((0,)+idx, X)
+            for idx, X in right.items():
+                yield ((1,)+idx, X)
+
     def __rmul__(self, r):
         " left multiplication by a Multiset "
         X = self.X
@@ -286,14 +385,31 @@ class Node(object):
 
     def __lmul__(self, r):
         " right multiplication by a Multiset "
+        X = self.X
+        left = self.left
+        right = self.right
+        if left is None and right is None:
+            return Node(X*r)
+        return Node(X*r, left*r, right*r)
 
+    def __mul__(TX, TY):
+        if not isinstance(TY, Node):
+            return TX.__lmul__(TY)
 
-    def __mul__(self, other):
-        if isinstance(other, Multiset):
-            return self.__lmul__(other)
+        X = TX.X
+        Y = TY.X
+        #print("__mul__", TX, TY)
 
-        TODO
+        XTY = X * TY
+        #print("__mul__", XTY)
 
+        #TXY = TX * Y
+        top = XTY
+        for (idx, r) in TY.items():
+            # glue
+            top[idx] = TX*r # recurse
+
+        return top
 
 
 def main():
@@ -310,6 +426,66 @@ def main():
     #print(Y, Y.entropy())
     assert str(Y) == "{A,A,B,B}"
 
+    A = Multiset({"A" : 1})
+    B = Multiset({"B" : 1})
+    C = Multiset({"C" : 1})
+    D = Multiset({"D" : 1})
+    E = Multiset({"E" : 1})
+    F = Multiset({"F" : 1})
+    G = Multiset({"G" : 1})
+
+    assert A.disjoint(B)
+    assert not (A+B).disjoint(B)
+
+    assert (A+2*B).terms() == [A, 2*B]
+
+    # ---------------------------------------------------------------------
+
+    assert Node(A+B, Node(A), Node(B)) == Node(B+A, Node(B), Node(A))
+
+    lhs, rhs = (Node(A+B+C, Node(A+B, Node(A), Node(B)), Node(C)),
+        Node(A+B+C, Node(A), Node(B+C, Node(B), Node(C))))
+
+    assert lhs.isomorphic(rhs)
+
+    T = Node(A+B+C, Node(A+B, Node(A), Node(B)), Node(C))
+    subs = list(T.subtrees())
+    assert len(subs) == 8
+
+    # test left multiplication
+    for r in [2, A, A+B]:
+        assert r*T == Node(r*A+r*B+r*C, Node(r*A+r*B, Node(r*A), Node(r*B)), Node(r*C))
+
+    T = Node(A+B+C+D, Node(A+B, Node(A), Node(B)), Node(C+D, Node(C), Node(D)))
+    subs = list(T.subtrees())
+    assert len(subs) == 13, len(subs)
+
+    S, T = Node(A+B, Node(A), Node(B)), Node(B)
+    assert S[0] != T
+    assert S[1] == T
+    U = S.clone()
+    assert U==S
+    U[1] = T
+    assert U[0] != T
+    assert U[1] == T
+    assert U==S
+
+    T = Node(A+B+C+D, Node(A+B, Node(A), Node(B)), Node(C+D, Node(C), Node(D)))
+    assert T[0] == S
+    T[0] = Node(A+B)
+
+    T = Node(2*A+B+C+D+E+F, Node(2*A+B+E), Node(C+D+F))
+    U = T.clone()
+    U[0] = Node(2*A+B+E, Node(2*A), Node(B+E))
+    U[0, 1] = Node(B+E, Node(B), Node(E))
+    assert U.clone() == U
+
+    T = Node(A+B, Node(A), Node(B))
+    S = Node(A+B+2*C, Node(A+B, Node(A), Node(B)), Node(2*C))
+    assert str(T*S) == "((((AA) : (BA)) : ((AB) : (BB))) : ((AC,AC) : (BC,BC)))"
+
+    # ---------------------------------------------------------------------
+
     #print( ((X*Y).entropy(), len(X)*Y.entropy() + len(Y)*X.entropy()))
     assert is_close((X*Y).entropy(), len(X)*Y.entropy() + len(Y)*X.entropy())
 
@@ -324,28 +500,7 @@ def main():
 
     assert XX.W() == 27
 
-    A = Multiset({"A" : 1})
-    B = Multiset({"B" : 1})
-    C = Multiset({"C" : 1})
-    D = Multiset({"D" : 1})
-    E = Multiset({"E" : 1})
-    F = Multiset({"F" : 1})
-    G = Multiset({"G" : 1})
-
-    assert Node(A+B, Node(A), Node(B)) == Node(B+A, Node(B), Node(A))
-
-    lhs, rhs = (Node(A+B+C, Node(A+B, Node(A), Node(B)), Node(C)),
-        Node(A+B+C, Node(A), Node(B+C, Node(B), Node(C))))
-
-    assert lhs.isomorphic(rhs)
-
-    T = Node(A+B+C, Node(A+B, Node(A), Node(B)), Node(C))
-    subs = list(T.subtrees())
-    assert len(subs) == 8
-
-    T = Node(A+B+C+D, Node(A+B, Node(A), Node(B)), Node(C+D, Node(C), Node(D)))
-    subs = list(T.subtrees())
-    assert len(subs) == 13, len(subs)
+    return
 
     def mkrand(a=1, b=3):
         Z = randint(a, b)*A + randint(a, b)*B + randint(a, b)*C  #+ randint(a, b)*D + randint(a, b)*E
@@ -357,13 +512,13 @@ def main():
         X = mkrand(1, 5)
         lhs = X.huffman()
         rhs = X.huffman()
-        assert lhs.isomorphic(rhs) # huffman is unique up to isomorphism !
+        assert lhs.isomorphic(rhs) # huffman is unique up to isomorphism ? this can't be right..
 
     for trial in range(100):
         X = mkrand(1, 3)
         T = X.huffman()
         for S in T.subtrees():
-            S.check()
+            assert S.check()
 
     assert W(Multiset()) == 0
 
@@ -374,10 +529,11 @@ def main():
         X = a*A + b*B + c*C
         lhs = W(X*X)
         rhs = 2*len(X)*W(X)
-        if lhs==rhs:
-            print(X)
-        else:
-            print("*")
+        assert lhs <= rhs
+        #if lhs==rhs: # no nice characterization of this
+        #    print(X)
+        #else:
+        #    print("*")
     
     for trial in range(1000):
         a = randint(1, 3)
@@ -411,7 +567,7 @@ def main():
         print()
         #assert n*X.huffman() == (n*X).huffman()
         assert lhs.isomorphic(rhs)
-        X.huffman().check()
+        assert X.huffman().check()
     #    print(Z.entropy(), Z.W())
 
     X = 3*A + B
