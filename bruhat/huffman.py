@@ -72,18 +72,21 @@ class Multiset(object):
     def __ne__(self, other):
         return self.cs != other.cs
 
-    def __mul__(X, Y): # cartesian product... yes?
+    def __mul__(X, Y): 
+        "cartesian product of multisets"
         xcs, ycs = X.cs, Y.cs
         cs = dict((x+y, xcs[x]*ycs[y]) for x in xcs for y in ycs)
         return Multiset(cs)
 
     def __rmul__(self, r):
+        "left multiplication by a number"
         assert int(r) == r
         assert r >= 0
         cs = dict((k, r*v) for (k, v) in self.cs.items())
         return Multiset(cs)
 
-    def __add__(X, Y): # WARNING: not disjoint union
+    def __add__(X, Y):
+        # WARNING: not disjoint union (coproduct)
         xcs, ycs = X.cs, Y.cs
         cs = dict(xcs)
         for k, v in ycs.items():
@@ -273,6 +276,7 @@ class Node(object):
     __repr__ = __str__
 
     def __rmul__(self, r):
+        " left multiplication by a Multiset "
         X = self.X
         left = self.left
         right = self.right
@@ -280,8 +284,15 @@ class Node(object):
             return Node(r*X)
         return Node(r*X, r*left, r*right)
 
-#    def __mul__(S, T):
-#        # argh...
+    def __lmul__(self, r):
+        " right multiplication by a Multiset "
+
+
+    def __mul__(self, other):
+        if isinstance(other, Multiset):
+            return self.__lmul__(other)
+
+        TODO
 
 
 
@@ -356,6 +367,18 @@ def main():
 
     assert W(Multiset()) == 0
 
+    for trial in range(100):
+        a = randint(1, 3)
+        b = randint(1, 3)
+        c = randint(1, 3)
+        X = a*A + b*B + c*C
+        lhs = W(X*X)
+        rhs = 2*len(X)*W(X)
+        if lhs==rhs:
+            print(X)
+        else:
+            print("*")
+    
     for trial in range(1000):
         a = randint(1, 3)
         b = randint(1, 3)
