@@ -426,7 +426,11 @@ class Node(object):
         top = XTY
         for (idx, r) in TY.items():
             # glue
-            top[idx] = TX*r # recurse
+            #print("glue", idx)
+            if not idx:
+                top = TX*r
+            else:
+                top[idx] = TX*r # recurse
 
         return top
 
@@ -601,14 +605,35 @@ def render():
     print("OK")
 
 
-def randtree(X):
-    "random complete tree on X"
+def randmonomial(X):
+    "random monomial tree on X"
     nodes = [Node(Y) for Y in X.terms()]
+    if not nodes:
+        return Node(X)
     while len(nodes)>1:
         left = nodes.pop(randint(0, len(nodes)-1))
         right = nodes.pop(randint(0, len(nodes)-1))
         node = Node(left.X+right.X, left, right)
         nodes.append(node)
+    return nodes[0]
+
+
+def randtree(X, monomial=True):
+    if monomial:
+        return randmonomial(X)
+
+    nodes = [Node(Y) for Y in X.terms()]
+    if not nodes:
+        return Node(X)
+    while len(nodes)>1:
+        left = nodes.pop(randint(0, len(nodes)-1))
+        right = nodes.pop(randint(0, len(nodes)-1))
+        if randint(0, 1):
+            node = Node(left.X+right.X, left, right)
+            nodes.append(node)
+        else:
+            node = Node(left.X+right.X)
+            nodes.append(node)
     return nodes[0]
 
 
@@ -692,16 +717,40 @@ def main():
         Z = randint(a, b)*A + randint(a, b)*B + randint(a, b)*C + randint(a, b)*D + randint(a, b)*E
         return Z
 
-    for trial in range(100):
+    #seed(1)
+    for trial in range(1000):
         X = randmultiset()
+        if not(len(X)):
+            continue
+
         TX = randtree(X)
         assert X.entropy() <= W(X) <= W(TX)
         
         Y = randmultiset()
         TY = randtree(Y)
 
-        # W is a derivation on complete trees
+        # W is a derivation on monomial trees
         assert W(TX*TY) == len(X)*W(TY) + W(TX)*len(Y)
+
+    for trial in range(100):
+        X = randmultiset()
+        TX = randtree(X, False)
+        Y = randmultiset()
+        TY = randtree(Y, False)
+
+        assert W(Y*TX) == len(Y)*W(TX)
+
+        T = TX
+        for n in range(1, 4):
+            assert W(T) == n*len(X)**(n-1) * W(TX)
+            T = TX*T
+
+        #print("TX=%s, TY=%s"%(TX, TY))
+
+        # W is a derivation on non-monomial trees
+        assert W(TX*TY) == len(X)*W(TY) + W(TX)*len(Y)
+
+    return
 
     # ---------------------------------------------------------------------
 
