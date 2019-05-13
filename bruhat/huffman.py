@@ -593,6 +593,13 @@ def render():
 
     X = mkrand([a,b,c,d,e,f,g])
     TX = X.huffman(sort=True)
+    #print(W(TX))
+    if 0:
+        box = HBox([TX])
+        box.render(name=head+"pic_huffman.pdf")
+
+    X = 5*a+5*b+4*c+3*d+3*e
+    TX = X.huffman(sort=True)
     print(W(TX))
     box = HBox([TX])
     box.render(name=head+"pic_huffman.pdf")
@@ -731,6 +738,10 @@ def main():
 
         # W is a derivation on monomial trees
         assert W(TX*TY) == len(X)*W(TY) + W(TX)*len(Y)
+
+        HX = X.huffman()
+        HY = Y.huffman()
+        print(W(X*Y), W(HX*HY))
 
     for trial in range(100):
         X = randmultiset()
