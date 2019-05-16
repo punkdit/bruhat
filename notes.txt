@@ -1,4 +1,19 @@
 
+15/5/19
+=======
+
+Phase space simulation method for quantum computation with magic states on qubits
+Robert Raussendorf1,2 , Juani Bermejo-Vega3 , Emily Tyhurst4 , Cihan Okay1,2 , and Michael Zurel1
+https://scirate.com/arxiv/1905.05374
+
+
+14/5/19
+=======
+
+https://www.meltingasphalt.com/interactive/going-critical/
+https://news.ycombinator.com/item?id=19905677
+network theory, diffusion, SIR model, SIS model
+
 9/5/19
 ======
 
