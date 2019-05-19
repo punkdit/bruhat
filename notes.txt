@@ -1,4 +1,28 @@
 
+19/5/19
+=======
+
+Group theory is a language of *ambiguity*, just like
+probability theory. Probabilities already live in a vector
+space, and so I think this is why vector spaces show
+up so effectively in studying groups. Eg., the group
+algebra "unifies" these two viewpoints.
+https://twitter.com/fridaysimon/status/1069906013241905152
+
+dialog between Burnside and Frobenius:
+http://math.ucr.edu/home/baez/week252.html
+
+Fadeev
+v, On the concept of entropy of a finite probabilistic scheme, Uspehi Mat. Nauk
+(N.S.) 11 (1956), no. 1(67), 227–231. (In Russian.)
+http://www.mathnet.ru/links/043f3cbe5749beec727019f9dfdffed7/rm7756.pdf
+
+A Characterization of Entropy in Terms of Information Loss
+John C. Baez, Tobias Fritz, and Tom Leinster
+http://math.ucr.edu/home/baez/information_loss.pdf
+
+
+
 18/5/19
 =======
 
