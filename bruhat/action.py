@@ -2267,7 +2267,7 @@ class CFunc(object):
         return "CFunc(%s)"%(list(self.func[g] for g in self.G))
     __repr__ = __str__
 
-    def dot(self, other):
+    def dot(self, other, normalize=True):
         assert self.G is other.G
         x = 0
         for g in self.G:
@@ -2275,7 +2275,8 @@ class CFunc(object):
         n = len(self.G)
         #print("x =", x)
         #assert x%n == 0, x
-#        x = x/n
+        if normalize:
+            x = x/n
         if type(x) is float and x == int(x):
             x = int(x)
         return x

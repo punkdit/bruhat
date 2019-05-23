@@ -246,6 +246,8 @@ def make_dicyclic(n):
         cols.append([1, -1, -i**n, i**n, 0] + [0 for k in kidxs])
         elems.append(s*(r**(2*idx+1)))
 
+    #print(i, -i, i**n, -i**n)
+
     assert len(set(elems)) == len(elems) == len(G)
 
     for col in cols:
@@ -258,9 +260,9 @@ def make_dicyclic(n):
 
     for f in c_chars:
       for g in c_chars:
-        r = f.dot(g)
+        r = f.dot(g, normalize=False)
         #assert (f == g) == (r == 1)
-        print(f.dot(g), end=" ")
+        print(r, end=" ")
       print()
 
 
