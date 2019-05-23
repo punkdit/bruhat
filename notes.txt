@@ -1,4 +1,12 @@
 
+20/5/19
+=======
+
+Elliptic Curves, Modular Forms, and Their L-functions
+Álvaro Lozano-Robledo
+2011
+
+
 19/5/19
 =======
 

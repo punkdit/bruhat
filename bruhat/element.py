@@ -695,8 +695,13 @@ class Polynomial(Element):
     def __getitem__(self, idx):
         return self.cs.get(idx, self.base.zero)
 
-    def __call__(self, v):
-        v = self.base.promote(v)
+    def __call__(self, v0):
+        # first try substituting a scalar
+        v = self.base.promote(v0)
+        if v is None:
+            # allow to substitute other Polynomial's 
+            v = self.tp.promote(v0)
+        assert v is not None, "failed to promote %r"%v0
         r = self.base.zero
         for deg, coeff in self.cs.items():
             r = r + coeff * v**deg
@@ -860,6 +865,13 @@ class ModuloElement(GenericElement):
     @property
     def deg(self):
         return self.value.deg
+
+    def __call__(self, v): # just call into a tp.call() method ?
+        v = self.tp.promote(v)
+        value = self.value(v.value)
+        value = self.tp.promote(value)
+        return value
+        
 
 
 # ----------------------------------------------------------------------------
@@ -1148,6 +1160,7 @@ def cayley(elements):
 
 _cyclotomic_cache = {}
 def cyclotomic(ring, n): # make this a method ?
+    "return cyclotomic polynomial"
 
     key = (ring, n)
     if key in _cyclotomic_cache:
@@ -1175,6 +1188,7 @@ def cyclotomic(ring, n): # make this a method ?
 
     _cyclotomic_cache[key] = p
     return p
+
 
 # ----------------------------------------------------------------------------
 
@@ -1529,6 +1543,7 @@ def test():
         if argv.Dic and n==argv.get("n"):
             print("order =", len(Di))
             burnside(cayley(Di))
+            return
 
     # -------------------------
 

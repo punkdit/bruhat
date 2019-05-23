@@ -2271,10 +2271,14 @@ class CFunc(object):
         assert self.G is other.G
         x = 0
         for g in self.G:
-            x += self[g] * other[g]
+            x += self[g] * other[~g]
         n = len(self.G)
-        assert x%n == 0
-        return x//n
+        #print("x =", x)
+        #assert x%n == 0, x
+#        x = x/n
+        if type(x) is float and x == int(x):
+            x = int(x)
+        return x
 
     def __getitem__(self, g):
         return self.func[g]
@@ -2589,11 +2593,17 @@ def burnside(G, Hs=None):
 #        UMU = numpy.dot(L, numpy.dot(A, L.transpose()))
 #        print(UMU)
 
+    print("rank:", len(B))
+
+    # diagonal matrix
     LT = numpy.dot(L, T)
     for chi1 in LT:
       for chi2 in LT:
         print(chi1.dot(chi2), end=" ")
       print()
+
+    print()
+    print("Character table:")
     CFunc.show_table(LT)
     if argv.latex:
         print()
