@@ -2264,7 +2264,7 @@ class CFunc(object):
         self.func = dict(func)
 
     def __str__(self):
-        return "CFunc(%s)"%(list(self.func[g] for g in self.G))
+        return "CFunc([%s])"%(', '.join(list(str(self.func[g]) for g in self.G)))
     __repr__ = __str__
 
     def dot(self, other, normalize=True):
