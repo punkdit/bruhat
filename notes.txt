@@ -22,6 +22,13 @@ Yang-Hui He, John McKay
 https://arxiv.org/abs/1505.06742
 
 
+Classical 6j–symbols and the tetrahedron
+Justin Roberts
+https://arxiv.org/abs/math-ph/9812013
+http://math.ucr.edu/home/baez/week128.html
+
+
+
 23/5/19
 =======
 
