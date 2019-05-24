@@ -1,4 +1,36 @@
 
+24/5/19
+=======
+
+https://arxiv.org/abs/quant-ph/9604028
+Stabilisation of Quantum Computations by Symmetrisation
+
+The Church of the Symmetric Subspace
+Aram W. Harrow
+https://arxiv.org/abs/1308.6595
+https://scirate.com/arxiv/1308.6595#222
+
+Jeffrey Morton, 2-vector spaces and groupoids. 
+http://arxiv.org/abs/0810.2361
+
+http://math.ucr.edu/home/baez/2rep.pdf
+Infinite-Dimensional Representations of 2-Groups
+John C. Baez1 , Aristide Baratin2 , Laurent Freidel3,4 , Derek K. Wise5
+
+Sporadic and Exceptional
+Yang-Hui He, John McKay
+https://arxiv.org/abs/1505.06742
+
+
+23/5/19
+=======
+
+What is NOT Random?
+Veritasium
+https://www.youtube.com/watch?v=sMb00lz-IfE
+quantum + chaos = free-will ...
+
+
 20/5/19
 =======
 
