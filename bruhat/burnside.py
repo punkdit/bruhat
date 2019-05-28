@@ -167,7 +167,7 @@ def burnside(G):
     return LT
 
 
-def make_dicyclic(n):
+def make_dicyclic(n, debug=False):
     # Binary dihedral group
     # https://people.maths.bris.ac.uk/~matyd/GroupNames/dicyclic.html
 
@@ -215,56 +215,192 @@ def make_dicyclic(n):
     assert s**2 == r**n
     assert r*s*r == s
 
+    # complex characters ----------------------------------------------------
+
     # build the transpose of the character table.
     cols = []
     elems = [] # group elements with order the cols
+    cgy = [] # element of each cgy class
     kidxs = range(2, n)
 
-    # class: e
+    desc = []
+
+    # class: e, size 1
     elems.append(e)
+    cgy.append(e)
+    desc.append("e")
     cols.append([1, 1, 1, 1, 2] + [2 for k in kidxs])
 
-    # class: s^2
+    # class: s^2, size 1
     cols.append([1, 1, (-1)**n, (-1)**n, -2] + [((-1)**k)*2 for k in kidxs])
     elems.append(s*s)
+    cgy.append(s*s)
+    desc.append("s^2")
 
     for idx in range(1, n):
         # class: r**idx, size 2
-        col = [1, 1, (-1)**n, (-1)**n, zeta**idx+izeta**idx] + [zeta**(idx*k) + izeta**(idx*k) for k in kidxs]
+        col = [1, 1, (-1)**idx, (-1)**idx, zeta**idx+izeta**idx]+[zeta**(idx*k) + izeta**(idx*k) for k in kidxs]
         cols.append(col)
         cols.append(col)
         elems.append(r**idx)
+        cgy.append(r**idx)
+        desc.append("r^%d"%idx)
         elems.append(r**(2*n-idx))
 
     for idx in range(n):
-        # class: s
+        # class: s, size n
         cols.append([1, -1, i**n, -i**n, 0] + [0 for k in kidxs])
         elems.append(s*(r**(2*idx)))
+    cgy.append(s)
+    desc.append("s")
 
     for idx in range(n):
-        # class: s*r
+        # class: s*r, size n
         cols.append([1, -1, -i**n, i**n, 0] + [0 for k in kidxs])
         elems.append(s*(r**(2*idx+1)))
+    cgy.append(s*r)
+    desc.append("sr")
 
     #print(i, -i, i**n, -i**n)
 
     assert len(set(elems)) == len(elems) == len(G)
+    assert set(elems) == set(G)
 
     for col in cols:
         assert len(col) == n+3, len(col)
 
-    c_chars = []
-    for k in range(n+3):
-        chi = dict((elems[i], cols[i][k]) for i in range(4*n))
-        c_chars.append(CFunc(G, chi))
+    if debug:
+        print()
+        for s in desc:
+            s = "%10s"%s
+            print(s, end=" ")
+        print()
+        c_chars = []
+        for k in range(n+3):
+            chi = dict((elems[i], cols[i][k]) for i in range(4*n))
+            f = CFunc(G, chi)
+            for g in cgy:
+                s = "%10s"%(f[g])
+                print(s, end=" ")
+            print()
+            c_chars.append(f)
+        print()
+    
+        for f in c_chars:
+          for g in c_chars:
+            val = f.dot(g, normalize=False)
+            #assert (f == g) == (val == 1)
+            print(val, end=" ")
+          print()
 
-    for f in c_chars:
-      for g in c_chars:
-        r = f.dot(g, normalize=False)
-        #assert (f == g) == (r == 1)
-        print(r, end=" ")
-      print()
+    else:
+        c_chars = []
+        for k in range(n+3):
+            chi = dict((elems[i], cols[i][k]) for i in range(4*n))
+            f = CFunc(G, chi)
+            c_chars.append(f)
+    
+        for f in c_chars:
+          for g in c_chars:
+            val = f.dot(g)
+            assert (f == g) == (val == 1)
 
+    G.c_chars = c_chars
+
+    # real characters ----------------------------------------------------
+
+    # XXX NOT FINISHED XXX
+
+    # build the transpose of the character table.
+    cols = []
+    elems = [] # group elements with order the cols
+    cgy = [] # element of each cgy class
+    kidxs = range(2, n)
+
+    desc = []
+
+    # class: e, size 1
+    elems.append(e)
+    cgy.append(e)
+    desc.append("e")
+    cols.append([1, 1, 1, 1, 2] + [2 for k in kidxs])
+
+    # class: s^2, size 1
+    cols.append([1, 1, (-1)**n, (-1)**n, -2] + [((-1)**k)*2 for k in kidxs])
+    elems.append(s*s)
+    cgy.append(s*s)
+    desc.append("s^2")
+
+    for idx in range(1, n):
+        # class: r**idx, size 2
+        col = [1, 1, (-1)**idx, (-1)**idx, zeta**idx+izeta**idx]+[zeta**(idx*k) + izeta**(idx*k) for k in kidxs]
+        cols.append(col)
+        cols.append(col)
+        elems.append(r**idx)
+        cgy.append(r**idx)
+        desc.append("r^%d"%idx)
+        elems.append(r**(2*n-idx))
+
+    for idx in range(n):
+        # class: s, size n
+        cols.append([1, -1, i**n, -i**n, 0] + [0 for k in kidxs])
+        elems.append(s*(r**(2*idx)))
+    cgy.append(s)
+    desc.append("s")
+
+    for idx in range(n):
+        # class: s*r, size n
+        cols.append([1, -1, -i**n, i**n, 0] + [0 for k in kidxs])
+        elems.append(s*(r**(2*idx+1)))
+    cgy.append(s*r)
+    desc.append("sr")
+
+    #print(i, -i, i**n, -i**n)
+
+    assert len(set(elems)) == len(elems) == len(G)
+    assert set(elems) == set(G)
+
+    for col in cols:
+        assert len(col) == n+3, len(col)
+
+    # XXX NOT FINISHED XXX
+
+    if debug:
+        print()
+        for s in desc:
+            s = "%10s"%s
+            print(s, end=" ")
+        print()
+        r_chars = []
+        for k in range(n+3):
+            chi = dict((elems[i], cols[i][k]) for i in range(4*n))
+            f = CFunc(G, chi)
+            for g in cgy:
+                s = "%10s"%(f[g])
+                print(s, end=" ")
+            print()
+            r_chars.append(f)
+        print()
+    
+        for f in r_chars:
+          for g in r_chars:
+            r = f.dot(g, normalize=False)
+            print(r, end=" ")
+          print()
+
+    else:
+        r_chars = []
+        for k in range(n+3):
+            chi = dict((elems[i], cols[i][k]) for i in range(4*n))
+            f = CFunc(G, chi)
+            r_chars.append(f)
+    
+        for f in r_chars:
+          for g in r_chars:
+            r = f.dot(g)
+            assert (f == g) == (r != 0)
+
+    G.r_chars = r_chars
 
     return G
 
@@ -302,7 +438,7 @@ def make_cyclic(n, check=False):
 
     G = Group(perms, items, check=True)
 
-    # complex characters
+    # complex characters  --------------------------------------------------
     c_chars = []
     for k in range(n):
         chi = dict((perms[i], zeta**(i*k)) for i in range(n))
@@ -318,7 +454,7 @@ def make_cyclic(n, check=False):
         #print(f.dot(g), end=" ")
       #print()
 
-    # real characters
+    # real characters  --------------------------------------------------
     r_chars = [c_chars[0]] # triv
     if n%2:
         for k in range(1, (n+1)//2):
@@ -344,7 +480,6 @@ def make_cyclic(n, check=False):
     return G
 
 
-
 def main():
 
     n = argv.get("n", 5)
@@ -353,8 +488,13 @@ def main():
     G = make_dicyclic(n)
     print(len(G))
 
-    LT = burnside(G)
-    print(LT)
+    q_chars = burnside(G)
+    for f in q_chars:
+        #print(f)
+        for g in G.c_chars:
+            val = f.dot(g)
+            print(val, end=" ")
+        print()
 
 
 
