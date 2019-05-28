@@ -1,4 +1,106 @@
 
+27/5/19
+=======
+
+https://quantumfrontiers.com/2019/05/26/quantum-information-in-quantum-cognition/
+Quantum information in quantum cognition
+https://arxiv.org/abs/1711.04801
+Phosphorus nuclear spins may resist decoherence for long
+times. The spins would serve as biological qubits. The
+qubits may resist decoherence longer when in Posner molecules.
+
+
+https://arxiv.org/abs/1705.02240
+THE COBORDISM HYPOTHESIS
+DAVID AYALA & JOHN FRANCIS
+The cobordism hypothesis for topological quantum field theories is an analogue
+of the Eilenberg–Steenrod axioms for homology: the Eilenberg–Steenrod axioms state that a homology theory is uniquely determined by its value on a point; the cobordism hypothesis states that
+a topological quantum field theory is uniquely determined by its value on a point.
+
+Homology               |   TQFT
+-----------------------+-------------------------------
+Cellular homology;     |   Composition of unit/counits;
+cell complexes;        |   handlebodies;
+cellular approximation.|   parametrized Morse theory.
+Euler characteristic   |   Partition function
+
+The cobordism hypothesis
+Daniel S. Freed
+https://arxiv.org/abs/1210.5100
+
+
+Higher-dimensional Algebra and Topological Quantum Field Theory
+John C. Baez, James Dolan
+https://arxiv.org/abs/q-alg/9503002
+5. Suspension
+-------------
+k-tuply monoidal n-categories:
+
+ +----------------------------------------------------------------
+ |     |   n=0          |   n=1           |   n=2                |
+ |-----+----------------+-----------------+-----------------------
+ |k=0  |   sets         |   categories    |   2-categories       |
+ |-----+----------------+-----------------+-----------------------
+ |k=1  |   monoids      |   monoidal      |   monoidal           |
+ |     |                |   categories    |   2-categories       |
+ |-----+----------------+-----------------+-----------------------
+ |k=2  |   commutative  |   braided       |   braided            |
+ |     |   monoids      |   monoidal      |   monoidal           |
+ |     |                |   categories    |   2-categories       |
+ |-----+----------------+-----------------+-----------------------
+ |k=3  |       "        |   symmetric     |   weakly involutory  |
+ |     |                |   monoidal      |   monoidal           |
+ |     |                |   categories    |   2-categories       |
+ |-----+----------------+-----------------+-----------------------
+ |k=4  |       "        |       "         |   strongly involutory|
+ |     |                |                 |   monoidal           |
+ |     |                |                 |   2-categories       |
+ |-----+----------------+-----------------+-----------------------
+ |k=5  |       "        |                 |        "             |
+ |     |                |                 |                      |
+ +-----+----------------+-----------------+-----------------------
+
+
+https://en.wikipedia.org/wiki/Suspension_(topology)
+Suspension is left adjoint to loop space,
+in the category of topological spaces with basepoint:
+    Hom(Sus(X), Y) ~= Hom(X, Loop(Y))
+This is an example of currying.
+
+
+
+
+26/5/19
+=======
+
+Gauge Equivariant Convolutional Networks and the Icosahedral CNN
+Taco S. Cohen * 1 Maurice Weiler * 2 Berkay Kicanaoglu * 2 Max Welling
+https://arxiv.org/abs/1902.04615
+
+
+
+
+25/5/19
+=======
+
+https://arxiv.org/pdf/1309.2996.pdf
+"Origin of the tail in Green’s functions in odd dimensional space-times"
+De-Chang Dai1 and Dejan Stojkovic2
+    While studying the propagation of light in ether,
+    around 1690, Huygens concluded that perturbations produced by
+    by a light source placed at (r = 0, t = 0) propagate
+    away in the form of spherical waves with uniform velocity.
+    Every spatial point reached by the wave front behaves as
+    a new source and produces a new spherical wave. As a
+    result, an entire envelope of the spherical waves in space
+    is formed [1]. This is the historic idea of the Huygens’
+    principle, which proved very useful in our studies of wave
+    propagation phenomena and interference (including the
+    famous double slit experiment).
+    Then, around 1900, Hadamard came to conclusion that
+    the Huygens’ principle in odd-dimensional space-times
+    is violated [2]. 
+
 24/5/19
 =======
 
@@ -20,6 +122,10 @@ John C. Baez1 , Aristide Baratin2 , Laurent Freidel3,4 , Derek K. Wise5
 Sporadic and Exceptional
 Yang-Hui He, John McKay
 https://arxiv.org/abs/1505.06742
+
+
+By balancing temperature, humidity and lighting, a Dutch artist created a cloud in the middle of a room.
+https://twitter.com/universal_sci/status/1131569615564357633
 
 
 23/5/19
