@@ -1,4 +1,6 @@
 
+
+
 27/5/19
 =======
 
@@ -124,6 +126,17 @@ Yang-Hui He, John McKay
 https://arxiv.org/abs/1505.06742
 
 
+
+By balancing temperature, humidity and lighting, a Dutch
+artist created a cloud in the middle of a room.
+https://twitter.com/universal_sci/status/1131569615564357633
+
+
+Classical 6j–symbols and the tetrahedron
+Justin Roberts
+https://arxiv.org/abs/math-ph/9812013
+http://math.ucr.edu/home/baez/week128.html
+ 
 
 
 23/5/19
