@@ -164,6 +164,7 @@ def burnside(G):
       print()
 
     #return len(B)
+    G.q_chars = LT
     return LT
 
 
@@ -480,21 +481,67 @@ def make_cyclic(n, check=False):
     return G
 
 
+def latex_nosep(rows, desc):
+    n = len(rows[0])
+    lines = []
+    lines.append("$$")
+    lines.append(r"\begin{array}{%s}"%(desc))
+    for i, row in enumerate(rows):
+        if type(row)==list:
+            line = " & ".join(str(fld) for fld in row) + r" \\"
+        else:
+            line = str(row)
+        lines.append(line)
+    lines.append(r"\end{array}")
+    lines.append("$$")
+    s = "\n".join(lines)
+    return s
+
+
 def main():
 
     n = argv.get("n", 5)
 
-    #G = make_cyclic(n)
-    G = make_dicyclic(n)
-    print(len(G))
+    for n in range(2, 25):
+        G = make_cyclic(n)
+        #G = make_dicyclic(n)
 
-    q_chars = burnside(G)
-    for f in q_chars:
-        #print(f)
-        for g in G.c_chars:
-            val = f.dot(g)
-            print(val, end=" ")
-        print()
+        #print(len(G))
+        name = "C_{%d}"%n
+    
+        q_chars = burnside(G)
+        r_chars = G.r_chars
+        c_chars = G.c_chars
+
+        rows = [
+            [name] + ["V_{%d}"%i for i in range(len(q_chars))],
+            r"\hline",
+        ]
+        for i, f in enumerate(r_chars):
+            #print(f)
+
+            lhs = []
+            for j, g in enumerate(c_chars):
+                name = r"\rho_{%d}"%j
+                val = f.dot(g)
+                if val==1:
+                    lhs.append(name)
+                elif val:
+                    lhs.append(str(val) + name)
+            lhs = "+".join(lhs)
+
+            #row = [r"\rho_%d"%i]
+            row = [lhs]
+            for g in q_chars:
+                val = f.dot(g)
+                #print(val, end=" ")
+                val = '.' if val == 0 else str(val)
+                row.append(val)
+            rows.append(row)
+            #print()
+        desc = 'c|'+'c'*len(q_chars)
+        s = latex_nosep(rows, desc)
+        print(s)
 
 
 
