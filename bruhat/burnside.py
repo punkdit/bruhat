@@ -6,12 +6,16 @@ Find the rank of the burnside ring for cyclic, dihedral and dicyclic groups.
 
 import string
 
+import numpy
+
 from bruhat.action import mulclose, Perm, Group, conjugacy_subgroups, CFunc
 from bruhat.action import burnside as _burnside
 from bruhat.smap import tabulate
 from bruhat.util import cross, write
 from bruhat.argv import argv
-from bruhat.element import cyclotomic, PolynomialRing, Linear, cayley, Z
+from bruhat import element
+from bruhat.element import cyclotomic, PolynomialRing, Linear, cayley, Z, Q
+from bruhat.elim import cokernel
 
 
 def burnside(G):
@@ -500,9 +504,15 @@ def latex_nosep(rows, desc):
 
 def main():
 
-    n = argv.get("n", 5)
+    ring = element.Q
 
-    for n in range(2, 25):
+    n = argv.get("n")
+    if n is None:
+        ns = range(2, 25)
+    else:
+        ns = [n]
+
+    for n in ns:
         G = make_cyclic(n)
         #G = make_dicyclic(n)
 
@@ -517,9 +527,10 @@ def main():
             [name] + ["V_{%d}"%i for i in range(len(q_chars))],
             r"\hline",
         ]
+        A = []
+        r_chars_names = []
         for i, f in enumerate(r_chars):
             #print(f)
-
             lhs = []
             for j, g in enumerate(c_chars):
                 name = r"\rho_{%d}"%j
@@ -529,19 +540,53 @@ def main():
                 elif val:
                     lhs.append(str(val) + name)
             lhs = "+".join(lhs)
+            r_chars_names.append(lhs)
 
             #row = [r"\rho_%d"%i]
             row = [lhs]
+            vals = []
             for g in q_chars:
                 val = f.dot(g)
+                vals.append(ring.promote(int(str(val)))) # just hack it
                 #print(val, end=" ")
                 val = '.' if val == 0 else str(val)
                 row.append(val)
+            A.append(vals)
             rows.append(row)
             #print()
+
         desc = 'c|'+'c'*len(q_chars)
         s = latex_nosep(rows, desc)
-        print(s)
+        #print(s)
+
+        print("A =")
+        A = numpy.array(A)
+        print(astr(A))
+
+        #print("K =")
+        #K = cokernel(ring, A)
+        #print(astr(K))
+
+
+def fstr(x):
+    s = str(x)
+    s = s.rjust(4)
+    return s
+
+
+def astr(A):
+    m, n = A.shape
+    lines = []
+    for i in range(m):
+        row = ' '.join(fstr(x) for x in A[i, :])
+        if i==0:
+            row = '[[%s]'%row
+        elif i==m-1:
+            row = ' [%s]]'%row
+        else:
+            row = ' [%s]'%row
+        lines.append(row)
+    return '\n'.join(lines)
 
 
 
