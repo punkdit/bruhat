@@ -405,7 +405,7 @@ def make_dicyclic(n, debug=False):
             r = f.dot(g)
             assert (f == g) == (r != 0)
 
-    G.r_chars = r_chars
+    #G.r_chars = r_chars # not finished
 
     return G
 
