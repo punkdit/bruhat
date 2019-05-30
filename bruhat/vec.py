@@ -366,7 +366,7 @@ class Map(Element):
             for ((x, u), val) in a.items 
             for ((y, v), wal) in b.items]
         return Map(items, hom)
-    __matmul__ = tensor # ?
+    __matmul__ = tensor # yeah baby
 
 #    def __rmul__(a, r):
 #        return NotImplemented
@@ -404,6 +404,13 @@ class Map(Element):
     def transpose(a):
         items = [((j, i), v) for ((i, j), v) in a.items] # conjugate v?
         return Map(items, a.hom.transpose())
+
+    def trace(a):
+        v = a.ring.zero
+        for ((i, j), u) in a.items:
+            if i==j:
+                v += u
+        return v
 
     def cokernel(a):
         A = a.to_array()

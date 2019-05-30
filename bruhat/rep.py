@@ -126,6 +126,14 @@ class Rep(Element): # Object of the category
     def __getitem__(self, g):
         return self.send_perms[g]
 
+    def trace(self):
+        char = {}
+        for g in self.G:
+            f = self.send_perms[g]
+            v = f.trace()
+            char[g] = v
+        return char
+
     @classmethod
     def perm_rep(cls, tp):
         G = tp.G

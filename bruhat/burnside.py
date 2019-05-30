@@ -8,14 +8,18 @@ import string
 
 import numpy
 
-from bruhat.action import mulclose, Perm, Group, conjugacy_subgroups, CFunc
+from bruhat.action import mulclose, mulclose_hom, Perm, Group, conjugacy_subgroups, CFunc
 from bruhat.action import burnside as _burnside
 from bruhat.smap import tabulate
 from bruhat.util import cross, write
 from bruhat.argv import argv
 from bruhat import element
 from bruhat.element import cyclotomic, PolynomialRing, Linear, cayley, Z, Q
-from bruhat.elim import cokernel
+from bruhat.vec import Map, Space, Hom
+from bruhat.rep import Cat, Rep
+#from bruhat.elim import cokernel
+
+#def mk_rep(gen, reps):
 
 
 def burnside(G):
@@ -312,6 +316,59 @@ def make_dicyclic(n, debug=False):
 
     G.c_chars = c_chars
 
+    # complex reps ----------------------------------------------------
+
+    c_reps = []
+
+    e = G[eidx]
+    r = G[ridx]
+    s = G[sidx]
+
+    tp = Cat(G, ring)
+    def mk_rep(gen, reps):
+        assert reps
+        f = reps[0]
+        V = f.hom.src
+        send_perms = mulclose_hom(gen, reps)
+        rep = Rep(send_perms, V, tp)
+        return rep
+
+    # 1-dim irreps
+    V = Space(1, ring)
+    hom = Hom(V, V)
+
+    f_1 = Map.from_array([[1]], hom)
+    f_n1 = Map.from_array([[-1]], hom)
+    f_i = Map.from_array([[i]], hom)
+    f_ni = Map.from_array([[-i]], hom)
+
+    c_reps.append(mk_rep([r, s], [f_1, f_1]))  # Triv
+    c_reps.append(mk_rep([r, s], [f_1, f_n1]))  # 1A
+    if n%2==0:
+        c_reps.append(mk_rep([r, s], [f_n1, f_1]))  # 1B
+        c_reps.append(mk_rep([r, s], [f_n1, f_n1]))  # 1C
+    else:
+        c_reps.append(mk_rep([r, s], [f_n1, f_i]))  # 1B
+        c_reps.append(mk_rep([r, s], [f_n1, f_ni]))  # 1C
+
+    # 2-dim irreps
+    V = Space(2, ring)
+    hom = Hom(V, V)
+
+    for k in range(1, n):
+        rho_r = Map.from_array([[zeta**k, 0], [0, izeta**k]], hom)
+        rho_s = Map.from_array([[0, 1], [(-1)**k, 0]], hom)
+        c_reps.append(mk_rep([r, s], [rho_r, rho_s]))  # rho_k
+
+    for idx, rep in enumerate(c_reps):
+        rep.check()
+        char = c_chars[idx]
+        tr = rep.trace()
+        assert len(tr) == len(char)
+        for g in G:
+            assert tr[g] == char[g]
+
+
     # real characters ----------------------------------------------------
 
     # XXX NOT FINISHED XXX
@@ -503,6 +560,20 @@ def latex_nosep(rows, desc):
 
 
 def main():
+
+    n = argv.get("n")
+    if n is None:
+        ns = range(2, 25)
+    else:
+        ns = [n]
+
+    for n in ns:
+        #G = make_cyclic(n)
+        G = make_dicyclic(n)
+
+
+
+def main_cyclic():
 
     ring = element.Q
 

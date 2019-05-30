@@ -2284,6 +2284,9 @@ class CFunc(object):
     def __getitem__(self, g):
         return self.func[g]
 
+    def __len__(self):
+        return len(self.func)
+
     def __add__(self, other):
         assert self.G is other.G
         func = {}
