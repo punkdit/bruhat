@@ -2281,11 +2281,19 @@ class CFunc(object):
             x = int(x)
         return x
 
+    def frobenius_schur(self):
+        "The frobenius_schur indicator"
+        # For a complex irreducible character,
+        # 1: real, 0: complex, -1: quaternionic
+        val = sum(self.func[g*g] for g in self.G)
+        val = val/len(self.G)
+        return val
+
     def __getitem__(self, g):
         return self.func[g]
 
-    def __len__(self):
-        return len(self.func)
+#    def __len__(self):
+#        return len(self.func)
 
     def __add__(self, other):
         assert self.G is other.G

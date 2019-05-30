@@ -7,6 +7,8 @@ Find the rank of the burnside ring for cyclic, dihedral and dicyclic groups.
 import string
 
 import numpy
+from numpy import exp, pi
+EPSILON = 1e-8
 
 from bruhat.action import mulclose, mulclose_hom, Perm, Group, conjugacy_subgroups, CFunc
 from bruhat.action import burnside as _burnside
@@ -165,6 +167,9 @@ def burnside(G):
     print("rank:", len(B))
 
     # diagonal matrix
+    #print(L)
+    #print(T)
+    T = numpy.array(T)
     LT = numpy.dot(L, T)
     for chi1 in LT:
       for chi2 in LT:
@@ -191,6 +196,9 @@ def make_dicyclic(n, debug=False):
             break
     assert k==2*n
 
+    if n==3:
+        assert zeta-1 == zeta**2
+
     i = rzeta**n
     assert i != 1
     assert i**2 == -1
@@ -200,6 +208,18 @@ def make_dicyclic(n, debug=False):
     assert zeta**(2*n) == 1
     assert izeta != 1
     assert zeta*izeta == 1
+
+    def is_real(v): # this is a total hack
+        assert ring.promote(v) is v
+        x = exp(2.j*pi / (4*n) )
+        s = str(v)
+        v = eval(s, locals())
+        return abs(v.imag) < EPSILON
+
+    for k in range(1, 6*n):
+        assert is_real(rzeta**k) == (k%(2*n)==0)
+
+    assert is_real(zeta + izeta)
 
     # we use the natural 2-dim representation
     GL = Linear(2, ring)
@@ -339,17 +359,16 @@ def make_dicyclic(n, debug=False):
 
     f_1 = Map.from_array([[1]], hom)
     f_n1 = Map.from_array([[-1]], hom)
-    f_i = Map.from_array([[i]], hom)
-    f_ni = Map.from_array([[-i]], hom)
 
     c_reps.append(mk_rep([r, s], [f_1, f_1]))  # Triv
     c_reps.append(mk_rep([r, s], [f_1, f_n1]))  # 1A
-    if n%2==0:
-        c_reps.append(mk_rep([r, s], [f_n1, f_1]))  # 1B
-        c_reps.append(mk_rep([r, s], [f_n1, f_n1]))  # 1C
-    else:
-        c_reps.append(mk_rep([r, s], [f_n1, f_i]))  # 1B
-        c_reps.append(mk_rep([r, s], [f_n1, f_ni]))  # 1C
+
+    f_r = Map.from_array([[-1]], hom)
+    f_s = Map.from_array([[i**n]], hom)
+    c_reps.append(mk_rep([r, s], [f_r, f_s]))  # 1B
+
+    f_s = Map.from_array([[-i**n]], hom)
+    c_reps.append(mk_rep([r, s], [f_r, f_s]))  # 1C
 
     # 2-dim irreps
     V = Space(2, ring)
@@ -364,105 +383,55 @@ def make_dicyclic(n, debug=False):
         rep.check()
         char = c_chars[idx]
         tr = rep.trace()
-        assert len(tr) == len(char)
-        for g in G:
-            assert tr[g] == char[g]
+        tr = CFunc(G, tr)
+#        print(tr, end=" ")
+#        val = tr.frobenius_schur()
+#        if val == -1:
+#            print("quaternionic")
+#        elif val == 0:
+#            print("complex")
+#        elif val == 1:
+#            print("real")
+#        else:
+#            assert 0, val
 
+        for g in G:
+            lhs, rhs = tr[g], char[g]
+            assert lhs==rhs, "%d: %s != %s" % (idx, lhs, rhs)
+
+    assert len(c_reps) == n+3
+    G.c_reps = c_reps
 
     # real characters ----------------------------------------------------
 
-    # XXX NOT FINISHED XXX
+    r_chars = []
 
-    # build the transpose of the character table.
-    cols = []
-    elems = [] # group elements with order the cols
-    cgy = [] # element of each cgy class
-    kidxs = range(2, n)
+    r_chars.append(c_chars[0]) # Triv
+    r_chars.append(c_chars[1]) # 1A
 
-    desc = []
-
-    # class: e, size 1
-    elems.append(e)
-    cgy.append(e)
-    desc.append("e")
-    cols.append([1, 1, 1, 1, 2] + [2 for k in kidxs])
-
-    # class: s^2, size 1
-    cols.append([1, 1, (-1)**n, (-1)**n, -2] + [((-1)**k)*2 for k in kidxs])
-    elems.append(s*s)
-    cgy.append(s*s)
-    desc.append("s^2")
-
-    for idx in range(1, n):
-        # class: r**idx, size 2
-        col = [1, 1, (-1)**idx, (-1)**idx, zeta**idx+izeta**idx]+[zeta**(idx*k) + izeta**(idx*k) for k in kidxs]
-        cols.append(col)
-        cols.append(col)
-        elems.append(r**idx)
-        cgy.append(r**idx)
-        desc.append("r^%d"%idx)
-        elems.append(r**(2*n-idx))
-
-    for idx in range(n):
-        # class: s, size n
-        cols.append([1, -1, i**n, -i**n, 0] + [0 for k in kidxs])
-        elems.append(s*(r**(2*idx)))
-    cgy.append(s)
-    desc.append("s")
-
-    for idx in range(n):
-        # class: s*r, size n
-        cols.append([1, -1, -i**n, i**n, 0] + [0 for k in kidxs])
-        elems.append(s*(r**(2*idx+1)))
-    cgy.append(s*r)
-    desc.append("sr")
-
-    #print(i, -i, i**n, -i**n)
-
-    assert len(set(elems)) == len(elems) == len(G)
-    assert set(elems) == set(G)
-
-    for col in cols:
-        assert len(col) == n+3, len(col)
-
-    # XXX NOT FINISHED XXX
-
-    if debug:
-        print()
-        for s in desc:
-            s = "%10s"%s
-            print(s, end=" ")
-        print()
-        r_chars = []
-        for k in range(n+3):
-            chi = dict((elems[i], cols[i][k]) for i in range(4*n))
-            f = CFunc(G, chi)
-            for g in cgy:
-                s = "%10s"%(f[g])
-                print(s, end=" ")
-            print()
-            r_chars.append(f)
-        print()
-    
-        for f in r_chars:
-          for g in r_chars:
-            r = f.dot(g, normalize=False)
-            print(r, end=" ")
-          print()
-
+    if n%2==0:
+        assert c_chars[2].frobenius_schur() == 1 # real
+        assert c_chars[3].frobenius_schur() == 1 # real
+        r_chars.append(c_chars[2]) # 1B
+        r_chars.append(c_chars[3]) # 1C
     else:
-        r_chars = []
-        for k in range(n+3):
-            chi = dict((elems[i], cols[i][k]) for i in range(4*n))
-            f = CFunc(G, chi)
-            r_chars.append(f)
-    
-        for f in r_chars:
-          for g in r_chars:
-            r = f.dot(g)
-            assert (f == g) == (r != 0)
+        assert c_chars[2].frobenius_schur() == 0 # complex
+        assert c_chars[3].frobenius_schur() == 0 # complex
+        r_chars.append(c_chars[2] + c_chars[3]) # 1B+1C
 
-    #G.r_chars = r_chars # not finished
+    for idx, rep in enumerate(c_reps):
+        if idx < 4:
+            continue
+        char = c_chars[idx]
+        val = char.frobenius_schur()
+        if val == 1:
+            r_chars.append(char)
+        elif val == -1:
+            r_chars.append(2*char)
+        else:
+            assert 0
+
+    G.r_chars = r_chars
 
     return G
 
@@ -559,43 +528,61 @@ def latex_nosep(rows, desc):
     return s
 
 
-def main():
+def test():
 
     n = argv.get("n")
     if n is None:
-        ns = range(2, 25)
-    else:
-        ns = [n]
-
-    for n in ns:
-        #G = make_cyclic(n)
-        G = make_dicyclic(n)
-
-
-
-def main_cyclic():
-
-    ring = element.Q
-
-    n = argv.get("n")
-    if n is None:
-        ns = range(2, 25)
+        ns = range(2, 10)
     else:
         ns = [n]
 
     for n in ns:
         G = make_cyclic(n)
-        #G = make_dicyclic(n)
+
+    for n in ns:
+        G = make_dicyclic(n)
+
+
+
+def main_tables():
+
+    ring = element.Q
+
+    n = argv.get("n")
+    if n is None:
+        ns = range(14, 25)
+    else:
+        ns = [n]
+
+    if argv.cyclic:
+        make = make_cyclic
+        name = "C_{%d}"
+        def get_rname(j):
+            rname = r"\rho_{%d}"%j
+            return rname
+    elif argv.dicyclic:
+        make = make_dicyclic
+        name = r"\mathrm{Dic}_{%d}"
+        def get_rname(j):
+            if j<4:
+                rname = r"\mathrm{%s}" % (["Triv.", "1A", "1B", "1C"][j])
+            else:
+                rname = r"\rho_{%d}"%(j-3)
+            return rname
+    else:
+        return
+
+    for n in ns:
+        G = make(n)
 
         #print(len(G))
-        name = "C_{%d}"%n
     
         q_chars = burnside(G)
         r_chars = G.r_chars
         c_chars = G.c_chars
 
         rows = [
-            [name] + ["V_{%d}"%i for i in range(len(q_chars))],
+            [name%n] + ["V_{%d}"%i for i in range(len(q_chars))],
             r"\hline",
         ]
         A = []
@@ -604,12 +591,11 @@ def main_cyclic():
             #print(f)
             lhs = []
             for j, g in enumerate(c_chars):
-                name = r"\rho_{%d}"%j
                 val = f.dot(g)
                 if val==1:
-                    lhs.append(name)
+                    lhs.append(get_rname(j))
                 elif val:
-                    lhs.append(str(val) + name)
+                    lhs.append(str(val) + get_rname(j))
             lhs = "+".join(lhs)
             r_chars_names.append(lhs)
 
@@ -628,11 +614,11 @@ def main_cyclic():
 
         desc = 'c|'+'c'*len(q_chars)
         s = latex_nosep(rows, desc)
-        #print(s)
+        print(s)
 
-        print("A =")
-        A = numpy.array(A)
-        print(astr(A))
+        #print("A =")
+        #A = numpy.array(A)
+        #print(astr(A))
 
         #print("K =")
         #K = cokernel(ring, A)
@@ -691,7 +677,10 @@ def do_rank():
 
 if __name__ == "__main__":
 
-    main()
+    if argv.test:
+        test()
+    else:
+        main_tables()
 
 
 
