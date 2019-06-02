@@ -1,4 +1,88 @@
 
+2/6/19
+======
+
+
+https://arxiv.org/abs/1012.2698
+NEW STATES OF MATTER SUGGESTED BY NEW TOPOLOGICAL STRUCTURES
+NILS A. BAAS∗
+We extend the well-known Borromean and Brunnian rings to new higher
+order versions. Then we suggest an extension of the connection between Efimov states
+in cold gases and Borromean and Brunnian rings to these new higher order links. This
+gives rise to a whole new hierarchy of possible states with Efimov states at the bottom.
+
+
+Kurt von Hammerstein-Equord
+https://en.wikiquote.org/wiki/Kurt_von_Hammerstein-Equord
+I divide my officers into four groups. There are clever,
+diligent, stupid, and lazy officers. Usually two characteristics
+are combined. Some are clever and diligent -- their place
+is the General Staff. The next lot are stupid and lazy
+-- they make up 90 percent of every army and are suited
+to routine duties. Anyone who is both clever and lazy
+is qualified for the highest leadership duties, because
+he possesses the intellectual clarity and the composure
+necessary for difficult decisions. One must beware of
+anyone who is stupid and diligent -- he must not be entrusted
+with any responsibility because he will always cause only mischief.
+
+
+https://quantumfrontiers.com/2019/04/27/quantum-information-meets-quantum-matter-now-published/
+ Quantum Information Meets Quantum Matter, by IQIM physicist Xie Chen and her colleagues Bei Zeng, Duan-Lu Zhou, and Xiao-Gang Wen
+
+
+Alexei Kitaev and the Value of Toy Models
+https://www.simonsfoundation.org/2019/04/22/watch-alexei-kitaev-and-the-value-of-toy-models/
+
+
+
+https://news.ycombinator.com/item?id=19474853
+https://undraw.co/
+Open-source illustrations for every project you can imagine and create
+
+https://physicstoday.scitation.org/doi/10.1063/1.1650229
+ Stern hastened to Born, but met a cool reception. In his autobiography, Born said,
+It took me quite a time before I took this idea seriously. I thought always that [space] quantization was a kind of symbolic expression for something which you don’t understand. But to take this literally like Stern did, this was his own idea…. I tried to persuade Stern that there was no sense [in it], but then he told me that it was worth a try.
+
+Gerlach also encountered doubtful colleagues, including Debye, who said, “But surely you don’t believe that the [spatial] orientation of atoms is something physically real; that is [only] a timetable for the electrons.” 10
+
+
+http://www.incompleteideas.net/IncIdeas/BitterLesson.html
+The Bitter Lesson
+Rich Sutton
+March 13, 2019
+The biggest lesson that can be read from 70 years of
+AI research is that general methods that leverage computation
+are ultimately the most effective, and by a large margin. 
+
+
+https://news.ycombinator.com/item?id=19347443
+ Mudrex (YC W19) – Automated Trading Without Code
+
+
+Physically Based Rendering: From Theory To Implementation,
+© 2004-2018 Matt Pharr, Wenzel Jakob, and Greg Humphreys
+http://www.pbr-book.org/3ed-2018/Light_Transport_II_Volume_Rendering/Volumetric_Light_Transport.html#PathTracing
+https://news.ycombinator.com/item?id=18219296
+15.3 Volumetric Light Transport
+15.3.1 Path Tracing
+Figure 15.4: Volumetric Path Tracing. (1) Heterogeneous
+smoke data set rendered with direct lighting only. (2)
+Rendered with path tracing with a maximum depth of 5.
+(3) Path tracing with a maximum depth of 25. For this
+medium, which has an albedo of , multiple scattering
+has a significant effect on the final result. For (3),
+1024 samples per pixel were required for this noise-free result.
+
+
+
+1/6/19
+======
+
+Video recordings of doctoral lectures on homotopy type theory, Spring 2019
+https://vimeo.com/channels/1457250
+
+
 31/5/19
 =======
 
@@ -18,6 +102,13 @@ https://www.youtube.com/watch?v=PSQq0RbgWH8
 
 Higher dimensional algebras, at NCGOA 2019-05-03
 https://www.youtube.com/watch?v=cyKGcf0aPag
+
+
+Von Neumann Entropy from Unitarity
+Paul Boes, Jens Eisert, Rodrigo Gallego, Markus P. Müller, and Henrik Wilming
+Phys. Rev. Lett. 122, 210402 – Published 28 May 2019
+https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.122.210402
+
 
 
 
