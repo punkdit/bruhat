@@ -181,10 +181,17 @@ class ACat(object):
             assert comp[ident[f.tgt], f] == f
 
             for g in morphs:
-                if f.tgt == g.src:
-                    h = comp[g, f] # algebraic order!
-                    assert h.src == f.src
-                    assert h.tgt == g.tgt
+                if f.tgt != g.src:
+                    continue
+                gf = comp[g, f] # algebraic order!
+                assert gf.src == f.src
+                assert gf.tgt == g.tgt
+                for h in morphs:
+                    if g.tgt != h.src:
+                        continue
+                    lhs = comp[h, gf]
+                    rhs = comp[comp[h, g], f]
+                    assert lhs == rhs # assoc
 
     def hom_into(self, tgt):
         obs = self.obs
@@ -428,6 +435,7 @@ def main():
 
     # Example: height-n tree...
 
+    print("OK")
 
 if __name__ == "__main__":
 
