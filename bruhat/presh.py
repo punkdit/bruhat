@@ -109,6 +109,9 @@ class ACat(object):
         self.o_lookup = {}
         self.m_lookup = {}
 
+        assert len(set(obs)) == len(obs)
+        assert len(set(morphs)) == len(morphs)
+
         o_lookup = dict((ob, Object.promote(self, ob)) for ob in obs)
         self.obs = set(o_lookup.values())
         self.o_lookup = o_lookup
@@ -116,9 +119,15 @@ class ACat(object):
         self.m_lookup = dict((f, Morphism.promote(self, f)) for f in morphs)
         self.morphs = set(self.m_lookup.values())
 
-        self.ident = dict((ob, Morphism(self, "1_"+ob.desc, ob, ob)) for ob in self.obs)
-        self.m_lookup.update(dict(("1_"+ob.desc, self.ident[ob]) for ob in self.obs))
-        self.morphs.update(self.ident.values())
+        self.ident = {}
+        for ob in self.obs:
+            desc = "1_"+ob.desc
+            i = self.m_lookup.get(desc)
+            if i is None:
+                i = Morphism(self, desc, ob, ob)
+            self.ident[ob] = i
+            self.m_lookup[desc] = i
+            self.morphs.add(i)
 
         self.comp = dict(((self.m_lookup[f], self.m_lookup[g]), self.m_lookup[h]) 
             for ((f, g), h) in comp.items())  # (f, g) -> h, ...
@@ -406,8 +415,18 @@ def main():
         (tau, s):t, (tau, t):t, (tau, tau):tau, (tau, sigma):tau,
         (l, tau):l, (l, sigma):l,
     })
-    C.dump()
-        
+    #C.dump()
+
+    # Example: mod-n dynamical system
+    n = 4
+    star = "*"
+    morphs = [("1_*", star, star)] + [("f^%d"%i, star, star) for i in range(1, n)]
+    assert len(morphs)==n
+    comp = dict(((morphs[i], morphs[j]), morphs[(i+j)%n]) for i in range(n) for j in range(n))
+    C = ACat([star], morphs, comp)
+    #C.dump()
+
+    # Example: height-n tree...
 
 
 if __name__ == "__main__":
