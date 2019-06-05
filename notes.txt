@@ -1,4 +1,23 @@
 
+5/6/19
+======
+
+https://arxiv.org/abs/1906.01519
+Bialgebraic Semantics for String Diagrams
+Filippo Bonchi, Robin Piedeleu, Pawel Sobocinski, Fabio Zanasi
+Turi and Plotkin’s bialgebraic semantics is an abstract approach to specifying the operational
+semantics of a system, by means of a distributive law between its syntax (encoded as a monad) and
+its dynamics (an endofunctor). This setup is instrumental in showing that a semantic specification
+(a coalgebra) satisfies desirable properties: in particular, that it is compositional.
+
+3/6/19
+======
+
+http://math.ucr.edu/home/baez/trimble/barconstructions.pdf
+COMBINATORICS OF POLYHEDRA FOR n-CATEGORIES
+TODD TRIMBLE
+Derivations on operads
+
 2/6/19
 ======
 
