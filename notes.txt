@@ -10,6 +10,12 @@ semantics of a system, by means of a distributive law between its syntax (encode
 its dynamics (an endofunctor). This setup is instrumental in showing that a semantic specification
 (a coalgebra) satisfies desirable properties: in particular, that it is compositional.
 
+
+YOUNG DIAGRAMS AND SCHUR FUNCTORS
+JOHN C. BAEZ
+http://math.ucr.edu/home/baez/young.pdf
+
+
 3/6/19
 ======
 
@@ -8234,6 +8240,7 @@ https://mathoverflow.net/questions/8599/tips-on-cohomology-for-number-theory
     made the cohomological stuff "feel right".
     ...
     Weibel's Homological Algebra
+    https://math.mit.edu/~hrm/18.906/weibel-homological-algebra.pdf
 
 
 https://mathoverflow.net/questions/13282/good-algebraic-number-theory-books

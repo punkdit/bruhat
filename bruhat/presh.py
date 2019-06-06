@@ -433,9 +433,16 @@ def main():
     C = ACat([star], morphs, comp)
     #C.dump()
 
+    # Example: height-2 tree...
+    f, g, gf = ("f", "X", "Y"), ("g", "Y", "Z"), ("gf", "X", "Z")
+    C = ACat(["X", "Y", "Z"], [f, g, gf], {(g, f) : gf})
+    C.dump()
+
     # Example: height-n tree...
 
     print("OK")
+
+
 
 if __name__ == "__main__":
 
