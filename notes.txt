@@ -1,4 +1,11 @@
 
+9/6/19
+======
+
+Subfactors, planar algebras, and fusion categories (Part 1 of 4)
+Scott Morrison (2013)
+https://www.youtube.com/watch?v=xBZcB8OJClw
+
 6/6/19
 ======
 
@@ -2130,6 +2137,10 @@ Given a field, k, a connected algebraic group has underlying variety projective.
 These are commutative, and called abelian varieties.
 In dimension 1 these are the elliptic curves.
 
+A quantale is a closed monoidal suplattice. Equivalently,
+it is a monoid object in the closed symmetric monoidal
+category of suplattices where the morphisms are the set
+maps that preserve arbitrary joins.
 
 Bicategory, aka weak 2-category
 
