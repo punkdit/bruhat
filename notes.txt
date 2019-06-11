@@ -1,4 +1,17 @@
 
+10/6/19
+=======
+
+The Curious Case of Acetaldehyde Phenylhydrazone: Resolution
+of a 120 Year Old Puzzle where Forms with Vastly Different
+Melting Points Have the Same Structure
+https://pubs.acs.org/doi/10.1021/acs.cgd.8b01459
+
+The Sheaf-Theoretic Structure Of Non-Locality and Contextuality
+Samson Abramsky, Adam Brandenburger
+https://arxiv.org/abs/1102.0264
+
+
 9/6/19
 ======
 
