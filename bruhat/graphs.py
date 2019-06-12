@@ -298,7 +298,7 @@ class Graph(object):
             c.fill(p, [black]+trafo)
 
             if argv.show_nodes:
-                c.text(R*x+0.1, R*y+0.1, node)
+                c.text(R*x+0.1, R*y+0.1, node, trafo)
     
             val = 0
             if vec is not None:
@@ -483,6 +483,13 @@ def cycle_graph(n=6):
     w = 2 * pi / n
     for i in range(n):
         layout[i] = R*sin(w*i), R*cos(w*i)
+
+    yield Graph(nodes, edges, layout)
+
+    layout = {}
+    w = 2 * pi / n
+    for i in range(n):
+        layout[i] = R*sin(w*i+0.5*w), R*cos(w*i+0.5*w)
 
     yield Graph(nodes, edges, layout)
 

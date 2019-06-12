@@ -19,8 +19,8 @@ import networkx as nx
 from networkx.generators import small, classic
 
 
-from equiv import get_autos
-from argv import argv
+from bruhat.equiv import get_autos
+from bruhat.argv import argv
 
 
 if argv.seed is not None:

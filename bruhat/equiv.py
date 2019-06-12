@@ -16,12 +16,11 @@ import numpy.linalg
 import networkx as nx
 from networkx.generators import small, classic
 
-import isomorph
-from action import Perm, Group
+from bruhat import isomorph
+from bruhat.action import Perm, Group
 #from solve import shortstr
 
-from argv import Argv 
-argv = Argv()
+from bruhat.argv import argv 
 
 
 def mkgraph(nxgraph):
