@@ -321,11 +321,7 @@ class Graph(object):
             print("save:", name)
             c.writePDFfile(name)
             c.writeSVGfile(name)
-#            print("renderings/"+name)
-#            c.writePDFfile("renderings/"+name)
-#            c.writeSVGfile("renderings/"+name)
-#            c.writePDFfile("integral_cubic/"+name)
-#            c.writeSVGfile("integral_cubic/"+name)
+        return c
 
 
 class Vec(object):
@@ -446,10 +442,7 @@ def petersen_graph():
     yield Graph(nodes, edges, layout)
 
 
-def double_cycle_graph(n=6):
-    R = 2.0
-    r = 1.0
-
+def double_cycle_graph(n=6, R=2.0, r=1.0):
     nodes = range(2*n)
 
     edges = [(i, (i+1)%n) for i in range(n)]
@@ -471,9 +464,7 @@ def cubical_graph():
     return double_cycle_graph(4)
 
 
-def cycle_graph(n=6):
-    R = 2.0
-
+def cycle_graph(n=6, R=2.0):
     nodes = range(n)
     edges = []
     for i in range(n):

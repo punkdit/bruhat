@@ -1,4 +1,40 @@
 
+13/6/19
+=======
+
+https://blogs.scientificamerican.com/cross-check/free-will-is-real/?amp
+Philosopher Christian List argues against reductionism
+and determinism in accounts of the mind.
+By John Horgan on June 3, 2019
+
+
+https://twitter.com/johncarlosbaez/status/1138093355441635328
+    There's a problem with rotating black holes in general relativity.
+    Like the non-rotating "Schwarzschild" black hole, a rotating
+    "Kerr" black hole has a horizon - once you go through
+    this surface, you can't get back out.
+    That's not the problem.
+    The problem is that the Kerr black hole has a second
+    horizon inside the first: the "Cauchy horizon".
+    Once you go through *this* surface, general relativity
+    can't predict what will happen. There are different possible solutions to the equations!
+    Penrose tried to save the day with his "Strong Cosmic
+    Censorship Conjecture".  It says that *generically*,
+    there's no Cauchy horizon.  Instead, the curvature of
+    spacetime becomes infinite at this surface.  Spacetime just ends!
+    In other words, Penrose claimed that the Cauchy horizon
+    in the perfectly symmetrical rotating black hole - the
+    Kerr black hole - was a special feature of this idealized
+    solution.  He claimed it wouldn't be present in a realistic situation.
+    Mihalis Dafermos at Princeton showed that Strong Cosmic
+    Censorship is not quite right!   Something more tricky
+    happens.  Something too tricky to fit into a tweet.  Read
+    the Quanta article... but know that this is probably not the last word.
+
+Viewpoint: A Possible Failure of Determinism in General Relativity
+https://physics.aps.org/articles/v11/6
+
+
 10/6/19
 =======
 
