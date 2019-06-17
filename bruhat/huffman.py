@@ -591,6 +591,9 @@ def render():
     box = HBox([S, TextBox(r"$\times$"), T, TextBox("$=$"), S*T])
     box.render(name=head+"pic_prod.pdf")
 
+    box = HBox([S, TextBox(r"$\otimes$"), T, TextBox("$=$"), S*T])
+    box.render(name=head+"pic_tensor.pdf")
+
     X = mkrand([a,b,c,d,e,f,g])
     TX = X.huffman(sort=True)
     #print(W(TX))
