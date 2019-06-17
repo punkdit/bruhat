@@ -318,7 +318,7 @@ class Graph(object):
                 c.stroke(p, [color, style.linewidth.THick]+trafo)
     
         if name is not None:
-            print("save:", name)
+            print("Graph.draw: writePDFfile %s" % name)
             c.writePDFfile(name)
             c.writeSVGfile(name)
         return c
@@ -388,9 +388,7 @@ class Vec(object):
 
 
 
-def petersen_graph():
-    R = 2.0
-    r = 1.0
+def petersen_graph(R=2.0, r=1.0):
     nodes = range(10)
     layout = {}
     w = 2*pi/6
@@ -460,8 +458,8 @@ def double_cycle_graph(n=6, R=2.0, r=1.0):
     yield Graph(nodes, edges, layout)
 
 
-def cubical_graph():
-    return double_cycle_graph(4)
+def cubical_graph(*args, **kw):
+    return double_cycle_graph(4, *args, **kw)
 
 
 def cycle_graph(n=6, R=2.0):
@@ -486,9 +484,7 @@ def cycle_graph(n=6, R=2.0):
 
 
 
-def complete_graph(n=4):
-    R = 1.5
-
+def complete_graph(n=4, R=1.5):
     nodes = range(n)
     edges = []
     for i in range(n):
@@ -514,8 +510,7 @@ def complete_graph(n=4):
 
 
 
-def complete_bipartite_graph(n=3, m=None):
-    R = 1.5
+def complete_bipartite_graph(n=3, m=None, R=1.5):
     if m is None:
         m = n
 
@@ -536,14 +531,13 @@ def complete_bipartite_graph(n=3, m=None):
 
 
 
-def cubic_twisted_graph():
+def cubic_twisted_graph(R=2.0):
     nodes = range(10)
     edges = []
     for i in range(10):
         edges.append((i, (i+1)%10))
     edges.extend([(0, 5), (1, 3), (2, 6), (4, 8), (7, 9)])
 
-    R = 2.0
     layout = {}
     w = 2 * pi / 10
     for i in range(10):
