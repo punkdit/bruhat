@@ -175,10 +175,11 @@ class Multiset(object):
 class Box(object):
     def __init__(self, X):
         assert isinstance(X, Multiset)
+        assert X.tp is None or X.tp is str
         self.X = X
 
     def __str__(self):
-        return "Box(%s)"%(self.X,)
+        return "Box%s"%(self.X,)
     __repr__ = __str__
 
     def __eq__(self, other):
@@ -324,8 +325,8 @@ def main():
 
     #zero = Multiset({}, Box)
     n = 10000
-    seed(0)
-    for trial in range(100000):
+    #seed(0)
+    for trial in range(1000):
         A = mkbox(1)
         B = mkbox(1)
         C = mkbox(1)
@@ -346,6 +347,15 @@ def main():
 #            print(strip(rhs))
 #            print()
 
+    a = Multiset({"a" : 1})
+    b = Multiset({"b" : 1})
+    c = Multiset({"c" : 1})
+    d = Multiset({"d" : 1})
+    A = Multiset({Box(a):1})
+    B = Multiset({Box(b):1})
+    C = Multiset({Box(c+d):1})
+    print((A*B)*C)
+    print(A*(B*C))
 
 
 if __name__ == "__main__":
