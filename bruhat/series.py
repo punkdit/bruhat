@@ -13,9 +13,8 @@ class Series(object):
         self._cache = {}
 
     def __str__(self):
-        return "%s(%s, ...)" % (
-            self.__class__.__name__,
-            ', '.join(str(value) for value in [self[i] for i in range(5)]))
+        return "Series(%s, ...)" % (
+            ', '.join(str(value) for value in [self[i] for i in range(6)]))
 
     def getitem(self, idx):
         return ring.zero
@@ -140,8 +139,16 @@ class Pow(Series):
 
 
 class Compose(Binop):
+    def __init__(self, a, b):
+        assert b[0] == ring.zero
+        Binop.__init__(self, a, b)
+
     def getitem(self, idx):
-        assert 0, "TODO"
+        a, b = self.a, self.b
+        value = ring.zero
+        for i in range(idx+1):
+            value += a[i] * ((b**i)[idx])
+        return value
 
 
 # ----------------------------------------
@@ -169,19 +176,70 @@ class Exp(Series):
 
 # ----------------------------------------
 
+#class F(Series):
+#    def getitem(self, idx):
+        
+
 def main():
 
     zero = Zero()
     one = One()
     x = X()
 
+    assert ((x+1)**2).eq(x**2 + 2*x + 1)
+
     a = 2*x+1
     assert (a**3).eq( a*a*a )
     assert (a**4).eq( a*a*a*a )
 
-    f = Exp()
-    print(f)
+    exp = Exp()
 
+    #print(exp(zero))
+    #print(exp(x+x))
+    #print(exp(x**2))
+    #print(exp(-x))
+
+    f = exp - 1
+    #f = exp - 1 + x**3 # works too...
+    print("f =", f)
+
+    # -----------------------------
+    # From: http://math.ucr.edu/home/baez/trimble/trimble_lie_operad.pdf
+    # Page 8.
+    # find compositional inverse
+
+    assert f[0] == 0
+    assert f[1] == 1
+    
+    def delta(h):
+        return h(f) - h
+
+    g = zero
+    d = x
+    for n in range(5):
+        s = (-1)**n * d
+        d = delta(d)
+        g += s
+
+    print("g =", g)
+
+    print("f(g) = ", f(g))
+    print("g(f) = ", g(f))
+
+    # ------------------------------------------------------------------------------------------
+    # Verifying https://golem.ph.utexas.edu/category/2018/01/more_secrets_of_the_associahed.html
+
+    C = f
+    D = g
+
+    c1, c2, c3, c4 = C[2], C[3], C[4], C[5]
+    d1, d2, d3, d4 = D[2], D[3], D[4], D[5]
+    
+    assert(d1 == -c1)
+    assert(d2 == -c2 + 2*c1**2)
+    assert(d3 == -c3 + 5*c2*c1 - 5*c1**3)
+    assert(d4 == -c4 + 6*c3*c1 + 3*c2**2 - 21*c2*c1**2 + 14*c1**4)
+    
     
 
 
