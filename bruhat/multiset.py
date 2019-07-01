@@ -74,6 +74,9 @@ class Multiset(object):
 
     def __mul__(X, Y): 
         "cartesian product of multisets"
+        if isinstance(Y, int):
+            return X.__rmul__(Y)
+
         if not isinstance(Y, Multiset):
             return NotImplemented
 
@@ -109,7 +112,7 @@ class Multiset(object):
 
     def __rmul__(self, r):
         "left multiplication by a number"
-        assert int(r) == r
+        assert isinstance(r, int)
         assert r >= 0
         cs = dict((k, r*v) for (k, v) in self.cs.items())
         return Multiset(cs, self.tp)
@@ -183,12 +186,17 @@ class Box(object):
     __repr__ = __str__
 
     def __eq__(self, other):
+        if isinstance(other, Multiset):
+            return Multiset.promote(self) == other
         return self.X == other.X
 
     def __ne__(self, other):
+        if isinstance(other, Multiset):
+            return Multiset.promote(self) != other
         return self.X != other.X
 
     def __lt__(self, other):
+        assert isinstance(other, Box), other
         return self.X < other.X
 
     def __hash__(self):
@@ -263,7 +271,7 @@ def main():
     assert (a+b).contains(b)
     assert not (a+b).contains(2*b)
 
-    def mkrand():
+    def mkmultiset():
         X = randint(0,2)*a + randint(0,2)*b + randint(0,2)*c + randint(0,2)*d
         return X
 
@@ -276,17 +284,44 @@ def main():
     #print("%s*%s = %s"%(BX, Y, BX*Y))
     #print("%s*%s = %s"%(BX, (c+c), BX*(c+c)))
 
+#    seed(0)
+
     # test distributivity
-    for trial in range(100):
-        X = mkrand()
-        Y = mkrand()
-        Z = mkrand()
+    for trial in range(10000):
+        X = mkmultiset()
+        Y = mkmultiset()
+        Z = mkmultiset()
+
+        #print(X, Y, Z)
+
+        BX = Box(X)
+        BY = Box(Y)
+        BZ = Box(Z)
+
+        n = randint(0, 3)
+        m = randint(0, 3)
+        lhs, rhs = n*(BX+BY), n*BX + n*BY
+        print(lhs, rhs)
+        assert (n+m)*BX == n*BX + m*BX
+
+        assert (n*X) == X*n
+        assert (n*X)*Box(Y) == X*(n*Box(Y))
+        assert n*Box(X) == Box(n*X)
+        assert Box(X)*(n*Y) == (Box(X)*n)*Y
+
+        # Left module:
+        if X != zero:
+            assert X * (BY + BZ) == X*BY + X*BZ
+        #assert (X+Y)*BZ == X*BZ + Y*BZ # nope!
         assert (X*Y) * Box(Z) == X*(Y*Box(Z))
 
-        lhs = Box(X) * (Y*Z)
-        rhs = (Box(X)*Y)*Z
-        assert lhs == rhs
-
+        # Right module:
+        assert (BX + BY)*Z == BX*Z + BY*Z
+        if X != zero:
+            assert BX * (Y + Z) == BX*Y + BX*Z
+            assert BX*(Y*Z) == (BX*Y)*Z
+        
+        # bimodule:
         if X!=zero:
             lhs = (X*Box(Y))*Z
             rhs = X*(Box(Y)*Z)
@@ -295,7 +330,7 @@ def main():
     def mkbox(count=3):
         item = Multiset({}, Box)
         for i in range(randint(0, count)):
-            b = mkrand()
+            b = mkmultiset()
             if b == zero:
                 continue
             item += Box(b)

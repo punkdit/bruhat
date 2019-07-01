@@ -1,4 +1,44 @@
 
+29/6/19
+=======
+
+André Joyal: Foncteurs analytiques et espèces des structures,
+in Combinatoire Énumérative, Lecture Notes in Mathematics
+1234, Springer, Berlin, 1986, pp. 126–159.
+    Theorem 2. (Poincaré-Birkhoff-Witt)
+    U(F) \cong exp(F)
+    Proposition 1. exp(Lie(X)) = 1/(1-X)
+    Proof: exp(Lie(X)) = U(Lie(X)) = T(X) = 1/(1-X)
+
+
+
+
+28/6/19
+=======
+
+https://ncatlab.org/nlab/show/pasting+diagram
+
+    Each of these formalisms involve graded sets {Cn}n≥0
+    \{C_n\}_{n \geq 0} together with maps ∂+n:Cn+1→P(Cn)
+    \partial^+_n: C_{n+1} \to P(C_n), ∂−n:Cn+1→P(Cn) \partial^-_n:
+    C_{n+1} \to P(C_n). This goes under various names; here
+    we call it a parity structure. It should be thought of
+    as assigning to each “cell” of dimension n+1 n+1 a collection
+    of positive boundary cells and negative boundary cells
+    in dimension n n. The formalisms above are distinguished
+    by the choice of axioms on parity structures, but there
+    is definite kinship among them.
+
+
+https://diagonalargument.com/2019/06/22/first-order-categorical-logic-3/#more-429
+
+
+27/6/19
+=======
+
+http://theory.stanford.edu/~nikolaj/programmingz3.html
+
+
 13/6/19
 =======
 
@@ -722,24 +762,22 @@ https://arxiv.org/abs/1408.3100
 More Secrets of the Associahedra
 https://golem.ph.utexas.edu/category/2018/01/more_secrets_of_the_associahed.html
 take a formal power series like this:
-C(x)=x+c1x2+c2x3+⋯
 C(x) = x + c_1 x^2 + c_2 x^3 + \cdots
-If you take its right inverse under composition, meaning the power series D D with
-C(D(x))=x
+If you take its right inverse under composition, meaning
+the power series D with
 C(D(x)) = x
 you get another formal power series of the same type:
-D(x)=x+d1x2+d2x3+⋯
 D(x) = x + d_1 x^2 + d_2 x^3 + \cdots
-How are the dn d_n related to the cn c_n?
+How are the d_n related to the c_n?
 What are these coefficients? They’re controlled by the associahedra!
 
 https://ncatlab.org/nlab/show/formal+group
-Any power series of the form f(x)=x+a2x2+a3x3+… 
-f(x) = x + a_2 x^2 + a_3 x^3 + \ldots in R[[x]] R[ [x] ] 
-has a functional or compositional inverse f−1(x) f^{-1}(x) 
-in the monoid xR[[x]] x R[ [x] ] under composition. 
+Any power series of the form 
+f(x) = x + a_2 x^2 + a_3 x^3 + \ldots in R[ [x] ] 
+has a functional or compositional inverse f^{-1}(x) 
+in the monoid x R[ [x] ] under composition. 
 Thus we may define a 1-dimensional formal group law 
-by the formula μ(x,y)=f−1(f(x)+f(y)) \mu(x, y) = f^{-1}(f(x) + f(y)).
+by the formula \mu(x, y) = f^{-1}(f(x) + f(y)).
 
 Marcelo Aguiar and Swapneel Mahajan. 
 Hopf monoids in the category of species. 
@@ -2128,6 +2166,9 @@ https://twitter.com/_julesh_/status/1102175506387083264
 
 1/3/19
 ======
+
+notes migrated to articles/notes/003
+
 
 SDiff = category of smooth manifolds. 
 
