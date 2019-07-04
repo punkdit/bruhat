@@ -20,6 +20,9 @@ def all_subsets(n):
 
 assert len(list(all_subsets(5))) == 2**5
 
+
+
+
 def factorial(n):
     r = 1
     for i in range(1, n+1):
@@ -50,6 +53,7 @@ def choose(items, n):
 assert len(list(choose(range(4), 1))) == 4
 assert len(list(choose(range(4), 2))) == 6
 assert len(list(choose(range(4), 3))) == 4
+
 
 
 def allperms(items):
@@ -100,6 +104,37 @@ def cross(itemss):
         for head in itemss[0]:
             for tail in cross(itemss[1:]):
                 yield (head,)+tail
+
+
+def all_parts2(items):
+    items = list(items)
+    n = len(items)
+    if n==0:
+        yield items, items
+        return
+
+    if n==1:
+        yield [], items
+        yield items, []
+        return
+
+    if n==2:
+        yield [], items
+        yield [items[0]], [items[1]]
+        yield [items[1]], [items[0]]
+        yield items, []
+        return
+
+    bits = [(0, 1)]*n
+    for idxs in cross(bits):
+        left = [items[i] for i in range(n) if idxs[i]==0] 
+        right = [items[i] for i in range(n) if idxs[i]==1] 
+        yield left, right
+
+assert list(all_parts2([0, 1, 2])) == [
+    ([0,1,2], []), ([0,1], [2]), ([0,2], [1]), ([0], [1, 2]), 
+    ([1, 2], [0]), ([1], [0, 2]), ([2], [0, 1]), ([], [0, 1, 2])]
+
 
 def uniqtuples(items, n):
     if n==0:

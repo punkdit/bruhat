@@ -179,12 +179,13 @@ class Exp(Series):
 #class F(Series):
 #    def getitem(self, idx):
         
+zero = Zero()
+one = One()
+x = X()
+exp = Exp()
+
 
 def main():
-
-    zero = Zero()
-    one = One()
-    x = X()
 
     assert ((x+1)**2).eq(x**2 + 2*x + 1)
 
@@ -192,7 +193,6 @@ def main():
     assert (a**3).eq( a*a*a )
     assert (a**4).eq( a*a*a*a )
 
-    exp = Exp()
 
     #print(exp(zero))
     #print(exp(x+x))
