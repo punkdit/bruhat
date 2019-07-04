@@ -67,16 +67,41 @@ class Set(object): # copied from bruhat.rel
         return hash(self.items)
 
     def __add__(a, b):
+        # categorical coproduct
         items = [(0, ai) for ai in a] + [(1, bi) for bi in b]
         return Set(items)
 
+    def union(a, b):
+        items = a.set_items.union(b.set_items)
+        return Set(items)
+
     def __mul__(a, b):
+        # categorical product
         items = [(ai, bi) for ai in a for bi in b]
         return Set(items)
         
+    def all_partitions(self):
+        # A partition is a Set of subsets of self
+        # such that: disjoint, non-empty (?), covering.
+        items = self.items
+        if not items:
+            return Set(empty) # ?
+        #assert items
+        if len(items) == 1:
+            p = Set([self])
+            return Set([p]) # only one partition here
+        if len(items) == 2:
+            p = Set([self])
+            a, b = self
+            q = Set([
+        item = Set([items[0]])
+        rest = Set(items[1:])
+        for partition in rest.all_partitions():
+            
 
-    def all_parts2(items):
-        items = list(items)
+    def all_parts2(self):
+        "all the ways to break self into two subsets"
+        items = self.items
         n = len(items)
     #    if n==0:
     #        yield items, items
