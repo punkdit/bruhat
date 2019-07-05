@@ -228,6 +228,40 @@ def all_primes(n, ps=None):
     return ps
 
 
+
+def all_binary_trees(els):
+    if len(els)==0:
+        return
+
+    els = list(els)
+    if len(els)==1:
+        #yield (els[0],) # a leaf
+        yield els[0] # a leaf
+        return
+
+    els.sort()
+    n = len(els)
+    # iterate over size of left sub-tree
+    for left in range(1, n):
+        right = n-left # size of right sub-tree
+        rtrees = list(all_binary_trees(els[left:]))
+        for ltree in all_binary_trees(els[:left]):
+            for rtree in rtrees:
+                yield (ltree, rtree)
+
+# https://en.wikipedia.org/wiki/Catalan_number
+# https://oeis.org/A000108
+# https://en.wikipedia.org/wiki/Associahedron
+assert list(all_binary_trees([1])) == [1]
+assert list(all_binary_trees([1,2])) == [(1, 2),]
+assert list(all_binary_trees([1,2,3])) == [(1, (2, 3)), ((1, 2), 3)]
+assert list(all_binary_trees([1,2,3,4])) == [
+    (1, (2, (3, 4))), (1, ((2, 3), 4)), ((1, 2), (3, 4)), ((1, (2, 3)), 4), (((1, 2), 3), 4)]
+assert len(list(all_binary_trees([1,2,3,4,5]))) == 14
+
+
+
+
 def set_seed(i=0):
     import numpy
     from random import seed

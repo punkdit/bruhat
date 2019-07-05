@@ -90,35 +90,37 @@ def transpose(rect):
 assert transpose(((0,1),(2,3))) == ((0,2),(1,3))
 
 
+
 def all_binary_trees(els):
-    if len(els)==0:
+    if not els:
         return
-
     els = list(els)
-    if len(els)==1:
-        #yield (els[0],) # a leaf
-        yield els[0] # a leaf
-        return
-
-    els.sort()
+    if len(els) == 1:
+        yield els[0]
+    #els = [set(e) for e in els]
+    found = set()
     n = len(els)
-    # iterate over size of left sub-tree
-    for left in range(1, n):
-        right = n-left # size of right sub-tree
-        rtrees = list(all_binary_trees(els[left:]))
-        for ltree in all_binary_trees(els[:left]):
-            for rtree in rtrees:
-                yield (ltree, rtree)
+    for i in range(n):
+      for j in range(i+1, n):
+        a, b = els[i], els[j]
+        if str(b)<str(a):
+            a, b = b, a
+        pair = (a, b)
+        rest = list(els)
+        rest.pop(j)
+        rest.pop(i)
+        rest.insert(0, pair)
+        for tree in all_binary_trees(rest):
+            if tree not in found:
+                yield tree
+                found.add(tree)
+        
+    
+#for tree in all_binary_trees([1,2,3,4]):
+#    print(tree)
 
-# https://en.wikipedia.org/wiki/Catalan_number
-# https://oeis.org/A000108
-# https://en.wikipedia.org/wiki/Associahedron
-assert list(all_binary_trees([1])) == [1]
-assert list(all_binary_trees([1,2])) == [(1, 2),]
-assert list(all_binary_trees([1,2,3])) == [(1, (2, 3)), ((1, 2), 3)]
-assert list(all_binary_trees([1,2,3,4])) == [
-    (1, (2, (3, 4))), (1, ((2, 3), 4)), ((1, 2), (3, 4)), ((1, (2, 3)), 4), (((1, 2), 3), 4)]
-assert iterlen(all_binary_trees([1,2,3,4,5])) == 14
+assert list(all_binary_trees([1,2,3])) == [((1, 2), 3), ((1, 3), 2), ((2, 3), 1)]
+
 
 # -------------------------------------------------------
 
@@ -257,9 +259,6 @@ empty = Set()
 
 assert len(list(Set(3).all_parts2())) == 8
 assert len(list(Set(3).all_partitions())) == 5
-
-
-
 
 
 # -------------------------------------------------------
@@ -447,7 +446,6 @@ def test():
         return result
 
     for i in range(1, 9):
-        #print( iterlen(all_rects(list(range(i)))) , r(i))
         assert iterlen(all_rects(list(range(i)))) == r(i)
 
     # https://oeis.org/A323295
@@ -461,6 +459,19 @@ def test():
     # List == One + X.dot(List)
     R = One + X.dot(List)
     assert List.sequence(6) == R.sequence(6)
+
+    # https://oeis.org/A001147
+    # See also, Stanley, Vol 2, example 5.2.6
+    assert BinaryTree.sequence(7) == [0, 1, 1, 3, 15, 105, 945]
+    # From Stanley, Vol 2, page 178
+    # EGF(x) == 1 - sqrt(1-2*x)
+
+
+    F = BinaryTree(BinaryTree)
+    #print(F.sequence(7)) # == [0, 1, 2, 9, 63, 600, 7245]
+    # Conjecture: these are "wavefronts" on a BinaryTree.
+
+    
 
 
 if __name__ == "__main__":
