@@ -75,6 +75,22 @@ assert list(allperms("abc")) == [
     ('c', 'b', 'a')]
 
 
+def allders(items):
+    "all derangements of items"
+    # hack this
+    for perm in allperms(items):
+        for a, b in zip(perm, items):
+            if a==b:
+                break
+        else:
+            yield perm
+
+assert list(allders("abc")) == [('b', 'c', 'a'), ('c', 'a', 'b')]
+
+
+
+
+
 def allsignedperms(items):
     items = tuple(items)
     if len(items)<=1:
