@@ -9,18 +9,59 @@ See chapter 4 here:
     https://www.cis.upenn.edu/~sweirich/papers/yorgey-thesis.pdf
 """
 
+from types import GeneratorType
 import string
 letters = list(string.ascii_lowercase)
 
-from bruhat.util import factorial, allperms, allders, cross, choose
+from bruhat.util import factorial, all_perms, all_ders, cross, choose
 from bruhat.theta import divisors
 from bruhat import series
 from bruhat.series import Series, ring
+from bruhat.argv import argv
 
+
+# Do we bless the empty set with a partition,
+# even though it doesn't deserve to have one?
+EMPTY_SET_HAS_A_PARTITION = False
+
+if argv.bless:
+    print("EMPTY_SET_HAS_A_PARTITION = True")
+    EMPTY_SET_HAS_A_PARTITION = True
 
 
 def iterlen(I):
     return len(tuple(I))
+
+
+def all_subsets(els):
+    els = tuple(els)
+    n = len(els)
+    if n==0:
+        yield ()
+        return
+    if n==1:
+        yield ()
+        yield els
+        return
+    bits = [(0,1)]*n
+    for select in cross(bits):
+        items = tuple(els[i] for i in range(n) if select[i])
+        yield items
+
+
+def all_cycles(els):
+    els = tuple(els)
+    n = len(els)
+    if n<3:
+        yield els
+        return
+    if n==3:
+        yield els
+        yield (els[0], els[2], els[1])
+        return
+    for perm in all_perms(els[1:]):
+        yield (els[0],) + perm
+
 
 
 # See: https://oeis.org/A121860
@@ -56,7 +97,7 @@ def all_rects_shape(els, m, n):
         rest1 = [e for e in rest if e not in row]
         for col in choose(rest1, m-1):
             rest2 = [e for e in rest1 if e not in col]
-            for sub in allperms(rest2):
+            for sub in all_perms(rest2):
                 rect = [(top,)+row]
                 k = 0
                 for i in col:
@@ -125,7 +166,6 @@ assert list(all_binary_trees([1,2,3])) == [((1, 2), 3), ((1, 3), 2), ((2, 3), 1)
 # -------------------------------------------------------
 
 
-
 class Set(object): # copied from bruhat.rel
     def __init__(self, items=[]):
         if type(items) is int:
@@ -137,10 +177,16 @@ class Set(object): # copied from bruhat.rel
         #        assert type(item) is tp
 
         items = list(items)
-        items.sort() # eeeeck: watch this !
+        try:
+            items.sort() # eeeeck: watch this !
+        except TypeError:
+            items.sort(key = str) # suck on this python3 
+        except AssertionError:
+            items.sort(key = str) # wup
+
         self.items = tuple(items)
         self.set_items = set(items)
-        assert len(self.set_items) == len(self.items)
+        assert len(self.set_items) == len(self.items), self.items
 
     def __str__(self):
         return "{%s}" % (', '.join(str(x) for x in self))
@@ -152,6 +198,7 @@ class Set(object): # copied from bruhat.rel
     def promote(cls, items):
         if isinstance(items, Set):
             return items
+        #if type(items) is GeneratorType:
         return Set(items)
 
     def __iter__(self):
@@ -201,6 +248,8 @@ class Set(object): # copied from bruhat.rel
         # such that: disjoint, non-empty (?), covering.
         items = self.items
         if not items:
+            if EMPTY_SET_HAS_A_PARTITION:
+                yield empty
             return
         #assert items
         if len(items) == 1:
@@ -256,6 +305,7 @@ class Set(object): # copied from bruhat.rel
             right = Set([items[i] for i in range(n) if idxs[i]==1])
             yield left, right
 empty = Set()
+star = Set(["*"])
 
 assert len(list(Set(3).all_parts2())) == 8
 assert len(list(Set(3).all_partitions())) == 5
@@ -266,32 +316,43 @@ assert len(list(Set(3).all_partitions())) == 5
 class Species(object):
     def __init__(self, f, name=None):
         self.construct = f
-        self.name = name
+        self.name = name or self.__class__.__name__
+
+    def __repr__(self):
+        return self.name
 
     def __str__(self):
-        return self.name or self.__class__.__name__+"(?)"
+        return "%s%s"%(self.__class__.__name__, self.sequence())
 
     def __getitem__(self, U):
         return self.construct(U)
 
+    def diff(F, degree=star):
+        return DiffSpecies(F, degree)
+
+    def point(F):
+        return PointSpecies(F)
+
     def __add__(F, G):
         return AddSpecies(F, G)
 
-    def __mul__(F, G):
+    def mul(F, G):
         "Cartesian/Hadamard product"
         return MulSpecies(F, G)
 
-    def dot(F, G):
+    def __mul__(F, G):
         "Partitional/Cauchy product"
         return DotSpecies(F, G)
+    dot = __mul__
 
     def __call__(F, G):
         return ComposeSpecies(F, G)
 
     def dirichlet(F, G):
         return DirichletSpecies(F, G)
+    __matmul__ = dirichlet # why not?
 
-    def sequence(F, n):
+    def sequence(F, n=6):
         items = []
         for i in range(n):
             U = Set(i)
@@ -299,34 +360,89 @@ class Species(object):
         return items
 
 
-class BinaryOpSpecies(Species):
+class Number(Species):
+    def __init__(self, n):
+        self.n = n
+
+    def __getitem__(self, U):
+        if len(U):
+            return empty
+        return range(self.n)
+
+
+class _UnaryOpSpecies(Species):
+    def __init__(self, F):
+        self.F = F
+
+
+class DiffSpecies(_UnaryOpSpecies):
+    def __init__(self, F, degree=star):
+        self.degree = star # could be any set here
+        self.F = F
+
+    def __getitem__(self, U):
+        U = Set.promote(U)
+        U = U + self.degree # disjoint union
+        return self.F[U]
+
+
+class PointSpecies(_UnaryOpSpecies):
+    def __getitem__(self, U):
+        F = self.F
+        for s in F[U]:
+          for u in U: # the point
+            yield (s, u)
+
+
+class _BinaryOpSpecies(Species):
     def __init__(self, F, G):
         self.F = F
         self.G = G
 
 
-class AddSpecies(BinaryOpSpecies):
+class AddSpecies(_BinaryOpSpecies):
     def __getitem__(self, U):
-        return self.F[U] + self.G[U]
+        #return list(self.F[U]) + list(self.G[U])
+        # Disjoint union
+        for left in self.F[U]:
+            yield (0, left)
+        for right in self.G[U]:
+            yield (1, right)
     
 
-class MulSpecies(BinaryOpSpecies):
+class MulSpecies(_BinaryOpSpecies):
     def __getitem__(self, U):
-        return self.F[U] * self.G[U]
+        return Set.promote(self.F[U]) * Set.promote(self.G[U])
 
 
-class DotSpecies(BinaryOpSpecies):
+class Data(object):
+
+    pass
+
+#    def __eq__(self, other):
+#        return self.data == other.data
+
+
+class Pair(Data):
+    def __init__(self, a, b):
+        self.data = (a, b)
+
+
+
+class DotSpecies(_BinaryOpSpecies):
     def __getitem__(self, U):
         F = self.F
         G = self.G
         items = []
         for idx, (left, right) in enumerate(U.all_parts2()):
-            for item in F[left] * G[right]:
+            left = Set.promote(F[left])
+            right = Set.promote(G[right])
+            for item in left*right:
                 items.append((idx, item))
         return Set(items)
 
 
-class ComposeSpecies(BinaryOpSpecies):
+class ComposeSpecies(_BinaryOpSpecies):
     def __getitem__(self, U):
         F = self.F
         G = self.G
@@ -349,7 +465,7 @@ class ComposeSpecies(BinaryOpSpecies):
         #return Set(items)
 
     
-class DirichletSpecies(BinaryOpSpecies):
+class DirichletSpecies(_BinaryOpSpecies):
     def __getitem__(self, U):
         F = self.F
         G = self.G
@@ -371,11 +487,13 @@ X = Species(lambda items : (Set([items]) if len(items)==1 else empty), "X")
 E = Species(lambda items : Set([items]), "E")
 E_plus = Species(lambda items : (Set([items]) if len(items)>0 else empty), "E_plus")
 Point = Species(lambda items : Set.promote(items), "Point")
-List = Species(lambda items : Set(allperms(items)), "List")
+List = Species(lambda items : Set(all_perms(items)), "List")
 Perm = List
-Der = Species(lambda items : Set(allders(items)), "Der")
+Cycle = Species(lambda items : Set(all_cycles(items)))
+Der = Species(lambda items : Set(all_ders(items)), "Der")
 Par = Species(lambda items : Set(items.all_partitions()), "Par")
 BinaryTree = Species(all_binary_trees, "BinaryTree")
+Pow = Species(all_subsets, "Pow")
 
 
 # ----------------------------------------------------
@@ -401,6 +519,15 @@ class OGF(GeneratingFunction):
 
 
 # ----------------------------------------------------
+
+def test_eq(F, G, n=6, skip_empty=False):
+    start = 1 if skip_empty else 0
+    for i in range(start, n):
+        U = Set(i)
+        if iterlen(F[U]) != iterlen(G[U]):
+            return False
+    return True
+
 
 
 def test():
@@ -428,16 +555,29 @@ def test():
     XX = X.dot(X)
     assert EGF(XX).eq(series.x * series.x)
 
-    assert X.dot(E).sequence(6) == Point.sequence(6)
+    assert test_eq(X*E, Point)
+    assert test_eq(List.diff(), List*List)
+    
+    assert test_eq(E.diff(), E)
+    if EMPTY_SET_HAS_A_PARTITION:
+        assert test_eq(Par.diff(), E*Par)
+    else:
+        assert test_eq(Par.diff(), E*Par + E)
 
-    assert Par.sequence(6) == [0, 1, 2, 5, 15, 52]
-    assert E(E_plus).sequence(6) == [0, 1, 2, 5, 15, 52]
+    
+    if EMPTY_SET_HAS_A_PARTITION:
+        assert Par.sequence(6) == [1, 1, 2, 5, 15, 52]
+        assert E(E_plus).sequence(6) == [1, 1, 2, 5, 15, 52] # whoops
+        assert E(X).sequence(4) == [1, 1, 1, 1]
+        assert E(E).sequence(4) == [1, 1, 2, 5]
+        assert Perm.sequence(5) == (E.dot(Der)).sequence(5)
 
-    assert E(X).sequence(4) == [0, 1, 1, 1] # misses the first term... boo
-
-    assert Perm.sequence(5) == (E.dot(Der)).sequence(5)
-
-    assert E(E).sequence(4) == [0, 1, 2, 5]
+    else:
+        # misses the first term... boo
+        assert Par.sequence(6) == [0, 1, 2, 5, 15, 52]
+        assert E(E_plus).sequence(6) == [0, 1, 2, 5, 15, 52]
+        assert E(X).sequence(4) == [0, 1, 1, 1]
+        assert E(E).sequence(4) == [0, 1, 2, 5]
 
     def r(n):
         result = 0
@@ -457,7 +597,7 @@ def test():
     assert EE.sequence(9) == [0, 1, 2, 2, 8, 2, 122, 2, 1682] # same as r(i) above
 
     # List == One + X.dot(List)
-    R = One + X.dot(List)
+    R = One + X*List
     assert List.sequence(6) == R.sequence(6)
 
     # https://oeis.org/A001147
@@ -466,10 +606,93 @@ def test():
     # From Stanley, Vol 2, page 178
     # EGF(x) == 1 - sqrt(1-2*x)
 
+    assert test_eq(Cycle.point(), Perm, skip_empty=True)
 
+    # Conjecture: these are "wavefronts" on a BinaryTree.
     F = BinaryTree(BinaryTree)
     #print(F.sequence(7)) # == [0, 1, 2, 9, 63, 600, 7245]
-    # Conjecture: these are "wavefronts" on a BinaryTree.
+
+    assert test_eq(Pow, E*E)
+    assert Pow.sequence(6) == [1, 2, 4, 8, 16, 32]
+    
+    # http://oeis.org/A006677
+    assert BinaryTree(E).sequence(6) == [0, 1, 2, 7, 41, 346]
+
+    items = [X, E, List, Der, Cycle, BinaryTree]
+    for F in items:
+        assert test_eq(F.point(), Point.mul(F))
+        assert test_eq(F.point(), X*F.diff())
+
+        assert test_eq(F*One, One*F)
+        assert test_eq(F*One, F)
+
+        assert test_eq(F*Zero, Zero*F)
+        assert test_eq(F*Zero, Zero)
+
+        assert test_eq(F+F, Number(2)*F)
+        assert test_eq(F+F+F, Number(3)*F)
+
+        assert test_eq(F(X), X(F), skip_empty=True)
+        assert test_eq(F(X), F, skip_empty=True)  # identity
+
+        assert test_eq(F@X, F, skip_empty=True)
+        assert test_eq(F@X, F(X), skip_empty=True)
+
+    for F in items:
+      for G in items:
+
+        # From "Introduction to the Theory of Species of Structures" 
+        # Francois Bergeron, Gilbert Labelle, and Pierre Leroux 
+        # http://bergeron.math.uqam.ca/wp-content/uploads/2013/11/book.pdf
+
+        # Exercise 2.38
+        assert test_eq( (F+G).point(), F.point()+G.point() )
+        assert test_eq( (F*G).point(), F.point()*G+F*G.point() )
+        assert test_eq( (F(G)).point(), F.diff()(G)*G.point() )
+
+        # Exercise 2.36
+        if EMPTY_SET_HAS_A_PARTITION:
+            assert test_eq( 
+                E(G) * (F.diff() + G.diff()*F),
+                (E(G) * F).diff() )
+
+    return
+
+    for F in items:
+      for G in items:
+
+        assert test_eq( (F+G).diff()  , F.diff() + G.diff() )
+        assert test_eq( (F*G).diff()  , F.diff()*G + F*G.diff() )
+
+        if EMPTY_SET_HAS_A_PARTITION:
+            assert test_eq( (F(G)).diff() , F.diff()(G) * G.diff())
+        #print((F(G)).diff().sequence(), 
+        #    (F.diff()(G) * G.diff()).sequence())
+
+
+        assert test_eq(F*G, G*F)
+
+        assert test_eq(F@G, G@F)
+        assert test_eq((F@G).point(), F.point()@G.point())
+
+        for H in items:
+
+            assert test_eq( F(G(H)), (F(G))(H) ) # assoc
+            assert test_eq( (F+G)(H),  F(H) + G(H) ) # dist
+            if EMPTY_SET_HAS_A_PARTITION:
+                assert test_eq( (F*G)(H),  F(H) * G(H) ) # dist
+
+            assert test_eq(F*(G*H), (F*G)*H) # assoc
+            assert test_eq(F*(G+H), F*G + F*H) # dist
+
+            assert test_eq(F@(G@H), (F@G)@H) # assoc
+            assert test_eq(F@(G+H), F@G + F@H) # dist
+
+            #assert test_eq(F@(G*H), (F@G) * (F@H)) # nope!
+            #assert test_eq((F*G)@H, (F@H) * (G@H)) # nope!
+
+    print("OK")
+
 
     
 

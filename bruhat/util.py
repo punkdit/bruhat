@@ -74,6 +74,7 @@ assert list(allperms("abc")) == [
     ('c', 'a', 'b'), 
     ('c', 'b', 'a')]
 
+all_perms = allperms
 
 def allders(items):
     "all derangements of items"
@@ -88,6 +89,7 @@ def allders(items):
 assert list(allders("abc")) == [('b', 'c', 'a'), ('c', 'a', 'b')]
 
 
+all_ders = allders
 
 
 
