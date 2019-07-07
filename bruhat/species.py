@@ -22,11 +22,12 @@ from bruhat.argv import argv
 
 # Do we bless the empty set with a partition,
 # even though it doesn't deserve to have one?
-EMPTY_SET_HAS_A_PARTITION = False
+EMPTY_SET_HAS_A_PARTITION = True
+# Yes: these partitions are really surjections (up to isomorphism).
 
-if argv.bless:
-    print("EMPTY_SET_HAS_A_PARTITION = True")
-    EMPTY_SET_HAS_A_PARTITION = True
+if argv.no_bless:
+    print("EMPTY_SET_HAS_A_PARTITION = False")
+    EMPTY_SET_HAS_A_PARTITION = False
 
 
 def iterlen(I):
@@ -161,6 +162,37 @@ def all_binary_trees(els):
 #    print(tree)
 
 assert list(all_binary_trees([1,2,3])) == [((1, 2), 3), ((1, 3), 2), ((2, 3), 1)]
+
+
+# -------------------------------------------------------
+
+
+def all_obinary_trees(els):
+    if not els:
+        return
+    els = list(els)
+    if len(els) == 1:
+        yield els[0]
+    #els = [set(e) for e in els]
+    found = set()
+    n = len(els)
+    for perm in all_perms(els):
+        for i in range(n):
+          for j in range(i+1, n):
+            a, b = perm[i], perm[j]
+            pair = (a, b)
+            rest = list(perm)
+            rest.pop(j)
+            rest.pop(i)
+            rest.insert(0, pair)
+            for tree in all_obinary_trees(rest):
+                if tree not in found:
+                    yield tree
+                    found.add(tree)
+        
+    
+assert iterlen(all_obinary_trees([1,2,3])) == 12
+assert iterlen(all_obinary_trees([1,2,3,4])) == 120
 
 
 # -------------------------------------------------------
@@ -493,6 +525,7 @@ Cycle = Species(lambda items : Set(all_cycles(items)))
 Der = Species(lambda items : Set(all_ders(items)), "Der")
 Par = Species(lambda items : Set(items.all_partitions()), "Par")
 BinaryTree = Species(all_binary_trees, "BinaryTree")
+OrderedBinaryTree = Species(all_obinary_trees, "OrderedBinaryTree")
 Pow = Species(all_subsets, "Pow")
 
 
@@ -608,16 +641,9 @@ def test():
 
     assert test_eq(Cycle.point(), Perm, skip_empty=True)
 
-    # Conjecture: these are "wavefronts" on a BinaryTree.
-    F = BinaryTree(BinaryTree)
-    #print(F.sequence(7)) # == [0, 1, 2, 9, 63, 600, 7245]
-
     assert test_eq(Pow, E*E)
     assert Pow.sequence(6) == [1, 2, 4, 8, 16, 32]
     
-    # http://oeis.org/A006677
-    assert BinaryTree(E).sequence(6) == [0, 1, 2, 7, 41, 346]
-
     items = [X, E, List, Der, Cycle, BinaryTree]
     for F in items:
         assert test_eq(F.point(), Point.mul(F))
@@ -703,11 +729,38 @@ def test():
 
 
     
+def main():
 
+    print(BinaryTree.sequence(7)) # 1, 1, 3, 15, 105, 945
+
+    # https://oeis.org/A001813
+    # Quadruple factorial numbers: a(n) = (2n)!/n!. 
+    print(OrderedBinaryTree.sequence(6)) # 1, 2, 12, 120, 1680
+    return
+
+    # Conjecture: these are "wavefronts" on a BinaryTree.
+    F = BinaryTree(BinaryTree)
+    #print(F.sequence(7)) # == [0, 1, 2, 9, 63, 600, 7245]
+
+    F = BinaryTree(E)
+
+    # Number of planted binary phylogenetic trees with n labels. 
+    # http://oeis.org/A006677
+    assert F.sequence(6) == [0, 1, 2, 7, 41, 346]
+
+    FF = F.dirichlet(F)
+
+    print(F.sequence(7))
+    print(FF.sequence(7))
 
 if __name__ == "__main__":
 
-    test()
+    if argv.test:
+        test()
+    else:
+        main()
+
+
 
 
 
