@@ -648,15 +648,24 @@ def test():
         # Exercise 2.38
         assert test_eq( (F+G).point(), F.point()+G.point() )
         assert test_eq( (F*G).point(), F.point()*G+F*G.point() )
-        assert test_eq( (F(G)).point(), F.diff()(G)*G.point() )
 
         # Exercise 2.36
         if EMPTY_SET_HAS_A_PARTITION:
+            assert test_eq( (F(G)).point(), F.diff()(G)*G.point() )
             assert test_eq( 
                 E(G) * (F.diff() + G.diff()*F),
                 (E(G) * F).diff() )
 
-    return
+        # Exercise 2.44
+        assert test_eq(F.mul(G), G.mul(F)) # comm
+        for H in items:
+            assert test_eq(F.mul(G+H), F.mul(G)+F.mul(H)) # comm
+        # etc. etc.
+
+    for F in items:
+        assert test_eq(F.mul(E), F) # identity
+        assert test_eq(E.mul(F), F) # identity
+
 
     for F in items:
       for G in items:
@@ -670,9 +679,8 @@ def test():
         #    (F.diff()(G) * G.diff()).sequence())
 
 
-        assert test_eq(F*G, G*F)
-
-        assert test_eq(F@G, G@F)
+        assert test_eq(F*G, G*F) # comm
+        assert test_eq(F@G, G@F) # comm
         assert test_eq((F@G).point(), F.point()@G.point())
 
         for H in items:
