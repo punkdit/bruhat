@@ -336,9 +336,12 @@ class Set(object): # copied from bruhat.rel
             left = Set([items[i] for i in range(n) if idxs[i]==0])
             right = Set([items[i] for i in range(n) if idxs[i]==1])
             yield left, right
+
 empty = Set()
 star = Set(["*"])
 
+assert len(list(Set(0).all_parts2())) == 1
+assert len(list(Set(1).all_parts2())) == 2
 assert len(list(Set(3).all_parts2())) == 8
 assert len(list(Set(3).all_partitions())) == 5
 
@@ -731,11 +734,15 @@ def test():
     
 def main():
 
-    print(BinaryTree.sequence(7)) # 1, 1, 3, 15, 105, 945
+    #print(BinaryTree.sequence(7)) # 0, 1, 1, 3, 15, 105, 945
 
     # https://oeis.org/A001813
     # Quadruple factorial numbers: a(n) = (2n)!/n!. 
-    print(OrderedBinaryTree.sequence(6)) # 1, 2, 12, 120, 1680
+    #print(OrderedBinaryTree.sequence(6)) # 0, 1, 2, 12, 120, 1680
+
+    #F = OrderedBinaryTree * OrderedBinaryTree
+    #print(F.sequence(6)) # 0, 0, 2, 12, 120, 1680
+
     return
 
     # Conjecture: these are "wavefronts" on a BinaryTree.
