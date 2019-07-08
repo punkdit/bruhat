@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+from functools import reduce
+import operator
+
+from bruhat.argv import argv
 from bruhat.util import cross
 from bruhat.theta import divisors
 
@@ -20,6 +24,20 @@ def tpl_add(tj, tk):
     return tj
                 
 
+def tpl_div(top, bot):
+    top = dict(top)
+    bot = dict(bot)
+    result = {}
+    for k,v in bot.items():
+        w = top.get(k, 0)
+        if w < v:
+            return None
+        if v < w:
+            result[k] = w-v
+    result = list(result.items())
+    result.sort()
+    return result
+
 
 class Poly(object):
 
@@ -27,6 +45,8 @@ class Poly(object):
         if isinstance(cs, str):
             cs = {((cs,1),):1}
         coefs = {}
+        keys = []
+        degree = 0
         for key, value in cs.items():
             if value == 0:
                 continue
@@ -35,11 +55,32 @@ class Poly(object):
             key = tuple(key)
             dkey = dict(key)
             assert len(dkey) == len(key)
+            deg = 0
             for v in dkey.values():
                 assert v
+                deg += v
+            degree = max(degree, deg)
             coefs[key] = value
+            keys.append(key)
         #assert len(coefs) == len(cs), (coefs, cs)
+        keys.sort()
+        self.keys = keys
         self.cs = coefs
+        self.degree = degree
+
+    def __len__(self):
+        return len(self.keys)
+
+    def __getitem__(self, idx):
+        key = self.keys[idx]
+        val = self.cs[key]
+        return Poly({key : val})
+
+    def terms(self):
+        cs = self.cs
+        for key in self.keys:
+            val = self.cs[key]
+            yield Poly({key : val})
 
     @classmethod
     def promote(cls, item):
@@ -125,7 +166,7 @@ class Poly(object):
                     ss.append(name)
                 else:
                     ss.append("%s^%s"%(name, exp))
-            s = ' '.join(ss)
+            s = '*'.join(ss)
             if s:
                 if v==1:
                     terms.append(s)
@@ -137,6 +178,7 @@ class Poly(object):
                 else:
                     terms.append("%s" % v)
         s = " + ".join(terms)
+        s = s.replace("-1*", "-")
         s = s.replace("+ -", "- ")
         s = s.replace(" ^", "^")
         if s and s[-1] == " ":
@@ -144,6 +186,25 @@ class Poly(object):
         return s
 
     __repr__ = __str__
+
+    def subs(self, vals):
+        print("subs", vals, "->", self)
+        if not vals:
+            return self
+        if len(self)>1:
+            # recurse
+            return reduce(operator.add, [p.subs(vals) for p in self.terms()])
+        print("subs", vals, "->", self.cs)
+        cs = list(self.cs.items())
+        assert len(cs) == 1
+        key, value = cs
+        k = tpl_div(key, bot)
+        if k is not None:
+            key = k
+
+
+
+        
 
 
 def get_a(i):
@@ -257,6 +318,12 @@ def test():
     assert 2*x == x+x
     assert x*x == xx
     assert x*y == y*x == xy
+    assert one.degree == 0
+    assert x.degree == 1
+    assert xy.degree == 2
+
+    p = (x+y+one)**3
+    assert reduce(operator.add, p.terms()) == p
 
     a = zero
     b = zero
@@ -264,21 +331,34 @@ def test():
         a += Poly("a_%d"%i)
         b += Poly("b_%d"%i)
 
-    for i in range(2, 6):
-        for n in range(1, 6):
-            vs = pow_b(n, i)
-            #print("pow_b(%d, %d) = %s" % (n, i, vs))
-            print(vs, end= ", ")
-        print()
-    print()
+#    for i in range(2, 6):
+#        for n in range(1, 6):
+#            vs = pow_b(n, i)
+#            #print("pow_b(%d, %d) = %s" % (n, i, vs))
+#            print(vs, end= ", ")
+#        print()
+#    print()
 
 
-    #gen = mul()
-    gen = compose()
-    #gen = dirichlet()
+    name = argv.next()
+    assert name in "mul compose dirichlet"
+    gen = eval(name)
+
+    bidx = 2
+    soln = {}
+    items = gen()
     for i in range(1, 6):
-        p = gen.__next__()
-        print("compose(%d) = %s"%(i, p))
+        p = items.__next__()
+        if p.degree == 0:
+            continue
+        print("%s(%d): %s = 0"%(name, i, p))
+        b_i = get_b(bidx)
+        rhs = b_i - p
+        print("solve:", b_i, "=", rhs)
+        rhs = rhs.subs(soln)
+        print("\t=", rhs)
+        soln[str(b_i)] = rhs
+        bidx += 1
         print()
 
 
