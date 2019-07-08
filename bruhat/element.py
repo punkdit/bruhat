@@ -463,7 +463,7 @@ class FieldElement(Integer):
 
 class PolynomialRing(Keyed, Ring):
     """
-        Ring of polynomials, over some other base ring.
+        Ring of polynomials in one variable, over some other base ring.
     """
 
     def __init__(self, base):
