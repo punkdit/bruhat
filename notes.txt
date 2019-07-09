@@ -1,4 +1,17 @@
 
+9/7/19
+======
+
+Abelian Varieties, Theta Functions and the Fourier Transform
+Alexander Polishchuk, Boston University
+    the category of line bundles and their isomorphisms on an abelian variety
+    can be thought of as a categorification of the set of quadratic functions on an
+    abelian group, the derived category of coherent sheaves on an abelian variety
+    is a categorification of the space of functions on an abelian group, etc. Of
+    course, the Fourier–Mukai transform is a categorification of the usual Fourier
+    transform
+
+
 4/7/19
 =======
 

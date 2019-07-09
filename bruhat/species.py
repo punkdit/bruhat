@@ -744,6 +744,12 @@ def main():
     # Quadruple factorial numbers: a(n) = (2n)!/n!. 
     #print(OrderedBinaryTree.sequence(6)) # 0, 1, 2, 12, 120, 1680
 
+    P = OrderedBinaryTree
+    #print(P.sequence(6))
+    #Q = X + X*Cycle(P)
+    Q = X*List(P)
+    print(Q.sequence(6))
+
     #F = OrderedBinaryTree * OrderedBinaryTree
     #print(F.sequence(6)) # 0, 0, 2, 12, 120, 1680
 

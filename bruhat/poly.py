@@ -190,6 +190,8 @@ class Poly(object):
     def python_str(self):
         s = self.__str__()
         s = s.replace("^", "**")
+        s = s.replace("{", "")
+        s = s.replace("}", "")
         return s
 
     def subs(self, vals):
@@ -212,20 +214,26 @@ class Poly(object):
         
 
 
-def get_a(i):
+def get_a(i, a_1=False):
     if i==0:
         return 0 # a_0 == 0
-    if i==1:
+    if i==1 and not a_1:
         return 1 # a_1 == 1
-    return Poly("a_%d"%i)
+    if i < 10:
+        return Poly("a_%d"%i)
+    else:
+        return Poly("a_{%d}"%i)
 
 
-def get_b(i):
+def get_b(i, b_1=False):
     if i==0:
         return 0 # b_0 == 0
-    if i==1:
+    if i==1 and not b_1:
         return 1 # b_1 == 1
-    return Poly("b_%d"%i)
+    if i < 10:
+        return Poly("b_%d"%i)
+    else:
+        return Poly("b_{%d}"%i)
 
 
 def mul():
@@ -268,7 +276,7 @@ def pow_b(n, i):
     return v
 
 
-def dirichlet():
+def dirichlet(linear_term=False):
     zero = Poly({})
     n = 1
     while 1:
@@ -276,7 +284,7 @@ def dirichlet():
         v = zero
         for j in divisors(n):
             k = n//j
-            v += get_a(j) * get_b(k)
+            v += get_a(j, linear_term) * get_b(k, linear_term)
         yield v
 
         n += 1
@@ -346,9 +354,17 @@ def test():
 #        print()
 #    print()
 
+#    gen = dirichlet(True)
+#    for i in range(1, 13):
+#        s = str(gen.__next__())
+#        s = s.replace("*", " ")
+#        print(r"(%s) x^{%d} \\"%(s, i))
+#    return
+
+    # Lagrange inversion...
 
     name = argv.next()
-    assert name in "mul compose dirichlet"
+    assert name and name in "mul compose dirichlet".split()
     gen = eval(name)
 
     idx = 2
@@ -359,17 +375,17 @@ def test():
         p = items.__next__()
         if p.degree == 0:
             continue
-        print("%s(%d): %s = 0"%(name, i, p))
+        #print("%s(%d): %s = 0"%(name, i, p))
         b_i = get_b(idx)
         a_i = get_a(idx)
-        soln[str(a_i)] = a_i
+        soln[a_i.python_str()] = a_i
         rhs = b_i - p
-        print("solve:", b_i, "=", rhs)
+        #print("solve:", b_i, "=", rhs)
         rhs = eval(rhs.python_str(), soln)
-        print("\t=", rhs)
-        soln[str(b_i)] = rhs
+        print(b_i, "=", rhs)
+        soln[b_i.python_str()] = rhs
         idx += 1
-        print()
+        #print()
 
 
 
