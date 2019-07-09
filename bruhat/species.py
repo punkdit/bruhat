@@ -521,6 +521,7 @@ One = Species(lambda items : (Set([items]) if len(items)==0 else empty), "One")
 X = Species(lambda items : (Set([items]) if len(items)==1 else empty), "X")
 E = Species(lambda items : Set([items]), "E")
 E_plus = Species(lambda items : (Set([items]) if len(items)>0 else empty), "E_plus")
+E_2 = Species(lambda items : (Set([items]) if len(items)==2 else empty), "E_2")
 Point = Species(lambda items : Set.promote(items), "Point")
 List = Species(lambda items : Set(all_perms(items)), "List")
 Perm = List
@@ -734,7 +735,10 @@ def test():
     
 def main():
 
-    #print(BinaryTree.sequence(7)) # 0, 1, 1, 3, 15, 105, 945
+    print(BinaryTree.sequence(7)) # 0, 1, 1, 3, 15, 105, 945
+
+    F = X + E_2(BinaryTree)
+    print(F.sequence(7)) # 0, 1, 1, 3, 15, 105, 945
 
     # https://oeis.org/A001813
     # Quadruple factorial numbers: a(n) = (2n)!/n!. 

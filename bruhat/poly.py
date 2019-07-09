@@ -109,6 +109,7 @@ class Poly(object):
         for key, value in list(other.cs.items()):
             cs[key] = cs.get(key, 0) + value
         return Poly(cs)
+    __radd__ = __add__
 
     def __sub__(self, other):
         other = self.promote(other)
@@ -184,8 +185,12 @@ class Poly(object):
         if s and s[-1] == " ":
             s = s[:-1]
         return s
-
     __repr__ = __str__
+
+    def python_str(self):
+        s = self.__str__()
+        s = s.replace("^", "**")
+        return s
 
     def subs(self, vals):
         print("subs", vals, "->", self)
@@ -197,7 +202,7 @@ class Poly(object):
         print("subs", vals, "->", self.cs)
         cs = list(self.cs.items())
         assert len(cs) == 1
-        key, value = cs
+        key, value = cs[0]
         k = tpl_div(key, bot)
         if k is not None:
             key = k
@@ -322,8 +327,10 @@ def test():
     assert x.degree == 1
     assert xy.degree == 2
 
-    p = (x+y+one)**3
+    p = (x+y+1)**3
     assert reduce(operator.add, p.terms()) == p
+
+    assert eval(p.python_str(), locals()) == p
 
     a = zero
     b = zero
@@ -344,22 +351,26 @@ def test():
     assert name in "mul compose dirichlet"
     gen = eval(name)
 
-    bidx = 2
+    idx = 2
     soln = {}
     items = gen()
-    for i in range(1, 6):
+    N = argv.get("N", 5)
+    for i in range(1, N+1):
         p = items.__next__()
         if p.degree == 0:
             continue
         print("%s(%d): %s = 0"%(name, i, p))
-        b_i = get_b(bidx)
+        b_i = get_b(idx)
+        a_i = get_a(idx)
+        soln[str(a_i)] = a_i
         rhs = b_i - p
         print("solve:", b_i, "=", rhs)
-        rhs = rhs.subs(soln)
+        rhs = eval(rhs.python_str(), soln)
         print("\t=", rhs)
         soln[str(b_i)] = rhs
-        bidx += 1
+        idx += 1
         print()
+
 
 
 
