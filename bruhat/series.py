@@ -6,6 +6,7 @@ Formal power series over a ring.
 
 from bruhat.element import Q
 from bruhat.util import factorial, cross
+from bruhat.theta import divisors
 
 
 class Series(object):
@@ -74,6 +75,10 @@ class Series(object):
             if a[i] != b[i]:
                 return False
         return True
+
+    def dirichlet(a, b):
+        b = Series.promote(b, a.ring)
+        return Dirichlet(a, b)
 
 
 class RMul(Series):
@@ -153,6 +158,20 @@ class Compose(Binop):
         for i in range(idx+1):
             value += a[i] * ((b**i)[idx])
         return value
+
+
+class Dirichlet(Binop):
+    def __init__(self, a, b):
+        assert b[0] == a.ring.zero, b[0] # do we care?
+        Binop.__init__(self, a, b)
+
+    def __getitem__(self, idx):
+        a = self.ring.zero
+        if idx == 0:
+            return a
+        for d in divisors(idx):
+            a += self.a[d] * self.b[idx//d]
+        return a
 
 
 # ----------------------------------------

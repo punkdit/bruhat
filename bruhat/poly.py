@@ -217,7 +217,7 @@ class Poly(object):
                 else:
                     terms.append(shortstr(v))
         s = " + ".join(terms)
-        #s = s.replace("-1"+MUL, "-")
+        #s = s.replace("-1"+MUL, "-") # oof, careful with this!
         s = s.replace("-1*", "-")
         s = s.replace("+ -", "- ")
         s = s.replace(" "+POW, POW)
@@ -232,6 +232,8 @@ class Poly(object):
 
     def python_str(self):
         s = self.str(shortstr, "**", "*", "", "")
+        s = s.replace("{", "")
+        s = s.replace("}", "")
         return s
 
 #    def subs(self, vals): # argh... too hard
@@ -469,6 +471,34 @@ class FormalExp(Formal):
         return p
 
 
+def solve(f, g, fg, ring):
+    # solve fg=1 for g
+
+    soln = {}
+    sf = Formal(f.name, ring)
+    sg = Formal(g.name, ring)
+    i = 1
+    while 1:
+        p = fg[i]
+        if p.degree == 0:
+            i += 1
+            continue
+        soln[sf[i].python_str()] = sf[i]
+        #print("soln:", soln)
+        #print("p =", p)
+        b_i = sg[i]
+        #print(p.cs)
+        c = p.cs[((str(b_i), 1),)]
+        #print("c =", c)
+        rhs = b_i - (1/c)*p
+        #print("eval", rhs, soln)
+        rhs = eval(rhs.python_str(), dict(soln))
+        soln[b_i.python_str()] = rhs
+
+        yield b_i, rhs
+        i += 1
+
+
 
 def main():
 
@@ -479,22 +509,74 @@ def main():
     ring.zero = zero
     ring.one = one
 
+    # -----------------------------------
+    # Multiplicative inverse 
 
-    f = FormalExp("a", ring)
-    g = FormalExp("b", ring)
+    print("\n\n# Multiplicative inverse ")
+
+    f = FormalExp("a", ring, {"a_0":1})
+    g = FormalExp("b", ring, {"b_0":1})
+
+    print("f =", f)
+    print("g =", g)
 
     fg = f*g
     for i in range(5):
         print(fg[i])
     print()
-    
-    g = FormalExp("b", ring, {"b_0":0})
+
+    N = argv.get("N", 6)
+    items = solve(f, g, fg, ring)
+    for i in range(N):
+        lhs, rhs = items.__next__()
+        print(r"    %s &= %s \\" % (lhs.str(), rhs.str()))
+        #print(lhs, "=", rhs)
+
+    # -----------------------------------
+    # Compositional inverse
+
+    print("\n\n# Compositional inverse")
+
+    f = Formal("a", ring, {"a_0":0, "a_1":1})
+    g = Formal("b", ring, {"b_0":0, "b_1":1})
+
+    print("f =", f)
     print("g =", g)
+
     fg = f(g)
     for i in range(5):
         print(fg[i])
     print()
     
+    items = solve(f, g, fg, ring)
+    for i in range(5):
+        lhs, rhs = items.__next__()
+        print(r"    %s &= %s \\" % (lhs.str(), rhs.str()))
+        #print(lhs, "=", rhs)
+
+    # -----------------------------------
+    # Dirichlet inverse
+
+    print("\n\n# Dirichlet inverse")
+
+    f = Formal("a", ring, {"a_0":0, "a_1":1})
+    g = Formal("b", ring, {"b_0":0, "b_1":1})
+
+    print("f =", f)
+    print("g =", g)
+
+    fg = f.dirichlet(g)
+    for i in range(5):
+        print(fg[i])
+    print()
+    
+    items = solve(f, g, fg, ring)
+    for i in range(37):
+        lhs, rhs = items.__next__()
+        print(r"    %s &= %s \\" % (lhs.str(), rhs.str()))
+        #print(lhs, "=", rhs)
+
+
 
 
 if __name__ == "__main__":
