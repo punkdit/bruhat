@@ -4,13 +4,14 @@ from functools import reduce
 import operator
 
 from bruhat.argv import argv
-from bruhat.util import cross
+from bruhat.util import cross, factorial
 from bruhat.theta import divisors
+from bruhat.element import Fraction, Q
 from bruhat import series
 
 
-def is_scalar(x):
-    return isinstance(x, int)
+#def is_scalar(x):
+#    return isinstance(x, int)
 
 
 def tpl_add(tj, tk):
@@ -47,12 +48,24 @@ def tpl_degree(tpl):
     vals.sort()
     return d, tuple(vals)
 
+def tex_str(v):
+    if isinstance(v, Fraction):
+        if v.bot == 1:
+            return str(v.top)
+        else:
+            return r"\frac{%s}{%s}" % (v.top, v.bot)
+    else:
+        return str(v)
+
+def shortstr(v):
+    return str(v)
+
 
 class Poly(object):
 
-    def __init__(self, cs):
+    def __init__(self, cs, ring):
         if isinstance(cs, str):
-            cs = {((cs,1),):1}
+            cs = {((cs,1),):ring.one}
         coefs = {}
         keys = []
         degree = 0
@@ -76,6 +89,7 @@ class Poly(object):
         self.keys = keys
         self.cs = coefs
         self.degree = degree
+        self.ring = ring
 
     def __len__(self):
         return len(self.keys)
@@ -83,27 +97,28 @@ class Poly(object):
     def __getitem__(self, idx):
         key = self.keys[idx]
         val = self.cs[key]
-        return Poly({key : val})
+        return Poly({key : val}, self.ring)
 
     def terms(self):
         cs = self.cs
         for key in self.keys:
             val = self.cs[key]
-            yield Poly({key : val})
+            yield Poly({key : val}, self.ring)
 
     @classmethod
-    def promote(cls, item):
+    def promote(cls, item, ring):
         if isinstance(item, Poly):
             return item
-        assert is_scalar(item)
-        return Poly( {() : item} )
+        #assert is_scalar(item)
+        item = ring.promote(item)
+        return Poly({() : item}, ring)
 
     def __eq__(self, other):
-        other = self.promote(other)
+        other = self.promote(other, self.ring)
         return self.cs == other.cs
 
     def __ne__(self, other):
-        other = self.promote(other)
+        other = self.promote(other, self.ring)
         return self.cs != other.cs
 
     def __hash__(self):
@@ -113,58 +128,68 @@ class Poly(object):
         return hash(cs)
 
     def __add__(self, other):
-        other = self.promote(other)
+        other = self.promote(other, self.ring)
         cs = dict(self.cs)
+        ring = self.ring
         for key, value in list(other.cs.items()):
             cs[key] = cs.get(key, 0) + value
-        return Poly(cs)
+        return Poly(cs, ring)
     __radd__ = __add__
 
     def __sub__(self, other):
-        other = self.promote(other)
+        other = self.promote(other, self.ring)
         cs = dict(self.cs)
+        ring = self.ring
         for key, value in list(other.cs.items()):
             cs[key] = cs.get(key, 0) - value
-        return Poly(cs)
+        return Poly(cs, ring)
 
     def __neg__(self):
         cs = {}
+        ring = self.ring
         for key, value in list(self.cs.items()):
             cs[key] = -value
-        return Poly(cs)
+        return Poly(cs, ring)
 
     def __rmul__(self, r):
-        assert is_scalar(r)
+        #assert is_scalar(r)
+        ring = self.ring
+        r = ring.promote(r)
         cs = {}
         for key, value in list(self.cs.items()):
             cs[key] = r * value
-        return Poly(cs)
+        return Poly(cs, ring)
 
     def __mul__(self, other):
-        if is_scalar(other):
-            return self.__rmul__(other)
+        ring = self.ring
+        value = ring.promote(other)
+        #if is_scalar(other):
+        if value is not None:
+            return self.__rmul__(value)
         cs = {}
         for k1, v1 in list(self.cs.items()):
           for k2, v2 in list(other.cs.items()):
             k = tpl_add(k1, k2)
             cs[k] = cs.get(k, 0) + v1*v2
-        return Poly(cs)
+        return Poly(cs, ring)
 
     def __pow__(self, n):
+        ring = self.ring
         if n==0:
-            return Poly({():1})
+            return Poly({():ring.one}, ring)
         assert n>0
         p = self
         for i in range(n-1):
             p = self*p
         return p
 
-    def __str__(self):
+    def str(self, shortstr=tex_str, POW="^", MUL="*", OPEN="{", CLOSE="}"):
         items = list(self.cs.items())
         if not items:
             return "0"
         items.sort(key = (lambda kv:tpl_degree(kv[0])))
         #print(items)
+        ring = self.ring
         terms = []
         for (k, v) in items:
             assert v != 0, self.cs
@@ -177,34 +202,36 @@ class Poly(object):
                     ss.append(name)
                 else:
                     if exp>9:
-                        ss.append("%s^{%s}"%(name, exp))
+                        ss.append("%s%s%s%s%s"%(name, POW, OPEN, exp, CLOSE))
                     else:
-                        ss.append("%s^%s"%(name, exp))
+                        ss.append("%s%s%s"%(name, POW, exp))
             s = '*'.join(ss)
             if s:
-                if v==1:
+                if v==ring.one:
                     terms.append(s)
                 else:
-                    terms.append("%s*%s" % (v, s))
+                    terms.append("%s%s%s" % (shortstr(v), MUL, s))
             else:
-                if v==1:
+                if v==ring.one:
                     terms.append("1")
                 else:
-                    terms.append("%s" % v)
+                    terms.append(shortstr(v))
         s = " + ".join(terms)
+        #s = s.replace("-1"+MUL, "-")
         s = s.replace("-1*", "-")
         s = s.replace("+ -", "- ")
-        s = s.replace(" ^", "^")
+        s = s.replace(" "+POW, POW)
         if s and s[-1] == " ":
             s = s[:-1]
+        return s
+
+    def __str__(self):
+        s = self.str(shortstr)
         return s
     __repr__ = __str__
 
     def python_str(self):
-        s = self.__str__()
-        s = s.replace("^", "**")
-        s = s.replace("{", "")
-        s = s.replace("}", "")
+        s = self.str(shortstr, "**", "*", "", "")
         return s
 
 #    def subs(self, vals): # argh... too hard
@@ -234,9 +261,9 @@ def get_a(i, a_1=False):
     if i==1 and not a_1:
         return 1 # a_1 == 1
     if i < 10:
-        return Poly("a_%d"%i)
+        return Poly("a_%d"%i, ring)
     else:
-        return Poly("a_{%d}"%i)
+        return Poly("a_{%d}"%i, ring)
 
 
 def get_b(i, b_1=False):
@@ -245,13 +272,13 @@ def get_b(i, b_1=False):
     if i==1 and not b_1:
         return 1 # b_1 == 1
     if i < 10:
-        return Poly("b_%d"%i)
+        return Poly("b_%d"%i, ring)
     else:
-        return Poly("b_{%d}"%i)
+        return Poly("b_{%d}"%i, ring)
 
 
 def mul():
-    zero = Poly({})
+    zero = Poly({}, ring)
     #yield zero
 
     n = 1
@@ -273,7 +300,7 @@ def pow_b(n, i):
     #print("pow_b(%d, %d)"%(n, i))
     if n==1:
         return get_b(i)
-    zero = Poly({})
+    zero = Poly({}, ring)
     v = zero
     items = list(range(1, i+1))
     for idxs in cross([items]*(n-1)):
@@ -291,7 +318,7 @@ def pow_b(n, i):
 
 
 def dirichlet(linear_term=False):
-    zero = Poly({})
+    zero = Poly({}, ring)
     n = 1
     while 1:
 
@@ -306,7 +333,7 @@ def dirichlet(linear_term=False):
 
 def compose():
     #print("compose")
-    zero = Poly({})
+    zero = Poly({}, ring)
     #yield zero
 
     i = 1
@@ -328,13 +355,16 @@ def compose():
 
 
 def test():
+    global ring
 
-    zero = Poly({})
-    one = Poly({():1})
-    x = Poly("x")
-    y = Poly("y")
-    xx = Poly({(("x", 2),) : 1})
-    xy = Poly({(("x", 1), ("y", 1)) : 1})
+    ring = Q
+
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+    x = Poly("x", ring)
+    y = Poly("y", ring)
+    xx = Poly({(("x", 2),) : 1}, ring)
+    xy = Poly({(("x", 1), ("y", 1)) : 1}, ring)
 
     assert str(one) == "1"
     assert str(one+one) == "2"
@@ -359,8 +389,8 @@ def test():
     a = zero
     b = zero
     for i in range(5):
-        a += Poly("a_%d"%i)
-        b += Poly("b_%d"%i)
+        a += Poly("a_%d"%i, ring)
+        b += Poly("b_%d"%i, ring)
 
 #    for i in range(2, 6):
 #        for n in range(1, 6):
@@ -401,27 +431,77 @@ def test():
         soln[b_i.python_str()] = rhs
         idx += 1
 
-        s = "%s = %s" % (b_i, rhs)
-        s = s.replace("*", " ")
-        s = s.replace("=", "&=")
-        print(r"    %s \\"%s)
-        #print()
+        print(r"    %s &= %s \\" % (b_i.str(), rhs.str()))
+
+
+
+class Formal(series.Series):
+    """
+        Formal power series with coefficients in a polynomial ring with infinitely many variables.
+    """
+    def __init__(self, name, ring, subs={}):
+        series.Series.__init__(self, ring)
+        self.name = name
+        self.subs = dict(subs)
+
+    def get_name(self, idx):
+        name = self.name
+        if idx < 10:
+            name = "%s_%d"%(name, idx)
+        else:
+            name = "%s_{%d}"%(name, idx)
+        return name
+
+    def getitem(self, idx):
+        name = self.get_name(idx)
+        p = Poly(name, Q)
+        p = self.subs.get(name, p)
+        return p
+
+
+class FormalExp(Formal):
+    def getitem(self, idx):
+        name = self.get_name(idx)
+        p = Poly(name, Q)
+        p = self.subs.get(name, p)
+        #p = Poly({((name, 1),) : Q.one//factorial(idx)}, Q)
+        p = Q.one//factorial(idx) * p
+        return p
+
 
 
 def main():
 
-    zero = Poly({})
-    one = Poly({():1})
+    zero = Poly({}, Q)
+    one = Poly({():Q.one}, Q)
 
-    ring = object()
+    ring = type("ARing", (object,), {})
     ring.zero = zero
     ring.one = one
 
+
+    f = FormalExp("a", ring)
+    g = FormalExp("b", ring)
+
+    fg = f*g
+    for i in range(5):
+        print(fg[i])
+    print()
+    
+    g = FormalExp("b", ring, {"b_0":0})
+    print("g =", g)
+    fg = f(g)
+    for i in range(5):
+        print(fg[i])
+    print()
     
 
 
 if __name__ == "__main__":
 
-    test()
+    if argv.test:
+        test()
+    else:
+        main()
 
 

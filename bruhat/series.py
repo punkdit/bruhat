@@ -144,7 +144,7 @@ class Pow(Series):
 
 class Compose(Binop):
     def __init__(self, a, b):
-        assert b[0] == a.ring.zero
+        assert b[0] == a.ring.zero, b[0]
         Binop.__init__(self, a, b)
 
     def getitem(self, idx):
