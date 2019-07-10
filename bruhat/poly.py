@@ -6,6 +6,7 @@ import operator
 from bruhat.argv import argv
 from bruhat.util import cross
 from bruhat.theta import divisors
+from bruhat import series
 
 
 def is_scalar(x):
@@ -24,7 +25,7 @@ def tpl_add(tj, tk):
     return tj
                 
 
-def tpl_div(top, bot):
+def tpl_div(top, bot): # not used
     top = dict(top)
     bot = dict(bot)
     result = {}
@@ -37,6 +38,14 @@ def tpl_div(top, bot):
     result = list(result.items())
     result.sort()
     return result
+
+
+def tpl_degree(tpl):
+    d = reduce(operator.add, [v for (k,v) in tpl], 0)
+    #print("tpl_degree", tpl, "=", d)
+    vals = [k for (k,v) in tpl]
+    vals.sort()
+    return d, tuple(vals)
 
 
 class Poly(object):
@@ -154,7 +163,8 @@ class Poly(object):
         items = list(self.cs.items())
         if not items:
             return "0"
-        items.sort()
+        items.sort(key = (lambda kv:tpl_degree(kv[0])))
+        #print(items)
         terms = []
         for (k, v) in items:
             assert v != 0, self.cs
@@ -166,7 +176,10 @@ class Poly(object):
                 if exp == 1:
                     ss.append(name)
                 else:
-                    ss.append("%s^%s"%(name, exp))
+                    if exp>9:
+                        ss.append("%s^{%s}"%(name, exp))
+                    else:
+                        ss.append("%s^%s"%(name, exp))
             s = '*'.join(ss)
             if s:
                 if v==1:
@@ -194,20 +207,21 @@ class Poly(object):
         s = s.replace("}", "")
         return s
 
-    def subs(self, vals):
-        print("subs", vals, "->", self)
-        if not vals:
-            return self
-        if len(self)>1:
-            # recurse
-            return reduce(operator.add, [p.subs(vals) for p in self.terms()])
-        print("subs", vals, "->", self.cs)
-        cs = list(self.cs.items())
-        assert len(cs) == 1
-        key, value = cs[0]
-        k = tpl_div(key, bot)
-        if k is not None:
-            key = k
+#    def subs(self, vals): # argh... too hard
+#        print("subs", vals, "->", self)
+#        if not vals:
+#            return self
+#        if len(self)>1:
+#            # recurse
+#            return reduce(operator.add, [p.subs(vals) for p in self.terms()])
+#        print("subs", vals, "->", self.cs)
+#        cs = list(self.cs.items())
+#        assert len(cs) == 1
+#        key, value = cs[0]
+#        k = tpl_div(key, bot)
+#        if k is not None:
+#            key = k
+
 
 
 
@@ -336,6 +350,8 @@ def test():
     assert xy.degree == 2
 
     p = (x+y+1)**3
+    #print(p)
+    #return
     assert reduce(operator.add, p.terms()) == p
 
     assert eval(p.python_str(), locals()) == p
@@ -375,19 +391,33 @@ def test():
         p = items.__next__()
         if p.degree == 0:
             continue
-        #print("%s(%d): %s = 0"%(name, i, p))
-        b_i = get_b(idx)
-        a_i = get_a(idx)
+        #print("p =", p)
+        b_i = get_b(idx, False)
+        a_i = get_a(idx, False)
         soln[a_i.python_str()] = a_i
         rhs = b_i - p
-        #print("solve:", b_i, "=", rhs)
+        #print("eval", rhs, soln)
         rhs = eval(rhs.python_str(), soln)
-        print(b_i, "=", rhs)
         soln[b_i.python_str()] = rhs
         idx += 1
+
+        s = "%s = %s" % (b_i, rhs)
+        s = s.replace("*", " ")
+        s = s.replace("=", "&=")
+        print(r"    %s \\"%s)
         #print()
 
 
+def main():
+
+    zero = Poly({})
+    one = Poly({():1})
+
+    ring = object()
+    ring.zero = zero
+    ring.one = one
+
+    
 
 
 if __name__ == "__main__":

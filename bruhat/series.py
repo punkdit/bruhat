@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
+"""
+Formal power series over a ring.
+"""
+
 from bruhat.element import Q
 from bruhat.util import factorial, cross
 
 
-ring = Q
-
-
 class Series(object):
 
-    def __init__(self):
+    def __init__(self, ring):
+        self.ring = ring
         self._cache = {}
 
     def __str__(self):
@@ -17,7 +19,7 @@ class Series(object):
             ', '.join(str(value) for value in [self[i] for i in range(6)]))
 
     def getitem(self, idx):
-        return ring.zero
+        return self.ring.zero
 
     def __getitem__(self, idx):
         assert isinstance(idx, int)
@@ -29,33 +31,33 @@ class Series(object):
         return value
 
     @classmethod
-    def promote(cls, item):
+    def promote(cls, item, ring):
         if isinstance(item, Series):
             return item
-        return RMul(item, One())
+        return RMul(item, One(ring))
 
     def __add__(a, b):
-        b = Series.promote(b)
+        b = Series.promote(b, a.ring)
         return Add(a, b)
 
     def __neg__(a):
-        return RMul(-ring.one, a)
+        return RMul(-self.ring.one, a)
 
     def __sub__(a, b):
-        b = Series.promote(b)
-        return Add(a, RMul(-ring.one, b))
+        b = Series.promote(b, a.ring)
+        return Add(a, RMul(-a.ring.one, b))
 
     def __rmul__(a, r):
         return RMul(r, a)
 
     def __mul__(a, b):
-        b = Series.promote(b)
+        b = Series.promote(b, a.ring)
         return Mul(a, b)
 
     def __pow__(a, n):
         assert isinstance(n, int)
         if n==0:
-            return One() # what about 0**0 ?
+            return One(a.ring) # what about 0**0 ?
         if n==1:
             return a
         if n==2:
@@ -63,11 +65,11 @@ class Series(object):
         return Pow(a, n)
 
     def __call__(a, b):
-        b = Series.promote(b)
+        b = Series.promote(b, a.ring)
         return Compose(a, b)
 
     def eq(a, b, idx=10):
-        b = Series.promote(b)
+        b = Series.promote(b, a.ring)
         for i in range(idx):
             if a[i] != b[i]:
                 return False
@@ -77,7 +79,7 @@ class Series(object):
 class RMul(Series):
     def __init__(self, r, child):
         assert isinstance(child, Series)
-        Series.__init__(self)
+        Series.__init__(self, child.ring)
         self.r = r
         self.child = child
 
@@ -89,7 +91,8 @@ class Binop(Series):
     def __init__(self, a, b):
         assert isinstance(a, Series)
         assert isinstance(b, Series)
-        Series.__init__(self)
+        assert a.ring is b.ring
+        Series.__init__(self, a.ring)
         self.a = a
         self.b = b
 
@@ -107,7 +110,7 @@ class Sub(Binop):
 class Mul(Binop):
     def getitem(self, idx):
         a, b = self.a, self.b
-        value = ring.zero
+        value = self.ring.zero
         for j in range(idx+1):
             value += a[j] * b[idx-j]
         return value
@@ -116,7 +119,7 @@ class Mul(Binop):
 class Pow(Series):
     def __init__(self, child, n):
         assert isinstance(child, Series)
-        Series.__init__(self)
+        Series.__init__(self, child.ring)
         self.n = n
         assert n>2
         self.child = child
@@ -125,6 +128,7 @@ class Pow(Series):
         idxs = list(range(idx+1))
         n = self.n
         child = self.child
+        ring = self.ring
         value = ring.zero
         for jdxs in cross([idxs]*(n-1)):
             total = 0
@@ -140,12 +144,12 @@ class Pow(Series):
 
 class Compose(Binop):
     def __init__(self, a, b):
-        assert b[0] == ring.zero
+        assert b[0] == a.ring.zero
         Binop.__init__(self, a, b)
 
     def getitem(self, idx):
         a, b = self.a, self.b
-        value = ring.zero
+        value = self.ring.zero
         for i in range(idx+1):
             value += a[i] * ((b**i)[idx])
         return value
@@ -158,12 +162,14 @@ class Zero(Series):
 
 class One(Series):
     def getitem(self, idx):
+        ring = self.ring
         if idx == 0:
             return ring.one
         return ring.zero
 
 class X(Series):
     def getitem(self, idx):
+        ring = self.ring
         if idx == 1:
             return ring.one
         return ring.zero
@@ -171,7 +177,8 @@ class X(Series):
 
 class Exp(Series):
     def getitem(self, idx):
-        return ring.one / factorial(idx)
+        ring = self.ring
+        return ring.one // factorial(idx)
 
 
 # ----------------------------------------
@@ -179,13 +186,14 @@ class Exp(Series):
 #class F(Series):
 #    def getitem(self, idx):
         
-zero = Zero()
-one = One()
-x = X()
-exp = Exp()
-
 
 def main():
+    ring = Q
+
+    zero = Zero(ring)
+    one = One(ring)
+    x = X(ring)
+    exp = Exp(ring)
 
     assert ((x+1)**2).eq(x**2 + 2*x + 1)
 
