@@ -236,125 +236,6 @@ class Poly(object):
         s = s.replace("}", "")
         return s
 
-#    def subs(self, vals): # argh... too hard
-#        print("subs", vals, "->", self)
-#        if not vals:
-#            return self
-#        if len(self)>1:
-#            # recurse
-#            return reduce(operator.add, [p.subs(vals) for p in self.terms()])
-#        print("subs", vals, "->", self.cs)
-#        cs = list(self.cs.items())
-#        assert len(cs) == 1
-#        key, value = cs[0]
-#        k = tpl_div(key, bot)
-#        if k is not None:
-#            key = k
-
-
-
-
-        
-
-
-def get_a(i, a_1=False):
-    if i==0:
-        return 0 # a_0 == 0
-    if i==1 and not a_1:
-        return 1 # a_1 == 1
-    if i < 10:
-        return Poly("a_%d"%i, ring)
-    else:
-        return Poly("a_{%d}"%i, ring)
-
-
-def get_b(i, b_1=False):
-    if i==0:
-        return 0 # b_0 == 0
-    if i==1 and not b_1:
-        return 1 # b_1 == 1
-    if i < 10:
-        return Poly("b_%d"%i, ring)
-    else:
-        return Poly("b_{%d}"%i, ring)
-
-
-def mul():
-    zero = Poly({}, ring)
-    #yield zero
-
-    n = 1
-    while 1:
-
-        #print("mul: n=%s"%n)
-        v = zero
-        for j in range(n+1):
-            k = n-j
-            v += get_a(j) * get_b(k)
-            #print(j, k, v)
-        yield v
-
-        n += 1
-
-
-def pow_b(n, i):
-    assert n>0
-    #print("pow_b(%d, %d)"%(n, i))
-    if n==1:
-        return get_b(i)
-    zero = Poly({}, ring)
-    v = zero
-    items = list(range(1, i+1))
-    for idxs in cross([items]*(n-1)):
-        total = sum(idxs)
-        if total >= i:
-            continue
-        #idxs.append(i - total)
-        last = i-total
-        #cs = dict((("b_%d"%idx, 1), 1) for idx in idxs)
-        p = get_b(last)
-        for idx in idxs:
-            p *= get_b(idx)
-        v += p
-    return v
-
-
-def dirichlet(linear_term=False):
-    zero = Poly({}, ring)
-    n = 1
-    while 1:
-
-        v = zero
-        for j in divisors(n):
-            k = n//j
-            v += get_a(j, linear_term) * get_b(k, linear_term)
-        yield v
-
-        n += 1
-
-
-def compose():
-    #print("compose")
-    zero = Poly({}, ring)
-    #yield zero
-
-    i = 1
-    while 1:
-        n = 1
-        q = zero
-        while 1:
-            v = pow_b(n, i)
-            if v==0:
-                break
-            p = get_a(n)
-            #print(p*v, end= ", ")
-            q += p*v
-            n += 1
-        #print()
-        i += 1
-        yield q
-    #print()
-
 
 def test():
     global ring
@@ -394,47 +275,6 @@ def test():
         a += Poly("a_%d"%i, ring)
         b += Poly("b_%d"%i, ring)
 
-#    for i in range(2, 6):
-#        for n in range(1, 6):
-#            vs = pow_b(n, i)
-#            #print("pow_b(%d, %d) = %s" % (n, i, vs))
-#            print(vs, end= ", ")
-#        print()
-#    print()
-
-#    gen = dirichlet(True)
-#    for i in range(1, 13):
-#        s = str(gen.__next__())
-#        s = s.replace("*", " ")
-#        print(r"(%s) x^{%d} \\"%(s, i))
-#    return
-
-    # Lagrange inversion...
-
-    name = argv.next()
-    assert name and name in "mul compose dirichlet".split()
-    gen = eval(name)
-
-    idx = 2
-    soln = {}
-    items = gen()
-    N = argv.get("N", 5)
-    for i in range(1, N+1):
-        p = items.__next__()
-        if p.degree == 0:
-            continue
-        #print("p =", p)
-        b_i = get_b(idx, False)
-        a_i = get_a(idx, False)
-        soln[a_i.python_str()] = a_i
-        rhs = b_i - p
-        #print("eval", rhs, soln)
-        rhs = eval(rhs.python_str(), soln)
-        soln[b_i.python_str()] = rhs
-        idx += 1
-
-        print(r"    %s &= %s \\" % (b_i.str(), rhs.str()))
-
 
 
 class Formal(series.Series):
@@ -471,6 +311,7 @@ class FormalExp(Formal):
         return p
 
 
+# could package this up in another Series subclass...
 def solve(f, g, fg, ring):
     # solve fg=1 for g
 

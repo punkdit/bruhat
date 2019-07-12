@@ -16,7 +16,8 @@ letters = list(string.ascii_lowercase)
 from bruhat.util import factorial, all_perms, all_ders, cross, choose
 from bruhat.theta import divisors
 from bruhat import series
-from bruhat.series import Series, ring
+from bruhat.series import Series
+from bruhat.element import Q
 from bruhat.argv import argv
 
 
@@ -536,8 +537,8 @@ Pow = Species(all_subsets, "Pow")
 # ----------------------------------------------------
     
 class GeneratingFunction(Series):
-    def __init__(self, species):
-        Series.__init__(self)
+    def __init__(self, species, ring=Q):
+        Series.__init__(self, ring)
         self.species = species
 
 class EGF(GeneratingFunction):
@@ -545,14 +546,14 @@ class EGF(GeneratingFunction):
         U = Set(idx)
         FU = self.species[U]
         FU = list(FU)
-        return ring.one*len(FU) / factorial(idx)
+        return self.ring.one*len(FU) / factorial(idx)
 
 class OGF(GeneratingFunction):
     def __getitem__(self, idx):
         U = Set(idx)
         FU = self.species[U]
         FU = list(FU)
-        return ring.one*len(FU)
+        return self.ring.one*len(FU)
 
 
 # ----------------------------------------------------
@@ -577,20 +578,22 @@ def test():
         print("\tE:", E[U])
         print("\tPoint:", Point[U])
 
-    assert EGF(Zero).eq(series.zero)
-    assert EGF(One).eq(series.one)
-    assert EGF(X).eq(series.x)
-    assert EGF(E).eq(series.exp)
+    ring = Q
+    assert EGF(Zero).eq(ring.zero)
+    assert EGF(One).eq(ring.one)
+    x = series.X(ring)
+    assert EGF(X).eq(x)
+    assert EGF(E).eq(series.Exp(ring))
     #print(EGF(E))
 
     f = EGF(List) # = 1/(1-x)
     for i in range(5):
         assert f[i] == 1
 
-    assert EGF(X+X).eq(series.x + series.x)
+    assert EGF(X+X).eq(x + x)
 
     XX = X.dot(X)
-    assert EGF(XX).eq(series.x * series.x)
+    assert EGF(XX).eq(x * x)
 
     assert test_eq(X*E, Point)
     assert test_eq(List.diff(), List*List)
@@ -663,10 +666,12 @@ def test():
         assert test_eq(F+F+F, Number(3)*F)
 
         assert test_eq(F(X), X(F), skip_empty=True)
-        assert test_eq(F(X), F, skip_empty=True)  # identity
+        assert test_eq(F(X), F)  # identity
 
         assert test_eq(F@X, F, skip_empty=True)
         assert test_eq(F@X, F(X), skip_empty=True)
+
+    return
 
     for F in items:
       for G in items:
