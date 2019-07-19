@@ -474,21 +474,21 @@ class Node(object):
         H = max(lbb[1], rbb[1]) + R
         return (W, H)
 
-    def render(self, x=0, y=0, R=1.0, r=0.2, can=None, name=None):
+    def render(self, x=0, y=0, R=1.0, r=0.2, cvs=None, name=None):
         "(x, y) is top center of this tree"
 
-        if can is None:
-            can = pyx.canvas.canvas()
+        if cvs is None:
+            cvs = pyx.canvas.canvas()
 
         X = self.X
         left = self.left
         right = self.right
 
-        can.fill(path.circle(x, y, r), [white])
-        can.stroke(path.circle(x, y, r))
+        cvs.fill(path.circle(x, y, r), [white])
+        cvs.stroke(path.circle(x, y, r))
 
         if not self.has_children:
-            can.text(x, y-2.4*r, X.get_str(), south)
+            cvs.text(x, y-2.8*r, X.get_str(), south)
 
         else:
 
@@ -501,15 +501,18 @@ class Node(object):
             y0 = y1 = y-R
 
             # render self...
-            can.fill(path.circle(x, y, 0.4*r), [black])
-            can.stroke(path.line(x0, y0, x, y), st_Thick)
-            can.stroke(path.line(x1, y1, x, y), st_Thick)
+            cvs.fill(path.circle(x, y, 0.4*r), [black])
+            cvs.stroke(path.line(x0, y0, x, y), st_Thick)
+            cvs.stroke(path.line(x1, y1, x, y), st_Thick)
 
-            left.render(x0, y0, can=can)
-            right.render(x1, y1, can=can)
+            left.render(x0, y0, R=R, r=r, cvs=cvs)
+            right.render(x1, y1, R=R, r=r, cvs=cvs)
 
         if name is not None:
-            can.writePDFfile(name)
+            cvs.writePDFfile(name)
+
+        return cvs
+
 
 class Box(object):
     pass
@@ -1028,55 +1031,59 @@ def main():
     print(len(X1))
 
 
+try:
+    # yay globals...
+    import pyx
+    from pyx import path, deco, trafo, style, text, color, deformer
+    from pyx.color import rgb, cmyk
+    from pyx.color import rgbfromhexstring as rgbhex
+
+    black = rgb(0., 0., 0.)
+    blue = rgb(0., 0., 0.8)
+    lred = rgb(1., 0.4, 0.4)
+    red = rgb(1., 0.0, 0.0)
+    white = rgb(1., 1., 1.)
+
+    grey = rgb(0.75, 0.75, 0.75)
+    shade = grey
+    shade0 = rgb(0.25, 0.25, 0.25)
+    shade1 = rgb(0.80, 0.80, 0.80)
+    shade2 = rgb(0.85, 0.85, 0.85)
+    
+    light_shade = rgb(0.85, 0.65, 0.1)
+    light_shade = rgb(0.9, 0.75, 0.4)
+    
+    
+    north = [text.halign.boxcenter, text.valign.top]
+    northeast = [text.halign.boxright, text.valign.top]
+    northwest = [text.halign.boxleft, text.valign.top]
+    south = [text.halign.boxcenter, text.valign.bottom]
+    southeast = [text.halign.boxright, text.valign.bottom]
+    southwest = [text.halign.boxleft, text.valign.bottom]
+    east = [text.halign.boxright, text.valign.middle]
+    west = [text.halign.boxleft, text.valign.middle]
+    center = [text.halign.boxcenter, text.valign.middle]
+    
+    
+    st_dashed = [style.linestyle.dashed]
+    st_dotted = [style.linestyle.dotted]
+    st_round = [style.linecap.round]
+    #st_mitre = [style.linecap.square]
+    
+    st_thick = [style.linewidth.thick]
+    st_Thick = [style.linewidth.Thick]
+    st_THick = [style.linewidth.THick]
+    st_THIck = [style.linewidth.THIck]
+    st_THICk = [style.linewidth.THICk]
+    st_THICK = [style.linewidth.THICK]
+
+except ImportError:
+    pass
 
 
 if __name__ == "__main__":
 
     if argv.render:
-        # yay globals...
-        import pyx
-        from pyx import path, deco, trafo, style, text, color, deformer
-        from pyx.color import rgb, cmyk
-        from pyx.color import rgbfromhexstring as rgbhex
-    
-        black = rgb(0., 0., 0.)
-        blue = rgb(0., 0., 0.8)
-        lred = rgb(1., 0.4, 0.4)
-        red = rgb(1., 0.0, 0.0)
-        white = rgb(1., 1., 1.)
-
-        grey = rgb(0.75, 0.75, 0.75)
-        shade = grey
-        shade0 = rgb(0.25, 0.25, 0.25)
-        shade1 = rgb(0.80, 0.80, 0.80)
-        shade2 = rgb(0.85, 0.85, 0.85)
-        
-        light_shade = rgb(0.85, 0.65, 0.1)
-        light_shade = rgb(0.9, 0.75, 0.4)
-        
-        
-        north = [text.halign.boxcenter, text.valign.top]
-        northeast = [text.halign.boxright, text.valign.top]
-        northwest = [text.halign.boxleft, text.valign.top]
-        south = [text.halign.boxcenter, text.valign.bottom]
-        southeast = [text.halign.boxright, text.valign.bottom]
-        southwest = [text.halign.boxleft, text.valign.bottom]
-        east = [text.halign.boxright, text.valign.middle]
-        west = [text.halign.boxleft, text.valign.middle]
-        center = [text.halign.boxcenter, text.valign.middle]
-        
-        
-        st_dashed = [style.linestyle.dashed]
-        st_dotted = [style.linestyle.dotted]
-        st_round = [style.linecap.round]
-        #st_mitre = [style.linecap.square]
-        
-        st_thick = [style.linewidth.thick]
-        st_Thick = [style.linewidth.Thick]
-        st_THick = [style.linewidth.THick]
-        st_THIck = [style.linewidth.THIck]
-        st_THICk = [style.linewidth.THICk]
-        st_THICK = [style.linewidth.THICK]
 
         render()
     else:
