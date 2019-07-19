@@ -1,3 +1,86 @@
+18/7/19
+=======
+
+https://twitter.com/johncarlosbaez/status/1151492366349602821
+    Here's how the Grothendieck construction works.  We start
+    with any category X and a functor F from its opposite
+    to Cat at shown below.  We build a category ∫ F as follows:
+    Given functor X^op \to Cat
+    we define ∫ F as the category with
+        objects: (x, a) with x\in X, a\in F(x)
+        morphisms: (f, g) : (x, a) \to (y, b)
+            where f:x\to y, g:a\to F f(b).
+    A group is a one-object category with all morphisms invertible.
+    When the category X is a group and F maps the one object
+    of X to a group G,  ∫ F is a semidirect product of X and G.
+
+17/7/19
+=======
+
+http://scgp.stonybrook.edu/about/about-the-center
+The Simons Center for Geometry and Physics
+ is part of Stony Brook University.
+
+https://arxiv.org/abs/1512.09265
+Periods and Feynman amplitudes
+Francis Brown
+(Submitted on 31 Dec 2015)
+Feynman amplitudes in perturbation theory form the basis
+for most predictions in particle collider experiments.
+The mathematical quantities which occur as amplitudes
+include values of the Riemann zeta function and relate
+to fundamental objects in number theory and algebraic
+geometry. This talk reviews some of the recent developments
+in this field, and explains how new ideas from algebraic
+geometry have led to much progress in our understanding
+of amplitudes. In particular, the idea that certain transcendental
+numbers, such as π, can be viewed as a representation
+of a group, provides a powerful framework to study amplitudes
+which reveals many hidden structures.
+    ... the Galois group G of motivic periods
+
+
+http://www.cs.ox.ac.uk/ACT2019/preproceedings/Martha%20Lewis.pdf
+Modelling hyponymy for DisCoCat
+Martha Lewis
+ILLC, University of Amsterdam, Amsterdam, The Netherlands
+Language is used to describe concepts, and many of these
+concepts are hierarchical. Modelling words as vectors
+within distributional semantics does not intrinsically
+incorporate this hierarchical
+information. We model words as positive operators. These have an
+ordering which we interpret as modelling hierarchical information.
+We give a simple and intuitive method for building positive
+operators from o-the-shelf vectors together with hierarchical
+information from WordNet. The word representations built can be composed
+within the categorical compositional semantic framework, and give
+competitive results on sentence-level entailment datasets.
+
+
+https://golem.ph.utexas.edu/category/2019/07/what_is_the_laplace_transform.html
+    the Laplace transform is really just a generalization
+    of the familiar Laurent series representation of complex
+    analytic functions, but where the exponents are allowed
+    to be non-integers and to “vary continuously” rather
+    than discretely.
+
+
+
+16/7/19
+=======
+
+Frobenius - Schur indicator and irreducible representations over R
+https://mathoverflow.net/a/20810/39775
+
+
+Hopf-Frobenius algebras and a simpler Drinfeld double
+Joseph Collins Ross Duncan
+https://arxiv.org/pdf/1905.00797.pdf
+    Let G be an infinite group. Following Hasegawa [19] we
+    can construct its group algebra in Rel. 
+[19] Masahito Hasegawa (2010): Bialgebras in rel. Electronic
+Notes in Theoretical Computer Science 265, pp. 337–350.
+
 
 11/7/19
 =======
@@ -5,6 +88,26 @@
 The Matter Myth: Dramatic Discoveries that Challenge
 Our Understanding of Physical Reality Paperback – 23 Oct 2007
 by Paul Davies  (Author), John Phd Gribbin (Contributor)
+
+6/7/19
+======
+
+@article{ellerman2015duality,
+  title={On the duality between existence and information},
+  author={Ellerman, David},
+  journal={Available at SSRN 2684192},
+  year={2015}
+}
+P 10:
+http://www.ellerman.org/wp-content/uploads/2015/10/Existence-Information.pdf
+"
+Shannon's notion of entropy H (d) = B2 pB log2 (1=pB) = P B2 pB log2 (pB)  
+is not a measure (in the mathematical sense given 
+above), only has a direct interpretation in special cases 
+(i.e., the number of equal binary partitions
+it takes to di§erentiate 2^n entities),
+and was applied in what Shannon always called "theory of communications"...
+"""
 
 
 9/7/19
