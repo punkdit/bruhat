@@ -1,4 +1,197 @@
 
+23/7/19
+=======
+
+A TANNAKIAN CLASSIFICATION OF TORSORS ON THE
+PROJECTIVE LINE
+JOHANNES ANSCHUTZ
+https://arxiv.org/pdf/1703.00702.pdf
+
+"Bio from Bit"
+https://twitter.com/FQXi/status/1153241868651696128
+"Researches origin of life, but for now talking about
+what life is. Agree that life doesn't violate any known
+laws of physics. But difficult to see how to explain
+life with current laws."
+
+
+https://arxiv.org/abs/1812.05765
+Graphical Regular Logic
+Brendan Fong, David I Spivak
+    Regular logic can be regarded as the internal language
+    of regular categories, but the logic itself is generally
+    not given a categorical treatment. In this paper, we
+    understand the syntax and proof rules of regular logic
+    in terms of the free regular category FRg(T) on a set
+    T. From this point of view, regular theories are certain
+    monoidal 2-functors from a suitable 2-category of contexts---the
+    2-category of relations in FRg(T)---to the 2-category
+    of posets. Such functors assign to each context the set
+    of formulas in that context, ordered by entailment. We
+    refer to such a 2-functor as a regular calculus because
+    it naturally gives rise to a graphical string diagram
+    calculus in the spirit of Joyal and Street. Our key aim
+    to prove that the category of regular categories is essentially
+    reflective in that of regular calculi. Along the way,
+    we demonstrate how to use this graphical calculus.
+    
+    Theorem 1.2
+    ...  this functor has a left adjoint, the “syntactic category,”
+
+
+https://arxiv.org/pdf/1812.11933.pdf
+FUSION 2-CATEGORIES AND A STATE-SUM INVARIANT FOR
+4-MANIFOLDS
+CHRISTOPHER L. DOUGLAS AND DAVID J. REUTTER
+    Abstract. We introduce semisimple 2-categories, fusion
+    2-categories, and spherical fusion 2-categories. For
+    each spherical fusion 2-category, we construct a state-sum invariant
+    of oriented singular piecewise-linear 4-manifolds.
+
+
+https://arxiv.org/pdf/1606.07144.pdf
+Hamiltonian models for topological phases of matter in
+three spatial dimensions
+Dominic J. Williamson and Zhenghan Wang
+    We present commuting projector Hamiltonian realizations
+    of a large class of (3+1)D
+    topological models based on mathematical objects called
+    unitary G-crossed braided fusion
+    categories. This construction comes with a wealth of
+    examples from the literature of
+    symmetry-enriched topological phases. The spacetime counterparts
+    to our Hamiltonians
+    are unitary state sum topological quantum fields theories
+    (TQFTs) that appear to capture
+    all known constructions in the literature, including
+    the Crane-Yetter-Walker-Wang and
+    2-Group gauge theory models. We also present Hamiltonian
+    realizations of a state sum
+    TQFT recently constructed by Kashaev whose relation to
+    existing models was previously
+    unknown. We argue that this TQFT is captured as a special
+    case of the Crane-YetterWalker-Wang model, with a premodular
+    input category in some instances.
+
+The measurement postulates of quantum mechanics are operationally redundant
+Masanes, Galley, Muller
+https://arxiv.org/abs/1811.11060
+
+
+Beyond the Shannon-Khinchin Formulation: The Composability
+Axiom and the Universal Group Entropy
+Piergiulio Tempesta
+    we show that there exists an intrinsic group-theoretical
+    structure behind the notion of entropy. It comes from
+    the requirement of composability of an entropy with respect
+    to the union of two statistically independent subsystems,
+    that we propose in an axiomatic formulation. Second,
+    we show that there exists a simple universal class of
+    admissible entropies. This class contains many well known
+    examples of entropies and infinitely many new ones, a
+    priori multi-parametric. Due to its specific relation
+    with the universal formal group, the new family of entropies
+    introduced in this work will be called the universal-group entropy.
+    
+
+https://arxiv.org/abs/1508.01140
+Disentangling the Quantum World
+Huw Price and Ken Wharton
+    Correlations related to quantum entanglement have convinced many
+    physicists that there must be some at-a-distance connection between
+    separated events, at the quantum level. In the late 1940s, however,
+    O. Costa de Beauregard proposed that such correlations
+    can be explained without action at a distance, so long as the influence takes a
+    zigzag path, via the intersecting past lightcones of the events in question. 
+    Costa de Beauregard’s proposal is related to what has come to
+    be called the retrocausal loophole in Bell’s Theorem, but – like that
+    loophole – it receives little attention, and remains poorly understood.
+    Here we propose a new way to explain and motivate the idea. We
+    exploit some simple symmetries to show how Costa de Beauregard’s
+    zigzag needs to work, to explain the correlations at the core of Bell’s
+    Theorem. As a bonus, the explanation shows how entanglement might
+    be a much simpler matter than the orthodox view assumes – not a
+    puzzling feature of quantum reality itself, but an entirely unpuzzling
+    feature of our knowledge of reality, once zigzags are in play
+
+
+zigzags... calculus of fractions:
+https://ncatlab.org/nlab/show/calculus+of+fractions
+
+
+Displaying all lectures given by: Tobias Fritz
+http://pirsa.org/index.php?p=speaker&name=Tobias_Fritz
+
+https://terrytao.files.wordpress.com/2009/07/primes1.pdf
+Structure and randomness in the prime numbers
+2009 Terence Tao
+    ... the primes are a deterministic set of integers, not a random one..
+    We do not know a quick way to find primes determinstically.
+    However, we have quick ways to find primes randomly.
+    ... Individual primes are believed to behave randomly, but the
+    collective behaviour of the primes is believed to be quite
+    predictable.
+    We believe that the primes do not observe any significant
+    pattern beyond the obvious ones (e.g. mostly being odd),
+    but we are still a long way from making this belief
+    completely rigorous.
+
+Do prime numbers give a model for quantum physics?
+http://math.ucr.edu/home/baez/week216.html
+    there are 3 cases:
+    INERT: An ordinary prime number of the form 4n+3 is also
+    prime in the Gaussian integers: for example, 3.
+    SPLIT: An ordinary prime numbers of the form 4n+1 is
+    the product of two complex conjugate primes in the Gaussian
+    integers: for example, 5 = (2+i)(2-i).
+    RAMIFIED: The ordinary prime 2 equals (1+i)(1-i), but
+    here the two factors give the same prime ideal, since
+    (1-i) = i (1+i), and i is invertible in the Gaussian integers.
+and this is controlled by the prime mod 8 (or something...)
+Is this like entanglement? we can't predict the prime, it
+is random, but these two things agree...
+
+
+Hidden Variables and the Two Theorems of John Bell
+N. David Mermin
+https://arxiv.org/abs/1802.10119
+    Although skeptical of the prohibitive power of no-hidden-variables
+    theorems, John Bell was himself responsible for the two
+    most important ones. I describe some recent versions
+    of the lesser known of the two (familar to experts as
+    the "Kochen-Specker theorem") which have transparently
+    simple proofs. One of the new versions can be converted
+    without additional analysis into a powerful form of the
+    very much better known "Bell's Theorem", thereby clarifying
+    the conceptual link between these two results of Bell.
+        
+
+Relativistic statistical arbitrage
+A. D. Wissner-Gross and C. E. Freer
+Phys. Rev. E 82, 056104 – Published 5 November 2010
+    Recent advances in high-frequency financial trading have
+    made light propagation delays between geographically
+    separated exchanges relevant. Here we show that there
+    exist optimal locations from which to coordinate the
+    statistical arbitrage of pairs of spacelike separated
+    securities, and calculate a representative map of such
+    locations on Earth. Furthermore, trading local securities
+    along chains of such intermediate locations results in
+    a novel econophysical effect, in which the relativistic
+    propagation of tradable information is effectively slowed
+    or stopped by arbitrage.
+
+What about entanglement arbitrage?
+
+19/7/19
+=======
+
+An effect-theoretic reconstruction of quantum theory
+John van de Wetering
+https://arxiv.org/abs/1801.05798
+http://www.cs.ox.ac.uk/ACT2019/preproceedings/John%20van%20de%20Wetering.pdf
+
+
 18/7/19
 =======
 
