@@ -2,6 +2,12 @@
 23/7/19
 =======
 
+A Note on Grobner Bases of Ore Polynomials over a PID
+Ziming Li∗1 and Yi Zhang †2
+https://yzhang1616.github.io/GB.pdf
+
+
+
 A TANNAKIAN CLASSIFICATION OF TORSORS ON THE
 PROJECTIVE LINE
 JOHANNES ANSCHUTZ
