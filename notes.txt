@@ -1,4 +1,23 @@
 
+24/7/19
+=======
+
+A PRESENTATION OF THE CATEGORY OF STOCHASTIC MATRICES
+TOBIAS FRITZ
+    2.2. Lemma. FinStoMap has all finite coproducts.
+
+
+Quantum Computation and Symmetric Monoidal Categories
+Posted by John Baez
+August 28, 2006
+https://golem.ph.utexas.edu/category/2006/08/quantum_computation_and_symmet.html
+
+
+Topology of Numbers
+http://pi.math.cornell.edu/~hatcher/TN/TNpage.html
+Allen Hatcher
+
+
 23/7/19
 =======
 
