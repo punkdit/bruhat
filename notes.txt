@@ -1,4 +1,84 @@
 
+27/7/19
+=======
+
+Graphical Regular Logic
+Brendan Fong and David I. Spivak
+https://arxiv.org/abs/1812.05765
+
+(Re)constructing code loops
+Ben Nagy and David Michael Roberts
+https://arxiv.org/abs/1903.02748
+The Parker loop is a central extension of the extended binary Golay code.
+It is an example of a general class of non-associative structures known as code loops,
+which have been studied from a number of different algebraic and combinatorial
+perspectives. This expository paper aims to also highlight an experimental approach
+to computing in code loops, by a combination of a small amount of precomputed
+information and making use of the rich identities that code loops’ twisted cocycles
+satisfy. As a biproduct one can reconstruct the multiplication in the Parker loop from
+a mere fragment of its twisted cocycle, and we have found relatively large subspaces
+of the Golay code over which the Parker loop splits as a direct product.
+
+Diagrammatic methods - Bogota school on Quantum Symmetries 20190701
+https://www.youtube.com/watch?v=XTY37Xc_Hx8
+Scott Morrison
+Published on Jul 1, 2019
+https://tqft.net/web/notes/load.php?name=talks/20190701-diagrams-in-Bogota
+skein theory, planar algebras, algebras, projective modules,
+drinfeld center, toric code, string diagram n-category.
+
+
+https://blogs.scientificamerican.com/cross-check/making-sense-of-quantum-mechanics/
+Philosopher David Albert 
+    the space that wave-functions live in, the space (that
+    is) that we would be obliged to think of as the fundamental
+    physical space of the world- if we want to think of wave-functions
+    as concrete physical objects - happens to have a gigantic
+    number of dimensions.  And this has always seemed to
+    everybody to amount to a problem.  And I have lately
+    become convinced that it is nothing of the sort.  I have
+    lately become convinced that (as a matter of fact) it
+    is the key to the whole business.  It turns out that
+    if you imagine that the fundamental physical space of
+    the world is something other, and larger, and different
+    than the three-dimensional space of our everyday experience,
+    then everything that has always seemed uncanny about
+    quantum mechanics suddenly becomes clear and straightforward
+    and understandable and in some sense to have been expected. 
+How to Teach Quantum Mechanics
+Albert, David Z. (2019) How to Teach Quantum Mechanics. [Preprint]
+
+
+Networks, Crowds, and Markets: 
+Reasoning About a Highly Connected World
+By David Easley and Jon Kleinberg
+https://www.cs.cornell.edu/home/kleinber/networks-book/
+
+
+Minding matter
+The closer you look, the more the materialist position
+in physics appears to rest on shaky metaphysical ground
+Adam Frank
+13 March, 2017
+https://aeon.co/essays/materialism-alone-cannot-explain-the-riddle-of-consciousness
+
+
+
+
+26/7/19
+=======
+
+The trace of a square matrix is the sum of its eigenvalues.
+The determinant is the product of its eigenvalues.
+In general, all polynomial invariants of matrices are
+symmetric polynomials in eigenvalues.
+what about the Pfaffian for so(2n)?
+I means invariants under conjugation X ↦ A⁻¹XA by A∈GLₙ.
+You are right, other (smaller) groups give more invariants.
+IIRC, for conjugation by Oₙ the invariants are generated
+by traces of monomials composed of X and Xᵀ. The SOₙ case is subtler.
+
+
 24/7/19
 =======
 
@@ -207,6 +287,34 @@ Phys. Rev. E 82, 056104 – Published 5 November 2010
     or stopped by arbitrage.
 
 What about entanglement arbitrage?
+
+
+20/7/19
+=======
+
+Bialgebras in Rel
+Masahito Hasegawa
+2010
+    We study bialgebras in the compact closed category Rel
+    of sets and binary relations. We show that various monoidal
+    categories with extra structure arise as the categories
+    of (co)modules of bialgebras in Rel. In
+    particular, for any group G we derive a ribbon category
+    of crossed G-sets as the category of modules of a
+    Hopf algebra in Rel which is obtained by the quantum
+    double construction. This category of crossed G-sets
+    serves as a model of the braided variant of propositional linear logic.
+
+"Grobner-Shirshov Bases and PBW Theorems"
+Leonid A. Bokut, Yuqun Chen 2013
+http://maths.scnu.edu.cn/maths/uploadfile/2014/1109/20141109091834235.pdf
+
+The diamond lemma for ring theory
+George M Bergman
+1978
+https://www.sciencedirect.com/science/article/pii/0001870878900105
+
+
 
 19/7/19
 =======
