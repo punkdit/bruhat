@@ -1,6 +1,82 @@
 
+28/7/19
+=======
+
+The Dirty Secrets of Life by Paul Davies
+https://www.youtube.com/watch?v=tVVcf5LBIhs
+
+ANDREAS WAGNER
+Arrival of the Fittest
+Solving Evolution's Greatest Puzzle
+http://arrival-of-the-fittest.com/
+
+Fundamental?
+Emily Adlam
+January 7, 2018
+https://fqxi.org/data/essay-contest-files/Adlam_fundamental_essay_Jan.pdf
+
+    Perhaps we should take it as a sign that we have
+    been swimming against the current all this time: the
+    messiness deep down is a sign
+    that the universe works not ‘bottom-up’ but rather ‘top-down,’
+    with the laws of nature
+    governing the whole of history at once, akin to the Lagrangian
+    formulation of classical physics [29].
+
+    After all, what is beginning to become clear within modern
+    physics is that in many
+    cases, things get simpler as we go further up. Our best
+    current theories are renormalisable, meaning that many
+    different possible variants on the underlying microscopic
+    physics all give rise to the same macroscopic physical
+    theory, known as an infrared
+    fixed point [30, 31]. This is usually glossed as providing
+    an explanation of why it is that
+    we can do sensible macroscopic physics even without having
+    detailed knowledge of the
+    underlying microscopic theories [31]. But one might argue
+    that this is getting things the
+    wrong way round: the laws of nature don’t start with
+    little pieces and build the universe
+    from the bottom up, rather they apply simple macroscopic
+    constraints to the universe
+    as a whole and work out what needs to happen on a more
+    fine-grained level in order
+    to satisfy these constraints.
+    
+    If this is correct, it is no wonder that when we do quantum
+    physics we find it difficult
+    to say anything definite about how things are on a microscopic
+    level: most of the time
+    there simply is no fact of the matter about how things
+    are on a microscopic level, because the universe is efficient,
+    and doesn’t bother answering questions when it doesn’t
+    need to. To ensure the satisfaction of the macroscopic
+    constraints, there’s usually no
+    need to decide how things are on a microscopic level
+    - except of course when human
+    experimentalists start wiggling smaller and smaller things
+    and demanding answers.
+
+Of Lego and Layers (and Fundamentalism)
+D. P. Rickles
+January 23, 2018
+https://fqxi.org/data/essay-contest-files/Rickles_Funda.pdf
+    "The entire universe has to be understood as a single, undivided whole, in which
+    analysis into separately and independently existent parts has no fundamental
+    status. " Bohm, D. (1980) Wholeness and the Implicate Order. Routledge.
+
 27/7/19
 =======
+
+CLASSICAL INVARIANT THEORY A Primer
+Hanspeter Kraft, Claudio Procesi
+http://www.math.iitb.ac.in/~shripad/Wilberd/KP-Primer.pdf
+
+
+
+
+
 
 Graphical Regular Logic
 Brendan Fong and David I. Spivak
@@ -304,6 +380,10 @@ Masahito Hasegawa
     Hopf algebra in Rel which is obtained by the quantum
     double construction. This category of crossed G-sets
     serves as a model of the braided variant of propositional linear logic.
+    ...
+    ... Monoidal categories and bialgebras
+    ...  A quantum double construction in Rel
+    ... For instance, the self-distributivity justifies the Reidemeister move III
 
 "Grobner-Shirshov Bases and PBW Theorems"
 Leonid A. Bokut, Yuqun Chen 2013

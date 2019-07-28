@@ -451,18 +451,18 @@ class MulSpecies(_BinaryOpSpecies):
         return Set.promote(self.F[U]) * Set.promote(self.G[U])
 
 
-class Data(object):
-
-    pass
-
-#    def __eq__(self, other):
-#        return self.data == other.data
-
-
-class Pair(Data):
-    def __init__(self, a, b):
-        self.data = (a, b)
-
+#class Data(object):
+#
+#    pass
+#
+##    def __eq__(self, other):
+##        return self.data == other.data
+#
+#
+#class Pair(Data):
+#    def __init__(self, a, b):
+#        self.data = (a, b)
+#
 
 
 class DotSpecies(_BinaryOpSpecies):
@@ -533,6 +533,15 @@ BinaryTree = Species(all_binary_trees, "BinaryTree")
 OrderedBinaryTree = Species(all_obinary_trees, "OrderedBinaryTree")
 Pow = Species(all_subsets, "Pow")
 
+def all_handshakes(items):
+    items = list(items)
+    items.sort()
+    n = len(items)
+    if n<2:
+        return []
+    els = [(items[i], items[j]) for i in range(n) for j in range(i+1, n)]
+    return els
+Handshake = Species(lambda items : Set(all_handshakes(items)))
 
 # ----------------------------------------------------
     
@@ -740,6 +749,12 @@ def test():
     
 def main():
 
+    F = Handshake
+    F = List
+    F = Par
+    print(F.sequence(7))
+    return
+
     print(BinaryTree.sequence(7)) # 0, 1, 1, 3, 15, 105, 945
 
     F = X + E_2(BinaryTree)
@@ -748,6 +763,8 @@ def main():
     # https://oeis.org/A001813
     # Quadruple factorial numbers: a(n) = (2n)!/n!. 
     #print(OrderedBinaryTree.sequence(6)) # 0, 1, 2, 12, 120, 1680
+
+    return
 
     P = OrderedBinaryTree
     #print(P.sequence(6))
@@ -758,7 +775,6 @@ def main():
     #F = OrderedBinaryTree * OrderedBinaryTree
     #print(F.sequence(6)) # 0, 0, 2, 12, 120, 1680
 
-    return
 
     # Conjecture: these are "wavefronts" on a BinaryTree.
     F = BinaryTree(BinaryTree)
