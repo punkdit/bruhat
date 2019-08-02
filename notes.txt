@@ -1,3 +1,16 @@
+2/8/19
+======
+
+The Grothendieck construction
+https://twitter.com/johncarlosbaez/status/1157071271466684416
+Given category X, and functor F:X^{op}\to Cat
+construct a new category int F:
+    objects: (x, a) with x in X, and a in F(x)
+    morphisms: (x, a) -> (x', a')
+        is a morphism f:x -> x'
+        and a morphism g: a -> F(f)(a') in F(x)
+all the categories F(x) sit inside int F.
+
 
 28/7/19
 =======
