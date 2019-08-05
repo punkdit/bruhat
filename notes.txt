@@ -1,3 +1,18 @@
+
+4/8/19
+======
+
+https://www.carasantamaria.com/podcast/annaka-harris
+    Talk Nerdy.
+    Episode 268 - Annaka Harris
+    science editor, consultant, and author of the new book,
+    “Conscious: A Brief Guide to the Fundamental Mystery
+    of the Mind.” 
+
+Why we shouldn’t take peer review as the ‘gold standard’
+https://www.washingtonpost.com/outlook/why-we-shouldnt-take-peer-review-as-the-gold-standard/2019/08/01/fd90749a-b229-11e9-8949-5f36ff92706e_story.html?utm_term=.78867afd8423
+
+
 2/8/19
 ======
 
@@ -18,6 +33,7 @@ all the categories F(x) sit inside int F.
 Paul Davies
 Where do the laws of physics come from?
 https://www.youtube.com/watch?v=pj7POKgkJTs
+31:00
     Seth Lloyd: 10^122 bits of information in the (classical) universe
     Quantum computers: 400 qubits already exceeds this
 
