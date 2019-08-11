@@ -1,4 +1,23 @@
 
+6/8/19
+======
+
+Quantum computing for finance: overview and prospects
+Rom´an Or´us,1, 2, 3, 4 Samuel Mugel,4, 5 and Enrique Lizaso
+https://arxiv.org/pdf/1807.03890.pdf
+
+
+Characterizing Quantum Supremacy in Near-Term Devices
+https://arxiv.org/abs/1608.00263
+    We introduce cross entropy as a useful benchmark of quantum
+    circuits which approximates the circuit fidelity. We
+    show that the cross entropy can be efficiently measured
+    when circuit simulations are available. Beyond the classically
+    tractable regime, the cross entropy can be extrapolated
+    and compared with theoretical estimates of circuit fidelity
+    to define a practical quantum supremacy test.
+
+
 4/8/19
 ======
 
