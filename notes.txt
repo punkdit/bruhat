@@ -1,4 +1,6 @@
 
+
+
 14/8/19
 =======
 
@@ -6,6 +8,18 @@ https://en.wikipedia.org/wiki/Minkowski_addition
 Minkowski sums act linearly on the perimeter of two-dimensional
 convex bodies: the perimeter of the sum equals the sum
 of perimeters.
+
+
+"GENERATORS AND RELATIONS FOR n-QUBIT CLIFFORD OPERATORS"
+PETER SELINGER
+https://www.mathstat.dal.ca/~selinger/papers/clifford.pdf
+    |C(1)|=192
+    |C(2)|=92160
+    |C(3)|=743178240
+    In this paper, we define a normal form for Clifford circuits, and we prove that every Clifford
+    operator has a unique normal form. Moreover, we present a rewrite system by which
+    any Clifford circuit can be reduced to normal form. This yields a presentation of Clifford
+    operators in terms of generators and relations, shown in Figure 8.
 
 6/8/19
 ======

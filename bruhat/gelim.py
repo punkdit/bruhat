@@ -12,8 +12,8 @@ from fractions import Fraction
 import numpy
 from numpy import dot
 
-from smap import SMap
-from argv import argv
+from bruhat.smap import SMap
+from bruhat.argv import argv
 
 
 def write(s):
