@@ -1,4 +1,12 @@
 
+14/8/19
+=======
+
+https://en.wikipedia.org/wiki/Minkowski_addition
+Minkowski sums act linearly on the perimeter of two-dimensional
+convex bodies: the perimeter of the sum equals the sum
+of perimeters.
+
 6/8/19
 ======
 
