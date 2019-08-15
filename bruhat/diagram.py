@@ -326,6 +326,7 @@ def main():
             #print(d)
             #print("einsum:")
             s = d.interpret()
+            print(s)
 
 
 
