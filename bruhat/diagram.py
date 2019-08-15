@@ -324,6 +324,19 @@ def main():
 
     # -------------------------
 
+    f = Vertex("f", A, A+A)
+    g = Vertex("g", A+A, A)
+
+    M = Diagram([f, g])
+    M.link(f, g, 0, 0)
+    M.link(f, g, 1, 1)
+    M.link(g, f, 0, 0)
+    assert M.is_closed()
+    s = str(M.get_interp()[M])
+    assert s=="x*y"
+
+    # -------------------------
+
     def make_diagram(trials=100):
         f = Vertex("f", A, A+A)
         g = Vertex("g", A+A, A)
