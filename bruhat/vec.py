@@ -406,6 +406,7 @@ class Map(Element):
         return Map(items, a.hom.transpose())
 
     def trace(a):
+        assert a.hom.src == a.hom.tgt
         v = a.ring.zero
         for ((i, j), u) in a.items:
             if i==j:
@@ -546,6 +547,7 @@ def test_over_ring(ring):
     g = f.image()
     #print(g)
 
+    assert f.trace() == 2
 
 
 if __name__ == "__main__":

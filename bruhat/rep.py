@@ -119,6 +119,10 @@ class Rep(Element): # Object of the category
         print(self.space)
         for g in self.G:
             rg = self.send_perms[g]
+            print(rg.trace(), end=" ")
+        print()
+        for g in self.G:
+            rg = self.send_perms[g]
             print(g)
             print(rg)
             print()
