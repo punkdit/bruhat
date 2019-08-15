@@ -167,10 +167,11 @@ class Diagram(object):
                     idxs.append(idx)
             for i, label in enumerate(v.src):
               for idx, link in enumerate(self.links):
-                if link[0] == v and link[2] == i:
+                if link[1] == v and link[3] == i:
                     idxs.append(idx)
             assert len(idxs) == len(op.shape)
             args.append(idxs)
+        print(args)
         value = numpy.einsum(*args)
         return value
         
