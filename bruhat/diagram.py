@@ -11,7 +11,9 @@ https://arxiv.org/pdf/1207.6972.pdf
 
 from functools import reduce
 from operator import add
+from string import ascii_lowercase as letters
 
+import numpy
 
 from bruhat import element
 #from bruhat.vec import Space, Hom, Map
@@ -95,6 +97,83 @@ class Diagram(object):
     def is_closed(self):
         return not self.get_inputs() and not self.get_outputs()
 
+    def interpret(self):
+        links = self.links
+        wires = {}
+        for link in self.links:
+            f, g, i, j = link
+            label = f.tgt[i]
+            assert label == g.src[j]
+            occurs = wires.setdefault(label, [])
+            occurs.append(link)
+
+        # dimension of each vector space
+        shapes = list(wires.items())
+        shapes.sort()
+        shapes = [(k, len(v)) for (k, v) in shapes]
+        print("shapes:", shapes)
+        shapes = dict(shapes)
+
+        ring = element.Z
+        polys = [Poly(letters[i], ring) for i in range(len(self.verts))]
+
+        ops = {} # interpret each vertex name
+        for vi, v in enumerate(self.verts):
+            print("interpret", v)
+            # shape = (out[0], out[1], ..., in[0], in[1], ...)
+            shape = []
+            for label in v.tgt + v.src: # out + in
+                shape.append(shapes[label])
+            F = numpy.zeros(shape=shape, dtype=object)
+            F[:] = 0
+            idxs = []
+            for i, label in enumerate(v.tgt):
+                occurs = wires[label] # all the links where this label occurs 
+                idx = None
+                for _idx, link in enumerate(occurs):
+                    if link[0] == v and link[2] == i:
+                        assert idx is None
+                        idx = _idx
+                assert idx is not None, "missing link"
+                idxs.append(idx)
+            for i, label in enumerate(v.src):
+                occurs = wires[label] # all the links where this label occurs 
+                idx = None
+                for _idx, link in enumerate(occurs):
+                    if link[1] == v and link[3] == i:
+                        assert idx is None
+                        idx = _idx
+                assert idx is not None, "missing link"
+                idxs.append(idx)
+            #F[tuple(idxs)] = polys[vi]
+            F[tuple(idxs)] = 1
+            print(F)
+            op = ops.get(v.name)
+            if op is None:
+                op = F
+            else:
+                op = op + F
+            ops[v.name] = op
+
+        #contract = [] # for einsum
+        args = []
+        for vi, v in enumerate(self.verts):
+            op = ops[v.name].astype(numpy.int)
+            args.append(op)
+            idxs = []
+            for i, label in enumerate(v.tgt):
+              for idx, link in enumerate(self.links):
+                if link[0] == v and link[2] == i:
+                    idxs.append(idx)
+            for i, label in enumerate(v.src):
+              for idx, link in enumerate(self.links):
+                if link[0] == v and link[2] == i:
+                    idxs.append(idx)
+            assert len(idxs) == len(op.shape)
+            args.append(idxs)
+        value = numpy.einsum(*args)
+        return value
+        
 
 
 def test():
@@ -123,6 +202,9 @@ def main():
     assert not d.get_outputs()
     s = str(d)
 
+    print(d)
+    print(d.interpret())
+
     # -------------------------
 
     f0, f1 = f, f.clone()
@@ -131,17 +213,23 @@ def main():
     d.link(f1, f0, 0, 0)
     assert d.is_closed()
 
+    print(d)
+    print(d.interpret())
+
     # -------------------------
 
     A = "A"
     B = "B"
     f = Vertex("f", A, B)
-    g = Vertex("f", B, A)
+    g = Vertex("g", B, A)
 
     d = Diagram([f, g])
     d.link(f, g, 0, 0)
     d.link(g, f, 0, 0)
     assert d.is_closed()
+
+    print(d)
+    print(d.interpret())
 
 
 

@@ -1,4 +1,26 @@
 
+15/8/19
+=======
+
+https://www.wired.com/story/deepminds-losses-future-artificial-intelligence/
+     In playing Breakout, for example, tiny changes—like moving
+    the paddle up a few pixels—can cause dramatic drops in
+    performance. DeepMind’s StarCraft outcomes were similarly
+    limited, with better-than-human results when played on
+    a single map with a single “race” of character, but poorer
+    results on different maps and with different characters.
+    To switch characters, you need to retrain the system
+    from scratch.
+    
+    In some ways, deep reinforcement learning is a kind of
+    turbocharged memorization; systems that use it are capable
+    of awesome feats, but they have only a shallow understanding
+    of what they are doing. As a consequence, current systems
+    lack flexibility, and thus are unable to compensate if
+    the world changes, sometimes even in tiny ways. (DeepMind’s
+    recent results with kidney disease have been questioned
+    in similar ways.)
+
 
 
 14/8/19
