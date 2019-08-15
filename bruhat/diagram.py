@@ -9,6 +9,7 @@ DAGGER COMPACT CLOSED CATEGORIES" PETER SELINGER
 https://arxiv.org/pdf/1207.6972.pdf
 """
 
+from random import choice
 from functools import reduce
 from operator import add
 #from string import ascii_lowercase
@@ -98,7 +99,7 @@ class Diagram(object):
     def is_closed(self):
         return not self.get_inputs() and not self.get_outputs()
 
-    def interpret(self):
+    def interpret(self, verbose=False):
         links = self.links
         wires = {}
         for link in self.links:
@@ -200,7 +201,7 @@ def einsum(ops, addrs):
 
     #print(lookup)
     shape = tuple(lookup[i] for i in all_addrs)
-    #print("shape:", shape)
+    #print("einsum shape:", shape)
 
     value = 0
     for idx in numpy.ndindex(shape):
@@ -209,8 +210,12 @@ def einsum(ops, addrs):
         for i, op in enumerate(ops):
             j = tuple(idx[all_addrs.index(addr)] for addr in addrs[i])
             #print("j:", j)
-            val = val * op[j]
-        value += val
+            _val = op[j]
+            if _val == 0:
+                break
+            val = val * _val
+        else:
+            value += val
 
     return value
 
@@ -227,8 +232,7 @@ def test():
 
 def main():
 
-    A = "A"
-    B = "B"
+    A, B, C = "ABC"
     f = Vertex("f", A, A)
 
     d = Diagram([f])
@@ -241,8 +245,8 @@ def main():
     assert not d.get_outputs()
     s = str(d)
 
-    print(d)
-    print(d.interpret())
+    #print(d)
+    assert str(d.interpret()) == "x"
 
     # -------------------------
 
@@ -252,8 +256,8 @@ def main():
     d.link(f1, f0, 0, 0)
     assert d.is_closed()
 
-    print(d)
-    print(d.interpret())
+    #print(d)
+    assert str(d.interpret()) == "2*x*y"
 
     # -------------------------
 
@@ -264,13 +268,11 @@ def main():
     d.link(f2, f0, 0, 0)
     assert d.is_closed()
 
-    print(d)
-    print(d.interpret())
+    #print(d)
+    assert str(d.interpret()) == "3*x*y*z"
 
     # -------------------------
 
-    A = "A"
-    B = "B"
     f = Vertex("f", A, B)
     g = Vertex("g", B, A)
 
@@ -279,8 +281,53 @@ def main():
     d.link(g, f, 0, 0)
     assert d.is_closed()
 
-    print(d)
-    print(d.interpret())
+    #print(d)
+    assert str(d.interpret()) == "x*y"
+
+    # -------------------------
+
+    f = Vertex("f", B, A+A)
+    g = Vertex("g", A+A, B)
+    h = Vertex("h", B+A, A+B)
+
+    d = Diagram([f, g, h])
+    d.link(f, g, 0, 0)
+    d.link(f, g, 1, 1)
+    d.link(g, h, 0, 0)
+    d.link(h, h, 0, 1)
+    d.link(h, f, 1, 0)
+    assert d.is_closed()
+
+    #print(d)
+    assert str(d.interpret())  == "x*y*z"
+
+    # -------------------------
+
+    f = Vertex("f", A, A+A)
+    g = Vertex("g", A+A, A)
+
+    for trial in range(10):
+
+        items = [f.clone() for i in range(2)]
+        items += [g.clone() for i in range(2)]
+        d = Diagram(items)
+        while not d.is_closed():
+            ilinks = list(d.get_inputs())
+            olinks = list(d.get_outputs())
+            #print(ilinks, olinks)
+            if len(ilinks)*len(olinks) == 0:
+                break
+            #srcs = [f.tgt[i] for (f, i) in olinks]
+            #tgts = [f.src[i] for (f, i) in ilinks]
+            f, i = choice(olinks)
+            g, j = choice(ilinks)
+            d.link(f, g, i, j)
+        else:
+            #print(d)
+            #print("einsum:")
+            s = d.interpret()
+
+
 
 
 
