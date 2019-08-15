@@ -67,7 +67,10 @@ class Diagram(object):
         self.links = list(links)
 
     def __str__(self):
-        return "Diagram(%s, %s)"%(self.verts, self.links)
+        verts = self.verts
+        vs = [str(v) for v in verts]
+        links = [(verts.index(f), verts.index(g), i, j) for (f, g, i, j) in self.links]
+        return "Diagram(%s, %s)"%(vs, links)
 
     def link(self, f, g, i, j):
         "link i-th output of f to j-th input of g"
@@ -99,7 +102,7 @@ class Diagram(object):
     def is_closed(self):
         return not self.get_inputs() and not self.get_outputs()
 
-    def interpret(self, verbose=False):
+    def get_interp(self, verbose=False):
         links = self.links
         wires = {}
         for link in self.links:
@@ -156,26 +159,44 @@ class Diagram(object):
             else:
                 op = op + F
             ops[v.name] = op
+        return Interpretation(self.sig, ops)
 
+    def interpret(self):
+        interp = self.get_interp()
+        value = interp[self]
+        return value
+
+
+class Interpretation(object):
+    def __init__(self, sig, ops):
+        self.sig = dict(sig)
+        self.ops = dict(ops)
+
+    def __getitem__(self, diagram):
+        assert diagram.sig == self.sig, (self.sig, diagram.sig)
+        ops = self.ops
         args = []
-        for vi, v in enumerate(self.verts):
+        for vi, v in enumerate(diagram.verts):
             op = ops[v.name]
             #op = op.astype(numpy.int)
             idxs = []
             for i, label in enumerate(v.tgt):
-              for idx, link in enumerate(self.links):
+              for idx, link in enumerate(diagram.links):
                 if link[0] == v and link[2] == i:
                     idxs.append(idx)
             for i, label in enumerate(v.src):
-              for idx, link in enumerate(self.links):
+              for idx, link in enumerate(diagram.links):
                 if link[1] == v and link[3] == i:
                     idxs.append(idx)
             assert len(idxs) == len(op.shape)
             args.append(idxs)
-        ops = [ops[v.name] for v in self.verts]
+        ops = [ops[v.name] for v in diagram.verts]
         #value = numpy.einsum(*args)
         value = einsum(ops, args)
         return value
+
+
+
         
 
 def einsum(ops, addrs):
@@ -303,32 +324,45 @@ def main():
 
     # -------------------------
 
-    f = Vertex("f", A, A+A)
-    g = Vertex("g", A+A, A)
-
-    for trial in range(10):
-
+    def make_diagram(trials=100):
+        f = Vertex("f", A, A+A)
+        g = Vertex("g", A+A, A)
         items = [f.clone() for i in range(2)]
         items += [g.clone() for i in range(2)]
-        d = Diagram(items)
-        while not d.is_closed():
-            ilinks = list(d.get_inputs())
-            olinks = list(d.get_outputs())
-            #print(ilinks, olinks)
-            if len(ilinks)*len(olinks) == 0:
-                break
-            #srcs = [f.tgt[i] for (f, i) in olinks]
-            #tgts = [f.src[i] for (f, i) in ilinks]
-            f, i = choice(olinks)
-            g, j = choice(ilinks)
-            d.link(f, g, i, j)
-        else:
-            #print(d)
-            #print("einsum:")
-            s = d.interpret()
-            print(s)
+
+        for _ in range(trials):
+            d = Diagram(items)
+            while not d.is_closed():
+                ilinks = list(d.get_inputs())
+                olinks = list(d.get_outputs())
+                #print(ilinks, olinks)
+                if len(ilinks)*len(olinks) == 0:
+                    break
+                #srcs = [f.tgt[i] for (f, i) in olinks]
+                #tgts = [f.src[i] for (f, i) in ilinks]
+                f, i = choice(olinks)
+                g, j = choice(ilinks)
+                d.link(f, g, i, j)
+            else:
+                return d
 
 
+    exprs = set()
+
+
+    for _ in range(100):
+        M = make_diagram()
+        print(M)
+        interp = M.get_interp()
+        print(interp[M])
+    
+        for trial in range(100):
+            N = make_diagram()
+            value = interp[N]
+            if value != 0:
+                print(N)
+                print(value)
+        print()
 
 
 
