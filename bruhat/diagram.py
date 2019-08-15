@@ -11,7 +11,8 @@ https://arxiv.org/pdf/1207.6972.pdf
 
 from functools import reduce
 from operator import add
-from string import ascii_lowercase as letters
+#from string import ascii_lowercase
+letters = "xyzuvwabcdefghijklmnopqrst"
 
 import numpy
 
@@ -111,7 +112,7 @@ class Diagram(object):
         shapes = list(wires.items())
         shapes.sort()
         shapes = [(k, len(v)) for (k, v) in shapes]
-        print("shapes:", shapes)
+        #print("shapes:", shapes)
         shapes = dict(shapes)
 
         ring = element.Z
@@ -119,7 +120,7 @@ class Diagram(object):
 
         ops = {} # interpret each vertex name
         for vi, v in enumerate(self.verts):
-            print("interpret", v)
+            #print("interpret", v)
             # shape = (out[0], out[1], ..., in[0], in[1], ...)
             shape = []
             for label in v.tgt + v.src: # out + in
@@ -145,9 +146,9 @@ class Diagram(object):
                         idx = _idx
                 assert idx is not None, "missing link"
                 idxs.append(idx)
-            #F[tuple(idxs)] = polys[vi]
-            F[tuple(idxs)] = 1
-            print(F)
+            F[tuple(idxs)] = polys[vi]
+            #F[tuple(idxs)] = 1 # numpy.einsum can't do object dtype...
+            #print(F)
             op = ops.get(v.name)
             if op is None:
                 op = F
@@ -155,11 +156,10 @@ class Diagram(object):
                 op = op + F
             ops[v.name] = op
 
-        #contract = [] # for einsum
         args = []
         for vi, v in enumerate(self.verts):
-            op = ops[v.name].astype(numpy.int)
-            args.append(op)
+            op = ops[v.name]
+            #op = op.astype(numpy.int)
             idxs = []
             for i, label in enumerate(v.tgt):
               for idx, link in enumerate(self.links):
@@ -171,10 +171,48 @@ class Diagram(object):
                     idxs.append(idx)
             assert len(idxs) == len(op.shape)
             args.append(idxs)
-        print(args)
-        value = numpy.einsum(*args)
+        ops = [ops[v.name] for v in self.verts]
+        #value = numpy.einsum(*args)
+        value = einsum(ops, args)
         return value
         
+
+def einsum(ops, addrs):
+    n = len(ops)
+    assert len(addrs) == n
+
+    all_addrs = reduce(add, addrs)
+    all_addrs = list(set(all_addrs))
+    all_addrs.sort()
+    #print("addrs:", addrs)
+    #print("all_addrs:", all_addrs)
+
+    # shape lookup for each addr:
+    lookup = dict((i, None) for i in all_addrs)
+    for i, op in enumerate(ops):
+        op = ops[i]
+        for j, addr in enumerate(addrs[i]):
+            k = lookup[addr]
+            if k is None:
+                lookup[addr] = op.shape[j]
+            else:
+                assert k == op.shape[j]
+
+    #print(lookup)
+    shape = tuple(lookup[i] for i in all_addrs)
+    #print("shape:", shape)
+
+    value = 0
+    for idx in numpy.ndindex(shape):
+        val = 1
+        #print("idx:", idx)
+        for i, op in enumerate(ops):
+            j = tuple(idx[all_addrs.index(addr)] for addr in addrs[i])
+            #print("j:", j)
+            val = val * op[j]
+        value += val
+
+    return value
 
 
 def test():
@@ -212,6 +250,18 @@ def main():
     d = Diagram([f0, f1])
     d.link(f0, f1, 0, 0)
     d.link(f1, f0, 0, 0)
+    assert d.is_closed()
+
+    print(d)
+    print(d.interpret())
+
+    # -------------------------
+
+    f0, f1, f2 = f, f.clone(), f.clone()
+    d = Diagram([f0, f1, f2])
+    d.link(f0, f1, 0, 0)
+    d.link(f1, f2, 0, 0)
+    d.link(f2, f0, 0, 0)
     assert d.is_closed()
 
     print(d)
