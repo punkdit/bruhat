@@ -3,13 +3,26 @@
 """
 Here we turn string _diagrams into polynomials.
 
-See:
+"Finite Dimensional Vector Spaces are Complete
+for Traced Symmetric Monoidal Categories"
+Masahito Hasegawa1 , Martin Hofmann2 , and Gordon Plotkin3
+http://homepages.inf.ed.ac.uk/gdp/publications/trace.pdf
+    We show that the category FinVectk of finite dimensional
+    vector spaces and linear maps over any field k is (collectively) complete
+    for the traced symmetric monoidal category freely generated
+    from a signature, provided that the field has characteristic 0; 
+    this means that for any two different arrows in the free traced category
+    there always exists a strong traced functor into FinVectk which distinguishes
+    them. Therefore two arrows in the free traced category
+    are the same if and only if
+    they agree for all interpretations in FinVectk.
+
 "FINITE DIMENSIONAL HILBERT SPACES ARE COMPLETE FOR
 DAGGER COMPACT CLOSED CATEGORIES" PETER SELINGER
 https://arxiv.org/pdf/1207.6972.pdf
 """
 
-from random import choice
+from random import choice, seed
 from functools import reduce
 from operator import add
 #from string import ascii_lowercase
@@ -24,7 +37,8 @@ from bruhat.poly import Poly
 
 class Vertex(object):
     r""" The name and type of a _vertex.
-        f : B --> A\otimes A
+        For example:
+            f : B --> AA
     """
     def __init__(self, name, src, tgt):
         self.name = name
@@ -46,8 +60,36 @@ class Vertex(object):
     def get_outputs(self):
         return [(self, i) for i in range(len(self.tgt))]
 
+
 def is_uniq(items):
     return len(set(items)) == len(items)
+
+
+class Sparse(object):
+    def __init__(self, shape, data=None):
+        self.shape = shape
+        if data is None:
+            data = {}
+        self.data = data
+
+    def __getitem__(self, key):
+        return self.data.get(key, 0)
+
+    def __setitem__(self, key, value):
+        shape = self.shape
+        assert len(key) == len(shape)
+        for i, idx in enumerate(key):
+            assert 0<=idx<shape[i]
+        self.data[key] = value
+
+    def __add__(self, other):
+        assert isinstance(other, Sparse)
+        data = dict(self.data)
+        assert self.shape == other.shape
+        for (key, value) in other.data.items():
+            data[key] = data.get(key, 0) + value
+        return Sparse(self.shape, data)
+
 
 
 class Diagram(object):
@@ -130,7 +172,7 @@ class Diagram(object):
             for label in v.tgt + v.src: # out + in
                 shape.append(shapes[label])
             F = numpy.zeros(shape=shape, dtype=object)
-            F[:] = 0
+            #F = Sparse(shape)
             idxs = []
             for i, label in enumerate(v.tgt):
                 occurs = wires[label] # all the links where this label occurs 
@@ -243,16 +285,6 @@ def einsum(ops, addrs):
 
 def test():
 
-    ring = element.Z
-
-    x = Poly("x", ring)
-    y = Poly("y", ring)
-
-    #print(x*x*y)
-
-
-def main():
-
     A, B, C = "ABC"
     f = Vertex("f", A, A)
 
@@ -337,7 +369,14 @@ def main():
 
     # -------------------------
 
+
+    print("OK")
+
+
+def test_isomorph():
+
     def make_diagram(trials=100):
+        A = "A"
         f = Vertex("f", A, A+A)
         g = Vertex("g", A+A, A)
         items = [f.clone() for i in range(2)]
@@ -362,8 +401,7 @@ def main():
 
     exprs = set()
 
-
-    for _ in range(100):
+    for _ in range(10):
         M = make_diagram()
         print(M)
         interp = M.get_interp()
@@ -381,7 +419,10 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    test()
+
+    seed(0)
+    test_isomorph()
     
     
 
