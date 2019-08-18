@@ -5,6 +5,9 @@
 Numbers are just morphisms from the unit to itself in a traced monoidal category 
 https://twitter.com/JadeMasterMath/status/1163093052291985408
 
+How to be rigorous about combinatorial algorithms?
+https://mathoverflow.net/questions/309191/how-to-be-rigorous-about-combinatorial-algorithms
+
 
 15/8/19
 =======
