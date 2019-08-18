@@ -66,6 +66,8 @@ def is_uniq(items):
 
 
 class Sparse(object):
+    """ Sparse array 
+    """
     def __init__(self, shape, data=None):
         self.shape = shape
         if data is None:
@@ -171,8 +173,8 @@ class Diagram(object):
             shape = []
             for label in v.tgt + v.src: # out + in
                 shape.append(shapes[label])
-            F = numpy.zeros(shape=shape, dtype=object)
-            #F = Sparse(shape)
+            #F = numpy.zeros(shape=shape, dtype=object)
+            F = Sparse(shape)
             idxs = []
             for i, label in enumerate(v.tgt):
                 occurs = wires[label] # all the links where this label occurs 

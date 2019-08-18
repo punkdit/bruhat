@@ -1,4 +1,11 @@
 
+18/8/19
+=======
+
+Numbers are just morphisms from the unit to itself in a traced monoidal category 
+https://twitter.com/JadeMasterMath/status/1163093052291985408
+
+
 15/8/19
 =======
 
