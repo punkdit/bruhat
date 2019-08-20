@@ -5,6 +5,83 @@
 "Topological Invariants from Higher Categories"
 https://www.ams.org/journals/notices/201908/rnoti-p1225.pdf
 
+The associator exists in a sort of sesqui-cat
+https://twitter.com/Paz_Sivle/status/1163813100757274624
+
+Grant Sanderson
+52:00
+on quantum physics and free will.
+https://youtu.be/8BXHmSzLEyw
+
+
+André Joyal gives the Vladimir Voevodsky Memorial Lecture
+at #HoTT2019: Problems and conjectures on polynomial
+functors and monads in ∞-toposes
+https://www.facebook.com/ulrik.buchholtz/posts/10157430070539399
+    We start we the idea of a symmetric sequence: F[-] :
+    Πn : ℕ, BΣₙ → Set, i.e. a sequence of sets, where the
+    n'th one has an action by the n-th symmetric group.
+    ...
+
+    André thinks of topos theory as “2-algebraic geometry”,
+    where a topos E is like a ring: colimits generalize addition,
+    finite limits generalize multiplication.
+
+    Just like the category of locales is the opposite to
+    that of frames, and affine spaces opposite to that of
+    commutative rings, we think of the category of toposes
+    as opposite to logoses, thus introducing the notion of
+    “logos”.
+
+    Note that the category of symmetric sequences is the
+    category of functors B → Set, where B is the groupoid
+    FinSet considered as a category. This functor category
+    is symmetric monoidal closed wrt the Day convolution
+    product induced by the disjoint union operations on finite sets.
+    
+    [B, Set] is actually the free “2-Rig” (viz. symmetric
+    monoidal closed presentable category) on one generator
+    X, where X[1] = 1, and X[n] = 0 otherwise.
+    Thus we write Set[X] := [B, Set], and think of this as
+    a polynomial 2-rig on one generator.
+    We can of course also consider two variables X,Y, and
+    Set[X,Y] := [B × B, Set].
+    We have the following substitution operation: 
+    given F ∈ Set[X], A ∈ R, R a 2-rig, we have 
+    F(A) := e_A(F), where e_A : Set[X] → R 
+    is the unique map sending X to A.
+    Hence e_A(F) = F(A) := Σn : ℕ, F[n] ×Σₙ A^⊗n.
+    If we specialize to R = Set[X], A = G, 
+    then F(G) =: F ∘ G is just the usual composition of polynomials.
+    Let us now replace Set by S, the (∞,1)-topos of spaces, 
+    or by E, any (∞,1)-topos. Then the corresponding functors 
+    take homotopy orbit types in E instead of orbit sets.
+    But now [B,E] is just a slice E/FinSet.
+    A polynomial functor corresponding to 
+    I ← E → B → J, is analytic if the fibers of p : E → B are finite sets.
+    Interestingly, in the (∞,1)-world, all 
+    analytic functors are polynomial! (Gepner-Kock)
+    Going back to sets, analytic functors [A,Set] to [B,Set] 
+    correspond to functors [Σ*(A) × B, Set] 
+    (maybe need to “op” one factor), cf. 
+    Fiore-Gambino-Hyland-Winskel: https://arxiv.org/abs/1612.03678
+    "Relative pseudomonads, Kleisli bicategories, 
+    and substitution monoidal structures."
+    Here Σ*(A) denotes the free symmetric monoidal category on A.
+    The (∞,1)-category of polynomials from E/I to E/J and 
+    cartesian maps is almost an (∞,1)-topos: 
+    The terminal object would by E → U in the case I = J = 1, 
+    living in the next universe.
+    We would like to say that the (∞,2)-category of 
+    objects E/I and polynomials, is cartesian closed.
+    The finite polynomials from E/I to E/J are just E/ exp(I)×J.
+    If we consider polynomials where p is a small map 
+    (classified by the smallest universe E → U), 
+    then small polynomial maps E/I to E/J are given by 
+    E / Exp_U(I) × J, where Exp_U(I) = ΣA : U, X^A.
+
+
+
 18/8/19
 =======
 
