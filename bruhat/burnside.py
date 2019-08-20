@@ -649,11 +649,18 @@ def astr(A):
 
 def do_rank():
 
-#    for n in range(20, 40):
-#        G = Group.cyclic(range(n))
-#        rank = burnside(G)
+    n = argv.get("n", 6)
+    for n in [n]:
+        G = Group.cyclic(range(n))
+        chis = burnside(G)
+        print(n, len(chis))
+        #G = make_dicyclic(n)
+        #chis = burnside(G)
+        #print(len(chis))
 
-    for n in range(25, 35):
+    return
+
+    for n in range(25):
 
         #print(n, end=" ")
         G = Group.cyclic(range(n))
@@ -682,5 +689,6 @@ if __name__ == "__main__":
     else:
         main_tables()
 
+    do_rank()
 
 
