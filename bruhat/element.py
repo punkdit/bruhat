@@ -866,6 +866,9 @@ class ModuloElement(GenericElement):
     def deg(self):
         return self.value.deg
 
+    def __getitem__(self, idx):
+        return self.value[idx]
+
     def __call__(self, v): # just call into a tp.call() method ?
         v = self.tp.promote(v)
         value = self.value(v.value)

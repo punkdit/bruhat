@@ -1,4 +1,11 @@
 
+22/8/19
+=======
+
+Artin–Mazur zeta function
+zeta_f(z) := exp(\sum_{n=1}^{\infty} | Fix(f^n) | z^n / n )
+https://twitter.com/johncarlosbaez/status/1164340519352201216
+
 20/8/19
 =======
 
