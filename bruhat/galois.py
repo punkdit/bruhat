@@ -138,12 +138,23 @@ def test_cyclotomic():
             B = dot(A, B)
         print(astr(B))
 
+
+def powdot(A, n):
+    B = numpy.identity(A.shape, dtype=A.dtype)
+    for i in range(n):
+        B = A*B
+    return B
+
+
 def test():
     w = array([
         [0., 1, 0, 0],
         [0., 0, 1, 0],
         [0., 0, 0, 1],
         [-1., 0, 0, 0]])
+
+    print(powdot(w, 7))
+    return
 
     vals, vecs = eig(w)
     for i in range(4):
