@@ -1,4 +1,20 @@
 
+24/8/19
+=======
+
+
+https://crypto.stanford.edu/pbc/notes/
+    Elliptic curves:
+    https://crypto.stanford.edu/pbc/notes/elliptic/
+
+    Number fields:
+    https://crypto.stanford.edu/pbc/notes/numberfield/
+
+    Group theory:
+    https://crypto.stanford.edu/pbc/notes/group/
+
+
+
 23/8/19
 =======
 
@@ -6,6 +22,24 @@ https://twitter.com/quantumciaran/status/1106218255457415169
 "The quantum world is infamously weird – now we might know why"
 Ciarán Lee
 https://institutions.newscientist.com/article/mg24132210-300-the-quantum-world-is-infamously-weird-now-we-might-know-why/
+
+
+Mathematical methods of quantum information theory, Lecture 1
+https://www.youtube.com/watch?v=vb0ZEsATUcw
+    In 2017 Reinhard Werner gave a series of lectures on
+    the mathematical methods of quantum information theory
+    at the Leibniz Universität Hannover.
+    Heisenberg '25, Bohr, Ludwig '60s
+    Operational approach.
+
+http://www.emis.de/journals/TAC/reprints/articles/16/tr16.pdf
+ADJOINTNESS IN FOUNDATIONS
+F. WILLIAM LAWVERE
+
+PIRSA:C11006 - 
+Conceptual Foundations and Foils for Quantum Information Processing - 2011
+http://pirsa.org/C11006
+
 
 
 22/8/19

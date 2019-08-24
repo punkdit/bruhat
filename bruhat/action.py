@@ -2575,6 +2575,7 @@ def burnside(G, Hs=None):
         print(latex_table(table, rows, cols, upper=argv.get("upper")))
         print("$$")
 
+    print()
     s = str(tabulate(table, rows, cols, space))
     print(s)
 

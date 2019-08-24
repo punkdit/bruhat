@@ -5,6 +5,7 @@ from random import choice
 import numpy
 from numpy import dot, array, empty
 from numpy.linalg import eigvals, eig
+from scipy.linalg import expm, logm
 
 from bruhat.element import PolynomialRing, Z, cyclotomic
 from bruhat.argv import argv
@@ -150,15 +151,25 @@ def powdot(A, n):
 
 
 
-def fstr(v):
+def fstr(v, prec=0):
     vs = empty(v.shape, dtype=object)
     for idx in numpy.ndindex(v.shape):
-        assert v[idx] == int(v[idx])
-        vs[idx] = "%.0f"%(v[idx])
+        vs[idx] = "%.*f"%(prec, v[idx])
     s = str(vs)
     s = s.replace("'", "")
     #s = s.replace("-0.0000", "0.0000")
-    s = s.replace("-0", "0")
+    if prec==0:
+        s = s.replace("-0", "0")
+    return s
+
+def istr(v, prec=4):
+    vs = empty(v.shape, dtype=object)
+    for idx in numpy.ndindex(v.shape):
+        vs[idx] = "%.*f+%.*fj"%(prec, v[idx].real, prec, v[idx].imag)
+    s = str(vs)
+    s = s.replace("'", "")
+    #s = s.replace("-0.0000", "0.0000")
+    s = s.replace("+-", "-")
     return s
 
 def numrepr(A):
@@ -237,6 +248,31 @@ def get_signature(G):
     return sizes
 
     
+
+def test_lie():
+    # 8-th root of unity
+    U = array([
+        [0., 1, 0, 0],
+        [0., 0, 1, 0],
+        [0., 0, 0, 1],
+        [-1., 0, 0, 0]])
+
+    U7 = powdot(U, 7)
+
+    print(U)
+    A = logm(U)
+    print(fstr(A, 4))
+    vals, vecs = eig(A)
+    for i in range(4):
+        print("val:", 1.j*vals[i])
+        vec = vecs[:, i]
+        print("vec:", istr(vec, 4))
+        u = dot(U, vec)
+        print("U*vec:", istr(u, 4))
+        print()
+
+
+
 
 def test():
     # 1/8 root of unity
@@ -318,20 +354,14 @@ def test():
 
     assert len(mulclose([X, Z, CZ, CCZ])) == 128
 
-    if 0:
-        vals, vecs = eig(w)
-        for i in range(4):
-            print(vals[i], 1.j*numpy.log(vals[i]))
-            print(vecs[:, i])
-            print()
-
     print("OK")
 
 
 if __name__ == "__main__":
 
     #test_cyclotomic()
-    test()
+    #test()
+    test_lie()
 
 
 
