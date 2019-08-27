@@ -360,8 +360,8 @@ def test():
 if __name__ == "__main__":
 
     #test_cyclotomic()
-    #test()
-    test_lie()
+    test()
+    #test_lie()
 
 
 
