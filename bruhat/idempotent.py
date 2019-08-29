@@ -21,11 +21,11 @@ G | G  2*G+I  2*I      G+3*I    4*I      5*I      2*G+6*I  10*I      20*I
 H | H  H+2*I  2*H+2*I  2*H+4*I  6*I      3*H+6*I  10*I     2*H+14*I  30*I  
 I | I  5*I    6*I      10*I     12*I     15*I     20*I     30*I      60*I  """
 
-data = """\
-  | A B     
---+--------
-A | A B  
-B | B 3*B """
+#data = """\
+#  | A B     
+#--+--------
+#A | A B  
+#B | B 3*B """
 
 class Element(object):
 

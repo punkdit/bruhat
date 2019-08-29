@@ -203,13 +203,36 @@ def mulclose(gen, verbose=False, maxsize=None):
 def mulclose_fast(gen, verbose=False, maxsize=None):
     ops = list(gen)
     bdy = gen
-    found = set()
+    found = set(numrepr(k) for k in ops)
     while bdy:
         _bdy = []
         for g in bdy:
             for h in gen:
                 k = dot(g, h)
                 s = numrepr(k)
+                if s not in found:
+                    found.add(s)
+                    ops.append(k)
+                    _bdy.append(k)
+        bdy = _bdy
+        if verbose:
+            print("mulclose:", len(ops))
+        if maxsize and len(ops) >= maxsize:
+            break
+    return ops
+
+
+def mulclose_int(gen, verbose=False, maxsize=None):
+    gen = [A.astype(int) for A in gen]
+    ops = list(gen)
+    bdy = list(gen)
+    found = set(op.tostring() for op in gen)
+    while bdy:
+        _bdy = []
+        for g in bdy:
+            for h in gen:
+                k = dot(g, h)
+                s = k.tostring()
                 if s not in found:
                     found.add(s)
                     ops.append(k)
@@ -354,14 +377,28 @@ def test():
 
     assert len(mulclose([X, Z, CZ, CCZ])) == 128
 
+    G = mulclose_int([X, CZ, T])
+    assert len(G) == 2048
+    #G = [A.astype(int) for A in G]
+    #print(len(set(A.tostring() for A in G)))
+
+    G = mulclose_int([X, S, CZ, CCZ])
+    print(len(G))
+
+    G = mulclose_int([X, T, CCZ])
+    print(len(G))
+
+    G = mulclose_int([X, T, CZ, CCZ])
+    print(len(G))
+
     print("OK")
 
 
 if __name__ == "__main__":
 
     #test_cyclotomic()
-    #test()
-    test_lie()
+    test()
+    #test_lie()
 
 
 
