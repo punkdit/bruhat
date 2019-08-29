@@ -1,4 +1,13 @@
 
+29/8/19
+=======
+
+What is a vertex algebra?
+https://math.berkeley.edu/~reb/papers/bonn/bonn.pdf
+Richard E. Borcherds
+"a vertex algebra is really a sort of commutative ring"
+
+
 24/8/19
 =======
 
