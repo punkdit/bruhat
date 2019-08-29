@@ -26,6 +26,93 @@ from solve import linear_independent
 from action import Perm, Group
 
 
+def even_code():
+
+    p = argv.get("p", 7)
+
+    #assert (p%8) in [1, 7]
+    # equivalent to "2 (binary!) is a quadratic _residue mod p"
+    # eg. 7 17 23 31 41 47 71 73 79 89 97
+
+    def neginv(i):
+        if i==0:
+            return p
+        if i==p:
+            return 0
+        for j in range(1, p):
+            if (i*j)%p == 1:
+                break
+        else:
+            assert 0
+        return (-j)%p
+
+    nonresidues = set(range(1, p))
+    residues = set()
+    for i in range(1, p):
+        j = (i*i)%p
+        if j not in residues:
+            residues.add(j)
+            nonresidues.remove(j)
+    print("residues:", residues)
+    print("non-residues:", nonresidues)
+
+    # extended binary quadratic _residue code
+    N = p+1
+    G = zeros2(N, N)
+
+    G[p, :] = 1
+    for u in range(p):
+        G[u, p] = 0 if (p-1)%8 == 0 else 1
+        for v in range(p):
+            if u==v:
+                i = 0
+            elif (v-u)%p in residues:
+                i = 1
+            else:
+                i = 0
+            G[u, v] = i
+
+    G = linear_independent(G)
+    print("G =")
+    print(shortstr(G))
+
+    from qupy.ldpc.css import CSSCode
+    from qupy.ldpc.gallagher import classical_distance
+    G = G.astype(numpy.int32)
+    code = CSSCode(Hx=G, Hz=G)
+    print(code)
+
+    from bruhat.codes import strong_morthogonal
+    for genus in range(1, 4):
+        print("genus:", genus, "strong_morthogonal:", strong_morthogonal(G, genus))
+
+    def double(G):
+        M, N = G.shape
+        DG = zeros2(M+1, 2*N)
+        DG[1:, 0:N] = G
+        DG[1:, N:2*N] = G
+        DG[0, 0:N] = 1
+        DG = DG.astype(numpy.int32)
+        return DG
+
+    DG = G
+    DG = DG.astype(numpy.int32)
+    print("distance:", classical_distance(DG))
+    for _ in range(2):
+
+        DG = double(DG)
+        DG = linear_independent(DG)
+        print(shortstr(DG))
+        
+        for genus in range(1, 5):
+            print("genus:", genus, "strong_morthogonal:", strong_morthogonal(DG, genus))
+    
+        code = CSSCode(Hx=DG, Hz=DG)
+        print(code)
+        #print("distance:", classical_distance(DG))
+    
+
+
 def main():
 
     p = argv.get("p", 7)
@@ -214,6 +301,7 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    even_code()
+    #main()
 
 
