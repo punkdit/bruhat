@@ -1,4 +1,12 @@
 
+30/8/19
+=======
+
+"Topological Invariants from Higher Categories"
+Nick Gurski, Niles Johnson, and Ang´elica M. Osorno
+https://www.ams.org/journals/notices/201908/rnoti-p1225.pdf
+
+
 
 29/8/19
 =======
