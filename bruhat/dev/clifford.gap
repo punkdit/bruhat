@@ -1,4 +1,12 @@
 
+# time gap -o 8g clifford.gap
+
+
+Print("running clifford.gap\n");;
+
+# See:
+# https://www.mathstat.dal.ca/~selinger/papers/clifford.pdf
+
 r2 := Sqrt(2);;
 ir2 := 1/r2;;
 
@@ -9,8 +17,18 @@ z := [[1, 0], [0, -1]];;
 s := [[1, 0], [0, E(4)]];;
 h := [[ir2, ir2], [ir2, -ir2]];;
 
-G1 := Group(w, x, z, s, h);; # Order 192
+Cliff1 := Group(w, s, h);; # Order 192
+Pauli1 := Group(w, x, z);; # Order 32
 
+for U in Cliff1 do
+    found := false;;
+    #Udag := Inverse(U);
+    #Print("found? ");
+    for g in Pauli1 do
+        if (U*g*Inverse(U) in Pauli1)  then found:=true; break; fi;
+    od;
+    if not found then Print("Not found\n"); fi;
+od;
 
 xi := KroneckerProduct(x, i);;
 ix := KroneckerProduct(i, x);;
@@ -29,7 +47,19 @@ cz := [
     [0, 0, 1, 0],
     [0, 0, 0, -1]];;
 
-G2 := Group(xi, ix, zi, iz, si, is, hi, ih, wi, cz);; # Order 92160
+Cliff2 := Group(si, is, hi, ih, wi, cz);; # Order 92160
+Pauli2 := Group(wi, xi, ix, zi, iz);;
+
+# Works:
+#for U in Cliff2 do
+#    found := false;;
+#    #Udag := Inverse(U);
+#    #Print("found? ");
+#    for g in Pauli2 do
+#        if (U*g*Inverse(U) in Pauli2)  then found:=true; break; fi;
+#    od;
+#    if not found then Print("Not found\n"); fi;
+#od;
 
 a := [
     [0, 1, 0, 0],
@@ -40,8 +70,60 @@ a := [
 # Print(Order(G2));
 
 
+xii := KroneckerProduct(xi, i);;
+ixi := KroneckerProduct(i, xi);;
+iix := KroneckerProduct(i, ix);;
+
+zii := KroneckerProduct(zi, i);;
+izi := KroneckerProduct(i, zi);;
+iiz := KroneckerProduct(i, iz);;
+
+sii := KroneckerProduct(si, i);;
+isi := KroneckerProduct(i, si);;
+iis := KroneckerProduct(i, is);;
+
+hii := KroneckerProduct(hi, i);;
+ihi := KroneckerProduct(i, hi);;
+iih := KroneckerProduct(i, ih);;
+
+wii := KroneckerProduct(wi, i);;
+
+icz := KroneckerProduct(i, cz);;
+czi := KroneckerProduct(cz, i);;
+
+ca := [
+    [1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, -1, 0, 0, 0]];;
+
+
+Cliff3 := Group(sii, isi, iis, hii, ihi, iih, wii, icz, czi);; # Order 743178240
+Pauli3 := Group(wii, xii, ixi, iix, zii, izi, iiz);; # Order 256
+
+Print(Order(Pauli3), "\n");;
+
+# ca in Cliff3 = false
+
+Print("Go:\n");
+U := ca;
+for g in Pauli3 do
+    #if (U*g*Inverse(U) in Cliff3)  then Print("Found!\n"); break; fi;
+#    Print(U*g*Inverse(U) in Cliff3); Print("\n");
+    A := U*g*Inverse(U);
+    Print(A);
+    Print("\n");
+    Print(A in Cliff3);
+    Print("\n");
+od;
 
 
 
+
+Print("OK\n");
 
 
