@@ -1,4 +1,5 @@
 
+
 29/8/19
 =======
 
@@ -6,6 +7,36 @@ What is a vertex algebra?
 https://math.berkeley.edu/~reb/papers/bonn/bonn.pdf
 Richard E. Borcherds
 "a vertex algebra is really a sort of commutative ring"
+
+
+"Triply even codes binary codes, lattices
+and framed vertex operator algebras"
+Akihiro Munemasa
+http://www.math.is.tohoku.ac.jp/~munemasa/documents/20100712.pdf
+
+
+
+"What is an explicit bijection?"
+Andrej Bauer
+http://videolectures.net/FPSAC2019_bauer_explicit_bijection/
+55:00
+RP_\infty is the classifying space
+of S_2 (=Z/2)
+
+The real projective spaces in homotopy type theory
+Ulrik Buchholtz, Egbert Rijke
+https://arxiv.org/abs/1704.05770
+
+https://en.wikipedia.org/wiki/Classifying_space
+
+
+Fred Adams on the Limits on Computation
+https://www.youtube.com/watch?v=KlTLpTrhGu4&feature=youtu.be
+
+
+Self-dual random-plaquette gauge model and the quantum toric code
+Koujin Takeda∗ and Hidetoshi Nishimori
+https://arxiv.org/abs/hep-th/0310279
 
 
 24/8/19
