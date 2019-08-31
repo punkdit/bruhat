@@ -1,6 +1,9 @@
 
 # time gap -o 8g clifford.gap
 
+# Build clifford groups, up to 3 qubits, and
+# search for T operators defined by field extensions......
+
 
 Print("running clifford.gap\n");;
 
