@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from os import path
+
 import numpy
 
 from qupy.ldpc.gallagher import classical_distance
@@ -10,7 +12,9 @@ from bruhat.solve import array2, shortstr, find_kernel
 
 
 def get_all():
-    f = open("matrixform.txt")
+    directory = path.dirname(__file__)
+    name = path.join(directory, "matrixform.txt")
+    f = open(name)
     
     line = f.readline()
     
