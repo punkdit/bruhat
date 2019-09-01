@@ -73,15 +73,16 @@ maximal = [
 ]
 
 
-for (dim, idx, cmt) in maximal:
-    G = get(dim, idx)
-    print(cmt)
+if __name__ == "__main__":
+    for (dim, idx, cmt) in maximal:
+        G = get(dim, idx)
+        print(cmt)
+        print(shortstr(G))
+        print()
+    
+    print("The Miyamoto's moonshine code, which contains the MacDonald [48, 6, 24] code:")
+    G = get(7, 144)
     print(shortstr(G))
-    print()
-
-print("The Miyamoto's moonshine code, which contains the MacDonald [48, 6, 24] code:")
-G = get(7, 144)
-print(shortstr(G))
 
 
 
