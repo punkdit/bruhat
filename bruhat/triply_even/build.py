@@ -4,9 +4,11 @@ from os import path
 
 import numpy
 
-from qupy.ldpc.gallagher import classical_distance
+from bruhat import solve
+solve.int_scalar = numpy.int32
 from bruhat.solve import array2, shortstr, find_kernel
 
+scalar = numpy.int32
 
 # See: http://www.st.hirosaki-u.ac.jp/~betsumi/triply-even/
 
@@ -139,13 +141,33 @@ def get_dw_ge_4():
     yield (15, 1)
 
 
-if 0:
+
+def classical_distance(H, max_dist=0):
+    n = H.shape[1]
+    dist = n
+    K = find_kernel(H)
+    K = numpy.array(K, dtype=numpy.int32)
+    Kt = K.transpose()
+    for u in numpy.ndindex((2,)*K.shape[0]):
+        v = dot2(Kt, u)
+        if 0 < v.sum() < dist:
+            dist = v.sum()
+            #if dist<=max_dist:
+            #    break
+    return dist
+
+
+
+if 1:
     for (dim, idx) in get_dw_ge_4():
         G = get(dim, idx)
-        H = list(find_kernel(G))
-        H = array2(H)
-        H = H.astype(numpy.int32)
-        print("[%d, %d, %d]" % (G.shape[1], G.shape[0], classical_distance(H)))
+        #H = list(find_kernel(G))
+        #H = array2(H)
+        #H = H.astype(numpy.int32)
+        #G = numpy.array(G, dtype=numpy.int32)
+        print(dim, idx)
+        #print(shortstr(H))
+        print("[%d, %d, %d]" % (G.shape[1], G.shape[0], classical_distance(G)))
 
 
 
