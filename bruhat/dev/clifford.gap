@@ -181,17 +181,56 @@ Print("in_third_level(cc):", in_third_level(cc), "\n"); # true
 Print("in_third_level(Tofolli):", in_third_level(Tofolli), "\n"); # true
 Print("in_third_level(Tofolli*ca):", in_third_level(Tofolli*ca), "\n"); # false
 
-CU := [ 
+U3 := [ 
     [1, 0, 0, 0, 0, 0, 0, 0],
     [0, 1, 0, 0, 0, 0, 0, 0],
     [0, 0, 1, 0, 0, 0, 0, 0],
     [0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, -1/2, -1/2, 1/2, 1/2 ], 
-    [0, 0, 0, 0, -1/2, 1/2, 1/2, -1/2 ], 
-    [0, 0, 0, 0, 1/2, 1/2, 1/2, 1/2 ], 
-    [0, 0, 0, 0, 1/2, -1/2, 1/2, -1/2 ] ];;
-Print("CU in Cliff3:", (CU in Cliff3), "\n"); # false
-Print("in_third_level(CU):", in_third_level(CU), "\n"); # true
+    [0, 0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0]];
+
+Print("# Where do control control 1-qubit Pauli gates live ?\n");
+for g in Pauli1 do 
+    #Print(g, "\n");
+    U3{[7,8]}{[7,8]} := g;
+    if U3 in Pauli3 then Print("1\c"); continue; fi;
+    if U3 in Cliff3 then Print("2\c"); continue; fi;
+    if in_third_level(U3) then Print("3\c"); else Print(".\c"); fi;
+od;
+Print("\n");
+
+Print("# Where do control control 1-qubit clifford gates live ?\n");
+for g in Cliff1 do 
+    #Print(g, "\n");
+    U3{[7,8]}{[7,8]} := g;
+    if U3 in Pauli3 then Print("1\c"); continue; fi;
+    if U3 in Cliff3 then Print("2\c"); continue; fi;
+    if in_third_level(U3) then Print("3\c"); else Print(".\c"); fi;
+od;
+Print("\n");
+
+Print("# Where do control 2-qubit Pauli gates live ?\n");
+for g in Pauli2 do 
+    #Print(g, "\n");
+    U3{[5,6,7,8]}{[5,6,7,8]} := g;
+    if U3 in Pauli3 then Print("1\c"); continue; fi;
+    if U3 in Cliff3 then Print("2\c"); continue; fi;
+    if in_third_level(U3) then Print("3\c"); else Print(".\c"); fi;
+od;
+Print("\n");
+
+Print("# Where do control 2-qubit clifford gates live ?\n");
+for g in Cliff2 do 
+    #Print(g, "\n");
+    U3{[5,6,7,8]}{[5,6,7,8]} := g;
+    if U3 in Pauli3 then Print("1\c"); continue; fi;
+    if U3 in Cliff3 then Print("2\c"); continue; fi;
+    if in_third_level(U3) then Print("3\c"); else Print(".\c"); fi;
+od;
+
+Print("\n");
 
 Print("Done.\n");
 
