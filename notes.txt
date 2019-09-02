@@ -1,4 +1,13 @@
 
+2/9/19
+======
+
+https://arxiv.org/pdf/1710.07256.pdf
+The disjointness of stabilizer codes and limitations on fault-tolerant logical gates
+Tomas Jochym-O’Connor,1, 2 Aleksander Kubica,2, 3, 4 and Theodore J. Yoder5
+    Corollary 6. Transversal gates on error-detecting stabilizer
+    codes must be in the Clifford hierarchy.
+
 1/9/19
 ======
 

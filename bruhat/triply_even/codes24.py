@@ -149,27 +149,38 @@ names = """
 names = names.strip().split()
 assert len(names) == len(items) == 9
 
-for idx, H in enumerate(items):
+def test():
+    for idx, H in enumerate(items):
+        H = array2(H)
+        #print(H.shape)
+    
+        print(names[idx])
+        print(shortstr(H))
+        assert (dot2(H, H.transpose()).sum()) == 0 # orthogonal code
+        G = H
+        for genus in range(1, 4):
+            print(strong_morthogonal(G, genus), end=" ")
+        print()
+    
+        keys = [0, 4, 8, 12, 16, 20, 24]
+        counts = {0:0, 4:0, 8:0, 12:0, 16:0, 20:0, 24:0}
+    
+        for v in span(G):
+            counts[v.sum()] += 1
+        print([counts[k] for k in keys])
+        print()
+    
+
+def get(name):
+    assert name in names, "%r not found in %s" % (name, names)
+    idx = names.index(name)
+    H = items[idx]
     H = array2(H)
-    #print(H.shape)
-
-    print(names[idx])
-    print(shortstr(H))
-    assert (dot2(H, H.transpose()).sum()) == 0 # orthogonal code
-    G = H
-    for genus in range(1, 4):
-        print(strong_morthogonal(G, genus), end=" ")
-    print()
-
-    keys = [0, 4, 8, 12, 16, 20, 24]
-    counts = {0:0, 4:0, 8:0, 12:0, 16:0, 20:0, 24:0}
-
-    for v in span(G):
-        counts[v.sum()] += 1
-    print([counts[k] for k in keys])
-    print()
+    return H
 
 
+if __name__ == "__main__":
+    test()
 
 
 

@@ -51,6 +51,7 @@ cz := [
     [0, 0, 0, -1]];;
 
 Cliff2 := Group(si, is, hi, ih, wi, cz);; # Order 92160
+#for g in Cliff2 do Print(g, "\n"); od;
 Pauli2 := Group(wi, xi, ix, zi, iz);;
 
 # Works:
@@ -69,6 +70,10 @@ a := [
     [0, 0, 1, 0],
     [0, 0, 0, 1],
     [-1, 0, 0, 0]];; # a in G2 = true
+
+#Print(a*a, "\n");
+#Print(a*a*a, "\n");
+#Print(a*a*a*a, "\n");
 
 # Print(Order(G2));
 
@@ -104,6 +109,37 @@ ca := [
     [0, 0, 0, 0, 0, 0, 0, 1],
     [0, 0, 0, 0, -1, 0, 0, 0]];;
 
+cb := [
+    [1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, -1, 0, 0, 0],
+    [0, 0, 0, 0, 0, -1, 0, 0]];;
+
+cc := [
+    [1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, -1, 0, 0, 0],
+    [0, 0, 0, 0, 0, -1, 0, 0],
+    [0, 0, 0, 0, 0, 0, -1, 0]];;
+
+
+Tofolli := [
+    [1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 1, 0]];;
+
 
 Cliff3 := Group(sii, isi, iis, hii, ihi, iih, wii, icz, czi);; # Order 743178240
 Pauli3 := Group(wii, xii, ixi, iix, zii, izi, iiz);; # Order 256
@@ -111,6 +147,8 @@ Pauli3 := Group(wii, xii, ixi, iix, zii, izi, iiz);; # Order 256
 # Print(Order(Pauli3), "\n");;
 
 # ca in Cliff3 = false
+# ca in third level of clifford hierarchy = true
+
 
 Cliff3_12 := Group(sii, isi, hii, ihi, wii, czi);;
 Cliff3_13 := Group(sii, iis, hii, iih, wii);; # cz on 1&3 ??
@@ -118,32 +156,43 @@ Cliff3_23 := Group(isi, iis, ihi, iih, wii, icz);;
 
 #SmCliff3 := Group(sii, isi, iis, hii, ihi, iih, icz, czi);; # Order 743178240
 
-                      # WARNING:
-Print(Order(Cliff3)); # need this line otherwise membership test eats all memory...!
-Print("\n");
+Print("warming up...\n");
+Order(Cliff3);; # need this line otherwise membership test eats all memory...!
+Print("Ok\n");
 
-Print("Go:\n");
-U := ca;
-for g in Pauli3 do
-    #if (U*g*Inverse(U) in Cliff3)  then Print("Found!\n"); break; fi;
-    #Print(U*g*Inverse(U) in Cliff3); Print("\n");
-    A := U*g*Inverse(U)*Inverse(g);
-    if A in Cliff3_12 then continue; fi;
-    if A in Cliff3_13 then continue; fi;
-    if A in Cliff3_23 then continue; fi;
-    if A in Cliff3 then continue; fi;
-    #Print("...\n");
-    #Print(A in Cliff3);
-    #Print(A in SmCliff3);
-    Print(A);
-    Print("\n");
-    Print("Not found!");
-    Print("\n");
-od;
+in_third_level := function(U)
+    # Is U in the third level of the clifford hierarchy ?
+    local A;
+    for g in Pauli3 do
+        A := U*g*Inverse(U)*Inverse(g);
+        if A in Cliff3_12 then continue; fi;
+        if A in Cliff3_13 then continue; fi;
+        if A in Cliff3_23 then continue; fi;
+        if A in Cliff3 then continue; fi;
+        return false; # no
+    od;
+    return true; # yes
+end;;
 
 
+Print("in_third_level(ca):", in_third_level(ca), "\n"); # true
+Print("in_third_level(cb):", in_third_level(cb), "\n"); # true
+Print("in_third_level(cc):", in_third_level(cc), "\n"); # true
+Print("in_third_level(Tofolli):", in_third_level(Tofolli), "\n"); # true
+Print("in_third_level(Tofolli*ca):", in_third_level(Tofolli*ca), "\n"); # false
 
+CU := [ 
+    [1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, -1/2, -1/2, 1/2, 1/2 ], 
+    [0, 0, 0, 0, -1/2, 1/2, 1/2, -1/2 ], 
+    [0, 0, 0, 0, 1/2, 1/2, 1/2, 1/2 ], 
+    [0, 0, 0, 0, 1/2, -1/2, 1/2, -1/2 ] ];;
+Print("CU in Cliff3:", (CU in Cliff3), "\n"); # false
+Print("in_third_level(CU):", in_third_level(CU), "\n"); # true
 
-Print("OK\n");
+Print("Done.\n");
 
 

@@ -158,7 +158,7 @@ def classical_distance(H, max_dist=0):
 
 
 
-if 1:
+if 0:
     for (dim, idx) in get_dw_ge_4():
         G = get(dim, idx)
         #H = list(find_kernel(G))
