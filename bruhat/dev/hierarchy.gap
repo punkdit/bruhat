@@ -1,5 +1,6 @@
+#!/usr/bin/gap
 
-# time gap -o 8g clifford.gap
+# time gap -o 8g hierarchy.gap
 
 # Build clifford groups, up to 3 qubits, and
 # search for T operators defined by field extensions......
@@ -51,7 +52,9 @@ cz := [
     [0, 0, 0, -1]];;
 
 Cliff2 := Group(si, is, hi, ih, wi, cz);; # Order 92160
+Order(Cliff2);
 #for g in Cliff2 do Print(g, "\n"); od;
+Phase2 := Group(wi);;
 Pauli2 := Group(wi, xi, ix, zi, iz);;
 
 # Works:
@@ -69,13 +72,119 @@ a := [
     [0, 1, 0, 0],
     [0, 0, 1, 0],
     [0, 0, 0, 1],
-    [-1, 0, 0, 0]];; # a in G2 = true
+    [-1, 0, 0, 0]];;
+
+# Print(a in Cliff2, "\n"); # true
+
+#hom:=EpimorphismFromFreeGroup(Cliff2:names:=["si", "is", "hi", "ih", "wi", "cz"]);
+#Print(PreImagesRepresentative(hom, a), "\n"); # si^3*is^3*hi*si^2*ih*is^2*ih*cz*hi*si
+#Print(PreImagesRepresentative(hom, a*a), "\n"); # (si^2*hi)^2
+#Print(PreImagesRepresentative(hom, a*a*a), "\n"); # si^2*is^3*hi*(si^2*hi*si)^2*si*ih*is^2*ih*cz*hi*si
+
+cls := ConjugacyClass(Cliff2, a);;
+Print(a,               a in cls, "\n"); # true
+Print(a*a,             a*a in cls, "\n"); # false
+Print(a*a*a,           a*a*a in cls, "\n"); # true
+Print(a*a*a*a,         a*a*a*a in cls, "\n"); # false
+Print(a*a*a*a*a,       a*a*a*a*a in cls, "\n"); # false
+Print(a*a*a*a*a*a,     a*a*a*a*a*a in cls, "\n"); # false
+Print(a*a*a*a*a*a*a,   a*a*a*a*a*a*a in cls, "\n"); # false
+Print(a*a*a*a*a*a*a*a, a*a*a*a*a*a*a*a in cls, "\n"); # false
+
+#cls := ConjugacyClass(Cliff2, a*a);;
+#Print(a in cls, "\n"); # false
+#Print(a*a in cls, "\n"); # true
+#Print(a*a*a in cls, "\n"); # false
+#Print(a*a*a*a in cls, "\n"); # false
+
+#cls := ConjugacyClass(Cliff2, a*a*a);;
+#Print(a in cls, "\n"); # false
+#Print(a*a in cls, "\n"); # true
+#Print(a*a*a in cls, "\n"); # false
+#Print(a*a*a*a in cls, "\n"); # false
+
+quit;
 
 #Print(a*a, "\n");
 #Print(a*a*a, "\n");
 #Print(a*a*a*a, "\n");
 
 # Print(Order(G2));
+
+
+U2 := [ 
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1]];
+
+
+
+in_third_level_2 := function(U2)
+    # Is U2 in the third level of the clifford hierarchy ?
+    local A;
+    for g in Pauli2 do
+        A := U2*g*Inverse(U2)*Inverse(g);
+        if A in Cliff2 then continue; fi;
+        return false; # no
+    od;
+    return true; # yes
+end;;
+
+in_fourth_level_2 := function(U2)
+    # Is U2 in the fourth level of the clifford hierarchy ?
+    local A;
+    for g in Pauli2 do
+        A := U2*g*Inverse(U2)*Inverse(g);
+        if in_third_level_2(U2) then continue; fi;
+        return false; # no
+    od;
+    return true; # yes
+end;;
+
+in_fifth_level_2 := function(U2)
+    # Is U2 in the fifth level of the clifford hierarchy ?
+    local A;
+    for g in Pauli2 do
+        A := U2*g*Inverse(U2)*Inverse(g);
+        if in_fourth_level_2(U2) then continue; fi;
+        return false; # no
+    od;
+    return true; # yes
+end;;
+
+get_level_2 := function(U2)
+    if U2 in Phase2 then return "0\c"; fi;
+    if U2 in Pauli2 then return "1\c"; fi;
+    if U2 in Cliff2 then return "2\c"; fi;
+    if in_third_level_2(U2) then return "3\c"; fi;
+    if in_fourth_level_2(U2) then return "4\c"; fi;
+    if in_fifth_level_2(U2) then return "5\c"; fi;
+    return ".\c";
+end;;
+
+Print("# Where do control 1-qubit Pauli gates live ?\n");
+for g in Pauli1 do 
+    #Print(g, "\n");
+    U2{[3,4]}{[3,4]} := g;
+    Print(get_level_2(U2));
+od;
+Print("\n");
+
+Print("# Where do control 1-qubit clifford gates live ?\n");
+for g in Cliff1 do 
+    #Print(g, "\n");
+    U2{[3,4]}{[3,4]} := g;
+    Print(get_level_2(U2));
+od;
+Print("\n");
+
+quit;
+
+# ---------------------------------------------------
+#
+# 3 qubit gates
+#
 
 
 xii := KroneckerProduct(xi, i);;
@@ -160,20 +269,62 @@ Print("warming up...\n");
 Order(Cliff3);; # need this line otherwise membership test eats all memory...!
 Print("Ok\n");
 
-in_third_level := function(U)
-    # Is U in the third level of the clifford hierarchy ?
+
+in_first_level := function(U3)
+    return U3 in Pauli3;
+end;;
+
+in_second_level := function(U3)
+    if U3 in Cliff3_12 then return true; fi;
+    if U3 in Cliff3_13 then return true; fi;
+    if U3 in Cliff3_23 then return true; fi;
+    if U3 in Cliff3 then return true; fi;
+    return false;
+end;;
+    
+#in_second_level := function(U3)
+#    # Is U3 in the second level of the clifford hierarchy ?
+#    local A;
+#    for g in Pauli3 do
+#        A := U3*g*Inverse(U3)*Inverse(g);
+#        if in_first_level(A) then continue; fi;
+#        return false; # no
+#    od;
+#    return true; # yes
+#end;;
+
+
+in_third_level := function(U3)
+    # Is U3 in the third level of the clifford hierarchy ?
     local A;
     for g in Pauli3 do
-        A := U*g*Inverse(U)*Inverse(g);
-        if A in Cliff3_12 then continue; fi;
-        if A in Cliff3_13 then continue; fi;
-        if A in Cliff3_23 then continue; fi;
-        if A in Cliff3 then continue; fi;
+        A := U3*g*Inverse(U3)*Inverse(g);
+        if in_second_level(A) then continue; fi;
         return false; # no
     od;
     return true; # yes
 end;;
 
+in_fourth_level := function(U3)
+    # Is U3 in the fourth level of the clifford hierarchy ?
+    local A;
+    for g in Pauli3 do
+        A := U3*g*Inverse(U3)*Inverse(g);
+        if in_third_level(A) then continue; fi;
+        return false; # no
+    od;
+    return true; # yes
+end;;
+
+
+get_level := function(U3)
+    if U3 in Pauli3 then return "1\c"; fi;
+    if in_second_level(U3) then return "2\c"; fi;
+    if in_third_level(U3) then return "3\c"; fi;
+    if in_fourth_level(U3) then return "4\c"; fi;
+    return ".\c";
+end;;
+    
 
 Print("in_third_level(ca):", in_third_level(ca), "\n"); # true
 Print("in_third_level(cb):", in_third_level(cb), "\n"); # true
@@ -188,16 +339,14 @@ U3 := [
     [0, 0, 0, 1, 0, 0, 0, 0],
     [0, 0, 0, 0, 1, 0, 0, 0],
     [0, 0, 0, 0, 0, 1, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0]];
+    [0, 0, 0, 0, 0, 0, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1]];
 
 Print("# Where do control control 1-qubit Pauli gates live ?\n");
 for g in Pauli1 do 
     #Print(g, "\n");
     U3{[7,8]}{[7,8]} := g;
-    if U3 in Pauli3 then Print("1\c"); continue; fi;
-    if U3 in Cliff3 then Print("2\c"); continue; fi;
-    if in_third_level(U3) then Print("3\c"); else Print(".\c"); fi;
+    Print(get_level(U3));
 od;
 Print("\n");
 
@@ -205,9 +354,7 @@ Print("# Where do control control 1-qubit clifford gates live ?\n");
 for g in Cliff1 do 
     #Print(g, "\n");
     U3{[7,8]}{[7,8]} := g;
-    if U3 in Pauli3 then Print("1\c"); continue; fi;
-    if U3 in Cliff3 then Print("2\c"); continue; fi;
-    if in_third_level(U3) then Print("3\c"); else Print(".\c"); fi;
+    Print(get_level(U3));
 od;
 Print("\n");
 
@@ -215,9 +362,7 @@ Print("# Where do control 2-qubit Pauli gates live ?\n");
 for g in Pauli2 do 
     #Print(g, "\n");
     U3{[5,6,7,8]}{[5,6,7,8]} := g;
-    if U3 in Pauli3 then Print("1\c"); continue; fi;
-    if U3 in Cliff3 then Print("2\c"); continue; fi;
-    if in_third_level(U3) then Print("3\c"); else Print(".\c"); fi;
+    Print(get_level(U3));
 od;
 Print("\n");
 
@@ -225,9 +370,7 @@ Print("# Where do control 2-qubit clifford gates live ?\n");
 for g in Cliff2 do 
     #Print(g, "\n");
     U3{[5,6,7,8]}{[5,6,7,8]} := g;
-    if U3 in Pauli3 then Print("1\c"); continue; fi;
-    if U3 in Cliff3 then Print("2\c"); continue; fi;
-    if in_third_level(U3) then Print("3\c"); else Print(".\c"); fi;
+    Print(get_level(U3));
 od;
 
 Print("\n");

@@ -335,6 +335,33 @@ def test():
     print("OK")
 
 
+def genus_enum1():
+    r = argv.get("r", 1) # degree
+    m = argv.get("m", 3)
+    puncture = argv.puncture
+    code = reed_muller(r, m, puncture)
+    G = code.G
+    print(shortstr(G))
+    m, n = G.shape
+
+    poly = lambda cs : Poly(cs, 2, "x_0 x_1".split())
+    x1 = poly({(0, 1) : 1})
+    x0 = poly({(1, 0) : 1})
+    p = poly({})
+    xs = [x0, x1]
+    cs = {}
+    for v0 in span(G):
+        exp = [0, 0]
+        #vv = numpy.array([2*v0, v1])
+        for i in range(n):
+            exp[v0[i]] += 1
+        exp = tuple(exp)
+        cs[exp] = cs.get(exp, 0) + 1
+    p = poly(cs)
+    print(p)
+    
+
+
 def genus_enum2():
     r = argv.get("r", 1) # degree
     m = argv.get("m", 3)

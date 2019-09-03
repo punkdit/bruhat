@@ -1,4 +1,56 @@
 
+3/9/19
+======
+
+Does the Galois group act on the Clifford hierarchy ?
+
+from bruhat/dev/hierarchy.gap:
+
+a := [
+    [0, 1, 0, 0], 
+    [0, 0, 1, 0], 
+    [0, 0, 0, 1], 
+    [-1, 0, 0, 0]];;
+
+# Print(a in Cliff2, "\n"); # true
+
+#hom:=EpimorphismFromFreeGroup(Cliff2:names:=["si", "is", "hi", "ih", "wi", "cz"]);
+#Print(PreImagesRepresentative(hom, a), "\n"); # si^3*is^3*hi*si^2*ih*is^2*ih*cz*hi*si
+#Print(PreImagesRepresentative(hom, a*a), "\n"); # (si^2*hi)^2
+#Print(PreImagesRepresentative(hom, a*a*a), "\n"); # si^2*is^3*hi*(si^2*hi*si)^2*si*ih*is^2*ih*cz*hi*si
+
+cls := ConjugacyClass(Cliff2, a);;
+Print(a,               a in cls, "\n");               # true
+Print(a*a,             a*a in cls, "\n");             # false
+Print(a*a*a,           a*a*a in cls, "\n");           # true
+Print(a*a*a*a,         a*a*a*a in cls, "\n");         # false
+Print(a*a*a*a*a,       a*a*a*a*a in cls, "\n");       # true
+Print(a*a*a*a*a*a,     a*a*a*a*a*a in cls, "\n");     # false
+Print(a*a*a*a*a*a*a,   a*a*a*a*a*a*a in cls, "\n");   # true
+Print(a*a*a*a*a*a*a*a, a*a*a*a*a*a*a*a in cls, "\n"); # false
+
+1^{1/8} =
+    [ [ 0, 1, 0, 0 ], 
+      [ 0, 0, 1, 0 ], 
+      [ 0, 0, 0, 1 ], 
+      [ -1, 0, 0, 0 ] ] = a
+1^{3/8} =
+    [ [ 0, 0, 0, 1 ], 
+      [ -1, 0, 0, 0 ], 
+      [ 0, -1, 0, 0 ], 
+      [ 0, 0, -1, 0 ] ] = a^3
+1^{5/8} = 
+    [ [ 0, -1, 0, 0 ], 
+      [ 0, 0, -1, 0 ], 
+      [ 0, 0, 0, -1 ], 
+      [ 1, 0, 0, 0 ] ] = a^5
+1^{7/8} =
+    [ [ 0, 0, 0, -1 ], 
+      [ 1, 0, 0, 0 ], 
+      [ 0, 1, 0, 0 ], 
+      [ 0, 0, 1, 0 ] ] = a^7
+
+
 2/9/19
 ======
 

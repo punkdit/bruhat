@@ -1,3 +1,4 @@
+#!/usr/bin/gap
 
 # time gap -o 8g clifford.gap
 

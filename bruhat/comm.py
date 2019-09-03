@@ -202,7 +202,9 @@ class Poly(object):
                 elif exp == 1:
                     item.append("%s" % (names[i],))
                 else:
-                    item.append("%s^%d" % (names[i], exp))
+                    s_exp = str(exp)
+                    s_exp = s_exp if len(s_exp)==1 else "{"+s_exp+"}"
+                    item.append("%s^%s" % (names[i], s_exp))
             item = ' '.join(item)
             if not item:
                 item = str(val)
