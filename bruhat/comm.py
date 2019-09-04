@@ -12,6 +12,7 @@ import sys, os
 from fractions import Fraction
 from random import randint, shuffle, seed
 
+
 #from bruhat.action import Group
 from bruhat.gelim import fstr
 from bruhat.util import write
@@ -222,6 +223,63 @@ class Poly(object):
         return s
 
     __repr__ = __str__
+
+    def py_str(self):
+        s = self.__str__()
+        s = s.replace(" + ", "+")
+        s = s.replace(" ", "*")
+        s = s.replace("{", "")
+        s = s.replace("}", "")
+        s = s.replace("^", "**")
+        return s
+
+    def get_namespace(self):
+        s = self.py_str()
+        rank = self.rank
+        namespace = {}
+        for i in range(rank):
+            exp = [0]*rank
+            exp[i] = 1
+            pi = Poly({tuple(exp) : 1}, rank, self.names)
+            namespace[pi.py_str()] = pi
+        return namespace
+
+    def substitute(self, vs):
+        # vs : map name to new Poly
+        s = self.py_str()
+        ns = self.get_namespace()
+        for k, v in vs.items():
+            assert type(k) is str
+            assert isinstance(v, Poly)
+            assert v.names == self.names
+            #s = s.replace(k, "(%s)"%(v.py_str()))
+            assert k in ns, "unknown name %r"%k
+            ns[k] = v
+        p = eval(s, ns, ns)
+        return p
+    
+    def transform(self, A):
+        import numpy
+        rank = self.rank
+        names = self.names
+        A = numpy.array(A)
+        assert A.shape == (rank, rank)
+        A = A.astype(object)
+        vec = []
+        for i in range(rank):
+            exp = [0]*rank
+            exp[i] = 1
+            p = Poly({tuple(exp) : 1}, rank, names)
+            vec.append(p)
+        vec = numpy.array(vec)
+        ns = {}
+        for i, p in enumerate(vec):
+            n = names[i]
+            n = n.replace("{", "") # ARGH!
+            n = n.replace("}", "") # ARGH!
+            ns[n] = numpy.dot(A[i], vec)
+            #print(n, "-->", numpy.dot(A[i], vec))
+        return self.substitute(ns)
 
     @classmethod
     def random(cls, rank, degree=3, terms=3):
@@ -444,6 +502,10 @@ def main():
     x1 = Poly({(1,0,0) : 1})
     x2 = Poly({(0,1,0) : 1})
     x3 = Poly({(0,0,1) : 1})
+
+    p = x1+x2+x3
+    q = p.substitute({"x_2": x3})
+    assert q == x1 + 2*x3, q
 
     #print((x1+x2+x3)**3)
     #print(x1*x2*x3)

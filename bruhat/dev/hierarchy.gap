@@ -81,27 +81,16 @@ a := [
 #Print(PreImagesRepresentative(hom, a*a), "\n"); # (si^2*hi)^2
 #Print(PreImagesRepresentative(hom, a*a*a), "\n"); # si^2*is^3*hi*(si^2*hi*si)^2*si*ih*is^2*ih*cz*hi*si
 
-cls := ConjugacyClass(Cliff2, a);;
-Print(a,               a in cls, "\n"); # true
-Print(a*a,             a*a in cls, "\n"); # false
-Print(a*a*a,           a*a*a in cls, "\n"); # true
-Print(a*a*a*a,         a*a*a*a in cls, "\n"); # false
-Print(a*a*a*a*a,       a*a*a*a*a in cls, "\n"); # false
-Print(a*a*a*a*a*a,     a*a*a*a*a*a in cls, "\n"); # false
-Print(a*a*a*a*a*a*a,   a*a*a*a*a*a*a in cls, "\n"); # false
-Print(a*a*a*a*a*a*a*a, a*a*a*a*a*a*a*a in cls, "\n"); # false
+#cls := ConjugacyClass(Cliff2, a);;
+#Print(a,               a in cls, "\n");               # true
+#Print(a*a,             a*a in cls, "\n");             # false
+#Print(a*a*a,           a*a*a in cls, "\n");           # true
+#Print(a*a*a*a,         a*a*a*a in cls, "\n");         # false
+#Print(a*a*a*a*a,       a*a*a*a*a in cls, "\n");       # true
+#Print(a*a*a*a*a*a,     a*a*a*a*a*a in cls, "\n");     # false
+#Print(a*a*a*a*a*a*a,   a*a*a*a*a*a*a in cls, "\n");   # true
+#Print(a*a*a*a*a*a*a*a, a*a*a*a*a*a*a*a in cls, "\n"); # false
 
-#cls := ConjugacyClass(Cliff2, a*a);;
-#Print(a in cls, "\n"); # false
-#Print(a*a in cls, "\n"); # true
-#Print(a*a*a in cls, "\n"); # false
-#Print(a*a*a*a in cls, "\n"); # false
-
-#cls := ConjugacyClass(Cliff2, a*a*a);;
-#Print(a in cls, "\n"); # false
-#Print(a*a in cls, "\n"); # true
-#Print(a*a*a in cls, "\n"); # false
-#Print(a*a*a*a in cls, "\n"); # false
 
 quit;
 

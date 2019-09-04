@@ -345,10 +345,9 @@ def genus_enum1():
     m, n = G.shape
 
     poly = lambda cs : Poly(cs, 2, "x_0 x_1".split())
-    x1 = poly({(0, 1) : 1})
-    x0 = poly({(1, 0) : 1})
-    p = poly({})
-    xs = [x0, x1]
+    #x_1 = poly({(0, 1) : 1})
+    #x_0 = poly({(1, 0) : 1})
+    #xs = [x0, x1]
     cs = {}
     for v0 in span(G):
         exp = [0, 0]
@@ -360,6 +359,14 @@ def genus_enum1():
     p = poly(cs)
     print(p)
     
+    Z = numpy.array([[1, 0], [0, 1]])
+    q = p.transform(Z)
+    print("invariant under Z", q==p)
+
+    S2 = numpy.array([[0, 1], [-1, 0]])
+    q = p.transform(S2)
+    print("invariant under CS2", q==p)
+
 
 
 def genus_enum2():
@@ -372,12 +379,11 @@ def genus_enum2():
     m, n = G.shape
 
     poly = lambda cs : Poly(cs, 4, "x_{00} x_{01} x_{10} x_{11}".split())
-    x11 = poly({(0, 0, 0, 1) : 1})
-    x10 = poly({(0, 0, 1, 0) : 1})
-    x01 = poly({(0, 1, 0, 0) : 1})
-    x00 = poly({(1, 0, 0, 0) : 1})
-    p = poly({})
-    xs = [[x00, x01], [x10, x11]]
+#    x_11 = poly({(0, 0, 0, 1) : 1})
+#    x_10 = poly({(0, 0, 1, 0) : 1})
+#    x_01 = poly({(0, 1, 0, 0) : 1})
+#    x_00 = poly({(1, 0, 0, 0) : 1})
+#    xs = [[x_00, x_01], [x_10, x_11]]
     cs = {}
     for v0 in span(G):
         print(".",end='',flush=True)
@@ -393,6 +399,31 @@ def genus_enum2():
     p = poly(cs)
     print(p)
     
+    CZ = numpy.array([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, -1]])
+    q = p.transform(CZ)
+    print("invariant under CZ", q==p)
+
+    CS2 = numpy.array([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1],
+        [0, 0, -1, 0]])
+    q = p.transform(CS2)
+    print("invariant under CS2", q==p)
+
+    T2 = numpy.array([
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1],
+        [-1, 0, 0, 0]])
+    q = p.transform(T2)
+    print("invariant under T2", q==p)
+
+
 
 def genus_enum3():
     r = argv.get("r", 1) # degree
@@ -403,17 +434,9 @@ def genus_enum3():
     print(shortstr(G))
     m, n = G.shape
 
-    poly = lambda cs : Poly(cs, 8, 
+    rank = 8
+    poly = lambda cs : Poly(cs, rank, 
         "x_{000} x_{001} x_{010} x_{011} x_{100} x_{101} x_{110} x_{111}".split())
-    x011 = poly({(0, 0, 0, 0, 0, 0, 0, 1) : 1})
-    x010 = poly({(0, 0, 0, 0, 0, 0, 1, 0) : 1})
-    x001 = poly({(0, 0, 0, 0, 0, 1, 0, 0) : 1})
-    x000 = poly({(0, 0, 0, 0, 1, 0, 0, 0) : 1})
-    x111 = poly({(0, 0, 0, 1, 0, 0, 0, 0) : 1})
-    x110 = poly({(0, 0, 1, 0, 0, 0, 0, 0) : 1})
-    x101 = poly({(0, 1, 0, 0, 0, 0, 0, 0) : 1})
-    x100 = poly({(1, 0, 0, 0, 0, 0, 0, 0) : 1})
-    p = poly({})
     cs = {}
     for v0 in span(G):
         print(".",end='',flush=True)
@@ -429,7 +452,46 @@ def genus_enum3():
     print()
     p = poly(cs)
     print(p)
+    print()
     
+    CCZ = numpy.array([
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, -1]])
+    q = p.transform(CCZ)
+    print("invariant under CCZ", q==p)
+
+    CS2 = numpy.array([
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 0, 0, -1, 0]])
+    q = p.transform(CS2)
+    print("invariant under CS2", q==p)
+
+    T3 = numpy.array([
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1],
+        [0, 0, 0, 0, -1, 0, 0, 0]])
+    q = p.transform(T3)
+    print("invariant under T3", q==p)
+
+
+
 
 def test_tri_rm():
     r = argv.get("r", 1) # degree
