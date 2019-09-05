@@ -81,7 +81,7 @@ a := [
 #Print(PreImagesRepresentative(hom, a*a), "\n"); # (si^2*hi)^2
 #Print(PreImagesRepresentative(hom, a*a*a), "\n"); # si^2*is^3*hi*(si^2*hi*si)^2*si*ih*is^2*ih*cz*hi*si
 
-#cls := ConjugacyClass(Cliff2, a);;
+cls := ConjugacyClass(Cliff2, a);;
 #Print(a,               a in cls, "\n");               # true
 #Print(a*a,             a*a in cls, "\n");             # false
 #Print(a*a*a,           a*a*a in cls, "\n");           # true
@@ -90,7 +90,17 @@ a := [
 #Print(a*a*a*a*a*a,     a*a*a*a*a*a in cls, "\n");     # false
 #Print(a*a*a*a*a*a*a,   a*a*a*a*a*a*a in cls, "\n");   # true
 #Print(a*a*a*a*a*a*a*a, a*a*a*a*a*a*a*a in cls, "\n"); # false
+#Print(cz, cz in cls, "\n"); # false
 
+
+b := [
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 0, 1],
+    [0, 0, -1, 0]];;
+#Print(cz, cz in ConjugacyClass(Cliff2, b), "\n"); # false
+
+#for b in ConjugacyClass(Cliff2, cz) do Print(b, "\n"); od;
 
 quit;
 
