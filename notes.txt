@@ -9,6 +9,33 @@ https://twitter.com/JadeMasterMath/status/1169789128659091456
     objects are determined by how they interact with world.
     Or objects are determined by how their hom things.
 
+Ulrik Buchholtz
+Technische Universität Darmstadt
+From Higher Groups to Homotopy Surfaces
+    Homotopy type theory can be seen as a synthetic theory
+    of infinity groupoids. From this perspective, the pointed,
+    connected types represent infinity groups. The elements
+    are those of the loop space, and the operations on identity
+    types provide the higher group structure.
+    In this talk, I'll explain what basic group theory looks
+    like from this viewpoint. One aspect is that of categorifying
+    ordinary group theory by using a univalent universe to
+    present many groups. For example, the cyclic group on
+    n elements is the loop space of the type of n-element
+    sets equipped with a cyclic ordering.
+    In the second half of the talk, I'll focus on the 2-dimensional
+    orthogonal group, and use this to talk about the homotopy types of surfaces.
+    The talk follows the synthetic approach to homotopy theory
+    as developed in the HoTT book. Beyond that, a basic familiarity
+    with ordinary group theory and the result on the classification
+    of surfaces from topology will be helpful.
+    Some of the material will be from arXiv:1802.04315 (joint
+    with Floris van Doorn and Egbert Rijke) and arXiv:1802.02191
+    (joint with Favonia), and some material is brand new.
+    Media: video, slides.
+https://www.youtube.com/watch?v=0UlLwf8ttUw
+https://www.uwo.ca/math/faculty/kapulkin/seminars/hottestfiles/Buchholtz-2018-03-29-HoTTEST.pdf
+
 5/9/19
 ======
 

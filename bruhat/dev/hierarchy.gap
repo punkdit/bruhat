@@ -82,27 +82,38 @@ a := [
 #Print(PreImagesRepresentative(hom, a*a*a), "\n"); # si^2*is^3*hi*(si^2*hi*si)^2*si*ih*is^2*ih*cz*hi*si
 
 cls := ConjugacyClass(Cliff2, a);;
-#Print(a,               a in cls, "\n");               # true
+Print(a,               a in cls, "\n");               # true
 #Print(a*a,             a*a in cls, "\n");             # false
-#Print(a*a*a,           a*a*a in cls, "\n");           # true
+Print(a*a*a,           a*a*a in cls, "\n");           # true
 #Print(a*a*a*a,         a*a*a*a in cls, "\n");         # false
-#Print(a*a*a*a*a,       a*a*a*a*a in cls, "\n");       # true
+Print(a*a*a*a*a,       a*a*a*a*a in cls, "\n");       # true
 #Print(a*a*a*a*a*a,     a*a*a*a*a*a in cls, "\n");     # false
-#Print(a*a*a*a*a*a*a,   a*a*a*a*a*a*a in cls, "\n");   # true
+Print(a*a*a*a*a*a*a,   a*a*a*a*a*a*a in cls, "\n");   # true
 #Print(a*a*a*a*a*a*a*a, a*a*a*a*a*a*a*a in cls, "\n"); # false
 #Print(cz, cz in cls, "\n"); # false
 
 
-b := [
-    [1, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 0, 1],
-    [0, 0, -1, 0]];;
+#b := [
+#    [1, 0, 0, 0],
+#    [0, 1, 0, 0],
+#    [0, 0, 0, 1],
+#    [0, 0, -1, 0]];;
 #Print(cz, cz in ConjugacyClass(Cliff2, b), "\n"); # false
-
 #for b in ConjugacyClass(Cliff2, cz) do Print(b, "\n"); od;
 
-quit;
+a1 := [
+    [0, 0, 1, 0],
+    [0, 0, 0, 1],
+    [0, 1, 0, 0],
+    [-1, 0, 0, 0]];;
+
+Print(a1 in Pauli2, "\n");
+Print(a1 in Cliff2, "\n");
+Print(a1 in cls, "\n");
+
+#Print(Eigenvalues(Cyclotomics, b), "\n"); # fail
+
+#quit;
 
 #Print(a*a, "\n");
 #Print(a*a*a, "\n");
@@ -178,7 +189,7 @@ for g in Cliff1 do
 od;
 Print("\n");
 
-quit;
+#quit;
 
 # ---------------------------------------------------
 #
@@ -215,6 +226,16 @@ ca := [
     [0, 0, 0, 0, 0, 1, 0, 0],
     [0, 0, 0, 0, 0, 0, 1, 0],
     [0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, -1, 0, 0, 0]];;
+
+ca1 := [
+    [1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 1, 0, 0],
     [0, 0, 0, 0, -1, 0, 0, 0]];;
 
 cb := [
@@ -303,6 +324,9 @@ in_third_level := function(U3)
     od;
     return true; # yes
 end;;
+
+#Print(in_third_level(ca1), "\n"); # true
+#quit;
 
 in_fourth_level := function(U3)
     # Is U3 in the fourth level of the clifford hierarchy ?
