@@ -1217,6 +1217,12 @@ def CyclotomicField_FAIL(n):
     return field
 
 
+def CyclotomicRing(n):
+    ring = PolynomialRing(Z)
+    p = cyclotomic(ring, n)
+    ring = ring / p
+    return ring
+    
 
 # ----------------------------------------------------------------------------
 

@@ -1,4 +1,29 @@
 
+7/9/19
+======
+
+Young tablaux in html:
+https://www.math.upenn.edu/~peal/polynomials/superSymmetricSchur.htm#hookSchur
+
+<figure class="figure">
+<table class="ytab">
+<tr><td>$1$</td><td>$1$</td><td>$2$</td><td>$3$</td><td>$1'$</td><td>$6'$</td><td>$7'$</td></tr>
+<tr><td>$2$</td><td>$3$</td><td>$3$</td><td>$1'$</td><td>$5'$</td><td>$6'$</td><td class=" none" >&nbsp;</td></tr>
+<tr><td>$1'$</td><td>$2'$</td><td>$3'$</td><td>$4'$</td><td>$5'$</td><td class=" none" >&nbsp;</td><td class=" none" >&nbsp;</td></tr>
+<tr><td>$1'$</td><td>$3'$</td><td class=" none" >&nbsp;</td><td class=" none" >&nbsp;</td><td class=" none" >&nbsp;</td><td class=" none" >&nbsp;</td><td class=" none" >&nbsp;</td></tr>
+</table>
+</figure>
+
+see also citations:
+
+    <p>A Jacobi–Trudi type formula for hook Schur functions
+    was proved in <span class="citeBlock">[<a class="cite"
+    href="#PragaczThorup1992">PT92</a>]</span>,
+    and it also follows from <span class="citeBlock">[Thm.
+    4.5, <a class="cite" href="#Kwon2008">Kwo08</a>]</span>.
+    The <dfn>$(m,n)$-hook Schur functions</dfn> are then given as</p>
+
+
 6/9/19
 ======
 
