@@ -6,7 +6,7 @@
 # search for T operators defined by field extensions......
 
 
-Print("running clifford.gap\n");;
+Print("running hierarchy.gap\n");;
 
 # See:
 # https://www.mathstat.dal.ca/~selinger/papers/clifford.pdf
@@ -68,6 +68,15 @@ for U in Cliff2 do
     if not found then Print("Not found\n"); fi;
 od;
 
+Hadamard4 := (1/2)*[
+    [0, 1, 0, 1],
+    [2, 0, 2, 0],
+    [0, 1, 0, -1],
+    [2, 0, -2, 0]];
+Print(Hadamard4*Hadamard4, "\n");
+#Print(Hadamard4, " in Cliff2 ", Hadamard4 in Cliff2, "\n");
+#quit;
+
 a := [
     [0, 1, 0, 0],
     [0, 0, 1, 0],
@@ -82,13 +91,13 @@ a := [
 #Print(PreImagesRepresentative(hom, a*a*a), "\n"); # si^2*is^3*hi*(si^2*hi*si)^2*si*ih*is^2*ih*cz*hi*si
 
 cls := ConjugacyClass(Cliff2, a);;
-Print(a,               a in cls, "\n");               # true
+#Print(a,               a in cls, "\n");               # true
 #Print(a*a,             a*a in cls, "\n");             # false
-Print(a*a*a,           a*a*a in cls, "\n");           # true
+#Print(a*a*a,           a*a*a in cls, "\n");           # true
 #Print(a*a*a*a,         a*a*a*a in cls, "\n");         # false
-Print(a*a*a*a*a,       a*a*a*a*a in cls, "\n");       # true
+#Print(a*a*a*a*a,       a*a*a*a*a in cls, "\n");       # true
 #Print(a*a*a*a*a*a,     a*a*a*a*a*a in cls, "\n");     # false
-Print(a*a*a*a*a*a*a,   a*a*a*a*a*a*a in cls, "\n");   # true
+#Print(a*a*a*a*a*a*a,   a*a*a*a*a*a*a in cls, "\n");   # true
 #Print(a*a*a*a*a*a*a*a, a*a*a*a*a*a*a*a in cls, "\n"); # false
 #Print(cz, cz in cls, "\n"); # false
 
@@ -101,15 +110,14 @@ Print(a*a*a*a*a*a*a,   a*a*a*a*a*a*a in cls, "\n");   # true
 #Print(cz, cz in ConjugacyClass(Cliff2, b), "\n"); # false
 #for b in ConjugacyClass(Cliff2, cz) do Print(b, "\n"); od;
 
-a1 := [
-    [0, 0, 1, 0],
-    [0, 0, 0, 1],
-    [0, 1, 0, 0],
-    [-1, 0, 0, 0]];;
-
-Print(a1 in Pauli2, "\n");
-Print(a1 in Cliff2, "\n");
-Print(a1 in cls, "\n");
+#a1 := [
+#    [0, 0, 1, 0],
+#    [0, 0, 0, 1],
+#    [0, 1, 0, 0],
+#    [-1, 0, 0, 0]];;
+#Print(a1 in Pauli2, "\n"); # false
+#Print(a1 in Cliff2, "\n"); # true
+#Print(a1 in cls, "\n");    # true
 
 #Print(Eigenvalues(Cyclotomics, b), "\n"); # fail
 
@@ -120,6 +128,20 @@ Print(a1 in cls, "\n");
 #Print(a*a*a*a, "\n");
 
 # Print(Order(G2));
+
+Hadamard8 := (1/2)*[
+    [ 0, 1, 0,-1, 0, 1, 0,-1],
+    [ 1, 0, 1, 0, 1, 0, 1, 0],
+    [ 0, 1, 0, 1, 0, 1, 0, 1],
+    [-1, 0, 1, 0,-1, 0, 1, 0],
+    [ 0, 1, 0,-1, 0,-1, 0, 1],
+    [ 1, 0, 1, 0,-1, 0,-1, 0],
+    [ 0, 1, 0, 1, 0,-1, 0,-1],
+    [-1, 0, 1, 0, 1, 0,-1, 0]];
+
+#Print(Hadamard8, "\n");
+#Print(Hadamard8*Hadamard8, "\n"); # = identity
+#quit;
 
 
 U2 := [ 
@@ -173,21 +195,25 @@ get_level_2 := function(U2)
     return ".\c";
 end;;
 
-Print("# Where do control 1-qubit Pauli gates live ?\n");
-for g in Pauli1 do 
-    #Print(g, "\n");
-    U2{[3,4]}{[3,4]} := g;
-    Print(get_level_2(U2));
-od;
-Print("\n");
 
-Print("# Where do control 1-qubit clifford gates live ?\n");
-for g in Cliff1 do 
-    #Print(g, "\n");
-    U2{[3,4]}{[3,4]} := g;
-    Print(get_level_2(U2));
-od;
-Print("\n");
+if false then
+    Print("# Where do control 1-qubit Pauli gates live ?\n");
+    for g in Pauli1 do 
+        #Print(g, "\n");
+        U2{[3,4]}{[3,4]} := g;
+        Print(get_level_2(U2));
+    od;
+    Print("\n");
+    
+    Print("# Where do control 1-qubit clifford gates live ?\n");
+    for g in Cliff1 do 
+        #Print(g, "\n");
+        U2{[3,4]}{[3,4]} := g;
+        Print(get_level_2(U2));
+    od;
+    Print("\n");
+fi;
+
 
 #quit;
 
@@ -227,6 +253,16 @@ ca := [
     [0, 0, 0, 0, 0, 0, 1, 0],
     [0, 0, 0, 0, 0, 0, 0, 1],
     [0, 0, 0, 0, -1, 0, 0, 0]];;
+
+d := [
+    [0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [-1, 0, 0, 0, 0, 0, 0, 0]];;
 
 ca1 := [
     [1, 0, 0, 0, 0, 0, 0, 0],
@@ -289,6 +325,7 @@ Print("warming up...\n");
 Order(Cliff3);; # need this line otherwise membership test eats all memory...!
 Print("Ok\n");
 
+#Print("Hadamard8 in Cliff3 ", Hadamard8 in Cliff3, "\n"); # true
 
 in_first_level := function(U3)
     return U3 in Pauli3;
@@ -348,6 +385,8 @@ get_level := function(U3)
     return ".\c";
 end;;
     
+
+Print("in_third_level(d):", in_third_level(cc), "\n"); # true
 
 Print("in_third_level(ca):", in_third_level(ca), "\n"); # true
 Print("in_third_level(cb):", in_third_level(cb), "\n"); # true
