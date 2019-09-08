@@ -423,6 +423,14 @@ def genus_enum2():
     q = p.transform(T2)
     print("invariant under T2", q==p)
 
+    A = numpy.array([
+        [0, 0, 1, 0],
+        [0, 0, 0, 1],
+        [0, 1, 0, 0],
+        [-1, 0, 0, 0]])
+    q = p.transform(A)
+    print("invariant under A", q==p)
+
 
 
 def genus_enum3():
@@ -489,6 +497,18 @@ def genus_enum3():
         [0, 0, 0, 0, -1, 0, 0, 0]])
     q = p.transform(T3)
     print("invariant under T3", q==p)
+
+    A = numpy.array([
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, -1, 0, 0, 0]])
+    q = p.transform(A)
+    print("invariant under A", q==p)
 
 
 
