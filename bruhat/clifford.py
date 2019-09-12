@@ -83,6 +83,7 @@ def main():
 
     I8, X8, Z8 = atpow(I, 8), atpow(X, 8), atpow(Z, 8)
     T8 = atpow(T, 8)
+    #print(T8.str(hide_zero=True, sep=""))
     Td8 = atpow(Td, 8)
     G = mulclose([X8, Z8])
     P = I8 + X8 + Z8 + X8*Z8
@@ -117,15 +118,16 @@ def main():
     Sx = [interp(row, X) for row in RM14]
     Sz = [interp(row, Z) for row in RM14]
 
-    print("mulclose...")
-    G = mulclose(Sx+Sz, maxsize=2**len(Sx+Sz)) # too slow :-(
-    print(len(G))
-    P = reduce(add, G)
-    assert P*P == len(G)*P
-
-    Tn = atpow(T, n)
-    Tdn = atpow(Td, n)
-    print(P == Tn*P*Tdn)
+    if 0:
+        print("mulclose...")
+        G = mulclose(Sx+Sz, maxsize=2**len(Sx+Sz)) # too slow :-(
+        print(len(G))
+        P = reduce(add, G)
+        assert P*P == len(G)*P
+    
+        Tn = atpow(T, n)
+        Tdn = atpow(Td, n)
+        print(P == Tn*P*Tdn)
 
     #print(lhs.str(hide_zero=True, sep=""))
     #print()
