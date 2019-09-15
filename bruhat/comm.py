@@ -82,6 +82,14 @@ class Poly(object):
             assert len(names) == rank
         assert sum(head) == degree, str(self)
 
+    def flatstr(self):
+        cs = self.cs
+        keys = list(cs.keys())
+        keys.sort(reverse=True)
+        ss = [''.join(str(k) for k in key) for key in keys]
+        s = ["%s:%s" % (ss[i], cs[k]) for i, k in enumerate(keys)]
+        return "{" + ", ".join(s) + "}"
+
     @classmethod
     def identity(cls, rank, names=None):
         key = (0,)*rank

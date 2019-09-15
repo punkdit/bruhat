@@ -14,11 +14,11 @@ from operator import mul
 import numpy
 
 from bruhat.solve import array2, zeros2, dot2, shortstr, rank, find_kernel, span
-from bruhat.solve import linear_independent, parse, pseudo_inverse, eq2, rand2
+from bruhat.solve import linear_independent, parse, pseudo_inverse, eq2, rand2, rank
 from bruhat.action import mulclose
 from bruhat.comm import Poly
 from bruhat.argv import argv
-from bruhat.util import choose, cross
+from bruhat.util import choose, cross, all_perms
 
 
 class Code(object):
@@ -211,6 +211,89 @@ def reed_muller(r, m, puncture=False):
     return code
 
 
+def get_code():
+
+    name = argv.get("code")
+    code = None
+    if name == "toric":
+        G = parse("""
+        1.1.....
+        .1...1..
+        11.11...
+        .111..1.
+        1...11.1
+        """) # l=2 toric code X logops + X stabs 
+
+    elif name == "toric3":
+        G = parse("""
+        .....1.....1.....1
+        ............1.1.1.
+        .111..........1...
+        ...111..........1.
+        1.....11...1......
+        ..1....111........
+        ....1....111......
+        ......1.....11...1
+        ........1....111..
+        ..........1....111
+        """) # l=3 toric code X logops + X stabs 
+
+    elif name == "steane":
+        G = parse("""
+        1111111
+        1111...
+        .1.11.1
+        ..11.11
+        """)
+
+    elif name == "haah":
+        # triorthogonal matrix
+        G = parse("""
+        1111111.......
+        .......1111111
+        1.1.1.11.1.1.1
+        .11..11.11..11
+        ...1111...1111
+        """)
+        G = parse("""
+        1.1.1.11.1.1.1
+        .11..11.11..11
+        ...1111...1111
+        """)
+
+        G = parse("""
+        ..............1111111111111111
+        ......11111111........11111111
+        ..1111....1111....1111....1111
+        .1..11..11..11..11..11..11..11
+        11.1.1.1.1.1.1.1.1.1.1.1.1.1.1
+        """)
+
+    elif name == "rm":
+        r = argv.get("r", 1)
+        m = argv.get("m", 3)
+        code = reed_muller(r, m)
+        if argv.puncture:
+            code = code.puncture(0)
+
+    elif name == "rand":
+        n = argv.get("n", 8)
+        m = argv.get("m", 4)
+        G = rand2(m, n)
+        code = Code(G)
+
+    else:
+        assert 0, "no code chosen"
+
+    if code is None:
+        code = Code(G)
+
+    if argv.dual:
+        code = code.get_dual()
+
+    return code
+
+
 
 
 class Tensor(object):
@@ -335,11 +418,10 @@ def test():
     print("OK")
 
 
-def genus_enum1():
-    r = argv.get("r", 1) # degree
-    m = argv.get("m", 3)
-    puncture = argv.puncture
-    code = reed_muller(r, m, puncture)
+def genus_enum1(code=None):
+    if code is None:
+        code = get_code()
+
     G = code.G
     print(shortstr(G))
     m, n = G.shape
@@ -357,7 +439,7 @@ def genus_enum1():
         exp = tuple(exp)
         cs[exp] = cs.get(exp, 0) + 1
     p = poly(cs)
-    print(p)
+    print(p.flatstr())
     
     Z = numpy.array([[1, 0], [0, 1]])
     q = p.transform(Z)
@@ -368,12 +450,9 @@ def genus_enum1():
     print("invariant under CS2", q==p)
 
 
-
-def genus_enum2():
-    r = argv.get("r", 1) # degree
-    m = argv.get("m", 3)
-    puncture = argv.puncture
-    code = reed_muller(r, m, puncture)
+def genus_enum2(code=None):
+    if code is None:
+        code = get_code()
     G = code.G
     print(shortstr(G))
     m, n = G.shape
@@ -397,7 +476,7 @@ def genus_enum2():
         #break
     print()
     p = poly(cs)
-    print(p)
+    print(p.flatstr())
     
     CZ = numpy.array([
         [1, 0, 0, 0],
@@ -433,11 +512,9 @@ def genus_enum2():
 
 
 
-def genus_enum3():
-    r = argv.get("r", 1) # degree
-    m = argv.get("m", 4)
-    puncture = argv.puncture
-    code = reed_muller(r, m, puncture)
+def genus_enum3(code=None):
+    if code is None:
+        code = get_code()
     G = code.G
     print(shortstr(G))
     m, n = G.shape
@@ -459,7 +536,7 @@ def genus_enum3():
         #break
     print()
     p = poly(cs)
-    print(p)
+    print(p.flatstr())
     print()
     
     CCZ = numpy.array([
@@ -510,6 +587,37 @@ def genus_enum3():
     q = p.transform(A)
     print("invariant under A", q==p)
 
+
+def find_orbits():
+    n = argv.get("n", 3)
+    m = argv.get("m", 2)
+    rows = list(range(m))
+    cols = list(range(n))
+    orbits = {}
+    found = set()
+    for H in numpy.ndindex((2,)*n*m):
+        H = array2(H)
+        H.shape = (m, n)
+        s = H.tostring()
+        if s in orbits:
+            continue
+        if rank(H)<m:
+            continue
+        found.add(s)
+        for rperm in all_perms(rows):
+          for cperm in all_perms(cols):
+            #print(rperm, cperm)
+            J = H[rperm, :]
+            J = J[:, cperm]
+            #print(J)
+            J = J.copy()
+            s = J.tostring()
+            #assert s not in orbits
+            orbits[s] = H
+    for s in found:
+        H = numpy.fromstring(s, dtype=H.dtype)
+        print(H)
+    print(len(found))
 
 
 
@@ -1489,83 +1597,6 @@ def even_rows(G):
             Gx.append(u)
     Gx = array2(Gx)
     return Gx
-
-
-def get_code():
-
-    name = argv.get("code")
-    code = None
-    if name == "toric":
-        G = parse("""
-        1.1.....
-        .1...1..
-        11.11...
-        .111..1.
-        1...11.1
-        """) # l=2 toric code X logops + X stabs 
-
-    elif name == "toric3":
-        G = parse("""
-        .....1.....1.....1
-        ............1.1.1.
-        .111..........1...
-        ...111..........1.
-        1.....11...1......
-        ..1....111........
-        ....1....111......
-        ......1.....11...1
-        ........1....111..
-        ..........1....111
-        """) # l=3 toric code X logops + X stabs 
-
-    elif name == "steane":
-        G = parse("""
-        1111111
-        1111...
-        .1.11.1
-        ..11.11
-        """)
-
-    elif name == "haah":
-        # triorthogonal matrix
-        G = parse("""
-        1111111.......
-        .......1111111
-        1.1.1.11.1.1.1
-        .11..11.11..11
-        ...1111...1111
-        """)
-        G = parse("""
-        1.1.1.11.1.1.1
-        .11..11.11..11
-        ...1111...1111
-        """)
-
-        G = parse("""
-        ..............1111111111111111
-        ......11111111........11111111
-        ..1111....1111....1111....1111
-        .1..11..11..11..11..11..11..11
-        11.1.1.1.1.1.1.1.1.1.1.1.1.1.1
-        """)
-
-    elif name == "rm":
-        r = argv.get("r", 1)
-        m = argv.get("m", 5)
-        code = reed_muller(r, m)
-        if argv.puncture:
-            code = code.puncture(0)
-
-    else:
-        return None
-
-    if code is None:
-        code = Code(G)
-
-    if argv.dual:
-        code = code.get_dual()
-
-    return code
 
 
 def triortho():
