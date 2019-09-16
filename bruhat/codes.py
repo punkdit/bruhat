@@ -439,7 +439,10 @@ def genus_enum1(code=None):
         exp = tuple(exp)
         cs[exp] = cs.get(exp, 0) + 1
     p = poly(cs)
-    print(p.flatstr())
+    if argv.latex:
+        print(p)
+    else:
+        print(p.flatstr())
     
     Z = numpy.array([[1, 0], [0, 1]])
     q = p.transform(Z)
@@ -476,7 +479,10 @@ def genus_enum2(code=None):
         #break
     print()
     p = poly(cs)
-    print(p.flatstr())
+    if argv.latex:
+        print(p)
+    else:
+        print(p.flatstr())
     
     CZ = numpy.array([
         [1, 0, 0, 0],
@@ -536,7 +542,10 @@ def genus_enum3(code=None):
         #break
     print()
     p = poly(cs)
-    print(p.flatstr())
+    if argv.latex:
+        print(p)
+    else:
+        print(p.flatstr())
     print()
     
     CCZ = numpy.array([
