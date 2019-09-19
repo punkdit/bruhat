@@ -712,6 +712,7 @@ class Polynomial(Element):
             a.reduce(b): use a to reduce b.
             return (div, rem) such that div*a+rem==b.
         """
+        #print("Polynomial.reduce", a, b)
         tp = a.tp
         base = a.base
         if b.deg < a.deg:
@@ -756,7 +757,7 @@ class ModuloRing(Keyed, Ring):
         self.mod = mod
         key = (self.ring, self.mod)
         Keyed.__init__(self, key)
-        self.reduce = mod.reduce
+        self.reduce = mod.reduce # <------- hang this method on self <--------
         self.zero = ModuloElement(ring.zero, self)
         self.one = ModuloElement(ring.one, self)
 
@@ -771,6 +772,7 @@ class ModuloRing(Keyed, Ring):
         return a
 
     def __getattr__(self, attr):
+        #print("__getattr__", attr)
         value = getattr(self.ring, attr)
         a = ModuloElement(value, self)
         return a
@@ -790,9 +792,14 @@ class ModuloRing(Keyed, Ring):
         return a
 
     def mul(self, a, b):
+        #print("mod:", self.mod)
+        #print("mul", a, b)
         ring = self.ring
         value = ring.mul(a.value, b.value)
+        #print("value", value)
+        #print(self.reduce)
         value = self.reduce(value)[1]
+        #print("self.reduce(value)[1] =", value)
         a = ModuloElement(value, self)
         return a
 
@@ -1218,6 +1225,7 @@ def CyclotomicField_FAIL(n):
 
 
 def CyclotomicRing(n):
+    assert n>2, "umm... try n=4 ?"
     ring = PolynomialRing(Z)
     p = cyclotomic(ring, n)
     ring = ring / p
@@ -1531,6 +1539,7 @@ def test():
     
         ring = PolynomialRing(Z) / p
         x = ring.x
+        assert x*1 == x
     
         x1 = x**(2*n-1) # inverse
         

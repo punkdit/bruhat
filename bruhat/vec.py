@@ -204,6 +204,11 @@ class Hom(Keyed, Type):
 #    def zero(self):
 #        return Map([], self) # the zero map
 
+    @property
+    def one(self):
+        assert self.src == self.tgt
+        return self.src.inject_to(self.tgt)
+
     def zero_vector(self):
         v = Map([], self)
         return v
