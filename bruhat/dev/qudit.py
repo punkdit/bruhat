@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""
+The Heisenberg-Weyl group & clifford hierarchy for qudits.
+
+"""
+
 from operator import matmul
 from functools import reduce
 
@@ -97,6 +102,10 @@ def main():
     
     lhs = X@X
     rhs = Z@Zdag
+    assert lhs * rhs == rhs * lhs
+
+    lhs = X@(X**(d-1))
+    rhs = Z@Z
     assert lhs * rhs == rhs * lhs
 
     if 0:
