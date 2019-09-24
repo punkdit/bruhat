@@ -6,6 +6,7 @@ Do everything with indexes.. might be more efficient than action.py
 """
 
 import numpy
+scalar = numpy.int64
 
 from bruhat.util import factorial
 from bruhat.action import mulclose
@@ -20,13 +21,16 @@ class Perm(object):
 
     def __init__(self, perm):
         assert isinstance(perm, list) or isinstance(perm, numpy.ndarray)
-        perm = numpy.array(perm)
+        perm = numpy.array(perm, dtype=scalar)
         self.perm = perm.copy()
         self.rank = len(perm)
         if DEBUG:
-            items = list(perm)
-            items.sort()
-            assert items == list(range(self.rank))
+            self.do_check()
+
+    def do_check(self):
+        items = list(self.perm)
+        items.sort()
+        assert items == list(range(self.rank))
 
     @property
     def identity(self):
@@ -52,8 +56,14 @@ class Perm(object):
         return self.perm.tostring() <= other.perm.tostring()
 
     def __mul__(self, other):
-        perm = self.perm[other.perm] # check this is the right order!
-        return Perm(perm)
+        if isinstance(other, Perm):
+            perm = self.perm[other.perm] # check this is the right order!
+            result = Perm(perm)
+        elif isinstance(other, (int, scalar)):
+            result = self.perm[other]
+        else:
+            raise TypeError
+        return result
 
     def inverse(self):
         perm = self.perm
@@ -66,6 +76,9 @@ class Perm(object):
         return self.perm[i]
 
     #def orbits(self):
+
+def compose(f, g):
+    return [f[gi] for gi in g]
 
 
 class Group(object):
@@ -83,6 +96,7 @@ class Group(object):
         self.n = len(self.perms)
         self.rank = perms[0].rank
         self.lookup = dict((perm, idx) for (idx, perm) in enumerate(self.perms))
+        assert len(self.lookup) == self.n
         if DEBUG:
             self.do_check()
 
@@ -100,7 +114,7 @@ class Group(object):
         return Perm(list(range(self.rank)))
 
     def __str__(self):
-        return "Group(order=%s)"%(self.n,)
+        return "Group(order=%s, rank=%s)"%(self.n, self.rank)
     __repr__ = __str__
 
     def __len__(self):
@@ -159,6 +173,18 @@ class Group(object):
         return G
 
     @classmethod
+    def dihedral(cls, n):
+        assert n>0
+        perms = []
+        perm = [(i+1)%n for i in range(n)]
+        perms.append(Perm(perm))
+        perm = [(-i)%n for i in range(n)]
+        perms.append(Perm(perm))
+        G = Group(gen=perms)
+        #assert len(G) == 2*n
+        return G
+
+    @classmethod
     def from_action(cls, G, X):
         lookup = dict((v, idx) for (idx, v) in enumerate(X))
         perms = []
@@ -191,7 +217,7 @@ class Group(object):
         hom = Hom(self, self, send_perms)
         return hom
         
-    def orbits(self):
+    def get_orbits(self):
         remain = set(range(self.rank))
         orbits = []
         while remain:
@@ -209,16 +235,30 @@ class Group(object):
             orbits.append(orbit)
         return orbits
 
+    def get_components(self):
+        orbits = self.get_orbits()
+        Gs = []
+        for orbit in orbits:
+            G = Group.from_action(self, orbit)
+            assert G.n <= self.n
+            assert self.n % G.n == 0
+            Gs.append(G)
+        return Gs
+
     def get_sequence(G, n=5):
-        yield len(G.orbits())
+        yield len(G.get_orbits())
         i = j = G.i
         for count in range(n):
-            j = i*j
+            j = (i*j)[0]
             H = j.tgt
-            yield len(H.orbits())
+            yield len(H.get_orbits())
 
 
 class Hom(object):
+    """
+        A morphism of concrete groups.
+        This is (also) a G-set where the src is G.
+    """
     def __init__(self, src, tgt, send_perms):
         assert isinstance(src, Group)
         assert isinstance(tgt, Group)
@@ -259,7 +299,7 @@ class Hom(object):
         for idx, p in enumerate(G):
             l = left.tgt[send_left[idx]]
             r = right.tgt[send_right[idx]]
-            perm = numpy.array(range(lrank+rrank))
+            perm = numpy.array(range(lrank+rrank), dtype=scalar)
             perm[:lrank] = perm[l.perm]
             perm[lrank:] = perm[r.perm + lrank]
             #perm = perm.copy()
@@ -268,7 +308,11 @@ class Hom(object):
         tgt = Group(perms) # ARGH, shuffles the order of perms
         send_perms = [tgt.lookup[perm] for perm in perms]
         hom = Hom(G, tgt, send_perms)
-        return hom
+        send_items = [i for i in range(lrank)]
+        left = Nat(left, hom, send_items)
+        send_items = [i+lrank for i in range(rrank)]
+        right = Nat(right, hom, send_items)
+        return hom, left, right
 
     def __mul__(left, right):
         assert left.src == right.src
@@ -281,7 +325,7 @@ class Hom(object):
         for idx, p in enumerate(G):
             l = left.tgt[send_left[idx]]
             r = right.tgt[send_right[idx]]
-            perm = numpy.array(range(lrank*rrank))
+            perm = numpy.array(range(lrank*rrank), dtype=scalar)
             perm.shape = (lrank, rrank)
             perm = perm[l.perm, :]
             perm = perm[:, r.perm]
@@ -292,12 +336,50 @@ class Hom(object):
         tgt = Group(perms) # ARGH, shuffles the order of perms
         send_perms = [tgt.lookup[perm] for perm in perms]
         hom = Hom(G, tgt, send_perms)
-        return hom
+        send_items = [i for i in range(lrank) for j in range(rrank)]
+        left = Nat(hom, left, send_items)
+        send_items = [j for i in range(lrank) for j in range(rrank)]
+        right = Nat(hom, right, send_items)
+        return hom, left, right
+
+
+class Nat(object):
+    """
+        A morphism of G-sets. 
+    """
+
+    def __init__(self, src, tgt, send_items):
+        assert isinstance(src, Hom)
+        assert isinstance(tgt, Hom)
+        G = src.src
+        assert G == tgt.src
+        self.src = src
+        self.tgt = tgt
+        self.G = G
+        assert len(send_items) == src.tgt.rank
+        self.send_items = list(send_items)
+        if DEBUG:
+            self.do_check()
+
+    def do_check(self):
+        src = self.src
+        tgt = self.tgt
+        send_items = self.send_items
+        items = set(send_items)
+        assert items.issubset(set(range(tgt.tgt.rank)))
+        G = self.G
+        for i in range(G.n):
+            lg = src.tgt[src.send_perms[i]]
+            left = compose(send_items, lg)
+            rg = tgt.tgt[tgt.send_perms[i]]
+            right = compose(rg, send_items)
+            assert left == right
+
 
 
 def general_linear(n=3, p=2):
     G = algebraic.GL(n, p)
-    v = numpy.array([0]*n)
+    v = numpy.array([0]*n, dtype=scalar)
     v[0] = 1
     v = algebraic.Op(v, p)
     X = set([])
@@ -313,11 +395,11 @@ def test():
 
     G = Group.trivial(1)
     H = Group.trivial(2)
-    assert (G.i + G.i).tgt == H
+    assert (G.i + G.i)[0].tgt == H
 
     G = Group.symmetric(3)
     assert len(G) == 6
-    assert G.orbits() == [[0, 1, 2]]
+    assert G.get_orbits() == [[0, 1, 2]]
     
     hom = G.regular_action()
     R = hom.tgt
@@ -325,23 +407,39 @@ def test():
     assert R == R.regular_action().tgt
 
     X = G.i
-    XX = X*X
-    assert XX.tgt.orbits() == [[0, 4, 8], [1, 2, 3, 5, 6, 7]]
-    assert ((X+X).tgt.orbits()) == [[0, 1, 2], [3, 4, 5]]
+    XX = (X*X)[0]
+    assert XX.tgt.get_orbits() == [[0, 4, 8], [1, 2, 3, 5, 6, 7]]
+    assert ((X+X)[0].tgt.get_orbits()) == [[0, 1, 2], [3, 4, 5]]
 
     G = Group.cyclic(5)
-    H = (G.i * G.i).tgt
-    assert len(H.orbits()) == 5
-
-    G = Group.alternating(4)
-    H = (G.i * G.i).tgt
-    #print(H.orbits())
+    H = (G.i * G.i)[0].tgt
+    assert len(H.get_orbits()) == 5
 
     G = Group.alternating(5)
-    #H = (G.i * G.i).tgt
-    #assert len(H.orbits()) == 2
+    H = (G.i * G.i)[0]
+    H = H.tgt
+    Gs = H.get_components()
+    assert len(Gs) == 2
+    assert Gs[0].rank == 5
+    assert Gs[1].rank == 20
+
+    G = Group.alternating(5)
+    H = (G.i * G.i)[0]
+    H = (G.i * H)[0]
+    #Gs = H.get_components() # TODO
+
+
+    G = Group.alternating(5)
+
+    GG = (G.i * G.i)[0]
+    GG_G = (GG * G.i)[0]
+    G_GG = (G.i * GG)[0]
+    assert GG_G == G_GG
+    #assert len(H.get_orbits()) == 2
 
     #for G in [Group.symmetric(5), Group.alternating(5)]:
+
+    G = Group.dihedral(5)
 
     G = Group.symmetric(3)
     assert list(G.get_sequence(5)) == [1, 2, 5, 14, 41, 122]
@@ -349,9 +447,10 @@ def test():
     G = general_linear(3, 2)
     assert len(G) == 168
 
-    for size in G.get_sequence():
-        print(size, end=" ", flush=True)
-    print()
+    #for size in G.get_sequence():
+    #    print(size, end=" ", flush=True)
+    #print()
+
 
 
 
