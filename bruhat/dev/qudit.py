@@ -13,7 +13,7 @@ import numpy
 from bruhat import element
 from bruhat.action import mulclose
 from bruhat.util import cross
-from bruhat.element import CyclotomicRing, test
+from bruhat.element import CyclotomicRing, test, FiniteField, PolynomialRing
 from bruhat.vec import Space, Hom, Map
 from bruhat.argv import argv
 
@@ -35,9 +35,16 @@ def main():
     assert d>=2
 
     if d==2:
-        #ring = CyclotomicRing(4)
-        ring = element.Z
-        w = -1
+        ring = CyclotomicRing(4)
+        #ring = element.Z
+        gamma = ring.x
+        w = gamma**2
+        assert w == -1
+        argv.double = True
+    elif 1:
+        ring = CyclotomicRing(d**2)
+        gamma = ring.x
+        w = gamma**d
     else:
         ring = CyclotomicRing(d)
         w = ring.x
@@ -49,14 +56,36 @@ def main():
     Zdag = numpy.zeros((d, d), dtype=object)
     S = numpy.zeros((d, d), dtype=object)
     Sdag = numpy.zeros((d, d), dtype=object)
+    T = numpy.zeros((d, d), dtype=object)
+    Tdag = numpy.zeros((d, d), dtype=object)
     for j in range(d):
         I[j, j] = 1
         wI[j, j] = w
         X[j, (j+1)%d] = 1
         Z[j, j] = w**j
         Zdag[j, j] = w**(d-j)
-        S[j, j] = w**(j**2)
-        Sdag[j, j] = w**(d - (j**2)%d)
+
+        if d==2:
+            val = gamma**(j**2)
+            ival = gamma**(d**2 - (j**2)%(d**2))
+        else:
+            val = w**(j**2)
+            ival = w**(d - (j**2)%d)
+        assert val*ival == 1
+
+        S[j, j] = val
+        Sdag[j, j] = ival
+
+        if d in [2, 3, 6]:
+            val = gamma**(j**3)
+            ival = gamma**(d**2 - (j**3)%(d**2))
+        else:
+            val = w**(j**3)
+            ival = w**(d - (j**3)%d)
+        assert val*ival == 1
+
+        T[j, j] = val
+        Tdag[j, j] = ival
 
     qu = Space(d, ring)
     hom = Hom(qu, qu)
@@ -69,15 +98,12 @@ def main():
     Zdag = Map.from_array(Zdag, hom)
     S = Map.from_array(S, hom)
     Sdag = Map.from_array(Sdag, hom)
+    T = Map.from_array(T, hom)
+    Tdag = Map.from_array(Tdag, hom)
+
     Y = w*X*Z # ?
 
     assert S*Sdag == I
-
-    pauli = mulclose([X, Z])
-    pauli = set(pauli)
-    print("pauli:", len(pauli))
-    assert Zdag in pauli
-    assert Xdag in pauli
 
     assert Z*Zdag == I
     assert X*Xdag == I
@@ -93,6 +119,15 @@ def main():
         assert Z*Z == I
 
     assert Z*X == (w**(d-1))*X*Z
+
+    if argv.double:
+        pauli = mulclose([X, Z, gamma*I])
+    else:
+        pauli = mulclose([X, Z])
+    pauli = set(pauli)
+    print("pauli:", len(pauli))
+    assert Zdag in pauli
+    assert Xdag in pauli
 
     if d<6:
         # slow..
@@ -138,25 +173,71 @@ def main():
     if d==3:
         assert (Y == S*X*Sdag)
     
-    def is_cliff(A, Adag):
+    inverse = {}
+    for g in pauli:
+      for h in pauli:
+        if g*h == I:
+            inverse[g] = h
+            inverse[h] = g
+
+    def is_cliff(A, Ai):
+        assert A*Ai == I
         for g in pauli:
-            h = A*g*Adag
+            h = A*g*Ai
             if h not in pauli:
                 return False
         return True
+    print(S)
+    print(Sdag)
     assert is_cliff(S, Sdag)
 
     #print("is_cliff:", (S in pauli), is_cliff(S, Sdag))
 
-    #def is_third_level(A, Adag):
+    def is_third_level(A, Ai):
+        assert A*Ai == I
+        for g in pauli:
+            gi = inverse[g]
+            h = A*g*Ai*gi
+            hi = g*A*gi*Ai
+            if not is_cliff(h, hi):
+                return False
+        return True
+
+    print("is_pauli(S)", S in pauli)
+    print("is_cliff(S)", is_cliff(S, Sdag))
+    #print("is_third_level(S)", is_third_level(S, Tdag))
+
+    print("is_pauli(T)", T in pauli)
+    print("is_cliff(T)", is_cliff(T, Tdag))
+    print("is_third_level(T)", is_third_level(T, Tdag))
         
 
     print("OK")
+
+
+def test():
+
+    d = argv.get("d", 3)
+    r = argv.get("r", 3)
+
+    field = FiniteField(d)
+    ring = PolynomialRing(field)
+
+    funcs = []
+
+    one = ring.one
+    x = ring.x
+    f = x**r # if r==d and is prime then this is the Frobenius: it's the identity function on the field.
+
+    for i in range(d):
+        print(f(i))
+
 
 
 
 if __name__ == "__main__":
 
     main()
+    #test()
 
 

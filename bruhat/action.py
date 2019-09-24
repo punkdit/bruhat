@@ -1625,7 +1625,7 @@ def main():
         from bruhat import geometry
         g = geometry.fano()
         keys = list(g.items)
-        keys.sort()
+        keys.sort(key = str)
         #print keys
         lookup = dict((v, k) for (k, v) in enumerate(keys))
         points = keys[:7]
