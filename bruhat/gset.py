@@ -97,8 +97,6 @@ class Group(object):
         return hom
 
 
-
-
 class Hom(object):
     def __init__(self, src, tgt, send_perms):
         assert isinstance(src, Group)
@@ -106,6 +104,17 @@ class Hom(object):
         self.src = src
         self.tgt = tgt
         self.send_perms = send_perms
+        self.check()
+
+    def check(self):
+        src = self.src
+        tgt = self.tgt
+        send_perms = self.send_perms
+        for idx, p in src:
+          for jdx, q in src:
+            lhs = p * q
+            rhs = tgt[send_perms[idx]] * tgt[send_perms[jdx]]
+            assert lhs == rhs
 
 
 def test():
