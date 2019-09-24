@@ -3,7 +3,6 @@
 """
 Algebraic groups: matrix groups over Z/pZ.
 
-incomplete / abandoned for now.
 """
 
 
@@ -22,12 +21,12 @@ from bruhat.argv import argv
 class Op(object):
     def __init__(self, A, p):
         self.A = A.astype(scalar) # copy
-        n = A.shape[0]
-        assert A.shape == (n, n)
+        #n = A.shape[0]
+        #assert A.shape == (n, n)
         assert int(p) == p
         assert p>=0
         self.p = p
-        self.n = n
+        #self.n = n
         if p>0:
             self.A %= p
         self.key = (self.p, self.A.tostring())
@@ -55,7 +54,7 @@ class Op(object):
         A = self.A - other.A
         return Op(A, self.p)
 
-    def __neg__(self, other):
+    def __neg__(self):
         A = -self.A
         return Op(A, self.p)
 
@@ -108,14 +107,30 @@ def SL(n, p):
             A = I.copy()
             A[i, j] = 1
             gen.append(Op(A, p))
-#    for op in gen:
-#        print(op)
-#        print(numpy.linalg.det(op.A))
     order = order_sl(n, p)
-#    G = mulclose(gen, maxsize=order)
-    G = mulclose(gen)
+    G = mulclose(gen, maxsize=order)
+    #G = mulclose(gen)
+    #assert len(G)==order
+    return list(G)
+
+
+
+def GL(n, p):
+    "general linear group"
+    assert int(n)==n
+    assert int(p)==p
+    assert n>0
+    assert isprime(p)
+
+    H = SL(n, p)
+    nI = Op(-numpy.identity(n, scalar), p)
+    if p>2:
+        G = H + [nI*g for g in H]
+    else:
+        G = H
+    order = order_gl(n, p)
     assert len(G)==order
-    return G
+    return list(G)
 
 
 def main():
@@ -130,6 +145,10 @@ def main():
 
     if argv.SL:
         G = SL(n, p)
+        print("|G| =", len(G))
+
+    if argv.GL:
+        G = GL(n, p)
         print("|G| =", len(G))
 
 

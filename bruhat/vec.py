@@ -560,6 +560,7 @@ if __name__ == "__main__":
 
     test_over_ring(element.Z)
     test_over_ring(element.Q)
+    test_over_ring(element.FiniteField(5))
 
     print("OK")
 
