@@ -117,6 +117,9 @@ class Group(object):
         return "Group(order=%s, rank=%s)"%(self.n, self.rank)
     __repr__ = __str__
 
+    def longstr(self):
+        return "Group(%s)"%(self.perms,)
+
     def __len__(self):
         return self.n
 
@@ -265,16 +268,9 @@ class Hom(object):
         self.src = src
         self.tgt = tgt
         self.send_perms = send_perms
+        self.rank = tgt.rank
         if DEBUG:
             self.do_check()
-
-    def __eq__(self, other):
-        assert self.src == other.src
-        return self.tgt == other.tgt and self.send_perms == other.send_perms
-
-    def __ne__(self, other):
-        assert self.src == other.src
-        return self.tgt != other.tgt or self.send_perms != other.send_perms
 
     def do_check(self):
         src = self.src
@@ -287,6 +283,71 @@ class Hom(object):
             lhs = tgt[send_perms[kdx]]
             rhs = tgt[send_perms[idx]] * tgt[send_perms[jdx]]
             assert lhs == rhs, (lhs, rhs)
+
+    def __eq__(self, other):
+        assert self.src == other.src
+        return self.tgt == other.tgt and self.send_perms == other.send_perms
+
+    def __ne__(self, other):
+        assert self.src == other.src
+        return self.tgt != other.tgt or self.send_perms != other.send_perms
+
+    def __str__(self):
+        #return "Hom(%s, %s, %s)"%(self.src.n, self.tgt.rank, self.send_perms)
+        return "Hom(%s, %s, %s)"%(self.src, self.tgt, self.send_perms)
+    __repr__ = __str__
+
+    def compose(self, other):
+        assert self.tgt == other.src
+        a = self.send_perms
+        b = other.send_perms
+        send_perms = [b[i] for i in a]
+        return Hom(self.src, other.tgt, send_perms)
+
+    @classmethod
+    def from_action(cls, G, X):
+        lookup = dict((v, idx) for (idx, v) in enumerate(X))
+        perms = []
+        for g in G:
+            perm = [lookup[g*v] for v in X]
+            perms.append(Perm(perm))
+        tgt = Group(perms)
+        send_perms = [tgt.lookup[perm] for perm in perms]
+        hom = cls(G, tgt, send_perms)
+        return hom
+
+    def get_orbits(self):
+        src = self.src
+        tgt = self.tgt
+        send_perms = self.send_perms
+        remain = set(range(tgt.rank))
+        orbits = []
+        while remain:
+            i = iter(remain).__next__()
+            remain.remove(i)
+            orbit = set([i])
+            for idx in send_perms:
+                g = tgt[idx]
+                j = g[i]
+                while j != i:
+                    orbit.add(j)
+                    j = g[j]
+            remain.difference_update(orbit)
+            orbit = list(orbit)
+            orbit.sort()
+            orbits.append(orbit)
+        return orbits
+
+    def get_components(self):
+        orbits = self.get_orbits()
+        nats = []
+        for orbit in orbits:
+            hom = Hom.from_action(self.tgt, orbit)
+            hom = self.compose(hom)
+            send_items = list(orbit)
+            nat = Nat(hom, self, send_items)
+            nats.append(nat)
+        return nats
 
     def __add__(left, right):
         assert left.src == right.src
@@ -375,6 +436,9 @@ class Nat(object):
             right = compose(rg, send_items)
             assert left == right
 
+    def __str__(self):
+        return "Nat(%s, %s, %s)"%(self.src, self.tgt, self.send_items)
+    __repr__ = __str__
 
 
 def general_linear(n=3, p=2):
@@ -411,6 +475,11 @@ def test():
     assert XX.tgt.get_orbits() == [[0, 4, 8], [1, 2, 3, 5, 6, 7]]
     assert ((X+X)[0].tgt.get_orbits()) == [[0, 1, 2], [3, 4, 5]]
 
+    G = Group.cyclic(3)
+    H = (G.i + G.i)[0]
+    for nat in H.get_components():
+        pass
+
     G = Group.cyclic(5)
     H = (G.i * G.i)[0].tgt
     assert len(H.get_orbits()) == 5
@@ -426,18 +495,23 @@ def test():
     G = Group.alternating(5)
     H = (G.i * G.i)[0]
     H = (G.i * H)[0]
-    #Gs = H.get_components() # TODO
-
+    homs = [nat.src for nat in H.get_components()]
+    A, B, C = homs[0], homs[1], homs[4]
+    assert A.rank == 5
+    assert B.rank == 20
+    assert C.rank == 60
+    AB = (A * B)[0]
+    BC = (B * C)[0]
+    AB_C = (AB * C)[0]
+    A_BC = (A * BC)[0]
+    assert AB_C == A_BC # strict monoidal 
 
     G = Group.alternating(5)
 
     GG = (G.i * G.i)[0]
     GG_G = (GG * G.i)[0]
     G_GG = (G.i * GG)[0]
-    assert GG_G == G_GG
-    #assert len(H.get_orbits()) == 2
-
-    #for G in [Group.symmetric(5), Group.alternating(5)]:
+    assert GG_G == G_GG # strict monoidal 
 
     G = Group.dihedral(5)
 
