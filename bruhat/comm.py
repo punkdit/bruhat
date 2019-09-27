@@ -3,6 +3,7 @@
 """
 Commutative _polynomials.
 
+See also: poly.py 
 """
 
 # Code converted to python3 from cpoly.py by 2to3

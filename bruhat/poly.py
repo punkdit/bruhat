@@ -236,6 +236,11 @@ class Poly(object):
         s = s.replace("}", "")
         return s
 
+    def substitute(self, ns):
+        s = self.python_str()
+        p = eval(s, ns)
+        return p
+
 
 def test():
     global ring
@@ -275,6 +280,7 @@ def test():
         a += Poly("a_%d"%i, ring)
         b += Poly("b_%d"%i, ring)
 
+    print("OK")
 
 
 class Formal(series.Series):
