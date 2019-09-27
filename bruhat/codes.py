@@ -418,7 +418,7 @@ def test():
     print("OK")
 
 
-def genus_enum1(code=None):
+def genus_enum1(code=None, verbose=False):
     if code is None:
         code = get_code()
 
@@ -439,21 +439,23 @@ def genus_enum1(code=None):
         exp = tuple(exp)
         cs[exp] = cs.get(exp, 0) + 1
     p = poly(cs)
-    if argv.latex:
-        print(p)
-    else:
-        print(p.flatstr())
+
+    if argv.show:
+        if argv.latex:
+            print(p)
+        else:
+            print(p.flatstr())
+        
+        Z = numpy.array([[1, 0], [0, 1]])
+        q = p.transform(Z)
+        print("invariant under Z", q==p)
     
-    Z = numpy.array([[1, 0], [0, 1]])
-    q = p.transform(Z)
-    print("invariant under Z", q==p)
-
-    S2 = numpy.array([[0, 1], [-1, 0]])
-    q = p.transform(S2)
-    print("invariant under CS2", q==p)
+        S2 = numpy.array([[0, 1], [-1, 0]])
+        q = p.transform(S2)
+        print("invariant under CS2", q==p)
 
 
-def genus_enum2(code=None):
+def genus_enum2(code=None, verbose=False):
     if code is None:
         code = get_code()
     G = code.G
@@ -518,7 +520,7 @@ def genus_enum2(code=None):
 
 
 
-def genus_enum3(code=None):
+def genus_enum3(code=None, verbose=False):
     if code is None:
         code = get_code()
     G = code.G

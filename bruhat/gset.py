@@ -82,6 +82,12 @@ def compose(f, g):
 
 
 class Group(object):
+    """
+        A concrete group of permutations masquerading as an abstract group.
+        This gets confusing once we start constructing Hom's below as
+        actions of some abstract group on a concrete group. There is not much
+        to distinguish these two kinds of group apart from your imagination.
+    """
     def __init__(self, perms=None, gen=None):
         if perms is None:
             assert gen is not None

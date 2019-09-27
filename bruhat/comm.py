@@ -259,7 +259,7 @@ class Poly(object):
         for k, v in vs.items():
             assert type(k) is str
             assert isinstance(v, Poly)
-            assert v.names == self.names
+            #assert v.names == self.names # too strict. commented for now.
             #s = s.replace(k, "(%s)"%(v.py_str()))
             assert k in ns, "unknown name %r"%k
             ns[k] = v
