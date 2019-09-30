@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
 Here we look at universal quantum gate sets over a finite field.
+It doesn't really work because there is no concept of "unitary" here,
+the finite field has no galois automorphisms.
 
 See also: clifford.py
 """
@@ -181,9 +183,30 @@ def clifford():
 
     print("p =", p)
     #print(i4, r2, i8)
+    #print(has_imag, has_root2, has_i8)
+    for i in items:
+        if i*i8 == 1:
+            i8_dag = i
+    #print(i8_dag)
+
+    # try to take a daggar... doesn't really work tho.
+    assert p==17
+    dag = {
+        0:0, 1:1, 2:9, 3:3, 4:13, 5:12, 6:6, 7:7, 8:15,
+        9:2, 10:10, 11:11, 12:5, 13:4, 14:14, 15:8, 16:16,  
+    }
+    for (k, v) in list(dag.items()):
+        dag[k] = field.promote(v)
+        dag[field.promote(k)] = field.promote(v)
+
+    assert dag[i4] == -i4
 
     qubit = Space(2, field)
     hom = Hom(qubit, qubit)
+
+    def getdag(A):
+        items = [((j, i), dag[v]) for ((i, j), v) in A.items]
+        return Map(items, hom)
 
     I = Map.from_array([[1, 0], [0, 1]], hom)
     X = Map.from_array([[0, 1], [1, 0]], hom)
@@ -193,7 +216,10 @@ def clifford():
     assert H*H == I
 
     S = Map.from_array([[1, 0], [0, i4]], hom)
+    Sdag = Map.from_array([[1, 0], [0, dag[i4]]], hom)
     assert S*S == Z
+    assert S*Sdag == I
+    assert getdag(S) == Sdag
 
     T = Map.from_array([[1, 0], [0, i8]], hom)
     assert S*S == Z
@@ -202,9 +228,11 @@ def clifford():
     assert len(C1) == 8
 
     # C1 is Pauli group + phases
-    P = fgen*I # phase
+    #P = fgen*I # phase
+    P = i4*I
     C1 = mulclose([X, Z, P])  # add phases
-    assert len(C1) == 64, len(C1)
+#    assert len(C1) == 64, len(C1)
+    assert len(C1) == 32, len(C1)
     C1_lookup = set(C1)
 
     #gen = [X, Z, S, H]
@@ -221,30 +249,62 @@ def clifford():
     G_lookup = set(G)
     print("|GL(%d, 2)|=%d" % (p, len(G)))
 
+    U = []
+    for g in G:
+        if g*getdag(g) == I:
+            U.append(g)
+    print("|U|=", len(U))
+
     gen = [X, Z, S, H, P]
 
     # Clifford group + phases
     C2 = mulclose(gen)
-    assert len(C2) == 384
+#    assert len(C2) == 384, len(C2)
+    assert len(C2) == 192, len(C2)
     C2_lookup = set(C2)
     print("|C2| =", len(C2))
 
+    print(C2_lookup == set(U))
+
     for g in C2:
         assert g in G_lookup
+        #assert g*getdag(g) == I, str(g) # FAIL
+
+#    inv = {I:I}
+#    for a in G:
+#      if a in inv:
+#        continue
+#      for b in G:
+#        ab = a*b
+#        ci = inv.get(ab)
+#        if ci is None:
+#            continue
+#        inv[a] = b*ci
+#        inv[b] = ci*a
+#      print(len(inv), end=" ", flush=True)
+#    print()
 
     inv = {I:I}
-    for a in G:
-      if a in inv:
-        continue
-      for b in G:
-        ab = a*b
-        ci = inv.get(ab)
-        if ci is None:
-            continue
-        inv[a] = b*ci
-        inv[b] = ci*a
-      print(len(inv), end=" ", flush=True)
+    remain = set(G)
+    remain.remove(I)
+    while remain:
+        a = iter(remain).__next__()
+        assert a not in inv
+        for b in G:
+            ab = a*b
+            ci = inv.get(ab)
+            if ci is None:
+                continue
+            if a not in inv:
+                inv[a] = b*ci
+                remain.remove(a)
+            if b not in inv:
+                inv[b] = ci*a
+                remain.remove(b)
+        print(len(inv), end=" ", flush=True)
     print()
+
+    assert len(inv) == len(G)
 
     if 0:
         for g2 in C2:
@@ -317,8 +377,9 @@ def clifford():
     done = False
     while not done:
         done = True
-        print("obs:", len(obs))
+        #print("obs:", len(obs))
     
+        obs.sort(key = len, reverse=True)
         obs1 = list(obs)
         for s in obs:
           for t in obs:
@@ -328,14 +389,18 @@ def clifford():
                 a = '*'
                 obs1.append(st)
                 done = False
-            print("%4d"%(len(st)), end=a)
-          print()
-    
+            #print("%4d"%(len(st)), end=a)
+          #print()
         obs = obs1
+        obs.sort(key = len, reverse=True)
 
-    print("obs:", len(obs))
+    print("obs:", len(obs), [len(ob) for ob in obs])
     for ob in obs:
-        print(len(ob), end=" ")
+        #print(len(ob), end=" ")
+        iob = [inv[a] for a in ob if inv[a] in ob]
+        print((len(ob), len(iob)), end=" ")
+            
+    print()
 
 
 
