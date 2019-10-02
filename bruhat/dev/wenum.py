@@ -219,7 +219,7 @@ def genus_enum3(G, verbose=False):
     return p
 
 
-def test_enum(G):
+def test_enum(G, verbose=False):
 
     x_0 = xpoly1({(1,0):1})
     x_1 = xpoly1({(0,1):1})
@@ -233,6 +233,11 @@ def test_enum(G):
     w1 = genus_enum1(G)
     w2 = genus_enum2(G)
     w3 = genus_enum3(G)
+
+    if verbose:
+        print(w1)
+        print(w2)
+        print(w3)
 
     zero1 = xpoly1({})
     zero2 = xpoly2({})
@@ -297,7 +302,7 @@ def test():
     test_enum(G)
 
     G = parse("11. .11")
-    test_enum(G)
+    test_enum(G, verbose=True)
 
     #G = parse("11.. .11. 1..1")
     #test_enum(G)
@@ -310,7 +315,7 @@ def test():
     print("OK")
 
 
-def main():
+def hecke():
 
     n = 5 # cols
 
@@ -330,6 +335,6 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    test()
 
 
