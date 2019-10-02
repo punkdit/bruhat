@@ -102,6 +102,9 @@ class Group(object):
         self.n = len(self.perms)
         self.rank = perms[0].rank
         self.lookup = dict((perm, idx) for (idx, perm) in enumerate(self.perms))
+        self.identity = Perm(list(range(self.rank)))
+        self._str = str(self.perms)
+        self._hash = hash(self._str)
         assert len(self.lookup) == self.n
         if DEBUG:
             self.do_check()
@@ -115,12 +118,13 @@ class Group(object):
             assert g.inverse() in lookup
             assert g.inverse() * g == self.identity
 
-    @property
-    def identity(self):
-        return Perm(list(range(self.rank)))
+#    @property
+#    def identity(self):
+#        return Perm(list(range(self.rank)))
 
     def __str__(self):
-        return "Group(order=%s, rank=%s)"%(self.n, self.rank)
+        #return "Group(order=%s, rank=%s)"%(self.n, self.rank)
+        return "Group(order=%s)"%(self.n,)
     __repr__ = __str__
 
     def longstr(self):
@@ -134,6 +138,12 @@ class Group(object):
 
     def __eq__(self, other):
         return self.perms == other.perms
+
+    def __ne__(self, other):
+        return self.perms != other.perms
+
+    def __hash__(self):
+        return self._hash
 
     @classmethod
     def trivial(cls, n):
@@ -262,11 +272,69 @@ class Group(object):
             H = j.tgt
             yield len(H.get_orbits())
 
+    def cyclic_subgroups(self, verbose=False):
+        # find all cyclic subgroups
+        I = self.identity
+        trivial = Group([I])
+        cyclic = set([trivial])
+        for g0 in self:
+            if g0==I:
+                continue
+            perms = [g0]
+            g1 = g0
+            while 1:
+                g1 = g0*g1
+                if g1==g0:
+                    break
+                perms.append(g1)
+            group = Group(perms)
+            assert len(group)>1
+            cyclic.add(group)
+        return cyclic
+
+    def subgroups(self, verbose=False):
+        I = self.identity
+        trivial = Group([I])
+        cyclic = self.cyclic_subgroups()
+        #if verbose:
+        #    print "Group.subgroups: cyclic:", len(cyclic)
+        n = len(self) # order
+        subs = set(cyclic)
+        subs.add(trivial)
+        subs.add(self)
+        bdy = set(G for G in cyclic if len(G)<n)
+        while bdy:
+            _bdy = set()
+            # consider each group in bdy
+            for G in bdy:
+                # enlarge by a cyclic subgroup
+                for H in cyclic:
+                    perms = set(G.perms+H.perms)
+                    k = len(perms)
+                    if k==n or k==len(G) or k==len(H):
+                        continue
+                    #perms = mulclose(perms)
+                    perms = mulclose(perms)
+                    K = Group(perms)
+                    if K not in subs:
+                        _bdy.add(K)
+                        subs.add(K)
+                        if verbose:
+                            write('.')
+                    #else:
+                    #    write('/')
+            bdy = _bdy
+            #if verbose:
+            #    print "subs:", len(subs)
+            #    print "bdy:", len(bdy)
+        return subs
+
+
 
 class GSet(object):
     """
         A morphism of concrete groups.
-        This is (also) a G-set where the src is G.
+        This is (also) a GSet, where the src is G.
     """
     def __init__(self, src, tgt, send_perms):
         assert isinstance(src, Group)
@@ -351,9 +419,16 @@ class GSet(object):
             gset = GSet.from_action(self.tgt, orbit)
             gset = self.compose(gset)
             send_items = list(orbit)
-            nat = Nat(gset, self, send_items)
+            nat = Hom(gset, self, send_items)
             nats.append(nat)
         return nats
+
+    def get_sequence(self, n=5):
+        yield len(self.get_orbits())
+        i = j = self
+        for count in range(n):
+            j = GSet.mul(i, j).apex
+            yield len(j.get_orbits())
 
     def add(left, right):
         assert left.src == right.src
@@ -376,9 +451,9 @@ class GSet(object):
         send_perms = [tgt.lookup[perm] for perm in perms]
         gset = GSet(G, tgt, send_perms)
         send_items = [i for i in range(lrank)]
-        left = Nat(left, gset, send_items)
+        left = Hom(left, gset, send_items)
         send_items = [i+lrank for i in range(rrank)]
-        right = Nat(right, gset, send_items)
+        right = Hom(right, gset, send_items)
         return Cone(gset, [left, right], contra=True)
 
     def mul(left, right):
@@ -404,9 +479,9 @@ class GSet(object):
         send_perms = [tgt.lookup[perm] for perm in perms]
         gset = GSet(G, tgt, send_perms)
         send_items = [i for i in range(lrank) for j in range(rrank)]
-        left = Nat(gset, left, send_items)
+        left = Hom(gset, left, send_items)
         send_items = [j for i in range(lrank) for j in range(rrank)]
-        right = Nat(gset, right, send_items)
+        right = Hom(gset, right, send_items)
         return Cone(gset, [left, right])
 
 
@@ -427,9 +502,9 @@ class Cone(object):
 
 
 
-class Nat(object):
+class Hom(object):
     """
-        A morphism of G-sets. 
+        A morphism of GSet's.
     """
 
     def __init__(self, src, tgt, send_items):
@@ -460,7 +535,7 @@ class Nat(object):
             assert left == right
 
     def __str__(self):
-        return "Nat(%s, %s, %s)"%(self.src, self.tgt, self.send_items)
+        return "Hom(%s, %s, %s)"%(self.src, self.tgt, self.send_items)
     __repr__ = __str__
 
 
@@ -539,8 +614,6 @@ def test():
     G_GG = mul(G.i, GG).apex
     assert GG_G == G_GG # strict monoidal 
 
-    G = Group.dihedral(5)
-
     G = Group.symmetric(3)
     assert list(G.get_sequence(5)) == [1, 2, 5, 14, 41, 122]
 
@@ -550,13 +623,54 @@ def test():
     #for size in G.get_sequence():
     #    print(size, end=" ", flush=True)
     #print()
+    print("OK")
 
+
+def test_subgroups():
+
+    G = Group.cyclic(12)
+    assert len(G.cyclic_subgroups()) == 6 # 1, 2, 3, 4, 6, 12
+
+    G = Group.symmetric(4)
+
+    orders = []
+    for H in G.subgroups():
+        orders.append(len(H))
+    assert len(orders) == 1+1+3+4+3+1+3+4+6+3+1
+    assert orders.count(24) == 1
+    assert orders.count(12) == 1
+    assert orders.count(8) == 3
+    assert orders.count(6) == 4
+    assert orders.count(4) == 3+1+3
+    assert orders.count(3) == 4
+    assert orders.count(2) == 6+3
+    assert orders.count(1) == 1
 
     print("OK")
 
 
+
 if __name__ == "__main__":
 
-    test()
+    #test()
+    #test_subgroups()
+
+    G = Group.symmetric(4)
+
+    X = G.i
+
+    #print(list(X.get_sequence()))
+
+    mul = lambda a,b: GSet.mul(a, b).apex
+    XX = mul(X, X)
+    XXX = mul(XX, X)
+    XXXX = mul(XXX, X)
+
+    A = XXXX
+    print(A.rank)
+    print([len(o) for o in A.get_orbits()])
+    #print(len(A.get_orbits()))
+
+    
 
 
