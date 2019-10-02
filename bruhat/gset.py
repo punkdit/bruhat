@@ -2,7 +2,7 @@
 
 """
 Another attempt at action.py
-Do everything with indexes.. might be more efficient than action.py
+Here we do everything with indexes.. probably more efficient than action.py
 """
 
 import numpy
@@ -258,7 +258,7 @@ class Group(object):
         yield len(G.get_orbits())
         i = j = G.i
         for count in range(n):
-            j = (i*j)[0]
+            j = Hom.mul(i, j).apex
             H = j.tgt
             yield len(H.get_orbits())
 
@@ -355,7 +355,7 @@ class Hom(object):
             nats.append(nat)
         return nats
 
-    def __add__(left, right):
+    def add(left, right):
         assert left.src == right.src
         G = left.src
         send_left = left.send_perms
@@ -379,9 +379,9 @@ class Hom(object):
         left = Nat(left, hom, send_items)
         send_items = [i+lrank for i in range(rrank)]
         right = Nat(right, hom, send_items)
-        return hom, left, right
+        return Cone(hom, [left, right], contra=True)
 
-    def __mul__(left, right):
+    def mul(left, right):
         assert left.src == right.src
         G = left.src
         send_left = left.send_perms
@@ -407,7 +407,24 @@ class Hom(object):
         left = Nat(hom, left, send_items)
         send_items = [j for i in range(lrank) for j in range(rrank)]
         right = Nat(hom, right, send_items)
-        return hom, left, right
+        return Cone(hom, [left, right])
+
+
+class Cone(object):
+    def __init__(self, apex, legs, contra=False):
+        self.apex = apex
+        self.legs = list(legs)
+        self.contra = contra
+
+        for leg in legs:
+            if contra:
+                assert leg.tgt == apex
+            else:
+                assert leg.src == apex
+
+    def __getitem__(self, idx):
+        return self.legs[idx]
+
 
 
 class Nat(object):
@@ -463,9 +480,11 @@ def general_linear(n=3, p=2):
 
 def test():
 
+    add, mul = Hom.add, Hom.mul
+
     G = Group.trivial(1)
     H = Group.trivial(2)
-    assert (G.i + G.i)[0].tgt == H
+    assert add(G.i, G.i).apex.tgt == H
 
     G = Group.symmetric(3)
     assert len(G) == 6
@@ -477,21 +496,22 @@ def test():
     assert R == R.regular_action().tgt
 
     X = G.i
-    XX = (X*X)[0]
+    XX = mul(X, X).apex
+    X_X = add(X, X).apex
     assert XX.tgt.get_orbits() == [[0, 4, 8], [1, 2, 3, 5, 6, 7]]
-    assert ((X+X)[0].tgt.get_orbits()) == [[0, 1, 2], [3, 4, 5]]
+    assert (X_X.tgt.get_orbits()) == [[0, 1, 2], [3, 4, 5]]
 
     G = Group.cyclic(3)
-    H = (G.i + G.i)[0]
+    H = add(G.i, G.i).apex
     for nat in H.get_components():
         pass
 
     G = Group.cyclic(5)
-    H = (G.i * G.i)[0].tgt
+    H = mul(G.i, G.i).apex.tgt
     assert len(H.get_orbits()) == 5
 
     G = Group.alternating(5)
-    H = (G.i * G.i)[0]
+    H = mul(G.i, G.i).apex
     H = H.tgt
     Gs = H.get_components()
     assert len(Gs) == 2
@@ -499,24 +519,24 @@ def test():
     assert Gs[1].rank == 20
 
     G = Group.alternating(5)
-    H = (G.i * G.i)[0]
-    H = (G.i * H)[0]
+    H = mul(G.i, G.i).apex
+    H = mul(G.i, H).apex
     homs = [nat.src for nat in H.get_components()]
     A, B, C = homs[0], homs[1], homs[4]
     assert A.rank == 5
     assert B.rank == 20
     assert C.rank == 60
-    AB = (A * B)[0]
-    BC = (B * C)[0]
-    AB_C = (AB * C)[0]
-    A_BC = (A * BC)[0]
+    AB = mul(A, B).apex
+    BC = mul(B, C).apex
+    AB_C = mul(AB, C).apex
+    A_BC = mul(A, BC).apex
     assert AB_C == A_BC # strict monoidal 
 
     G = Group.alternating(5)
 
-    GG = (G.i * G.i)[0]
-    GG_G = (GG * G.i)[0]
-    G_GG = (G.i * GG)[0]
+    GG = mul(G.i, G.i).apex
+    GG_G = mul(GG, G.i).apex
+    G_GG = mul(G.i, GG).apex
     assert GG_G == G_GG # strict monoidal 
 
     G = Group.dihedral(5)
@@ -532,6 +552,7 @@ def test():
     #print()
 
 
+    print("OK")
 
 
 if __name__ == "__main__":

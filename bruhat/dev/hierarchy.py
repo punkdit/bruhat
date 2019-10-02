@@ -94,13 +94,29 @@ if d==2:
     K = CyclotomicField(8)
     e8 = K.gen()
     e4 = e8**2
-    phase = e4
     w = e4**2 
     w2 = e4
     w3 = e8
     assert w==-1
-    root = e8 + e8.conjugate()
-    assert root**2 == 2
+    root_d = e8 + e8.conjugate()
+    assert root_d**2 == 2
+
+elif d==3:
+    K = CyclotomicField(9)
+    e9 = K.gen()
+    e3 = e9**3
+    w = e3
+    w2 = e3
+    w3 = e9
+
+    R = PolynomialRing(K, names=('x',))
+    x, = R._first_ngens(1)
+    f = x**2 - d
+    assert f.is_irreducible()
+
+    #print(K.extension.__doc__)
+    K = K.extension(f, "r"+str(d))
+    root_d = K.gen()
 
 else:
     K = CyclotomicField(d)
@@ -116,7 +132,7 @@ else:
 
         #print(K.extension.__doc__)
         K = K.extension(f, "r"+str(d))
-        root = K.gen()
+        root_d = K.gen()
 
     else:
 
@@ -124,18 +140,11 @@ else:
         x, = R._first_ngens(1)
         f = x**2 - d
         assert not f.is_irreducible()
-        #print(f.factor())
         g = f.factor()
-        root = g[1][0][0]
-        #assert 0, "TODO"
+        root_d = g[1][0][0]
 
-    #root = w + w.conjugate()
-    #print(root)
-    #print(root**2)
+assert root_d**2 == d
 
-    #print("root:", root)
-    #print(root**2)
-    assert root**2 == d
 
 MS = MatrixSpace(K, d)
 MS_2 = MatrixSpace(K, d**2)
@@ -157,12 +166,17 @@ for i in range(d):
     S[i, i] = w2**(i**2)
     T[i, i] = w3**i
     for j in range(d):
-        H[i, j] = w**(i*j) / root
+        H[i, j] = w**(i*j) / root_d
 
 
 for op in [X, Z, S, T, H]:
     op.set_immutable()
-    assert op*inv(op) == I
+    assert op*inv(op) == I, op
+
+assert X**0 == I
+assert X**d == I
+assert Z**0 == I
+assert Z**d == I
 
 C1 = mulclose([X, Z, wI], mul)
 print("|C1| =", len(C1)) # == 16
@@ -182,6 +196,7 @@ def is_cliff(A):
 
 #for A in C2:
 #    assert is_cliff(A)
+assert S not in C1
 assert is_cliff(S)
 
 def is_third_level(A):
@@ -192,6 +207,82 @@ def is_third_level(A):
         if not is_cliff(h):
             return False
     return True
+
+assert not is_cliff(T)
+assert is_third_level(T)
+
+if 1:
+    C3 = set(C2)
+    for a in C2:
+        aT = a*T
+        for b in C2:
+            A = aT*b
+            A.set_immutable()
+            C3.add(A)
+    print("|C3| =", len(C3))
+    #for A in C3:
+    #    assert is_third_level(A)
+
+    def src(a):
+        return set([b for b in C3 if mul(a,b) in C3])
+
+    def tgt(a):
+        return set([b for b in C3 if mul(b,a) in C3])
+
+    srcs = []
+    for b in C3:
+        src_b = src(b)
+        if src_b not in srcs:
+            print("|src_b| = ", len(src_b))
+            srcs.append(src_b)
+        if d==2 and len(srcs)==4: # there is only 4 of these to be found
+            break
+
+    obs = list(srcs)
+    tgts = []
+    for b in C3:
+        tgt_b = tgt(b)
+        if tgt_b not in obs:
+            obs.append(tgt_b)
+        if tgt_b not in tgts:
+            print("|tgt_b| = ", len(tgt_b))
+            tgts.append(tgt_b)
+        if d==2 and len(tgts)==4: # there is only 4 of these to be found
+            break
+
+    done = False
+    while not done:
+        done = True
+        print("obs:", len(obs))
+
+        obs.sort(key = len, reverse=True)
+        obs1 = list(obs)
+        for s in obs:
+          for t in obs:
+            st = s.intersection(t)
+            a = ' '
+            if st not in obs1:
+                a = '*'
+                obs1.append(st)
+                done = False
+            print("%4d"%(len(st)), end=a)
+          print()
+        obs = obs1
+        obs.sort(key = len, reverse=True)
+
+    print("obs:", len(obs), [len(ob) for ob in obs])
+    print(set(C2) == obs[-1])
+    for ob in obs:
+        #print(len(ob), end=" ")
+        iob = set([inv(a) for a in ob])
+        print(iob in obs, end=" ")
+        #iob = [ia for a in iob if inv(a) in ob]
+        #print((len(ob), len(iob)), end=" ")
+
+    print()
+
+
+
 
 #A = MS.matrix([1, 0, 0, 0, -1, 0, 0, 0, -1])
 #print(is_cliff(A)) # nope
@@ -224,7 +315,7 @@ def is_cliff_2(A):
             return False
     return True
 
-def is_third_level(A):
+def is_third_level_2(A):
     Ai = inv(A)
     for g in [XI, IX, ZI, IZ]:
         h = A*g*Ai
@@ -233,19 +324,24 @@ def is_third_level(A):
             return False
     return True
 
-S_2 = copy(MS_2.zero_matrix())
 
-assert Z**0 == I
-assert Z**d == I
+def block_diag(blocks):
+    A = copy(MS_2.zero_matrix())
+    
+    assert len(blocks)==d
+    for i in range(d):
+        A[d*i:d*(i+1), d*i:d*(i+1)] = blocks[i]
+    
+    A.set_immutable()
+    return A
 
-for i in range(d):
-    S_2[d*i:d*(i+1), d*i:d*(i+1)] = Z**(i**2)
-
-S_2.set_immutable()
-#print(S_2)
-print(S_2 in C1_2)
-print(is_cliff_2(S_2))
-print(is_third_level(S_2))
+if 0:
+    S_2 = block_diag([Z**(i**2) for i in range(d)])
+    
+    #print(S_2)
+    print(S_2 in C1_2)
+    print(is_cliff_2(S_2))
+    print(is_third_level_2(S_2))
 
 
 
