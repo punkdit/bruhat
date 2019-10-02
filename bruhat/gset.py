@@ -84,7 +84,7 @@ def compose(f, g):
 class Group(object):
     """
         A concrete group of permutations masquerading as an abstract group.
-        This gets confusing once we start constructing Hom's below as
+        This gets confusing once we start constructing GSet's below as
         actions of some abstract group on a concrete group. There is not much
         to distinguish these two kinds of group apart from your imagination.
     """
@@ -217,14 +217,14 @@ class Group(object):
             perms.append(perm)
         tgt = Group(perms) # ARGH, shuffles the order of perms
         send_perms = [tgt.lookup[perm] for perm in perms]
-        hom = Hom(self, tgt, send_perms)
-        return hom
+        X = GSet(self, tgt, send_perms)
+        return X
 
     @property
     def i(self):
         send_perms = list(range(self.n)) # ARGH should we use dict's for these?
-        hom = Hom(self, self, send_perms)
-        return hom
+        gset = GSet(self, self, send_perms)
+        return gset
         
     def get_orbits(self):
         remain = set(range(self.rank))
@@ -258,12 +258,12 @@ class Group(object):
         yield len(G.get_orbits())
         i = j = G.i
         for count in range(n):
-            j = Hom.mul(i, j).apex
+            j = GSet.mul(i, j).apex
             H = j.tgt
             yield len(H.get_orbits())
 
 
-class Hom(object):
+class GSet(object):
     """
         A morphism of concrete groups.
         This is (also) a G-set where the src is G.
@@ -299,8 +299,8 @@ class Hom(object):
         return self.tgt != other.tgt or self.send_perms != other.send_perms
 
     def __str__(self):
-        #return "Hom(%s, %s, %s)"%(self.src.n, self.tgt.rank, self.send_perms)
-        return "Hom(%s, %s, %s)"%(self.src, self.tgt, self.send_perms)
+        #return "GSet(%s, %s, %s)"%(self.src.n, self.tgt.rank, self.send_perms)
+        return "GSet(%s, %s, %s)"%(self.src, self.tgt, self.send_perms)
     __repr__ = __str__
 
     def compose(self, other):
@@ -308,7 +308,7 @@ class Hom(object):
         a = self.send_perms
         b = other.send_perms
         send_perms = [b[i] for i in a]
-        return Hom(self.src, other.tgt, send_perms)
+        return GSet(self.src, other.tgt, send_perms)
 
     @classmethod
     def from_action(cls, G, X):
@@ -319,8 +319,8 @@ class Hom(object):
             perms.append(Perm(perm))
         tgt = Group(perms)
         send_perms = [tgt.lookup[perm] for perm in perms]
-        hom = cls(G, tgt, send_perms)
-        return hom
+        gset = cls(G, tgt, send_perms)
+        return gset
 
     def get_orbits(self):
         src = self.src
@@ -348,10 +348,10 @@ class Hom(object):
         orbits = self.get_orbits()
         nats = []
         for orbit in orbits:
-            hom = Hom.from_action(self.tgt, orbit)
-            hom = self.compose(hom)
+            gset = GSet.from_action(self.tgt, orbit)
+            gset = self.compose(gset)
             send_items = list(orbit)
-            nat = Nat(hom, self, send_items)
+            nat = Nat(gset, self, send_items)
             nats.append(nat)
         return nats
 
@@ -374,12 +374,12 @@ class Hom(object):
             perms.append(perm)
         tgt = Group(perms) # ARGH, shuffles the order of perms
         send_perms = [tgt.lookup[perm] for perm in perms]
-        hom = Hom(G, tgt, send_perms)
+        gset = GSet(G, tgt, send_perms)
         send_items = [i for i in range(lrank)]
-        left = Nat(left, hom, send_items)
+        left = Nat(left, gset, send_items)
         send_items = [i+lrank for i in range(rrank)]
-        right = Nat(right, hom, send_items)
-        return Cone(hom, [left, right], contra=True)
+        right = Nat(right, gset, send_items)
+        return Cone(gset, [left, right], contra=True)
 
     def mul(left, right):
         assert left.src == right.src
@@ -402,12 +402,12 @@ class Hom(object):
             perms.append(perm)
         tgt = Group(perms) # ARGH, shuffles the order of perms
         send_perms = [tgt.lookup[perm] for perm in perms]
-        hom = Hom(G, tgt, send_perms)
+        gset = GSet(G, tgt, send_perms)
         send_items = [i for i in range(lrank) for j in range(rrank)]
-        left = Nat(hom, left, send_items)
+        left = Nat(gset, left, send_items)
         send_items = [j for i in range(lrank) for j in range(rrank)]
-        right = Nat(hom, right, send_items)
-        return Cone(hom, [left, right])
+        right = Nat(gset, right, send_items)
+        return Cone(gset, [left, right])
 
 
 class Cone(object):
@@ -433,8 +433,8 @@ class Nat(object):
     """
 
     def __init__(self, src, tgt, send_items):
-        assert isinstance(src, Hom)
-        assert isinstance(tgt, Hom)
+        assert isinstance(src, GSet)
+        assert isinstance(tgt, GSet)
         G = src.src
         assert G == tgt.src
         self.src = src
@@ -480,7 +480,7 @@ def general_linear(n=3, p=2):
 
 def test():
 
-    add, mul = Hom.add, Hom.mul
+    add, mul = GSet.add, GSet.mul
 
     G = Group.trivial(1)
     H = Group.trivial(2)
@@ -490,8 +490,8 @@ def test():
     assert len(G) == 6
     assert G.get_orbits() == [[0, 1, 2]]
     
-    hom = G.regular_action()
-    R = hom.tgt
+    gset = G.regular_action()
+    R = gset.tgt
     assert R != G
     assert R == R.regular_action().tgt
 
@@ -521,8 +521,8 @@ def test():
     G = Group.alternating(5)
     H = mul(G.i, G.i).apex
     H = mul(G.i, H).apex
-    homs = [nat.src for nat in H.get_components()]
-    A, B, C = homs[0], homs[1], homs[4]
+    items = [nat.src for nat in H.get_components()]
+    A, B, C = items[0], items[1], items[4]
     assert A.rank == 5
     assert B.rank == 20
     assert C.rank == 60
