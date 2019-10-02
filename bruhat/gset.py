@@ -15,7 +15,7 @@ from bruhat.argv import argv
 
 
 
-DEBUG = argv.get("debug", False)
+debug = argv.get("debug", False)
 
 class Perm(object):
 
@@ -24,7 +24,7 @@ class Perm(object):
         perm = numpy.array(perm, dtype=scalar)
         self.perm = perm.copy()
         self.rank = len(perm)
-        if DEBUG:
+        if debug:
             self.do_check()
 
     def do_check(self):
@@ -75,10 +75,63 @@ class Perm(object):
     def __getitem__(self, i):
         return self.perm[i]
 
+    def fixed(self):
+        perm = self.perm
+        return [i for i in range(len(perm)) if perm[i]==i]
+
     #def orbits(self):
 
 def compose(f, g):
     return [f[gi] for gi in g]
+
+
+class Coset(object):
+    def __init__(self, perms):
+        perms = list(perms)
+        perms.sort()
+        assert perms
+        #gen = list(gen)
+        #self.gen = gen
+        self.perms = perms
+        self.n = len(self.perms)
+        self.rank = perms[0].rank
+        #self.lookup = dict((perm, idx) for (idx, perm) in enumerate(self.perms))
+        #self.identity = Perm(list(range(self.rank)))
+        self._str = str(self.perms)
+        self._hash = hash(self._str)
+        #assert len(self.lookup) == self.n
+
+    def __str__(self):
+        return "Coset(%d)"%(self.n,)
+    __repr__ = __str__
+
+    def __len__(self):
+        return self.n
+
+    def __getitem__(self, idx):
+        return self.perms[idx]
+
+    #def __contains__(self, g):
+    #    return g in self.lookup
+
+    def __eq__(self, other):
+        return self.perms == other.perms
+
+    def __ne__(self, other):
+        return self.perms != other.perms
+
+    def __hash__(self):
+        return self._hash
+
+    def left_mul(self, g):
+        assert g.rank == self.rank
+        perms = [g*h for h in self]
+        return Coset(perms)
+
+    def right_mul(self, g):
+        assert g.rank == self.rank
+        perms = [h*g for h in self]
+        return Coset(perms)
 
 
 class Group(object):
@@ -105,8 +158,9 @@ class Group(object):
         self.identity = Perm(list(range(self.rank)))
         self._str = str(self.perms)
         self._hash = hash(self._str)
+        self._subgroups = None # cache
         assert len(self.lookup) == self.n
-        if DEBUG:
+        if debug:
             self.do_check()
 
     def do_check(self):
@@ -135,6 +189,9 @@ class Group(object):
 
     def __getitem__(self, idx):
         return self.perms[idx]
+
+    def __contains__(self, g):
+        return g in self.lookup
 
     def __eq__(self, other):
         return self.perms == other.perms
@@ -293,15 +350,17 @@ class Group(object):
         return cyclic
 
     def subgroups(self, verbose=False):
+        if self._subgroups is not None:
+            return list(self._subgroups)
         I = self.identity
         trivial = Group([I])
         cyclic = self.cyclic_subgroups()
         #if verbose:
         #    print "Group.subgroups: cyclic:", len(cyclic)
         n = len(self) # order
-        subs = set(cyclic)
-        subs.add(trivial)
-        subs.add(self)
+        items = set(cyclic)
+        items.add(trivial)
+        items.add(self)
         bdy = set(G for G in cyclic if len(G)<n)
         while bdy:
             _bdy = set()
@@ -316,19 +375,49 @@ class Group(object):
                     #perms = mulclose(perms)
                     perms = mulclose(perms)
                     K = Group(perms)
-                    if K not in subs:
+                    if K not in items:
                         _bdy.add(K)
-                        subs.add(K)
+                        items.add(K)
                         if verbose:
                             write('.')
                     #else:
                     #    write('/')
             bdy = _bdy
             #if verbose:
-            #    print "subs:", len(subs)
+            #    print "items:", len(items)
             #    print "bdy:", len(bdy)
-        return subs
+        items = list(items)
+        items.sort(key = len)
+        self._subgroups = items
+        return list(items)
 
+    def action_subgroup(G, H):
+        assert isinstance(H, Group)
+        assert H.rank == G.rank
+        if debug:
+            for h in H:
+                assert h in G
+        H = Coset(H)
+        cosets = set([H])
+        remain = set(G)
+        remain.difference_update(H)
+        while remain:
+            g = iter(remain).__next__()
+            remain.remove(g)
+            gH = H.left_mul(g)
+            cosets.add(gH)
+            remain.difference_update(gH)
+        assert len(cosets) * len(H) == len(G)
+        lookup = dict((gH, idx) for (idx, gH) in enumerate(cosets))
+        perms = set()
+        all_perms = []
+        for h in G:
+            perm = Perm([lookup[gH.left_mul(h)] for gH in cosets])
+            perms.add(perm)
+            all_perms.append(perm)
+        H = Group(perms)
+        send_perms = [H.lookup[perm] for perm in all_perms]
+        return GSet(G, H, send_perms)
 
 
 class GSet(object):
@@ -342,8 +431,9 @@ class GSet(object):
         self.src = src
         self.tgt = tgt
         self.send_perms = send_perms
-        self.rank = tgt.rank
-        if DEBUG:
+        self.rank = tgt.rank # the size of the set we act on
+        self._sig = None
+        if debug:
             self.do_check()
 
     def do_check(self):
@@ -358,7 +448,7 @@ class GSet(object):
             rhs = tgt[send_perms[idx]] * tgt[send_perms[jdx]]
             assert lhs == rhs, (lhs, rhs)
 
-    def __eq__(self, other):
+    def __eq__(self, other): # equality on the nose
         assert self.src == other.src
         return self.tgt == other.tgt and self.send_perms == other.send_perms
 
@@ -368,7 +458,8 @@ class GSet(object):
 
     def __str__(self):
         #return "GSet(%s, %s, %s)"%(self.src.n, self.tgt.rank, self.send_perms)
-        return "GSet(%s, %s, %s)"%(self.src, self.tgt, self.send_perms)
+        #return "GSet(%s, %s, %s)"%(self.src, self.tgt, self.send_perms)
+        return "GSet(%s, rank=%s)"%(self.src, self.rank)
     __repr__ = __str__
 
     def compose(self, other):
@@ -484,6 +575,30 @@ class GSet(object):
         right = Hom(gset, right, send_items)
         return Cone(gset, [left, right])
 
+    def fixed_points(self, H):
+        send_perms = self.send_perms
+        fixed = set(range(self.rank))
+        G = self.src
+        tgt = self.tgt
+        for g in H:
+            idx = G.lookup[g]
+            g = tgt[send_perms[idx]]
+            fixed = fixed.intersection(g.fixed())
+            if not fixed:
+                break
+        return fixed
+
+    def signature(self):
+        if self._sig is not None:
+            return self._sig
+        Hs = self.src.subgroups()
+        self._sig = tuple(len(self.fixed_points(H)) for H in Hs)
+        return self._sig
+
+    def isomorphic(self, other):
+        return self.signature() == other.signature()
+
+
 
 class Cone(object):
     def __init__(self, apex, legs, contra=False):
@@ -517,7 +632,7 @@ class Hom(object):
         self.G = G
         assert len(send_items) == src.tgt.rank
         self.send_items = list(send_items)
-        if DEBUG:
+        if debug:
             self.do_check()
 
     def do_check(self):
@@ -650,13 +765,19 @@ def test_subgroups():
 
 
 
-if __name__ == "__main__":
 
-    #test()
-    #test_subgroups()
-
+def main():
     G = Group.symmetric(4)
 
+    sigs = []
+    for H in G.subgroups():
+        X = G.action_subgroup(H)
+        assert len(X.get_orbits()) == 1
+        sigs.append(X.signature())
+    sigs = set(sigs)
+    sigs = list(sigs)
+    sigs.sort()
+    
     X = G.i
 
     #print(list(X.get_sequence()))
@@ -666,11 +787,14 @@ if __name__ == "__main__":
     XXX = mul(XX, X)
     XXXX = mul(XXX, X)
 
-    A = XXXX
-    print(A.rank)
-    print([len(o) for o in A.get_orbits()])
-    #print(len(A.get_orbits()))
+    for A in [X, XX, XXX, XXXX]:
+        print([sigs.index(hom.src.signature()) for hom in A.get_components()])
 
     
+if __name__ == "__main__":
+
+    #test()
+    #test_subgroups()
+    main()
 
 
