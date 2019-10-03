@@ -147,8 +147,11 @@ class Group(object):
             perms = list(mulclose(gen))
         else:
             perms = list(perms)
-        perms.sort()
+        #perms.sort()
         assert perms
+        canonical = list(perms)
+        canonical.sort()
+        self.canonical = canonical
         #gen = list(gen)
         #self.gen = gen
         self.perms = perms
@@ -156,7 +159,7 @@ class Group(object):
         self.rank = perms[0].rank
         self.lookup = dict((perm, idx) for (idx, perm) in enumerate(self.perms))
         self.identity = Perm(list(range(self.rank)))
-        self._str = str(self.perms)
+        self._str = str(self.canonical)
         self._hash = hash(self._str)
         self._subgroups = None # cache
         assert len(self.lookup) == self.n
@@ -194,10 +197,10 @@ class Group(object):
         return g in self.lookup
 
     def __eq__(self, other):
-        return self.perms == other.perms
+        return self.canonical == other.canonical
 
     def __ne__(self, other):
-        return self.perms != other.perms
+        return self.canonical != other.canonical
 
     def __hash__(self):
         return self._hash
@@ -282,15 +285,16 @@ class Group(object):
                 perm.append(kdx)
             perm = Perm(perm)
             perms.append(perm)
-        tgt = Group(perms) # ARGH, shuffles the order of perms
-        send_perms = [tgt.lookup[perm] for perm in perms]
-        X = GSet(self, tgt, send_perms)
+        tgt = Group(perms)
+        #send_perms = list(range(self.n))
+        #assert send_perms == [tgt.lookup[perm] for perm in perms]
+        X = GSet(self, tgt)
         return X
 
     @property
     def i(self):
-        send_perms = list(range(self.n)) # ARGH should we use dict's for these?
-        gset = GSet(self, self, send_perms)
+        #send_perms = list(range(self.n)) # ARGH should we use dict's for these?
+        gset = GSet(self, self)
         return gset
         
     def get_orbits(self):
@@ -425,11 +429,14 @@ class GSet(object):
         A morphism of concrete groups.
         This is (also) a GSet, where the src is G.
     """
-    def __init__(self, src, tgt, send_perms):
+    def __init__(self, src, tgt, send_perms=None):
         assert isinstance(src, Group)
         assert isinstance(tgt, Group)
         self.src = src
         self.tgt = tgt
+        if send_perms is None:
+            assert len(src) == len(tgt)
+            send_perms = list(range(len(src)))
         self.send_perms = send_perms
         self.rank = tgt.rank # the size of the set we act on
         self._sig = None
@@ -521,7 +528,7 @@ class GSet(object):
             j = GSet.mul(i, j).apex
             yield len(j.get_orbits())
 
-    def add(left, right):
+    def add(left, right, cone=None):
         assert left.src == right.src
         G = left.src
         send_left = left.send_perms
@@ -538,16 +545,25 @@ class GSet(object):
             #perm = perm.copy()
             perm = Perm(perm)
             perms.append(perm)
-        tgt = Group(perms) # ARGH, shuffles the order of perms
-        send_perms = [tgt.lookup[perm] for perm in perms]
-        gset = GSet(G, tgt, send_perms)
+        tgt = Group(perms)
+        gset = GSet(G, tgt)
         send_items = [i for i in range(lrank)]
-        left = Hom(left, gset, send_items)
+        i_left = Hom(left, gset, send_items)
         send_items = [i+lrank for i in range(rrank)]
-        right = Hom(right, gset, send_items)
-        return Cone(gset, [left, right], contra=True)
+        i_right = Hom(right, gset, send_items)
+        limit = Cone(gset, [i_left, i_right], contra=True) # _cocone
+        if cone is None:
+            return limit
 
-    def mul(left, right):
+        assert 0, "TODO"
+        assert cone.contra
+        assert cone[0].src is left
+        assert cone[1].src is right
+        tgt = cone.apex
+        univ = Hom(gset, tgt, send_items)
+        return limit, univ
+
+    def mul(left, right, cone=None):
         assert left.src == right.src
         G = left.src
         send_left = left.send_perms
@@ -566,14 +582,24 @@ class GSet(object):
             perm.shape = lrank*rrank
             perm = Perm(perm)
             perms.append(perm)
-        tgt = Group(perms) # ARGH, shuffles the order of perms
-        send_perms = [tgt.lookup[perm] for perm in perms]
-        gset = GSet(G, tgt, send_perms)
+        tgt = Group(perms)
+        gset = GSet(G, tgt)
         send_items = [i for i in range(lrank) for j in range(rrank)]
-        left = Hom(gset, left, send_items)
+        p_left = Hom(gset, left, send_items)
         send_items = [j for i in range(lrank) for j in range(rrank)]
-        right = Hom(gset, right, send_items)
-        return Cone(gset, [left, right])
+        p_right = Hom(gset, right, send_items)
+        limit = Cone(gset, [p_left, p_right])
+        if cone is None:
+            return limit
+        assert not cone.contra
+        assert cone[0].tgt is left
+        assert cone[1].tgt is right
+
+        l, r = cone
+        apex = cone.apex
+        send_items = [l.send_items[i]*rrank + r.send_items[i] for i in range(apex.rank)]
+        univ = Hom(apex, gset, send_items)
+        return limit, univ
 
     def fixed_points(self, H):
         send_perms = self.send_perms
@@ -598,6 +624,8 @@ class GSet(object):
     def isomorphic(self, other):
         return self.signature() == other.signature()
 
+    def get_identity(self):
+        return Hom(self, self)
 
 
 class Cone(object):
@@ -622,7 +650,7 @@ class Hom(object):
         A morphism of GSet's.
     """
 
-    def __init__(self, src, tgt, send_items):
+    def __init__(self, src, tgt, send_items=None):
         assert isinstance(src, GSet)
         assert isinstance(tgt, GSet)
         G = src.src
@@ -630,6 +658,9 @@ class Hom(object):
         self.src = src
         self.tgt = tgt
         self.G = G
+        if send_items is None:
+            assert src is tgt
+            send_items = list(range(src.tgt.rank))
         assert len(send_items) == src.tgt.rank
         self.send_items = list(send_items)
         if debug:
@@ -744,6 +775,7 @@ def test():
 def test_subgroups():
 
     G = Group.cyclic(12)
+    print(G.cyclic_subgroups())
     assert len(G.cyclic_subgroups()) == 6 # 1, 2, 3, 4, 6, 12
 
     G = Group.symmetric(4)
@@ -767,8 +799,9 @@ def test_subgroups():
 
 
 def main():
-    G = Group.symmetric(4)
-    G = Group.alternating(5)
+    G = Group.dihedral(4)
+    #G = Group.symmetric(4)
+    #G = Group.alternating(5)
 
     sigs = []
     for H in G.subgroups():
@@ -782,6 +815,13 @@ def main():
     
     X = G.i
 
+    I = X.get_identity()
+    cone = Cone(X, [I, I])
+    cone, diag = GSet.mul(X, X, cone)
+
+    print(diag)
+    return
+
     #print(list(X.get_sequence()))
 
     mul = lambda a,b: GSet.mul(a, b).apex
@@ -790,14 +830,21 @@ def main():
     XXXX = mul(XXX, X)
 
     for A in [X, XX, XXX, XXXX]:
-        items = [names[sigs.index(hom.src.signature())] for hom in A.get_components()]
-        print(len(items), "+".join(items))
+        Bs = [hom.src for hom in A.get_components()]
+        items = [names[sigs.index(B.signature())] for B in Bs]
+        print(len(items), "+".join(items), end=" --- ")
+        for B in Bs:
+            print(B.rank, end=" ")
+        print()
 
     
 if __name__ == "__main__":
 
-    #test()
-    #test_subgroups()
-    main()
+    if argv.test:
+        test()
+        test_subgroups()
+
+    else:
+        main()
 
 
