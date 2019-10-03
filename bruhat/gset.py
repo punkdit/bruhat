@@ -768,6 +768,7 @@ def test_subgroups():
 
 def main():
     G = Group.symmetric(4)
+    G = Group.alternating(5)
 
     sigs = []
     for H in G.subgroups():
@@ -777,6 +778,7 @@ def main():
     sigs = set(sigs)
     sigs = list(sigs)
     sigs.sort()
+    names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     
     X = G.i
 
@@ -788,7 +790,8 @@ def main():
     XXXX = mul(XXX, X)
 
     for A in [X, XX, XXX, XXXX]:
-        print([sigs.index(hom.src.signature()) for hom in A.get_components()])
+        items = [names[sigs.index(hom.src.signature())] for hom in A.get_components()]
+        print(len(items), "+".join(items))
 
     
 if __name__ == "__main__":
