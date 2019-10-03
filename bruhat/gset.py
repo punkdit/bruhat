@@ -708,6 +708,14 @@ class Hom(object):
         send_items = [b[i] for i in a]
         return Hom(self.src, other.tgt, send_items)
 
+    def mul(f, g):
+        assert isinstance(g, Hom)
+        cone = GSet.mul(f.src, g.src)
+        src = cone.apex
+        cone = Cone(src, [cone[0].compose(f), cone[1].compose(g)])
+        cone, univ = GSet.mul(f.tgt, g.tgt, cone)
+        return univ
+
 
 def general_linear(n=3, p=2):
     G = algebraic.GL(n, p)
@@ -826,7 +834,7 @@ def test_subgroups():
 
 
 
-class Simp(object):
+class Simplicial(object):
     """
         A simplicial object in the category of GSet's
     """
