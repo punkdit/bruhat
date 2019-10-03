@@ -555,12 +555,14 @@ class GSet(object):
         if cone is None:
             return limit
 
-        assert 0, "TODO"
         assert cone.contra
         assert cone[0].src is left
         assert cone[1].src is right
-        tgt = cone.apex
-        univ = Hom(gset, tgt, send_items)
+
+        l, r = cone
+        apex = cone.apex
+        send_items = [l.send_items[i] for i in range(l.rank)] + [r.send_items[i] for i in range(r.rank)]
+        univ = Hom(gset, apex, send_items)
         return limit, univ
 
     def mul(left, right, cone=None):
@@ -591,6 +593,7 @@ class GSet(object):
         limit = Cone(gset, [p_left, p_right])
         if cone is None:
             return limit
+
         assert not cone.contra
         assert cone[0].tgt is left
         assert cone[1].tgt is right
@@ -662,6 +665,7 @@ class Hom(object):
             assert src is tgt
             send_items = list(range(src.tgt.rank))
         assert len(send_items) == src.tgt.rank
+        self.rank = src.tgt.rank
         self.send_items = list(send_items)
         if debug:
             self.do_check()
@@ -683,6 +687,26 @@ class Hom(object):
     def __str__(self):
         return "Hom(%s, %s, %s)"%(self.src, self.tgt, self.send_items)
     __repr__ = __str__
+
+    def __eq__(self, other):
+        assert self.G is other.G # too strict ?
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        return self.send_items == other.send_items
+
+    def __ne__(self, other):
+        assert self.G is other.G # too strict ?
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        return self.send_items != other.send_items
+
+    def compose(self, other):
+        # other o self
+        assert self.tgt == other.src
+        a = self.send_items
+        b = other.send_items
+        send_items = [b[i] for i in a]
+        return Hom(self.src, other.tgt, send_items)
 
 
 def general_linear(n=3, p=2):
@@ -723,9 +747,14 @@ def test():
     assert (X_X.tgt.get_orbits()) == [[0, 1, 2], [3, 4, 5]]
 
     G = Group.cyclic(3)
-    H = add(G.i, G.i).apex
-    for nat in H.get_components():
-        pass
+    X = G.i
+    I = X.get_identity()
+    cone = Cone(X, [I, I], contra=True)
+    cone, univ = add(X, X, cone)
+    X_X = cone.apex
+    for hom in X_X.get_components():
+        assert hom.src.isomorphic(X)
+        assert hom.compose(univ) == I
 
     G = Group.cyclic(5)
     H = mul(G.i, G.i).apex.tgt
@@ -775,7 +804,7 @@ def test():
 def test_subgroups():
 
     G = Group.cyclic(12)
-    print(G.cyclic_subgroups())
+    #print(G.cyclic_subgroups())
     assert len(G.cyclic_subgroups()) == 6 # 1, 2, 3, 4, 6, 12
 
     G = Group.symmetric(4)
@@ -795,6 +824,21 @@ def test_subgroups():
 
     print("OK")
 
+
+
+class Simp(object):
+    """
+        A simplicial object in the category of GSet's
+    """
+    def __init__(self, X):
+        assert isinstance(X, GSet)
+        self.items = [X]
+
+    def __getitem__(self, idx):
+        items = self.items
+        if idx < len(items):
+            return items[idx]
+        X = items[0]
 
 
 
