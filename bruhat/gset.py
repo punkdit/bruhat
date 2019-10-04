@@ -722,6 +722,92 @@ class Hom(object):
     __mul__ = mul
 
 
+class Simplicial(object):
+    """
+        A simplicial object in the category of GSet's
+    """
+    def __init__(self, X):
+        assert isinstance(X, GSet)
+        I = X.get_identity()
+        cone = Cone(X, [I, I])
+        cone, diag = GSet.mul(X, X, cone)
+        XX = cone.apex
+        self.items = [X, XX]
+        self.degenmaps = [[diag]] # diagonals
+        self.facemaps = [[cone[1], cone[0]]] # projections
+        if debug:
+            self.check()
+
+    def construct(self):
+        items = self.items
+        X = items[0]
+        I = X.get_identity()
+        X1 = items[-1]
+        XX = X1*X
+        facemaps = self.facemaps[-1]
+        degenmaps = self.degenmaps[-1]
+        dmaps = [f*I for f in degenmaps] + [I*degenmaps[-1]]
+        fmaps = [f*I for f in facemaps] + [I*facemaps[-1]]
+        for f in dmaps:
+            assert f.src == X1
+            assert f.tgt == XX
+        for f in fmaps:
+            assert f.src == XX
+            assert f.tgt == X1
+        self.items.append(XX)
+        self.facemaps.append(fmaps)
+        self.degenmaps.append(dmaps)
+        if debug:
+            self.check()
+
+    def check(self):
+        "check that we satisfy the defining relations of a Simplicial object."
+        items = self.items
+        facemaps = self.facemaps
+        degenmaps = self.degenmaps
+        n = len(facemaps)
+        assert n == len(degenmaps)
+        assert n+1 == len(items)
+        for idx in range(n):
+            for d in facemaps[idx]:
+                assert d.src == items[idx+1]
+                assert d.tgt == items[idx]
+            for s in degenmaps[idx]:
+                assert s.src == items[idx]
+                assert s.tgt == items[idx+1]
+        idx = 1
+        while idx < n:
+            m = len(facemaps[idx])
+            for i in range(m):
+              for j in range(i+1, m):
+                lhs = facemaps[idx][j].compose(facemaps[idx-1][i])
+                rhs = facemaps[idx][i].compose(facemaps[idx-1][j-1])
+                assert lhs==rhs
+            m = len(degenmaps[idx-1])
+            for i in range(m):
+              for j in range(i, m):
+                lhs = degenmaps[idx-1][j].compose(degenmaps[idx][i])
+                rhs = degenmaps[idx-1][i].compose(degenmaps[idx][j+1])
+                assert lhs==rhs
+            for i, di in enumerate(facemaps[idx]):
+              for j, sj in enumerate(degenmaps[idx]):
+                lhs = sj.compose(di)
+                if i<j:
+                    rhs = facemaps[idx-1][i].compose(degenmaps[idx-1][j-1])
+                elif i==j or i==j+1:
+                    rhs = items[idx].get_identity()
+                else: # i>j+1
+                    rhs = facemaps[idx-1][i-1].compose(degenmaps[idx-1][j])
+                assert lhs==rhs
+            idx += 1
+
+    def __getitem__(self, idx):
+        items = self.items
+        while idx >= len(items):
+            self.construct()
+        return items[idx]
+
+
 def general_linear(n=3, p=2):
     G = algebraic.GL(n, p)
     v = numpy.array([0]*n, dtype=scalar)
@@ -839,56 +925,9 @@ def test_subgroups():
 
 
 
-class Simplicial(object):
-    """
-        A simplicial object in the category of GSet's
-    """
-    def __init__(self, X):
-        assert isinstance(X, GSet)
-        I = X.get_identity()
-        cone = Cone(X, [I, I])
-        cone, diag = GSet.mul(X, X, cone)
-        XX = cone.apex
-        self.items = [X, XX]
-        self.facemaps = [[diag]] # diagonals
-        self.degenmaps = [[cone[0], cone[1]]] # projections
-
-    def next(self):
-        items = self.items
-        X = items[0]
-        I = X.get_identity()
-        X1 = items[-1]
-        XX = X1*X
-        facemaps = self.facemaps[-1]
-        degenmaps = self.degenmaps[-1]
-        fmaps = [f*I for f in facemaps] + [I*facemaps[-1]] # diagonals
-        dmaps = [f*I for f in degenmaps] + [I*degenmaps[-1]] # projections
-        for f in fmaps:
-            assert f.src == X1
-            assert f.tgt == XX
-        for f in dmaps:
-            assert f.src == XX
-            assert f.tgt == X1
-        self.items.append(XX)
-        self.facemaps.append(fmaps)
-        self.degenmaps.append(dmaps)
-
-    def check(self):
-        items = self.items
-        facemaps = self.facemaps
-        degenmaps = self.degenmaps
-        n = len(items)
-
-    def __getitem__(self, idx):
-        items = self.items
-        while idx >= len(items):
-            self.next()
-        return items[idx]
-
-
 
 def main():
-    #G = Group.dihedral(4)
+    G = Group.dihedral(4)
     G = Group.symmetric(4)
     #G = Group.alternating(5)
 
@@ -910,9 +949,9 @@ def main():
     #print(diag)
 
     s = Simplicial(X)
-    s.next()
-    s.next()
-    s.next()
+    s.construct()
+    s.construct()
+    s.construct()
 
 
     return
