@@ -604,6 +604,10 @@ class GSet(object):
         univ = Hom(apex, gset, send_items)
         return limit, univ
 
+    def __mul__(left, right):
+        cone = GSet.mul(left, right)
+        return cone.apex
+
     def fixed_points(self, H):
         send_perms = self.send_perms
         fixed = set(range(self.rank))
@@ -715,6 +719,7 @@ class Hom(object):
         cone = Cone(src, [cone[0].compose(f), cone[1].compose(g)])
         cone, univ = GSet.mul(f.tgt, g.tgt, cone)
         return univ
+    __mul__ = mul
 
 
 def general_linear(n=3, p=2):
@@ -840,19 +845,51 @@ class Simplicial(object):
     """
     def __init__(self, X):
         assert isinstance(X, GSet)
-        self.items = [X]
+        I = X.get_identity()
+        cone = Cone(X, [I, I])
+        cone, diag = GSet.mul(X, X, cone)
+        XX = cone.apex
+        self.items = [X, XX]
+        self.facemaps = [[diag]] # diagonals
+        self.degenmaps = [[cone[0], cone[1]]] # projections
+
+    def next(self):
+        items = self.items
+        X = items[0]
+        I = X.get_identity()
+        X1 = items[-1]
+        XX = X1*X
+        facemaps = self.facemaps[-1]
+        degenmaps = self.degenmaps[-1]
+        fmaps = [f*I for f in facemaps] + [I*facemaps[-1]] # diagonals
+        dmaps = [f*I for f in degenmaps] + [I*degenmaps[-1]] # projections
+        for f in fmaps:
+            assert f.src == X1
+            assert f.tgt == XX
+        for f in dmaps:
+            assert f.src == XX
+            assert f.tgt == X1
+        self.items.append(XX)
+        self.facemaps.append(fmaps)
+        self.degenmaps.append(dmaps)
+
+    def check(self):
+        items = self.items
+        facemaps = self.facemaps
+        degenmaps = self.degenmaps
+        n = len(items)
 
     def __getitem__(self, idx):
         items = self.items
-        if idx < len(items):
-            return items[idx]
-        X = items[0]
+        while idx >= len(items):
+            self.next()
+        return items[idx]
 
 
 
 def main():
-    G = Group.dihedral(4)
-    #G = Group.symmetric(4)
+    #G = Group.dihedral(4)
+    G = Group.symmetric(4)
     #G = Group.alternating(5)
 
     sigs = []
@@ -867,11 +904,17 @@ def main():
     
     X = G.i
 
-    I = X.get_identity()
-    cone = Cone(X, [I, I])
-    cone, diag = GSet.mul(X, X, cone)
+    #I = X.get_identity()
+    #cone = Cone(X, [I, I])
+    #cone, diag = GSet.mul(X, X, cone)
+    #print(diag)
 
-    print(diag)
+    s = Simplicial(X)
+    s.next()
+    s.next()
+    s.next()
+
+
     return
 
     #print(list(X.get_sequence()))
