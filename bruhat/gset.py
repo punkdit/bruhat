@@ -11,6 +11,8 @@ scalar = numpy.int64
 from bruhat.util import factorial
 from bruhat.action import mulclose
 from bruhat import algebraic
+#from bruhat import solve
+from bruhat import gelim
 from bruhat.argv import argv
 
 
@@ -760,6 +762,19 @@ class Simplicial(object):
         if debug:
             self.check()
 
+    def dump(self):
+        items = self.items
+        facemaps = self.facemaps
+        degenmaps = self.degenmaps
+        n = len(facemaps)
+        for idx in range(n):
+            print("face  [%d] --> [%d]" % (idx+1, idx))
+            for d in facemaps[idx]:
+                print(d)
+            print("degen [%d] --> [%d]" % (idx, idx+1))
+            for s in degenmaps[idx]:
+                print(s)
+
     def check(self):
         "check that we satisfy the defining relations of a Simplicial object."
         items = self.items
@@ -806,6 +821,37 @@ class Simplicial(object):
         while idx >= len(items):
             self.construct()
         return items[idx]
+
+    def get_bdy(self, idx):
+        # facemaps[idx] go from idx+1 --> idx
+        src = self[idx+1]
+        tgt = self[idx]
+        ds = self.facemaps[idx]
+        A = gelim.zeros(tgt.rank, src.rank)
+        sign = 1
+        for d in ds:
+            assert d.src == src
+            assert d.tgt == tgt
+            for i, j in enumerate(d.send_items):
+                A[j, i] += sign
+            sign = -sign
+        return A
+
+    def get_cobdy(self, idx):
+        # degenmaps[idx] go from idx --> idx+1
+        src = self[idx]
+        tgt = self[idx+1]
+        fs = self.degenmaps[idx]
+        A = gelim.zeros(tgt.rank, src.rank)
+        sign = 1
+        for f in fs:
+            assert f.src == src
+            assert f.tgt == tgt
+            for i, j in enumerate(f.send_items):
+                A[j, i] += sign
+            sign = -sign
+        return A
+
 
 
 def general_linear(n=3, p=2):
@@ -926,6 +972,38 @@ def test_subgroups():
 
 
 
+def test_homology():
+    #X = Group.trivial(2).i
+    #G = Group.dihedral(4)
+    G = Group.symmetric(3)
+    X = G.i
+    s = Simplicial(X)
+
+    bdys = [s.get_bdy(i) for i in range(5)]
+    for i in range(3):
+        d0 = bdys[i] # 1 --> 0
+        d1 = bdys[i+1] # 2 --> 1
+        assert numpy.abs(gelim.dot(d0, d1)).sum() == 0
+        print("betti %d ="%i, gelim.rank(d1) - gelim.nullity(d0)) # == 0
+
+
+    #X = Group.trivial(2).i
+    #G = Group.dihedral(4)
+    G = Group.symmetric(2)
+    X = G.i
+    s = Simplicial(X)
+
+    bdys = [s.get_cobdy(i) for i in range(5)]
+    for i in range(3):
+        d0 = bdys[i] # 1 <-- 0
+        #print(d0)
+        d1 = bdys[i+1] # 2 <-- 1
+        assert numpy.abs(gelim.dot(d1, d0)).sum() == 0
+        print("cobetti %d ="%i, gelim.rank(d0) - gelim.nullity(d1)) # == 0
+    
+
+
+
 def main():
     G = Group.dihedral(4)
     G = Group.symmetric(4)
@@ -942,20 +1020,6 @@ def main():
     names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     
     X = G.i
-
-    #I = X.get_identity()
-    #cone = Cone(X, [I, I])
-    #cone, diag = GSet.mul(X, X, cone)
-    #print(diag)
-
-    s = Simplicial(X)
-    s.construct()
-    s.construct()
-    s.construct()
-
-
-    return
-
     #print(list(X.get_sequence()))
 
     mul = lambda a,b: GSet.mul(a, b).apex

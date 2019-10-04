@@ -1204,6 +1204,10 @@ def rank(H):
     H = row_reduce(H, truncate=True)
     return H.shape[0]
 
+def nullity(H):
+    K = find_kernel(H)
+    return len(K)
+
 
 def projector(A, check=False):
 

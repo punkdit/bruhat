@@ -2,6 +2,8 @@
 
 """
 Gaussian elimination over the rationals.
+
+See also: elim.py 
 """
 
 import sys, os
