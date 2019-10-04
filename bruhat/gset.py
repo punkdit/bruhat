@@ -837,7 +837,7 @@ class Simplicial(object):
             sign = -sign
         return A
 
-    def get_cobdy(self, idx):
+    def get_cobdy(self, idx): # ummm ???
         # degenmaps[idx] go from idx --> idx+1
         src = self[idx]
         tgt = self[idx+1]
