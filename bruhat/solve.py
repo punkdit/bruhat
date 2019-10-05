@@ -13,7 +13,9 @@ int_scalar = numpy.int64
 
 
 def array2(items):
-    return numpy.array(items, dtype=int_scalar)
+    A = numpy.array(items, dtype=int_scalar)
+    A %=2
+    return A
 
 
 def zeros2(*shape):

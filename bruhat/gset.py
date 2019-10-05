@@ -11,10 +11,23 @@ scalar = numpy.int64
 from bruhat.util import factorial
 from bruhat.action import mulclose
 from bruhat import algebraic
-#from bruhat import solve
-from bruhat import gelim
 from bruhat.argv import argv
 
+
+if argv.Z2:
+    from bruhat import solve
+    zeros = solve.zeros2
+    array = solve.array2
+    dot = solve.dot2
+    rank = solve.rank
+    nullity = solve.nullity
+else:
+    from bruhat import gelim
+    zeros = gelim.zeros
+    array = gelim.array
+    dot = gelim.dot
+    rank = gelim.rank
+    nullity = gelim.nullity
 
 
 debug = argv.get("debug", False)
@@ -827,7 +840,7 @@ class Simplicial(object):
         src = self[idx+1]
         tgt = self[idx]
         ds = self.facemaps[idx]
-        A = gelim.zeros(tgt.rank, src.rank)
+        A = zeros(tgt.rank, src.rank)
         sign = 1
         for d in ds:
             assert d.src == src
@@ -835,6 +848,7 @@ class Simplicial(object):
             for i, j in enumerate(d.send_items):
                 A[j, i] += sign
             sign = -sign
+        A = array(A)
         return A
 
     def get_cobdy(self, idx): # ummm ???
@@ -842,7 +856,7 @@ class Simplicial(object):
         src = self[idx]
         tgt = self[idx+1]
         fs = self.degenmaps[idx]
-        A = gelim.zeros(tgt.rank, src.rank)
+        A = zeros(tgt.rank, src.rank)
         sign = 1
         for f in fs:
             assert f.src == src
@@ -850,6 +864,7 @@ class Simplicial(object):
             for i, j in enumerate(f.send_items):
                 A[j, i] += sign
             sign = -sign
+        A = array(A)
         return A
 
 
@@ -975,7 +990,7 @@ def test_subgroups():
 def test_homology():
     #X = Group.trivial(2).i
     #G = Group.dihedral(4)
-    G = Group.symmetric(3)
+    G = Group.symmetric(2)
     X = G.i
     s = Simplicial(X)
 
@@ -983,8 +998,8 @@ def test_homology():
     for i in range(3):
         d0 = bdys[i] # 1 --> 0
         d1 = bdys[i+1] # 2 --> 1
-        assert numpy.abs(gelim.dot(d0, d1)).sum() == 0
-        print("betti %d ="%i, gelim.rank(d1) - gelim.nullity(d0)) # == 0
+        assert numpy.abs(dot(d0, d1)).sum() == 0
+        print("betti %d ="%i, rank(d1) - nullity(d0)) # == 0
 
 
     #X = Group.trivial(2).i
@@ -998,8 +1013,8 @@ def test_homology():
         d0 = bdys[i] # 1 <-- 0
         #print(d0)
         d1 = bdys[i+1] # 2 <-- 1
-        assert numpy.abs(gelim.dot(d1, d0)).sum() == 0
-        print("cobetti %d ="%i, gelim.rank(d0) - gelim.nullity(d1)) # == 0
+        assert numpy.abs(dot(d1, d0)).sum() == 0
+        print("cobetti %d ="%i, rank(d0) - nullity(d1)) # == 0
     
 
 
@@ -1041,6 +1056,8 @@ if __name__ == "__main__":
     if argv.test:
         test()
         test_subgroups()
+    elif argv.homology:
+        test_homology()
 
     else:
         main()
