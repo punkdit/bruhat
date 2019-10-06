@@ -469,6 +469,13 @@ class Group(object):
         #send_perms = list(range(self.n)) # ARGH should we use dict's for these?
         gset = GSet(self, self)
         return gset
+
+    def trivial_gset(self, n=1):
+        I = Perm(list(range(n)))
+        tgt = Group([I])
+        send_perms = [0]*len(self)
+        X = GSet(self, tgt, send_perms)
+        return X
         
     def get_orbits(self):
         remain = set(range(self.rank))
@@ -488,7 +495,7 @@ class Group(object):
             orbits.append(orbit)
         return orbits
 
-    def get_components(self): # rename as get_points ?
+    def get_atoms(self):
         orbits = self.get_orbits()
         Gs = []
         for orbit in orbits:
@@ -606,6 +613,7 @@ class GSet(object):
         assert isinstance(src, Group)
         assert isinstance(tgt, Group)
         self.src = src
+        self.G = src
         self.tgt = tgt
         if send_perms is None:
             assert len(src) == len(tgt)
@@ -683,16 +691,42 @@ class GSet(object):
             orbits.append(orbit)
         return orbits
 
-    def get_components(self): # rename as get_points ?
+    def get_atoms(self):
         orbits = self.get_orbits()
-        nats = []
+        atoms = []
         for orbit in orbits:
             gset = GSet.from_action(self.tgt, orbit)
             gset = self.compose(gset)
             send_items = list(orbit)
             nat = Hom(gset, self, send_items)
-            nats.append(nat)
-        return nats
+            atoms.append(nat)
+        return atoms
+
+    def get_retract_linear(self): # random name ...
+        #atoms = self.get_atoms()
+        orbits = self.get_orbits()
+        n = len(orbits)
+        m = self.rank
+        #print(orbits)
+        #points = self.src.trivial_gset(n)
+        proj = zeros(n, m)
+        sect = zeros(m, n)
+        for i, orbit in enumerate(orbits):
+            for j in orbit:
+                proj[i, j] = 1
+            sect[j, i] = 1
+        return proj, sect
+
+    def get_retract(self): # random name ...
+        #atoms = self.get_atoms()
+        orbits = self.get_orbits()
+        proj = [None]*self.rank
+        sect = [None]*len(orbits)
+        for i, orbit in enumerate(orbits):
+            for j in orbit:
+                proj[j] = i
+            sect[i] = j
+        return proj, sect
 
     def get_sequence(self, n=5):
         yield len(self.get_orbits())
@@ -1010,6 +1044,50 @@ class Simplicial(object):
         return A
 
 
+class Orbiplex(Simplicial):
+    "equivariant Simplicial object"
+    def __init__(self, X):
+        assert isinstance(X, GSet)
+        self.s = Simplicial(X) 
+        n = len(X.get_orbits())
+        Y = X.G.trivial_gset(n)
+        self.G = X.G
+        self.items = [Y]
+        self.degenmaps = [] # diagonals
+        self.facemaps = [] # projections
+
+    def construct(self):
+        s = self.s
+        items = self.items
+
+        idx = len(items)
+        Y0 = items[idx-1]
+
+        X0 = s[idx-1]
+        X1 = s[idx]
+
+        n = len(X1.get_orbits())
+        Y1 = self.G.trivial_gset(n)
+        items.append(Y1)
+        
+        proj0, sect0 = X0.get_retract()
+        proj1, sect1 = X1.get_retract()
+        dmaps = []
+        fmaps = []
+        for f in s.facemaps[idx-1]: # idx --> idx-1
+            send_items = [proj0[f.send_items[sect1[i]]] for i in range(Y1.rank)]
+            f = Hom(Y1, Y0, send_items)
+            fmaps.append(f)
+        for d in s.degenmaps[idx-1]: # idx-1 --> idx
+            send_items = [proj1[d.send_items[sect0[i]]] for i in range(Y0.rank)]
+            d = Hom(Y0, Y1, send_items)
+            dmaps.append(d)
+
+        self.facemaps.append(fmaps)
+        self.degenmaps.append(dmaps)
+        if debug:
+            self.check()
+
 
 def general_linear(n=3, p=2):
     G = algebraic.GL(n, p)
@@ -1074,7 +1152,7 @@ def test_gset():
     cone = Cone(X, [I, I], contra=True)
     cone, univ = add(X, X, cone)
     X_X = cone.apex
-    for hom in X_X.get_components():
+    for hom in X_X.get_atoms():
         assert hom.src.isomorphic(X)
         assert hom.compose(univ) == I
 
@@ -1085,7 +1163,7 @@ def test_gset():
     G = Group.alternating(5)
     H = mul(G.i, G.i).apex
     H = H.tgt
-    Gs = H.get_components()
+    Gs = H.get_atoms()
     assert len(Gs) == 2
     assert Gs[0].rank == 5
     assert Gs[1].rank == 20
@@ -1093,7 +1171,7 @@ def test_gset():
     G = Group.alternating(5)
     H = mul(G.i, G.i).apex
     H = mul(G.i, H).apex
-    items = [nat.src for nat in H.get_components()]
+    items = [nat.src for nat in H.get_atoms()]
     A, B, C = items[0], items[1], items[4]
     assert A.rank == 5
     assert B.rank == 20
@@ -1158,42 +1236,61 @@ def test_homology():
         G = Group.trivial(n)
     elif argv.symmetric:
         G = Group.symmetric(n)
+    elif argv.alternating:
+        G = Group.alternating(n)
+    elif argv.dihedral:
+        G = Group.dihedral(n)
+    elif argv.cyclic:
+        G = Group.cyclic(n)
     else:
         return
 
     X = G.i
-    s = Simplicial(X)
 
-    for f in s.facemaps[0]:
-        print("proj:", f)
-    for f in s.degenmaps[0]:
-        print("diag:", f)
+    e = Orbiplex(X)
+    e.construct()
 
-    return
+#    return
+#
+#    s = Simplicial(X)
+#
+#    for i in range(3):
+#        proj, sect = s[i].get_retract()
+#        print(proj)
+#        print(sect)
+#        print(dot(proj, sect)) # identity matrix
+#        print()
+#
+#    return
+#
+#    for f in e.facemaps[0]:
+#        print("proj:", f)
+#    for f in e.degenmaps[0]:
+#        print("diag:", f)
+#
+#    return
 
-    bdys = [s.get_bdy(i) for i in range(5)]
-    for i in range(3):
-        print(bdys[i])
-    for i in range(3):
+    s = e
+
+    degree = argv.get("degree", 4)
+    bdys = [s.get_bdy(i) for i in range(degree)]
+    #for i in range(degree):
+    #    print(bdys[i])
+
+    for i in range(degree-1):
         d0 = bdys[i] # 1 --> 0
         d1 = bdys[i+1] # 2 --> 1
         assert numpy.abs(dot(d0, d1)).sum() == 0
-        print("betti %d ="%i, rank(d1) - nullity(d0)) # == 0
+        print("betti %d ="%i, nullity(d0) - rank(d1))
 
-
-    #X = Group.trivial(2).i
-    #G = Group.dihedral(4)
-    G = Group.symmetric(2)
-    X = G.i
-    s = Simplicial(X)
-
-    bdys = [s.get_cobdy(i) for i in range(5)]
-    for i in range(3):
-        d0 = bdys[i] # 1 <-- 0
-        #print(d0)
-        d1 = bdys[i+1] # 2 <-- 1
-        assert numpy.abs(dot(d1, d0)).sum() == 0
-        print("cobetti %d ="%i, rank(d0) - nullity(d1)) # == 0
+#
+#    bdys = [s.get_cobdy(i) for i in range(5)]
+#    for i in range(3):
+#        d0 = bdys[i] # 1 <-- 0
+#        #print(d0)
+#        d1 = bdys[i+1] # 2 <-- 1
+#        assert numpy.abs(dot(d1, d0)).sum() == 0
+#        print("cobetti %d ="%i, rank(d0) - nullity(d1)) # == 0
     
 
 
@@ -1222,27 +1319,27 @@ def main():
     XXXX = mul(XXX, X)
 
     for A in [X, XX, XXX, XXXX]:
-        Bs = [hom.src for hom in A.get_components()]
+        Bs = [hom.src for hom in A.get_atoms()]
         items = [names[sigs.index(B.signature())] for B in Bs]
         print(len(items), "+".join(items), end=" --- ")
         for B in Bs:
             print(B.rank, end=" ")
         print()
 
+
+def test():
+    test_set()
+    test_gset()
+    test_subgroups()
+    test_homology()
+
     
 if __name__ == "__main__":
 
-    if argv.test:
-        test_set()
-        test_gset()
-        test_subgroups()
-        main()
-    elif argv.test_set:
-        test_set()
-
-    elif argv.homology:
-        test_homology()
-
+    name = argv.next()
+    if name is not None:
+        f = eval(name)
+        f()
     else:
         main()
 
