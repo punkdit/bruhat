@@ -21,6 +21,8 @@ if argv.Z2:
     dot = solve.dot2
     rank = solve.rank
     nullity = solve.nullity
+    shortstr = solve.shortstr
+
 else:
     from bruhat import gelim
     zeros = gelim.zeros
@@ -28,6 +30,7 @@ else:
     dot = gelim.dot
     rank = gelim.rank
     nullity = gelim.nullity
+    shortstr = gelim.shortstr
 
 
 debug = argv.get("debug", False)
@@ -815,6 +818,10 @@ class GSet(object):
         cone = GSet.mul(left, right)
         return cone.apex
 
+    def __add__(left, right):
+        cone = GSet.add(left, right)
+        return cone.apex
+
     def fixed_points(self, H):
         send_perms = self.send_perms
         fixed = set(range(self.rank))
@@ -1245,35 +1252,33 @@ def test_homology():
     else:
         return
 
-    X = G.i
+    if argv.regular:
+        X = G.regular_action()
+    elif argv.double:
+        X = G.i
+        X = X + X
+    else:
+        X = G.i
 
     e = Orbiplex(X)
     e.construct()
 
-#    return
-#
-#    s = Simplicial(X)
-#
 #    for i in range(3):
-#        proj, sect = s[i].get_retract()
+#        proj, sect = e[i].get_retract_linear()
 #        print(proj)
 #        print(sect)
-#        print(dot(proj, sect)) # identity matrix
+#        print(shortstr(dot(proj, sect))) # identity matrix
 #        print()
 #
 #    return
-#
+
 #    for f in e.facemaps[0]:
 #        print("proj:", f)
 #    for f in e.degenmaps[0]:
 #        print("diag:", f)
-#
-#    return
-
-    s = e
 
     degree = argv.get("degree", 4)
-    bdys = [s.get_bdy(i) for i in range(degree)]
+    bdys = [e.get_bdy(i) for i in range(degree)]
     #for i in range(degree):
     #    print(bdys[i])
 
@@ -1281,10 +1286,12 @@ def test_homology():
         d0 = bdys[i] # 1 --> 0
         d1 = bdys[i+1] # 2 --> 1
         assert numpy.abs(dot(d0, d1)).sum() == 0
-        print("betti %d ="%i, nullity(d0) - rank(d1))
+        kern = nullity(d0)
+        im = rank(d1)
+        print("betti %d: %d-%d = %d"%(i, kern, im, kern-im))
 
 #
-#    bdys = [s.get_cobdy(i) for i in range(5)]
+#    bdys = [e.get_cobdy(i) for i in range(5)]
 #    for i in range(3):
 #        d0 = bdys[i] # 1 <-- 0
 #        #print(d0)
