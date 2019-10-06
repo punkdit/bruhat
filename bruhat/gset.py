@@ -32,6 +32,164 @@ else:
 
 debug = argv.get("debug", False)
 
+
+class Set(object):
+
+    hom = None # set below
+
+    def __init__(self, rank):
+        self.rank = rank # our size
+
+    def __str__(self):
+        return "Set(%d)"%(self.rank,)
+    __repr__ = __str__
+
+    def __eq__(self, other):
+        assert isinstance(other, Set)
+        return self.rank == other.rank
+
+    def __ne__(self, other):
+        assert isinstance(other, Set)
+        return self.rank != other.rank
+
+    def get_identity(self):
+        return self.hom(self, self)
+
+    def add(left, right, cone=None):
+        assert left.hom == right.hom
+        lrank = left.rank
+        rrank = right.rank
+        the_set = Set(lrank + rrank)
+        send_items = [i for i in range(lrank)]
+        i_left = left.hom(left, the_set, send_items)
+        send_items = [i+lrank for i in range(rrank)]
+        i_right = left.hom(right, the_set, send_items)
+        limit = Cone(the_set, [i_left, i_right], contra=True) # _cocone
+        if cone is None:
+            return limit
+
+        assert cone.contra
+        assert cone[0].src is left
+        assert cone[1].src is right
+
+        l, r = cone
+        apex = cone.apex
+        send_items = [l.send_items[i] for i in range(l.rank)] + [r.send_items[i] for i in range(r.rank)]
+        univ = left.hom(the_set, apex, send_items)
+        return limit, univ
+
+    def mul(left, right, cone=None):
+        assert left.hom == right.hom
+        lrank = left.rank
+        rrank = right.rank
+        the_set = Set(lrank * rrank)
+        send_items = [i for i in range(lrank) for j in range(rrank)]
+        p_left = left.hom(the_set, left, send_items)
+        send_items = [j for i in range(lrank) for j in range(rrank)]
+        p_right = left.hom(the_set, right, send_items)
+        limit = Cone(the_set, [p_left, p_right])
+        if cone is None:
+            return limit
+
+        assert not cone.contra
+        assert cone[0].tgt is left
+        assert cone[1].tgt is right
+
+        l, r = cone
+        apex = cone.apex
+        send_items = [l.send_items[i]*rrank + r.send_items[i] for i in range(apex.rank)]
+        univ = left.hom(apex, the_set, send_items)
+        return limit, univ
+
+    def __mul__(left, right):
+        cone = left.mul(right)
+        return cone.apex
+
+    def __add__(left, right):
+        cone = left.add(right)
+        return cone.apex
+
+
+class Function(object):
+
+    category = Set
+
+    def __init__(self, src, tgt, send_items=None):
+        assert isinstance(src, self.category)
+        assert isinstance(tgt, self.category)
+        self.src = src
+        self.tgt = tgt
+        if send_items is None:
+            assert src == tgt
+            send_items = list(range(src.rank)) # identity
+        else:
+            send_items = list(send_items)
+        assert len(send_items) == src.rank
+        self.rank = src.rank
+        self.send_items = send_items
+        if debug:
+            self.do_check()
+
+    def do_check(self):
+        src = self.src
+        tgt = self.tgt
+        send_items = self.send_items
+        items = set(send_items)
+        assert items.issubset(set(range(tgt.rank)))
+
+    def __str__(self):
+        return "%s(%s, %s, %s)"%(self.__class__.__name__, self.src, self.tgt, self.send_items)
+    __repr__ = __str__
+
+    def __eq__(self, other):
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        return self.send_items == other.send_items
+
+    def __ne__(self, other):
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        return self.send_items != other.send_items
+
+    def compose(self, other):
+        # other o self
+        assert self.tgt == other.src
+        a = self.send_items
+        b = other.send_items
+        send_items = [b[i] for i in a]
+        return self.__class__(self.src, other.tgt, send_items)
+
+    def mul(f, g):
+        assert isinstance(g, f.__class__)
+        category = f.category
+        cone = category.mul(f.src, g.src)
+        src = cone.apex
+        cone = Cone(src, [cone[0].compose(f), cone[1].compose(g)])
+        cone, univ = category.mul(f.tgt, g.tgt, cone)
+        return univ
+    __mul__ = mul
+
+Set.hom = Function
+
+
+
+class Cone(object):
+    def __init__(self, apex, legs, contra=False):
+        self.apex = apex
+        self.legs = list(legs)
+        self.contra = contra
+
+        for leg in legs:
+            if contra:
+                assert leg.tgt == apex
+            else:
+                assert leg.src == apex
+
+    def __getitem__(self, idx):
+        return self.legs[idx]
+
+
+
 class Perm(object):
 
     def __init__(self, perm):
@@ -330,7 +488,7 @@ class Group(object):
             orbits.append(orbit)
         return orbits
 
-    def get_components(self):
+    def get_components(self): # rename as get_points ?
         orbits = self.get_orbits()
         Gs = []
         for orbit in orbits:
@@ -525,7 +683,7 @@ class GSet(object):
             orbits.append(orbit)
         return orbits
 
-    def get_components(self):
+    def get_components(self): # rename as get_points ?
         orbits = self.get_orbits()
         nats = []
         for orbit in orbits:
@@ -549,8 +707,8 @@ class GSet(object):
         send_left = left.send_perms
         send_right = right.send_perms
         perms = []
-        lrank = left.tgt.rank
-        rrank = right.tgt.rank
+        lrank = left.rank
+        rrank = right.rank
         for idx, p in enumerate(G):
             l = left.tgt[send_left[idx]]
             r = right.tgt[send_right[idx]]
@@ -586,8 +744,8 @@ class GSet(object):
         send_left = left.send_perms
         send_right = right.send_perms
         perms = []
-        lrank = left.tgt.rank
-        rrank = right.tgt.rank
+        lrank = left.rank
+        rrank = right.rank
         for idx, p in enumerate(G):
             l = left.tgt[send_left[idx]]
             r = right.tgt[send_right[idx]]
@@ -648,23 +806,6 @@ class GSet(object):
 
     def get_identity(self):
         return Hom(self, self)
-
-
-class Cone(object):
-    def __init__(self, apex, legs, contra=False):
-        self.apex = apex
-        self.legs = list(legs)
-        self.contra = contra
-
-        for leg in legs:
-            if contra:
-                assert leg.tgt == apex
-            else:
-                assert leg.src == apex
-
-    def __getitem__(self, idx):
-        return self.legs[idx]
-
 
 
 class Hom(object):
@@ -737,15 +878,16 @@ class Hom(object):
     __mul__ = mul
 
 
+
 class Simplicial(object):
     """
-        A simplicial object in the category of GSet's
+        A simplicial object in some category
     """
+
     def __init__(self, X):
-        assert isinstance(X, GSet)
         I = X.get_identity()
         cone = Cone(X, [I, I])
-        cone, diag = GSet.mul(X, X, cone)
+        cone, diag = X.mul(X, cone)
         XX = cone.apex
         self.items = [X, XX]
         self.degenmaps = [[diag]] # diagonals
@@ -783,10 +925,10 @@ class Simplicial(object):
         for idx in range(n):
             print("face  [%d] --> [%d]" % (idx+1, idx))
             for d in facemaps[idx]:
-                print(d)
+                print('\t', d)
             print("degen [%d] --> [%d]" % (idx, idx+1))
             for s in degenmaps[idx]:
-                print(s)
+                print('\t', s)
 
     def check(self):
         "check that we satisfy the defining relations of a Simplicial object."
@@ -882,8 +1024,23 @@ def general_linear(n=3, p=2):
     return G
 
 
+def test_set():
 
-def test():
+    add, mul = Set.add, Set.mul
+
+    A = Set(3)
+    B = Set(4)
+    assert add(A, B).apex.rank == 3+4
+    assert mul(A, B).apex.rank == 3*4
+
+    X = Set(2)
+    s = Simplicial(X)
+    s.construct()
+    s.construct()
+    s.dump()
+
+
+def test_gset():
 
     add, mul = GSet.add, GSet.mul
 
@@ -905,6 +1062,11 @@ def test():
     X_X = add(X, X).apex
     assert XX.tgt.get_orbits() == [[0, 4, 8], [1, 2, 3, 5, 6, 7]]
     assert (X_X.tgt.get_orbits()) == [[0, 1, 2], [3, 4, 5]]
+
+    s = Simplicial(X)
+    s.construct()
+    s.construct()
+    s.dump()
 
     G = Group.cyclic(3)
     X = G.i
@@ -958,6 +1120,7 @@ def test():
     #for size in G.get_sequence():
     #    print(size, end=" ", flush=True)
     #print()
+
     print("OK")
 
 
@@ -990,11 +1153,27 @@ def test_subgroups():
 def test_homology():
     #X = Group.trivial(2).i
     #G = Group.dihedral(4)
-    G = Group.symmetric(2)
+    n = argv.get("n", 2)
+    if argv.trivial:
+        G = Group.trivial(n)
+    elif argv.symmetric:
+        G = Group.symmetric(n)
+    else:
+        return
+
     X = G.i
     s = Simplicial(X)
 
+    for f in s.facemaps[0]:
+        print("proj:", f)
+    for f in s.degenmaps[0]:
+        print("diag:", f)
+
+    return
+
     bdys = [s.get_bdy(i) for i in range(5)]
+    for i in range(3):
+        print(bdys[i])
     for i in range(3):
         d0 = bdys[i] # 1 --> 0
         d1 = bdys[i+1] # 2 --> 1
@@ -1054,8 +1233,13 @@ def main():
 if __name__ == "__main__":
 
     if argv.test:
-        test()
+        test_set()
+        test_gset()
         test_subgroups()
+        main()
+    elif argv.test_set:
+        test_set()
+
     elif argv.homology:
         test_homology()
 
