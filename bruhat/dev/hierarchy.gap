@@ -73,9 +73,8 @@ Hadamard4 := (1/2)*[
     [2, 0, 2, 0],
     [0, 1, 0, -1],
     [2, 0, -2, 0]];
-Print(Hadamard4*Hadamard4, "\n");
+#Print(Hadamard4*Hadamard4, "\n");
 #Print(Hadamard4, " in Cliff2 ", Hadamard4 in Cliff2, "\n");
-#quit;
 
 a := [
     [0, 1, 0, 0],
@@ -121,7 +120,6 @@ cls := ConjugacyClass(Cliff2, a);;
 
 #Print(Eigenvalues(Cyclotomics, b), "\n"); # fail
 
-#quit;
 
 #Print(a*a, "\n");
 #Print(a*a*a, "\n");
@@ -141,7 +139,6 @@ Hadamard8 := (1/2)*[
 
 #Print(Hadamard8, "\n");
 #Print(Hadamard8*Hadamard8, "\n"); # = identity
-#quit;
 
 
 U2 := [ 
@@ -196,7 +193,7 @@ get_level_2 := function(U2)
 end;;
 
 
-if false then
+if true then
     Print("# Where do control 1-qubit Pauli gates live ?\n");
     for g in Pauli1 do 
         #Print(g, "\n");
@@ -215,7 +212,6 @@ if false then
 fi;
 
 
-#quit;
 
 # ---------------------------------------------------
 #
@@ -377,22 +373,34 @@ in_fourth_level := function(U3)
 end;;
 
 
+in_fifth_level := function(U3)
+    # Is U3 in the fifth level of the clifford hierarchy ?
+    local A;
+    for g in Pauli3 do
+        A := U3*g*Inverse(U3)*Inverse(g);
+        if in_fourth_level(A) then continue; fi;
+        return false; # no
+    od;
+    return true; # yes
+end;;
+
+
 get_level := function(U3)
     if U3 in Pauli3 then return "1\c"; fi;
     if in_second_level(U3) then return "2\c"; fi;
     if in_third_level(U3) then return "3\c"; fi;
     if in_fourth_level(U3) then return "4\c"; fi;
+    if in_first_level(U3) then return "5\c"; fi;
     return ".\c";
 end;;
     
 
-Print("in_third_level(d):", in_third_level(cc), "\n"); # true
-
-Print("in_third_level(ca):", in_third_level(ca), "\n"); # true
-Print("in_third_level(cb):", in_third_level(cb), "\n"); # true
-Print("in_third_level(cc):", in_third_level(cc), "\n"); # true
-Print("in_third_level(Tofolli):", in_third_level(Tofolli), "\n"); # true
-Print("in_third_level(Tofolli*ca):", in_third_level(Tofolli*ca), "\n"); # false
+#Print("in_third_level(d):", in_third_level(cc), "\n"); # true
+#Print("in_third_level(ca):", in_third_level(ca), "\n"); # true
+#Print("in_third_level(cb):", in_third_level(cb), "\n"); # true
+#Print("in_third_level(cc):", in_third_level(cc), "\n"); # true
+#Print("in_third_level(Tofolli):", in_third_level(Tofolli), "\n"); # true
+#Print("in_third_level(Tofolli*ca):", in_third_level(Tofolli*ca), "\n"); # false
 
 U3 := [ 
     [1, 0, 0, 0, 0, 0, 0, 0],
