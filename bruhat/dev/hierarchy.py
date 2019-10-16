@@ -12,7 +12,7 @@ print("|C2| =", len(C2)) # == 192
 
 
 def is_cliff(A):
-    Ai = inv(A)
+    Ai = dag(A)
     for g in [X, Z]:
         h = A*g*Ai
         h.set_immutable()
@@ -26,7 +26,7 @@ assert S not in C1
 assert is_cliff(S)
 
 def is_third_level(A):
-    Ai = inv(A)
+    Ai = dag(A)
     for g in [X, Z]:
         h = A*g*Ai
         h.set_immutable()
@@ -37,7 +37,7 @@ def is_third_level(A):
 assert not is_cliff(T)
 assert is_third_level(T)
 
-if 0:
+def test():
     C3 = set(C2)
     for a in C2:
         aT = a*T
@@ -104,9 +104,9 @@ if 0:
     print(set(C2) == obs[-1])
     for ob in obs:
         #print(len(ob), end=" ")
-        iob = set([inv(a) for a in ob])
+        iob = set([dag(a) for a in ob])
         print(iob in obs, end=" ")
-        #iob = [ia for a in iob if inv(a) in ob]
+        #iob = [ia for a in iob if dag(a) in ob]
         #print((len(ob), len(iob)), end=" ")
 
     print()
@@ -120,24 +120,24 @@ if 0:
 
 # --------------- two qudits -------------- #
 
-XI = X.tensor_product(I)
-IX = I.tensor_product(X)
-ZI = Z.tensor_product(I)
-IZ = I.tensor_product(Z)
-wII = w2*II
+#XI = X.tensor_product(I)
+#IX = I.tensor_product(X)
+#ZI = Z.tensor_product(I)
+#IZ = I.tensor_product(Z)
+#wII = w2*II
 
 gen = [XI, IX, ZI, IZ, wII]
 for op in gen:
     op.set_immutable()
     #print()
     #print(op)
-    assert op*inv(op) == II
+    assert op*dag(op) == II
 
 C1_2 = mulclose(gen, mul)
 print("|C1(2)| =", len(C1_2))
 
 def is_cliff_2(A):
-    Ai = inv(A)
+    Ai = dag(A)
     for g in [XI, IX, ZI, IZ]:
         h = A*g*Ai
         h.set_immutable()
@@ -146,7 +146,7 @@ def is_cliff_2(A):
     return True
 
 def is_third_level_2(A):
-    Ai = inv(A)
+    Ai = dag(A)
     for g in [XI, IX, ZI, IZ]:
         h = A*g*Ai
         h.set_immutable()
@@ -154,6 +154,20 @@ def is_third_level_2(A):
             return False
     return True
 
+def get_level_2(A):
+    A.set_immutable()
+    level = None
+    if A in C1_2:
+        level = 1
+    elif is_cliff_2(A):
+        level = 2
+    elif is_third_level_2(A):
+        level = 3
+
+    return level
+
+print(get_level_2(HH))
+print(get_level_2(CH))
 
 def block_diag(blocks):
     A = copy(MS_2.zero_matrix())

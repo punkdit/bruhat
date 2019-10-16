@@ -502,6 +502,14 @@ def genus_enum2(code=None, verbose=False):
     q = p.transform(CS2)
     print("invariant under CS2", q==p)
 
+    CX = numpy.array([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1],
+        [0, 0, 1, 0]])
+    q = p.transform(CX)
+    print("invariant under CX", q==p)
+
     T2 = numpy.array([
         [0, 1, 0, 0],
         [0, 0, 1, 0],
@@ -573,6 +581,18 @@ def genus_enum3(code=None, verbose=False):
         [0, 0, 0, 0, 0, 0, -1, 0]])
     q = p.transform(CS2)
     print("invariant under CS2", q==p)
+
+    CCX = numpy.array([
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 0, 0, 1, 0]])
+    q = p.transform(CCX)
+    print("invariant under CCX", q==p)
 
     T3 = numpy.array([
         [1, 0, 0, 0, 0, 0, 0, 0],
