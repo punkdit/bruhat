@@ -257,8 +257,8 @@ def test_enum(G, verbose=False):
         "x_01" : x_0*y_1, 
         "x_11" : x_1*y_1,
     })
-    yw1 = w1.substitute({ "x_0" : y_0, "x_1" : y_1, })
-    rhs = w1 * yw1
+    w1_y = w1.substitute({ "x_0" : y_0, "x_1" : y_1, })
+    rhs = w1 * w1_y
     assert lhs == rhs
 
     lhs = w3.substitute({ 
@@ -271,7 +271,7 @@ def test_enum(G, verbose=False):
         "x_101" : x_10*y_1, 
         "x_111" : x_11*y_1,
     })
-    rhs = w2 * yw1
+    rhs = w2 * w1_y
     assert lhs == rhs
 
     lhs = w3.substitute({ 
@@ -284,8 +284,21 @@ def test_enum(G, verbose=False):
         "x_101" : y_1*x_01, 
         "x_111" : y_1*x_11,
     })
-    rhs = w2 * yw1
-    assert lhs == rhs
+    rhs = w2 * w1_y
+    assert lhs == rhs, "%s != %s"%(lhs, rhs)
+
+    lhs = w3.substitute({ 
+        "x_000" : y_0*x_00, 
+        "x_010" : y_1*x_00, 
+        "x_001" : y_0*x_01, 
+        "x_011" : y_1*x_01,
+        "x_100" : y_0*x_10, 
+        "x_110" : y_1*x_10, 
+        "x_101" : y_0*x_11, 
+        "x_111" : y_1*x_11,
+    })
+    rhs = w2 * w1_y
+    assert lhs == rhs, "%s != %s"%(lhs, rhs)
 
     if argv.verbose:
         print("G =")
