@@ -161,6 +161,17 @@ xpoly3 = lambda cs : named_poly(cs, 8,
     "x_{000} x_{001} x_{010} x_{011} x_{100} x_{101} x_{110} x_{111}".split())
 
 
+x_000 = xpoly3({(1,0,0,0,0,0,0,0):1})
+x_001 = xpoly3({(0,1,0,0,0,0,0,0):1})
+x_010 = xpoly3({(0,0,1,0,0,0,0,0):1})
+x_011 = xpoly3({(0,0,0,1,0,0,0,0):1})
+x_100 = xpoly3({(0,0,0,0,1,0,0,0):1})
+x_101 = xpoly3({(0,0,0,0,0,1,0,0):1})
+x_110 = xpoly3({(0,0,0,0,0,0,1,0):1})
+x_111 = xpoly3({(0,0,0,0,0,0,0,1):1})
+
+
+
 
 def genus_enum1(G, verbose=False):
     m, n = G.shape
@@ -359,7 +370,7 @@ def thaw(fG):
     return G
 
 
-def find():
+def find_equ():
 
     m = argv.get("m", 3)
     n = argv.get("n", 6)
@@ -401,6 +412,103 @@ def find():
         print(genus_enum2(G1).flatstr())
 
 
+def CX_12(w2):
+    x_00 = xpoly2({(1,0,0,0):1})
+    x_01 = xpoly2({(0,1,0,0):1})
+    x_10 = xpoly2({(0,0,1,0):1})
+    x_11 = xpoly2({(0,0,0,1):1})
+    #w2 = w2.substitute({"x_00":x_00, "x_01":x_01, "x_10":x_10, "x_11":x_11})
+    w2 = w2.substitute({"x_00":x_00, "x_01":x_01, "x_10":x_11, "x_11":x_10})
+    return w2
+
+def CX_21(w2):
+    x_00 = xpoly2({(1,0,0,0):1})
+    x_01 = xpoly2({(0,1,0,0):1})
+    x_10 = xpoly2({(0,0,1,0):1})
+    x_11 = xpoly2({(0,0,0,1):1})
+    #w2 = w2.substitute({"x_00":x_00, "x_01":x_01, "x_10":x_10, "x_11":x_11})
+    w2 = w2.substitute({"x_00":x_00, "x_01":x_11, "x_10":x_10, "x_11":x_01})
+    return w2
+
+
+def CCX(w3):
+    w3 = w3.substitute({ 
+        "x_000" : x_000, 
+        "x_010" : x_010, 
+        "x_001" : x_001, 
+        "x_011" : x_011,
+        "x_100" : x_100, 
+        "x_110" : x_111, 
+        "x_101" : x_101, 
+        "x_111" : x_110,
+    })
+    return w3
+
+def CCZ(w3):
+    w3 = w3.substitute({ 
+        "x_000" : x_000, 
+        "x_010" : x_010, 
+        "x_001" : x_001, 
+        "x_011" : x_011,
+        "x_100" : x_100, 
+        "x_110" : x_110, 
+        "x_101" : x_101, 
+        "x_111" : -x_111,
+    })
+    return w3
+
+
+
+def find_CX():
+    m = argv.get("m", 3)
+    n = argv.get("n", 6)
+
+    x_00 = xpoly2({(1,0,0,0):1})
+    x_01 = xpoly2({(0,1,0,0):1})
+    x_10 = xpoly2({(0,0,1,0):1})
+    x_11 = xpoly2({(0,0,0,1):1})
+
+    assert CX_12(x_10) == x_11
+
+    print("m=%d n=%d" % (m, n))
+    show = argv.show
+
+    ps_1 = {}
+    ps_2 = {}
+    ps_3 = {}
+    count = 0
+    found = set()
+    for G in all_codes(m, n):
+        #w1 = genus_enum1(G)
+#        w2 = genus_enum2(G)
+#        a = CX_12(w2)
+#        b = CX_21(w2)
+#        if w2 == a and w2 == b:
+#            print("", end="", flush=True)
+#        else:
+#            print(".", end="", flush=True)
+        w3 = genus_enum3(G)
+        a = CCX(w3)
+        b = CCZ(w3)
+        if w3 == a and w3 == b:
+            #print("3", end="", flush=True)
+            #print()
+            #print(G)
+            pass
+        elif w3 == a:
+            #print("1", end="", flush=True)
+            if w3 not in found:
+                print(G)
+        elif w3 == b:
+            print("2", end="", flush=True)
+        #else:
+            #print(".", end="", flush=True)
+        found.add(w3)
+
+
+    print()
+
+
 def get_phi_2(w2):
     x_0 = xpoly1({(1,0):1})
     x_1 = xpoly1({(0,1):1})
@@ -438,23 +546,33 @@ def get_phi_3(w3):
     zero1 = xpoly1({})
     zero2 = xpoly2({})
 
+    vs = dict(locals())
+
     ns = dict((k, 0) for k in locals().keys())
     items = []
-    for ns1 in [
-        {"x_000":x_000, "x_010":x_010, "x_100":x_100, "x_110":x_110 },
-        {"x_000":x_000, "x_001":x_001, "x_100":x_100, "x_101":x_101 },
-        {"x_000":x_000, "x_011":x_011, "x_100":x_100, "x_111":x_111 },
-        {"x_010":x_010, "x_001":x_001, "x_110":x_110, "x_101":x_101 },
-        {"x_010":x_010, "x_011":x_011, "x_110":x_110, "x_111":x_111 },
-        {"x_001":x_001, "x_011":x_011, "x_101":x_101, "x_111":x_111 }]:
+    names = "x_000 x_001 x_010 x_011 x_100 x_101 x_110 x_111".split()
+    for _ns1 in choose(names, 4):
+        ns1 = dict((k, vs[k]) for k in _ns1)
         ns2 = dict(ns)
         ns2.update(ns1)
-        items.append(w3.substitute(ns2))
+        w = w3.substitute(ns2)
+        items.append(w)
+        print(' '.join(_ns1), w.flatstr())
     return items
 
 
 def main():
-    s = argv.get("G")
+
+    if argv.code == "RM14":
+        s = """
+        1111111111111111
+        .1.1.1.1.1.1.1.1
+        ..11..11..11..11
+        ....1111....1111
+        ........11111111
+        """
+    else:
+        s = argv.get("G")
     if s is None:
         G = parse("111")
         #G = parse("1. .1")
@@ -474,8 +592,8 @@ def main():
     print(w2.flatstr())
 
     items = get_phi_2(w2)
-    for w in items:
-        print("\t", w.flatstr())
+    #for w in items:
+    #    print("\t", w.flatstr())
     w = sum(items)
     print("sum(items) =")
     print(w.flatstr())
@@ -483,11 +601,11 @@ def main():
     print((w2 - w).flatstr())
     
     w3 = genus_enum3(G)
-    items = get_phi_3(w3)
     print("w3 =")
     print(w3.flatstr())
-    for w in items:
-        print("\t", w.flatstr())
+    #for w in items:
+    #    print("\t", w.flatstr(), w.flatstr()==w2.flatstr())
+    items = get_phi_3(w3)
     w = sum(items)
     print("diff:")
     print((w3 - w).flatstr())

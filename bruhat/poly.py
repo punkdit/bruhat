@@ -264,7 +264,7 @@ class Poly(object):
                 s = "%s%s%s" % (value, mul, tuple(items))
             s = s.replace(' ', '')
             ss.append(s)
-        return ' + '.join(ss)
+        return ' + '.join(ss) or "0"
 
     def substitute(self, ns):
         s = self.python_str()
