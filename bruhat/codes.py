@@ -463,11 +463,6 @@ def genus_enum2(code=None, verbose=False):
     m, n = G.shape
 
     poly = lambda cs : Poly(cs, 4, "x_{00} x_{01} x_{10} x_{11}".split())
-#    x_11 = poly({(0, 0, 0, 1) : 1})
-#    x_10 = poly({(0, 0, 1, 0) : 1})
-#    x_01 = poly({(0, 1, 0, 0) : 1})
-#    x_00 = poly({(1, 0, 0, 0) : 1})
-#    xs = [[x_00, x_01], [x_10, x_11]]
     cs = {}
     for v0 in span(G):
         print(".",end='',flush=True)
@@ -539,10 +534,12 @@ def genus_enum3(code=None, verbose=False):
     poly = lambda cs : Poly(cs, rank, 
         "x_{000} x_{001} x_{010} x_{011} x_{100} x_{101} x_{110} x_{111}".split())
     cs = {}
-    for v0 in span(G):
+    assert len(G) < 14
+    items = list(span(G))
+    for v0 in items:
         print(".",end='',flush=True)
-        for v1 in span(G):
-          for v2 in span(G):
+        for v1 in items:
+          for v2 in items:
             exp = [0, 0, 0, 0, 0, 0, 0, 0]
             #vv = numpy.array([2*v0, v1])
             for i in range(n):

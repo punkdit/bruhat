@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""
+Multivariate commutative polynomials.
+"""
+
 from functools import reduce
 import operator
 
@@ -235,6 +239,32 @@ class Poly(object):
         s = s.replace("{", "")
         s = s.replace("}", "")
         return s
+
+    def flatstr(self, mul=""):
+        cs = self.cs
+        keys = set()
+        for key in self.keys:
+            for k,v in key:
+                keys.add(k)
+        keys = list(keys)
+        keys.sort()
+        n = len(keys)
+        #print(keys)
+        ss = []
+        #for key, value in cs.items():
+        for key in self.keys:
+            value = cs[key]
+            items = [0] * n
+            for k, v in key:
+                items[keys.index(k)] = v
+            #print(items, key, value)
+            if value==1:
+                s = "%s" % (tuple(items),)
+            else:
+                s = "%s%s%s" % (value, mul, tuple(items))
+            s = s.replace(' ', '')
+            ss.append(s)
+        return ' + '.join(ss)
 
     def substitute(self, ns):
         s = self.python_str()

@@ -2,7 +2,7 @@
 
 """
 higher genus weight enumerators.
-Check they satisfy various identities.
+Check _they satisfy various identities.
 """
 
 from random import random, randint, shuffle
@@ -164,7 +164,6 @@ xpoly3 = lambda cs : named_poly(cs, 8,
 
 def genus_enum1(G, verbose=False):
     m, n = G.shape
-
     cs = {}
     for v0 in span(G):
         exp = [0, 0]
@@ -180,9 +179,10 @@ def genus_enum1(G, verbose=False):
 def genus_enum2(G, verbose=False):
     m, n = G.shape
     cs = {}
-    for v0 in span(G):
+    items = list(span(G))
+    for v0 in items:
         #print(".",end='',flush=True)
-        for v1 in span(G):
+        for v1 in items:
             exp = [0, 0, 0, 0]
             #vv = numpy.array([2*v0, v1])
             for i in range(n):
@@ -199,13 +199,12 @@ def genus_enum2(G, verbose=False):
 def genus_enum3(G, verbose=False):
     #print(shortstr(G))
     m, n = G.shape
-
-    rank = 8
     cs = {}
-    for v0 in span(G):
+    items = list(span(G))
+    for v0 in items:
         #print(".",end='',flush=True)
-        for v1 in span(G):
-          for v2 in span(G):
+        for v1 in items:
+          for v2 in items:
             exp = [0, 0, 0, 0, 0, 0, 0, 0]
             #vv = numpy.array([2*v0, v1])
             for i in range(n):
@@ -235,9 +234,9 @@ def test_enum(G, verbose=False):
     w3 = genus_enum3(G)
 
     if verbose:
-        print(w1)
-        print(w2)
-        print(w3)
+        print(w1.flatstr())
+        print(w2.flatstr())
+        print(w3.flatstr())
 
     zero1 = xpoly1({})
     zero2 = xpoly2({})
@@ -250,6 +249,9 @@ def test_enum(G, verbose=False):
 
     w2_11 = w2.substitute({ "x_00" : x_0, "x_10" : zero1, "x_01":zero1, "x_11":x_1 })
     assert w2_11 == w1
+
+    lhs = w2.substitute({ "x_00" : zero1, "x_10" : x_0, "x_01":zero1, "x_11":x_1 })
+    assert lhs == w1 or lhs == 0
 
     lhs = w2.substitute({ 
         "x_00" : x_0*y_0, 
@@ -315,7 +317,8 @@ def test():
     test_enum(G)
 
     G = parse("11. .11")
-    test_enum(G, verbose=True)
+    #test_enum(G, verbose=True)
+
 
     #G = parse("11.. .11. 1..1")
     #test_enum(G)
@@ -346,8 +349,159 @@ def hecke():
         assert GH.tostring() in lookup, GH
 
 
+def freeze(G):
+    return (G.tostring(), G.shape)
+
+def thaw(fG):
+    s, shape = fG
+    G = numpy.fromstring(s, dtype=int_scalar)
+    G.shape = shape
+    return G
+
+
+def find():
+
+    m = argv.get("m", 3)
+    n = argv.get("n", 6)
+
+    print("m=%d n=%d" % (m, n))
+    show = argv.show
+
+    ps_1 = {}
+    ps_2 = {}
+    ps_3 = {}
+    count = 0
+    for G in all_codes(m, n):
+        w1 = genus_enum1(G)
+        w2 = genus_enum2(G)
+        #w3 = genus_enum3(G)
+        value = freeze(G)
+        if show and w1 not in ps_1:
+            print(G)
+        ps_1[w1] = value
+        ps_2[w2] = value
+        #ps_3[w3] = value
+        count += 1
+    print(count, len(ps_1), len(ps_2), len(ps_3))
+    v1 = set(ps_1.values())
+    v2 = set(ps_2.values())
+    v3 = set(ps_3.values())
+
+
+    for fG in v2:
+      if fG not in v1:
+        G = thaw(fG)
+        w1 = genus_enum1(G)
+        fG1 = ps_1[w1]
+        G1 = thaw(fG1)
+        print(G)
+        print(G1)
+        print(w1.flatstr())
+        print(genus_enum2(G).flatstr())
+        print(genus_enum2(G1).flatstr())
+
+
+def get_phi_2(w2):
+    x_0 = xpoly1({(1,0):1})
+    x_1 = xpoly1({(0,1):1})
+    x_00 = xpoly2({(1,0,0,0):1})
+    x_01 = xpoly2({(0,1,0,0):1})
+    x_10 = xpoly2({(0,0,1,0):1})
+    x_11 = xpoly2({(0,0,0,1):1})
+    zero1 = xpoly1({})
+    zero2 = xpoly2({})
+
+    ns = dict((k, 0) for k in locals().keys())
+    items = []
+    for ns1 in [
+        {"x_00":x_00, "x_10":x_10},
+        {"x_00":x_00, "x_01":x_01},
+        {"x_00":x_00, "x_11":x_11},
+        {"x_10":x_10, "x_01":x_01},
+        {"x_10":x_10, "x_11":x_11},
+        {"x_01":x_01, "x_11":x_11}]:
+        ns2 = dict(ns)
+        ns2.update(ns1)
+        items.append(w2.substitute(ns2))
+    return items
+
+
+def get_phi_3(w3):
+    x_000 = xpoly3({(1,0,0,0,0,0,0,0):1})
+    x_001 = xpoly3({(0,1,0,0,0,0,0,0):1})
+    x_010 = xpoly3({(0,0,1,0,0,0,0,0):1})
+    x_011 = xpoly3({(0,0,0,1,0,0,0,0):1})
+    x_100 = xpoly3({(0,0,0,0,1,0,0,0):1})
+    x_101 = xpoly3({(0,0,0,0,0,1,0,0):1})
+    x_110 = xpoly3({(0,0,0,0,0,0,1,0):1})
+    x_111 = xpoly3({(0,0,0,0,0,0,0,1):1})
+    zero1 = xpoly1({})
+    zero2 = xpoly2({})
+
+    ns = dict((k, 0) for k in locals().keys())
+    items = []
+    for ns1 in [
+        {"x_000":x_000, "x_010":x_010, "x_100":x_100, "x_110":x_110 },
+        {"x_000":x_000, "x_001":x_001, "x_100":x_100, "x_101":x_101 },
+        {"x_000":x_000, "x_011":x_011, "x_100":x_100, "x_111":x_111 },
+        {"x_010":x_010, "x_001":x_001, "x_110":x_110, "x_101":x_101 },
+        {"x_010":x_010, "x_011":x_011, "x_110":x_110, "x_111":x_111 },
+        {"x_001":x_001, "x_011":x_011, "x_101":x_101, "x_111":x_111 }]:
+        ns2 = dict(ns)
+        ns2.update(ns1)
+        items.append(w3.substitute(ns2))
+    return items
+
+
+def main():
+    s = argv.get("G")
+    if s is None:
+        G = parse("111")
+        #G = parse("1. .1")
+        #G = parse("11. .11")
+        #G = parse("1.. .11")
+    else:
+        G = parse(s)
+
+    print(G)
+    w1 = genus_enum1(G)
+    w2 = genus_enum2(G)
+    #print(w1)
+    print("w1 =")
+    print(w1.flatstr())
+    #print(w2)
+    print("w2 =")
+    print(w2.flatstr())
+
+    items = get_phi_2(w2)
+    for w in items:
+        print("\t", w.flatstr())
+    w = sum(items)
+    print("sum(items) =")
+    print(w.flatstr())
+    print("diff:")
+    print((w2 - w).flatstr())
+    
+    w3 = genus_enum3(G)
+    items = get_phi_3(w3)
+    print("w3 =")
+    print(w3.flatstr())
+    for w in items:
+        print("\t", w.flatstr())
+    w = sum(items)
+    print("diff:")
+    print((w3 - w).flatstr())
+    
+
 if __name__ == "__main__":
 
-    test()
+    if argv.profile:
+        import cProfile as profile
+        profile.run("main()")
+
+    else:
+        name = argv.next() or "main"
+
+        eval(name)()
 
 
