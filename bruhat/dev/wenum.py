@@ -143,7 +143,7 @@ def all_auto_codes(m, n):
 
 ring = element.Z
 
-def named_poly(cs, rank, names):
+def named_poly(cs, names):
     items = {}
     for k, v in cs.items():
         tpl = tuple((names[i], exp) for (i, exp) in enumerate(k) if exp)
@@ -151,15 +151,25 @@ def named_poly(cs, rank, names):
     return Poly(items, ring)
 
 
-xpoly1 = lambda cs : named_poly(cs, 2, 
-    "x_0 x_1".split())
-ypoly1 = lambda cs : named_poly(cs, 2, 
-    "y_0 y_1".split())
-xpoly2 = lambda cs : named_poly(cs, 4, 
-    "x_{00} x_{01} x_{10} x_{11}".split())
-xpoly3 = lambda cs : named_poly(cs, 8,
+xpoly1 = lambda cs : named_poly(cs, "x_0 x_1".split())
+ypoly1 = lambda cs : named_poly(cs, "y_0 y_1".split())
+xpoly2 = lambda cs : named_poly(cs, "x_{00} x_{01} x_{10} x_{11}".split())
+xpoly3 = lambda cs : named_poly(cs,
     "x_{000} x_{001} x_{010} x_{011} x_{100} x_{101} x_{110} x_{111}".split())
+xpoly4 = lambda cs : named_poly(cs,
+    """x_0000 x_0001 x_0010 x_0011 x_0100 x_0101 x_0110 x_0111
+    x_1000 x_1001 x_1010 x_1011 x_1100 x_1101 x_1110 x_1111""".split())
 
+x_0 = xpoly1({(1,0):1})
+x_1 = xpoly1({(0,1):1})
+
+y_0 = ypoly1({(1,0):1})
+y_1 = ypoly1({(0,1):1})
+
+x_00 = xpoly2({(1,0,0,0):1})
+x_01 = xpoly2({(0,1,0,0):1})
+x_10 = xpoly2({(0,0,1,0):1})
+x_11 = xpoly2({(0,0,0,1):1})
 
 x_000 = xpoly3({(1,0,0,0,0,0,0,0):1})
 x_001 = xpoly3({(0,1,0,0,0,0,0,0):1})
@@ -169,6 +179,23 @@ x_100 = xpoly3({(0,0,0,0,1,0,0,0):1})
 x_101 = xpoly3({(0,0,0,0,0,1,0,0):1})
 x_110 = xpoly3({(0,0,0,0,0,0,1,0):1})
 x_111 = xpoly3({(0,0,0,0,0,0,0,1):1})
+
+x_0000 = xpoly4({(1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0):1})
+x_0001 = xpoly4({(0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0):1})
+x_0010 = xpoly4({(0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0):1})
+x_0011 = xpoly4({(0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0):1})
+x_0100 = xpoly4({(0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0):1})
+x_0101 = xpoly4({(0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0):1})
+x_0110 = xpoly4({(0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0):1})
+x_0111 = xpoly4({(0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0):1})
+x_1000 = xpoly4({(0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0):1})
+x_1001 = xpoly4({(0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0):1})
+x_1010 = xpoly4({(0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0):1})
+x_1011 = xpoly4({(0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0):1})
+x_1100 = xpoly4({(0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0):1})
+x_1101 = xpoly4({(0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0):1})
+x_1110 = xpoly4({(0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0):1})
+x_1111 = xpoly4({(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1):1})
 
 
 
@@ -229,16 +256,50 @@ def genus_enum3(G, verbose=False):
     return p
 
 
-def test_enum(G, verbose=False):
+def genus_enum4(G, verbose=False):
+    #print(shortstr(G))
+    m, n = G.shape
+    cs = {}
+    exp = numpy.array([0]*16, dtype=int)
+    items = list(span(G))
+    for v0 in items:
+        #print(".",end='',flush=True)
+        for v1 in items:
+          for v2 in items:
+           for v3 in items:
+            exp[:] = 0
+            for i in range(n):
+                exp[8*v0[i] + 4*v1[i] + 2*v2[i] + v3[i]] += 1
+            key = tuple(exp)
+            cs[key] = cs.get(key, 0) + 1
+    p = xpoly4(cs)
 
-    x_0 = xpoly1({(1,0):1})
-    x_1 = xpoly1({(0,1):1})
-    y_0 = ypoly1({(1,0):1})
-    y_1 = ypoly1({(0,1):1})
-    x_00 = xpoly2({(1,0,0,0):1})
-    x_01 = xpoly2({(0,1,0,0):1})
-    x_10 = xpoly2({(0,0,1,0):1})
-    x_11 = xpoly2({(0,0,0,1):1})
+    return p
+
+
+def genus_enum5(G, verbose=False):
+    #print(shortstr(G))
+    m, n = G.shape
+    cs = {}
+    exp = numpy.array([0]*32, dtype=int)
+    items = list(span(G))
+    for v0 in items:
+        #print(".",end='',flush=True)
+        for v1 in items:
+         for v2 in items:
+          for v3 in items:
+           for v4 in items:
+            exp[:] = 0
+            for i in range(n):
+                exp[16*v0[i] + 8*v1[i] + 4*v2[i] + 2*v3[i] + v4[i]] += 1
+            key = tuple(exp)
+            cs[key] = cs.get(key, 0) + 1
+    p = xpoly5(cs) # todo...
+
+    return p
+
+
+def test_enum(G, verbose=False):
 
     w1 = genus_enum1(G)
     w2 = genus_enum2(G)
@@ -330,6 +391,9 @@ def test():
     G = parse("11. .11")
     #test_enum(G, verbose=True)
 
+    p = genus_enum5(G)
+    print(p.flatstr())
+    return
 
     #G = parse("11.. .11. 1..1")
     #test_enum(G)
@@ -413,19 +477,11 @@ def find_equ():
 
 
 def CX_12(w2):
-    x_00 = xpoly2({(1,0,0,0):1})
-    x_01 = xpoly2({(0,1,0,0):1})
-    x_10 = xpoly2({(0,0,1,0):1})
-    x_11 = xpoly2({(0,0,0,1):1})
     #w2 = w2.substitute({"x_00":x_00, "x_01":x_01, "x_10":x_10, "x_11":x_11})
     w2 = w2.substitute({"x_00":x_00, "x_01":x_01, "x_10":x_11, "x_11":x_10})
     return w2
 
 def CX_21(w2):
-    x_00 = xpoly2({(1,0,0,0):1})
-    x_01 = xpoly2({(0,1,0,0):1})
-    x_10 = xpoly2({(0,0,1,0):1})
-    x_11 = xpoly2({(0,0,0,1):1})
     #w2 = w2.substitute({"x_00":x_00, "x_01":x_01, "x_10":x_10, "x_11":x_11})
     w2 = w2.substitute({"x_00":x_00, "x_01":x_11, "x_10":x_10, "x_11":x_01})
     return w2
@@ -462,11 +518,6 @@ def CCZ(w3):
 def find_CX():
     m = argv.get("m", 3)
     n = argv.get("n", 6)
-
-    x_00 = xpoly2({(1,0,0,0):1})
-    x_01 = xpoly2({(0,1,0,0):1})
-    x_10 = xpoly2({(0,0,1,0):1})
-    x_11 = xpoly2({(0,0,0,1):1})
 
     assert CX_12(x_10) == x_11
 
@@ -510,16 +561,7 @@ def find_CX():
 
 
 def get_phi_2(w2):
-    x_0 = xpoly1({(1,0):1})
-    x_1 = xpoly1({(0,1):1})
-    x_00 = xpoly2({(1,0,0,0):1})
-    x_01 = xpoly2({(0,1,0,0):1})
-    x_10 = xpoly2({(0,0,1,0):1})
-    x_11 = xpoly2({(0,0,0,1):1})
-    zero1 = xpoly1({})
-    zero2 = xpoly2({})
-
-    ns = dict((k, 0) for k in locals().keys())
+    ns = dict((k, 0) for k in globals().keys())
     items = []
     for ns1 in [
         {"x_00":x_00, "x_10":x_10},
@@ -534,31 +576,79 @@ def get_phi_2(w2):
     return items
 
 
-def get_phi_3(w3):
-    x_000 = xpoly3({(1,0,0,0,0,0,0,0):1})
-    x_001 = xpoly3({(0,1,0,0,0,0,0,0):1})
-    x_010 = xpoly3({(0,0,1,0,0,0,0,0):1})
-    x_011 = xpoly3({(0,0,0,1,0,0,0,0):1})
-    x_100 = xpoly3({(0,0,0,0,1,0,0,0):1})
-    x_101 = xpoly3({(0,0,0,0,0,1,0,0):1})
-    x_110 = xpoly3({(0,0,0,0,0,0,1,0):1})
-    x_111 = xpoly3({(0,0,0,0,0,0,0,1):1})
-    zero1 = xpoly1({})
-    zero2 = xpoly2({})
-
-    vs = dict(locals())
-
-    ns = dict((k, 0) for k in locals().keys())
+def get_phi_3(w3, w2=None):
+    vs = dict(globals())
+    ns = dict((k, 0) for k in globals().keys())
     items = []
     names = "x_000 x_001 x_010 x_011 x_100 x_101 x_110 x_111".split()
+    count = 0
     for _ns1 in choose(names, 4):
         ns1 = dict((k, vs[k]) for k in _ns1)
         ns2 = dict(ns)
         ns2.update(ns1)
         w = w3.substitute(ns2)
         items.append(w)
-        print(' '.join(_ns1), w.flatstr())
+        #print(' '.join(_ns1), w.flatstr())
+        if w2 is not None and w.flatstr() == w2.flatstr():
+            x = sum(eval("0b"+n[2:]) for n in _ns1) % 2
+            assert x==0
+            print(' '.join(_ns1), w.flatstr())
+            count += 1
+    print("count:", count)
     return items
+
+def get_phi_4(w4, w3=None):
+    vs = dict(globals())
+    ns = dict((k, 0) for k in globals().keys())
+    items = []
+    names = """
+        x_0000 x_0001 x_0010 x_0011 x_0100 x_0101 x_0110 x_0111
+        x_1000 x_1001 x_1010 x_1011 x_1100 x_1101 x_1110 x_1111
+    """.strip().split()
+    count = 0
+    for _ns1 in choose(names, 8):
+        ns1 = dict((k, vs[k]) for k in _ns1)
+        ns2 = dict(ns)
+        ns2.update(ns1)
+        w = w4.substitute(ns2)
+        items.append(w)
+        #print(' '.join(_ns1), w.flatstr())
+        if w3 is not None and w.flatstr() == w3.flatstr():
+            x = sum(eval("0b"+n[2:]) for n in _ns1) % 2
+            print(' '.join(_ns1), "==", x)
+            count += 1
+    print("count:", count)
+    return items
+
+
+
+def test_phi_3():
+    names = """
+        x_000 x_001 x_010 x_011 x_100 x_101 x_110 x_111
+    """.strip().split()
+    count = 0
+    for ns in choose(names, 4):
+        x = sum(eval("0b"+n[2:]) for n in ns) % 2
+        if x==0:  # <------ subscripts sum to zero
+            print(' '.join(ns), "==", x)
+            count += 1
+    print("count:", count)
+
+
+
+def test_phi_4():
+    names = """
+        x_0000 x_0001 x_0010 x_0011 x_0100 x_0101 x_0110 x_0111
+        x_1000 x_1001 x_1010 x_1011 x_1100 x_1101 x_1110 x_1111
+    """.strip().split()
+    count = 0
+    for ns in choose(names, 8):
+        x = sum(eval("0b"+n[2:]) for n in ns) % 2
+        if x==0:  # <------ subscripts sum to zero
+            print(' '.join(ns), "==", x)
+            count += 1
+    print("count:", count)
+
 
 
 def main():
@@ -605,10 +695,22 @@ def main():
     print(w3.flatstr())
     #for w in items:
     #    print("\t", w.flatstr(), w.flatstr()==w2.flatstr())
-    items = get_phi_3(w3)
-    w = sum(items)
-    print("diff:")
-    print((w3 - w).flatstr())
+    items = get_phi_3(w3, w2)
+    #w = sum(items)
+    #print("diff:")
+    #print((w3 - w).flatstr())
+    
+
+    if 0:
+        w4 = genus_enum4(G)
+        print("w4 =")
+        print(w4.flatstr())
+        #for w in items:
+        #    print("\t", w.flatstr(), w.flatstr()==w2.flatstr())
+        items = get_phi_4(w4, w3)
+        #w = sum(items)
+        #print("diff:")
+        #print((w4 - w).flatstr())
     
 
 if __name__ == "__main__":
