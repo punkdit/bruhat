@@ -9,7 +9,8 @@ import os, sys
 import numpy
 import networkx as nx
 
-from bruhat.solve import zeros2, enum2, row_reduce, span, shortstr, shortstrx, solve, rank, find_kernel, find_logops, identity2
+from bruhat.solve import zeros2, enum2, row_reduce, span, shortstr, shortstrx
+from bruhat.solve import solve, rank, find_kernel, find_logops, identity2, array2
 from bruhat import isomorph
 from bruhat.isomorph import Bag, Point, write
 from bruhat.coxeter import BruhatMonoid
@@ -100,6 +101,7 @@ class Geometry(object):
         self.tpmap = dict(tpmap) # map item -> type
         self.tplookup = tplookup # map type -> list of items
         self.types = list(set(tpmap.values()))
+        self.types.sort()
         self.rank = len(self.types)
         self.items = items
         self.nbd = nbd
@@ -311,7 +313,9 @@ class Geometry(object):
 
     def get_diagram(self):
         diagram = []
+#        print("get_diagram", self.types)
         for (i, j) in choose(self.types, 2):
+#            print("\tget_diagram", (i, j))
             tps = [k for k in self.types if k!=i and k!=j]
             assert len(tps)<20
             #print "flag_type:", tps
@@ -375,7 +379,7 @@ class Geometry(object):
 
     def get_bag(self):
         items = list(self.items)
-        items.sort()
+        items.sort(key = str)
         tpmap = self.tpmap
         points = []
         lookup = {}
@@ -814,6 +818,10 @@ def test_fano():
 
     print((len(bag)))
 
+    return
+
+    # This is all broken i think:
+
     # just hack it....
     N = 3
     cycles = [
@@ -876,6 +884,7 @@ def projective(n, dim=2):
 
     points = []
     for P in enum2(n):
+        P = array2(P)
         if P.sum()==0:
             continue
         points.append(P)
@@ -884,6 +893,7 @@ def projective(n, dim=2):
     lines = []
     lookup = {}
     for L in enum2(2*n):
+        L = array2(L)
         L.shape = (2, n)
         L = row_reduce(L)
         if len(L)!=2:
@@ -988,14 +998,15 @@ def test():
 
     g = Geometry.cube()
     d = g.get_diagram()
-    assert d == [('e', 'v'), ('f', 'e')] # woo !
+    #assert d == [('e', 'v'), ('f', 'e')], repr(d)
+    assert d == [('e', 'f'), ('e', 'v')]
 
     assert Geometry.simplex(4).get_diagram() == [(0, 1), (1, 2), (2, 3)] # A_4 Dynkin diagram !
 
     #g = tesellate_3d()
 
     g = fano()
-    assert g.get_diagram() == [('p', 'l')]
+    assert g.get_diagram() == [('l', 'p')]
 
     n = argv.get("n", 3)
     assert n>=3
