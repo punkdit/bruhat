@@ -16,129 +16,9 @@ from bruhat.solve import row_reduce, dot2
 from bruhat.poly import Poly
 from bruhat import element
 from bruhat.gset import Group
-
 from bruhat.argv import argv
 from bruhat.util import choose, cross, all_perms
-
-
-def zeros(m, n):
-    A = numpy.zeros((m, n), dtype=int_scalar)
-    return A
-
-def identity(m):
-    A = numpy.identity(m, dtype=int_scalar)
-    return A
-
-
-#class Subspace(object):
-
-def normal_form(G):
-    #print("normal_form")
-    #print(G)
-    G = row_reduce(G) # makes copy
-    #print(G)
-    m, n = G.shape
-    if m*n==0:
-        return G
-    for i in range(m):
-        for j in range(n):
-            if G[i, j]:
-                break
-        else:
-            assert 0
-        k = i-1
-        while k>=0:
-            if G[k, j]:
-                G[k] += G[i]
-            k -= 1
-        G %= 2
-    return G
-
-
-def intersect(G1, G2):
-    G = numpy.concatenate((G1, G2))
-    #print("intersect")
-    #print(G1, G2)
-    #print(G)
-    G = G.transpose()
-    #print("find_kernel", G.shape)
-    K = find_kernel(G)
-    if not K:
-        K = numpy.array(K)
-        K.shape = 0, G.shape[1]
-    else:
-        K = numpy.array(K)
-    #print("K:")
-    #print(K, K.shape)
-    G = dot2(K[:, :len(G1)], G1)
-    #print("G:")
-    #print(G, G.shape)
-    #print()
-    G = normal_form(G)
-    return G
-
-
-
-
-def get_cell(row, col, p=2):
-    """
-        return all matrices in bruhat cell at (row, col)
-        These have shape (col, col+row).
-    """
-
-    if col == 0:
-        yield zeros(0, row)
-        return
-
-    if row == 0:
-        yield identity(col)
-        return
-
-    # recursive steps:
-    m, n = col, col+row
-    for left in get_cell(row, col-1, p):
-        A = zeros(m, n)
-        A[:m-1, :n-1] = left
-        A[m-1, n-1] = 1
-        yield A
-
-    els = list(range(p))
-    vecs = list(cross((els,)*m))
-    for right in get_cell(row-1, col, p):
-        for v in vecs:
-            A = zeros(m, n)
-            A[:, :n-1] = right
-            A[:, n-1] = v
-            yield A
-
-#for row in range(3):
-#  for col in range(4):
-#    print(len(list(get_cell(row, col))), end=" ")
-#  print()
-
-def all_codes(m, n, q=2):
-    """
-        All full-rank generator matrices of shape (m, n)
-    """
-    assert m<=n
-    col = m
-    row = n-m
-    return get_cell(row, col, q)
-
-
-def get_codespace(G):
-    space = list(span(G))
-    return space
-
-
-def all_auto_codes(m, n):
-    for G in all_codes(2, 3):
-        print(G)
-        space = get_codespace(G)
-        #shuffle(space)
-        space.sort(key = lambda v : v.tostring())
-        space = numpy.array(space)
-        print(space)
+from bruhat.dev.geometry import all_codes
 
 
 ring = element.Z
@@ -391,9 +271,8 @@ def test():
     G = parse("11. .11")
     #test_enum(G, verbose=True)
 
-    p = genus_enum5(G)
-    print(p.flatstr())
-    return
+    #print(p.flatstr())
+    #return
 
     #G = parse("11.. .11. 1..1")
     #test_enum(G)
@@ -434,6 +313,14 @@ def thaw(fG):
     return G
 
 
+def mk_latex(G):
+    head = r"\left[\begin{array}{cc}"
+    tail = r"\end{array}\right]"
+    lines = ["&".join(str(i) for i in row)+"\\\\" for row in G]
+    lines = [head] + lines + [tail]
+    return "\n".join(lines)
+
+
 def find_equ():
 
     m = argv.get("m", 3)
@@ -451,10 +338,24 @@ def find_equ():
         w2 = genus_enum2(G)
         #w3 = genus_enum3(G)
         value = freeze(G)
-        if show and w1 not in ps_1:
-            print(G)
-        ps_1[w1] = value
-        ps_2[w2] = value
+        if show and w2 not in ps_2 and G[:, 0].sum():
+            if argv.latex:
+                print("$$" + mk_latex(G)+ "$$")
+                print()
+                print(w1.flatstr())
+                print()
+                print(w2.flatstr())
+                print()
+                print()
+            else:
+                print(G)
+                print(w1.flatstr())
+                print(w2.flatstr())
+                print()
+        if w1 not in ps_1:
+            ps_1[w1] = value
+        if w2 not in ps_2:
+            ps_2[w2] = value
         #ps_3[w3] = value
         count += 1
     print(count, len(ps_1), len(ps_2), len(ps_3))
@@ -588,13 +489,14 @@ def get_phi_3(w3, w2=None):
         ns2.update(ns1)
         w = w3.substitute(ns2)
         items.append(w)
-        #print(' '.join(_ns1), w.flatstr())
-        if w2 is not None and w.flatstr() == w2.flatstr():
-            x = sum(eval("0b"+n[2:]) for n in _ns1) % 2
-            assert x==0
-            print(' '.join(_ns1), w.flatstr())
-            count += 1
-    print("count:", count)
+        #print(' '.join(_ns1), w.otherstr())
+#        if w2 is not None and w.otherstr() == w2.otherstr():
+#            x = sum(eval("0b"+n[2:]) for n in _ns1) % 2
+#            print(' '.join(_ns1), w.otherstr())
+#            assert x==0, x
+#            #print(w.otherstr(), w2.otherstr())
+#            count += 1
+#    print("count:", count)
     return items
 
 def get_phi_4(w4, w3=None):
@@ -612,12 +514,12 @@ def get_phi_4(w4, w3=None):
         ns2.update(ns1)
         w = w4.substitute(ns2)
         items.append(w)
-        #print(' '.join(_ns1), w.flatstr())
-        if w3 is not None and w.flatstr() == w3.flatstr():
-            x = sum(eval("0b"+n[2:]) for n in _ns1) % 2
-            print(' '.join(_ns1), "==", x)
-            count += 1
-    print("count:", count)
+#        #print(' '.join(_ns1), w.otherstr())
+#        if w3 is not None and w.otherstr() == w3.otherstr():
+#            x = sum(eval("0b"+n[2:]) for n in _ns1) % 2
+#            print(' '.join(_ns1), "==", x)
+#            count += 1
+#    print("count:", count)
     return items
 
 

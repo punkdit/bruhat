@@ -240,6 +240,29 @@ class Poly(object):
         s = s.replace("}", "")
         return s
 
+    def otherstr(self, mul=""):
+        cs = self.cs
+        keys = set()
+        for key in self.keys:
+            for k,v in key:
+                keys.add(k)
+        keys = list(keys)
+        keys.sort()
+        n = len(keys)
+        ss = []
+        for key in self.keys:
+            value = cs[key]
+            items = [0] * n
+            for k, v in key:
+                items[keys.index(k)] = v
+            if value==1:
+                s = "%s" % (tuple(items),)
+            else:
+                s = "%s%s%s" % (value, mul, tuple(items))
+            s = s.replace(' ', '')
+            ss.append(s)
+        return ' + '.join(ss) or "0"
+
     def flatstr(self, mul=""):
         cs = self.cs
         keys = set()
@@ -250,14 +273,23 @@ class Poly(object):
         keys.sort()
         n = len(keys)
         #print(keys)
-        ss = []
-        #for key, value in cs.items():
+        entries = []
         for key in self.keys:
             value = cs[key]
             items = [0] * n
             for k, v in key:
                 items[keys.index(k)] = v
-            #print(items, key, value)
+            entries.append((items, value))
+        def sortfunc(entry):
+            _items, value = entry
+            items = list(_items)
+            items.sort()
+            nz = [i for i in _items if i]
+            return (items, value, nz)
+        entries.sort(key = sortfunc)
+
+        ss = []
+        for items, value in entries:
             if value==1:
                 s = "%s" % (tuple(items),)
             else:
