@@ -13,9 +13,11 @@ import numpy
 
 scalar = numpy.int64
 
+from bruhat.gset import Group, Perm
 from bruhat.action import mulclose
 from bruhat.spec import isprime
 from bruhat.argv import argv
+from bruhat.solve import parse, enum2
 
 
 class Op(object):
@@ -31,6 +33,7 @@ class Op(object):
             self.A %= p
         self.key = (self.p, self.A.tostring())
         self._hash = hash(self.key)
+        self.shape = A.shape
 
     def __str__(self):
         return str(self.A)
@@ -61,6 +64,9 @@ class Op(object):
     def __mul__(self, other):
         A = numpy.dot(self.A, other.A)
         return Op(A, self.p)
+
+    def mask(self, A):
+        return Op(self.A * A, self.p)
 
 
 # https://math.stackexchange.com/questions/34271/
@@ -133,6 +139,94 @@ def GL(n, p):
     return list(G)
 
 
+        
+def get_subgroup(G, desc, check=False):
+    A = parse(desc)
+    H = []
+    for op in G:
+        if op.mask(A) == op:
+            H.append(op)
+
+    if check:
+        for a in H:
+          for b in H:
+            assert (a*b).mask(A) == (a*b)
+    return H
+
+
+def get_permrep(G):
+    assert len(G)
+    op = G[0]
+    n, _ = op.shape
+    p = op.p
+    space = list(numpy.array(v) for v in enum2(n))
+    lookup = dict((v.tostring(), idx) for (idx, v) in enumerate(space))
+    perms = []
+    for op in G:
+        idxs = [lookup[(numpy.dot(op.A, v)%p).tostring()] for v in space]
+        perms.append(Perm(idxs))
+    G = Group(perms)
+    return G
+
+
+class Figure(object):
+    def __init__(self, G, H, desc):
+        self.G = G
+        self.H = H
+
+
+def test():
+
+    G = GL(4, 2)
+    subgroups = []
+
+    n = len(G)
+    print(".--.--. =", len(G), n//len(G))
+
+    POINT = "1111 .111 .111 .111"
+    H = get_subgroup(G, POINT)
+    print("*--.--. =", len(H), n//len(H))
+    subgroups.append(H)
+
+    LINE = "1111 1111 ..11 ..11"
+    H = get_subgroup(G, LINE)
+    print(".--*--. =", len(H), n//len(H))
+    subgroups.append(H)
+
+    PLANE = "1111 1111 1111 ...1"
+    H = get_subgroup(G, PLANE)
+    print(".--.--* =", len(H), n//len(H))
+    subgroups.append(H)
+
+    PonL = "1111 .111 ..11 ..11"
+    H = get_subgroup(G, PonL)
+    print("*--*--. =", len(H), n//len(H))
+    subgroups.append(H)
+
+    PonA = "1111 .111 ..11 ..11"
+    H = get_subgroup(G, PonA)
+    print("*--.--* =", len(H), n//len(H))
+    subgroups.append(H)
+
+    LonA = "1111 1111 ..11 ...1"
+    H = get_subgroup(G, LonA)
+    print(".--*--* =", len(H), n//len(H))
+    subgroups.append(H)
+
+    FLAG = "1111 .111 ..11 ...1"
+    H = get_subgroup(G, FLAG)
+    print("*--*--* =", len(H), n//len(H))
+    subgroups.append(H)
+
+    G = get_permrep(G)
+    for H in subgroups:
+        H = get_permrep(H)
+        X = G.action_subgroup(H)
+        print(X)
+    
+
+
+
 def main():
 
     n = argv.get("n", 2)
@@ -153,9 +247,10 @@ def main():
 
 
 
-
 if __name__ == "__main__":
-    main()
+    fn = argv.next() or "main"
+    fn = eval(fn)
+    fn()
 
     
 

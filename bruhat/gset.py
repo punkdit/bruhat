@@ -10,7 +10,6 @@ scalar = numpy.int64
 
 from bruhat.util import factorial
 from bruhat.action import mulclose
-from bruhat import algebraic
 from bruhat.argv import argv
 
 
@@ -1097,6 +1096,7 @@ class Orbiplex(Simplicial):
 
 
 def general_linear(n=3, p=2):
+    from bruhat import algebraic
     G = algebraic.GL(n, p)
     v = numpy.array([0]*n, dtype=scalar)
     v[0] = 1
