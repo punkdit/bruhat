@@ -246,6 +246,7 @@ class Perm(object):
         for (src, tgt) in enumerate(perm):
             q[tgt] = src
         return Perm(q)
+    __invert__ = inverse
 
     def __getitem__(self, i):
         return self.perm[i]
@@ -577,6 +578,12 @@ class Group(object):
         self._subgroups = items
         return list(items)
 
+    def intersect(G, H):
+        G = set(G.lookup.keys())
+        H = set(H.lookup.keys())
+        GH = G.intersection(H)
+        return Group(GH)
+
     def action_subgroup(G, H):
         assert isinstance(H, Group)
         assert H.rank == G.rank
@@ -670,6 +677,16 @@ class GSet(object):
         send_perms = [tgt.lookup[perm] for perm in perms]
         gset = cls(G, tgt, send_perms)
         return gset
+
+    def get_stabilizer(self, fix=0):
+        src = self.src
+        tgt = self.tgt
+        send_perms = self.send_perms
+        stab = []
+        for idx, i in enumerate(send_perms):
+            if tgt[i][fix] == fix:
+                stab.append(src[idx])
+        return Group(stab)
 
     def get_orbits(self):
         src = self.src
@@ -834,12 +851,15 @@ class GSet(object):
                 break
         return fixed
 
-    def signature(self):
-        if self._sig is not None:
+    def signature(self, Hs=None):
+        if Hs is None:
+            if self._sig is not None:
+                return self._sig
+            Hs = self.src.subgroups()
+            self._sig = tuple(len(self.fixed_points(H)) for H in Hs)
             return self._sig
-        Hs = self.src.subgroups()
-        self._sig = tuple(len(self.fixed_points(H)) for H in Hs)
-        return self._sig
+        else:
+            return tuple(len(self.fixed_points(H)) for H in Hs)
 
     def isomorphic(self, other):
         return self.signature() == other.signature()

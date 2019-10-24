@@ -13,16 +13,26 @@ import numpy
 
 scalar = numpy.int64
 
-from bruhat.gset import Group, Perm
+from bruhat.gset import Group, Perm, GSet
 from bruhat.action import mulclose
 from bruhat.spec import isprime
 from bruhat.argv import argv
-from bruhat.solve import parse, enum2
+from bruhat.solve import parse, enum2, row_reduce, span
+from bruhat.dev import geometry
+from bruhat.util import cross
 
 
-class Op(object):
-    def __init__(self, A, p):
-        self.A = A.astype(scalar) # copy
+DEFAULT_P = 2
+
+class Matrix(object):
+    def __init__(self, A, p=DEFAULT_P, shape=None):
+        if type(A) == list or type(A) == tuple:
+            A = numpy.array(A, dtype=scalar)
+        else:
+            A = A.astype(scalar) # makes a copy
+        if shape is not None:
+            A.shape = shape
+        self.A = A
         #n = A.shape[0]
         #assert A.shape == (n, n)
         assert int(p) == p
@@ -51,22 +61,25 @@ class Op(object):
 
     def __add__(self, other):
         A = self.A + other.A
-        return Op(A, self.p)
+        return Matrix(A, self.p)
 
     def __sub__(self, other):
         A = self.A - other.A
-        return Op(A, self.p)
+        return Matrix(A, self.p)
 
     def __neg__(self):
         A = -self.A
-        return Op(A, self.p)
+        return Matrix(A, self.p)
 
     def __mul__(self, other):
-        A = numpy.dot(self.A, other.A)
-        return Op(A, self.p)
+        if isinstance(other, Matrix):
+            A = numpy.dot(self.A, other.A)
+            return Matrix(A, self.p)
+        else:
+            return NotImplemented
 
     def mask(self, A):
-        return Op(self.A * A, self.p)
+        return Matrix(self.A * A, self.p)
 
 
 # https://math.stackexchange.com/questions/34271/
@@ -97,7 +110,7 @@ assert order_sp(2, 2)==6     # 3!
 assert order_sp(4, 2)==720   # 6!
 
 
-def SL(n, p):
+def SL(n, p=DEFAULT_P):
     "special linear group"
     assert int(n)==n
     assert int(p)==p
@@ -112,7 +125,7 @@ def SL(n, p):
                 continue
             A = I.copy()
             A[i, j] = 1
-            gen.append(Op(A, p))
+            gen.append(Matrix(A, p))
     order = order_sl(n, p)
     G = mulclose(gen, maxsize=order)
     #G = mulclose(gen)
@@ -121,7 +134,7 @@ def SL(n, p):
 
 
 
-def GL(n, p):
+def GL(n, p=DEFAULT_P):
     "general linear group"
     assert int(n)==n
     assert int(p)==p
@@ -129,7 +142,7 @@ def GL(n, p):
     assert isprime(p)
 
     H = SL(n, p)
-    nI = Op(-numpy.identity(n, scalar), p)
+    nI = Matrix(-numpy.identity(n, scalar), p)
     if p>2:
         G = H + [nI*g for g in H]
     else:
@@ -169,13 +182,7 @@ def get_permrep(G):
     return G
 
 
-class Figure(object):
-    def __init__(self, G, H, desc):
-        self.G = G
-        self.H = H
-
-
-def test():
+def test_dynkin():
 
     G = GL(4, 2)
     subgroups = []
@@ -218,11 +225,281 @@ def test():
     print("*--*--* =", len(H), n//len(H))
     subgroups.append(H)
 
-    G = get_permrep(G)
-    for H in subgroups:
-        H = get_permrep(H)
-        X = G.action_subgroup(H)
-        print(X)
+#    G = get_permrep(G)
+#    for H in subgroups:
+#        H = get_permrep(H)
+#        X = G.action_subgroup(H) # XX far too slow...
+#        print(X)
+    
+
+def normal_form(A, p=DEFAULT_P):
+    "reduced row-echelon form"
+    assert p==2
+    #print("normal_form")
+    #print(A)
+    A = row_reduce(A)
+    #print(A)
+    m, n = A.shape
+    j = 0
+    for i in range(m):
+        while A[i, j] == 0:
+            j += 1
+        i0 = i-1
+        while i0>=0:
+            if A[i0, j]:
+                A[i0, :] += A[i, :]
+                A %= p
+            i0 -= 1
+        j += 1
+    #print(A)
+    return A
+
+CHECK = argv.get("check", False)
+
+def _qchoose_2(n, m, p=DEFAULT_P):
+    assert m<=n
+    col = m
+    row = n-m
+    for A in geometry.get_cell(row, col, p):
+        yield A
+
+
+class Figure(object):
+    "A partial flag"
+    def __init__(self, items, p=DEFAULT_P, normal=False, check=CHECK):
+        self.p = p
+        if check:
+            self.items = items
+            self.check()
+        if not normal:
+            items = [normal_form(A, p) for A in items]
+        items = [A.copy() for A in items]
+        self.items = items
+        #self._str = self.__str__()
+        self._str = b' '.join(A.tostring() for A in items)
+        if check:
+            self.check()
+
+    def check(self):
+        items = self.items
+        if len(items)<2:
+            return
+        for idx in range(len(items)-1):
+            u = items[idx]
+            v = items[idx+1]
+            v = set(str(x) for x in span(v))
+            #print(v)
+            for x in span(u):
+                #print("\t", x)
+                assert str(x) in v, self
+
+    def __str__(self):
+        s = ",".join(str(item) for item in self.items)
+        s = s.replace("\n", "")
+        return "Figure(%s, %s)"%(s, self.p)
+    __repr__ = __str__
+
+    def __hash__(self):
+        return hash(self._str)
+
+    def __eq__(self, other):
+        return self._str == other._str
+
+    def __ne__(self, other):
+        return self._str != other._str
+
+    def __lt__(self, other):
+#        print(self._str == other._str)
+#        print(self)
+#        print(other)
+#        assert (self._str == other._str) == (str(self) == str(other))
+        return self._str < other._str
+
+    def __le__(self, other):
+        return self._str <= other._str
+
+    def __add__(self, other):
+        assert isinstance(other, Figure)
+        items = self.items + other.items
+        return Figure(items, self.p)
+
+    def __rmul__(self, g):
+        assert isinstance(g, Matrix)
+        A = g.A
+        #print("__rmul__")
+        #print("\t", self)
+        #print(g)
+        p = self.p
+        items = [(numpy.dot(B, A))%p for B in self.items]
+        #print("items:", items)
+        return Figure(items, p)
+        
+    @classmethod
+    def get_atomic(cls, m, n, p=DEFAULT_P):
+        v = numpy.zeros((m, n), dtype=scalar)
+        for i in range(m):
+            v[i, i] = 1
+        fig = Figure([v], p)
+        return fig
+
+    @classmethod
+    def qchoose(cls, dims, p=DEFAULT_P):
+        assert len(dims)>1
+        d0 = dims[0]
+        items = []
+        for d in dims[1:]:
+            assert d<=d0
+            items.append(list(_qchoose_2(d0, d)))
+            d0 = d
+        n = len(items)
+        for select in cross(items):
+            A = select[0]
+            flag = [A]
+            for i in range(n-1):
+                A = numpy.dot(select[i+1], A) % p
+                flag.append(A)
+            flag = list(reversed(flag))
+            flag = cls(flag)
+            yield flag
+
+
+class Orbit(object):
+    def __init__(self, figures):
+        figures = list(figures)
+        figures.sort()
+        self.figures = tuple(figures)
+
+    def __eq__(self, other):
+        return self.figures == other.figures
+
+    def __ne__(self, other):
+        return self.figures != other.figures
+
+    def __hash__(self):
+        return hash(self.figures)
+
+
+
+def test():
+
+    figures = set()
+    for fig in Figure.qchoose([4,3,1]):
+        assert fig not in figures
+        figures.add(fig)
+    assert len(figures) == 105
+
+    n = argv.get("n", 3)
+    G = GL(n)
+    print("|G| =", len(G))
+
+    if n==3:
+        items = [3, 2, 1]
+    elif n==4:
+        items = [4, 3, 2, 1]
+
+    orbits = set()
+    figures = list(Figure.qchoose(items))
+    for p in figures:
+      for q in figures:
+        fig = p+q
+        orbit = set()
+        for g in G:
+            orbit.add(g*fig)
+        orbit = Orbit(orbit)
+        orbits.add(orbit)
+    print("orbits:", len(orbits))
+
+
+def test_bruhat():
+    n = argv.get("n", 4)
+
+    if n==4:
+        point = Figure.get_atomic(1, n)
+        line = Figure.get_atomic(2, n)
+        plane = Figure.get_atomic(3, n)
+    
+        figures = [
+            point,
+            line,
+            plane,
+            point + line,
+            line + plane,
+            point + plane,
+            point + line + plane,
+        ]
+
+    elif n==3:
+        point = Figure.get_atomic(1, n)
+        line = Figure.get_atomic(2, n)
+        figures = [point, line, point + line]
+
+    else:
+        return
+
+    G = GL(n)
+
+    Hs = []
+    Xs = []
+    repG = get_permrep(G)
+    #for H in rep.subgroups():
+    #    print(len(H), len(G)//len(H))
+    for fig in figures:
+        #fig = Figure([line, plane])
+        orbit = set()
+        for g in G:
+            u = g*fig
+            orbit.add(u)
+        print(len(orbit))
+
+        X = list(orbit)
+        lookup = dict((v, idx) for (idx, v) in enumerate(X))
+        perms = []
+        for g in G:
+            perm = [lookup[g*v] for v in X]
+            #print(perm)
+            perms.append(Perm(perm))
+        tgt = Group(perms)
+        #send_perms = [tgt.lookup[perm] for perm in perms]
+        #assert send_perms == list(range(len(send_perms)))
+        send_perms = list(range(len(perms)))
+        X = GSet(repG, tgt, send_perms)
+        Xs.append(X)
+
+        #print(X.send_perms)
+        H = X.get_stabilizer()
+        Hs.append(H)
+        assert len(G)//len(H) == len(orbit)
+
+    if 0:
+        found = set(Hs)
+        n = len(G)
+        print("Hs:", [len(G)//len(H) for H in found])
+        for H in list(Hs):
+            for g in repG:
+                K = Group([g*h*~g for h in H])
+                found.add(K)
+        print("Hs:", [len(G)//len(H) for H in found])
+        while 1:
+            pairs = [(H, K) for H in found for K in found]
+            for (H, K) in pairs:
+                HK = H.intersect(K)
+                if len(HK)>1 and HK not in found:
+                    found.add(HK)
+                    break
+            else:
+                break
+            continue
+        Hs = list(found)
+        Hs.sort(key = len)
+        print("Hs:", [len(G)//len(H) for H in Hs])
+        return
+
+    for X in Xs:
+        print(X.signature(Hs))
+        for Y in Xs:
+            XY = X*Y
+            Bs = [hom.src for hom in XY.get_atoms()]
+            print('\t', [B.signature(Hs) for B in Bs])
     
 
 
@@ -249,8 +526,14 @@ def main():
 
 if __name__ == "__main__":
     fn = argv.next() or "main"
-    fn = eval(fn)
-    fn()
+
+    if argv.profile:
+        import cProfile as profile
+        profile.run("%s()"%fn)
+    else:
+        fn = eval(fn)
+        fn()
+
 
     
 
