@@ -369,6 +369,12 @@ class Orbit(object):
         figures.sort()
         self.figures = tuple(figures)
 
+    def __len__(self):
+        return len(self.figures)
+
+    def __getitem__(self, idx):
+        return self.figures[idx]
+
     def __eq__(self, other):
         return self.figures == other.figures
 
@@ -392,22 +398,39 @@ def test():
     G = GL(n)
     print("|G| =", len(G))
 
-    if n==3:
-        items = [3, 2, 1]
-    elif n==4:
-        items = [4, 3, 2, 1]
+    left = argv.get("left", [n,1]) 
+    right = argv.get("right", [n,1]) 
 
     orbits = set()
-    figures = list(Figure.qchoose(items))
-    for p in figures:
-      for q in figures:
+    left = list(Figure.qchoose(left))
+    right = list(Figure.qchoose(right))
+    print("left:", len(left))
+    print("right:", len(right))
+    print("figures:", len(left)*len(right))
+    found = set()
+    for p in left:
+      for q in right:
         fig = p+q
+        if fig in found:
+            continue
         orbit = set()
         for g in G:
+            gfig = g*fig
             orbit.add(g*fig)
+
+        found.update(orbit)
+        print("orbit:", len(orbit), end=", ", flush=True)
         orbit = Orbit(orbit)
         orbits.add(orbit)
+    print()
+    orbits = list(orbits)
+    orbits.sort(key = len)
+    print([len(orbit) for orbit in orbits])
+    n = len(orbits[0])
+    print([len(orbit)//n for orbit in orbits])
     print("orbits:", len(orbits))
+    for orbit in orbits:
+        assert len(orbit)%n == 0
 
 
 def test_bruhat():
