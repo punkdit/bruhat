@@ -13,7 +13,8 @@ import numpy
 
 scalar = numpy.int64
 
-from bruhat.gset import Group, Perm, GSet
+#from bruhat.gset import Group, Perm, GSet
+from bruhat import gset
 from bruhat.action import mulclose
 from bruhat.spec import isprime
 from bruhat.argv import argv
@@ -110,47 +111,64 @@ assert order_sp(2, 2)==6     # 3!
 assert order_sp(4, 2)==720   # 6!
 
 
-def SL(n, p=DEFAULT_P):
-    "special linear group"
-    assert int(n)==n
-    assert int(p)==p
-    assert n>0
-    assert isprime(p)
+class Group(object):
+    def __init__(self, gen, order=None):
+        self.gen = list(gen)
+        self.order = order
+        self.G = None
 
-    I = numpy.identity(n, scalar)
-    gen = []
-    for i in range(n):
-        for j in range(n):
-            if i==j:
-                continue
-            A = I.copy()
-            A[i, j] = 1
-            gen.append(Matrix(A, p))
-    order = order_sl(n, p)
-    G = mulclose(gen, maxsize=order)
-    #G = mulclose(gen)
-    #assert len(G)==order
-    return list(G)
+    def get_elements(self):
+        if self.G is None:
+            self.G = mulclose(self.gen, maxsize=self.order)
+            self.order = len(self.G)
+        return self.G
 
+    def __len__(self):
+        if self.order is None:
+            self.get_elements()
+        return self.order
 
-
-def GL(n, p=DEFAULT_P):
-    "general linear group"
-    assert int(n)==n
-    assert int(p)==p
-    assert n>0
-    assert isprime(p)
-
-    H = SL(n, p)
-    nI = Matrix(-numpy.identity(n, scalar), p)
-    if p>2:
-        G = H + [nI*g for g in H]
-    else:
-        G = H
-    order = order_gl(n, p)
-    assert len(G)==order
-    return list(G)
-
+    def __getitem__(self, idx):
+        if self.G is None:
+            self.get_elements()
+        return self.G[idx]
+    
+    @classmethod
+    def SL(cls, n, p=DEFAULT_P):
+        "special linear group"
+        assert int(n)==n
+        assert int(p)==p
+        assert n>0
+        assert isprime(p)
+    
+        I = numpy.identity(n, scalar)
+        gen = []
+        for i in range(n):
+            for j in range(n):
+                if i==j:
+                    continue
+                A = I.copy()
+                A[i, j] = 1
+                gen.append(Matrix(A, p))
+        order = order_sl(n, p)
+        return cls(gen, order)
+    
+    @classmethod
+    def GL(cls, n, p=DEFAULT_P):
+        "general linear group"
+        assert int(n)==n
+        assert int(p)==p
+        assert n>0
+        assert isprime(p)
+    
+        H = cls.SL(n, p)
+        gen = list(H.gen)
+        for i in range(2, p):
+            A = Matrix(i*numpy.identity(n, scalar), p)
+            gen.append(A)
+        order = order_gl(n, p)
+        return cls(gen, order)
+    
 
         
 def get_subgroup(G, desc, check=False):
@@ -177,8 +195,8 @@ def get_permrep(G):
     perms = []
     for op in G:
         idxs = [lookup[(numpy.dot(op.A, v)%p).tostring()] for v in space]
-        perms.append(Perm(idxs))
-    G = Group(perms)
+        perms.append(gset.Perm(idxs))
+    G = gset.Group(perms)
     return G
 
 
@@ -395,7 +413,7 @@ def test():
     assert len(figures) == 105
 
     n = argv.get("n", 3)
-    G = GL(n)
+    G = Group.SL(n)
     print("|G| =", len(G))
 
     left = argv.get("left", [n,1]) 
@@ -426,11 +444,12 @@ def test():
     orbits = list(orbits)
     orbits.sort(key = len)
     print([len(orbit) for orbit in orbits])
-    n = len(orbits[0])
-    print([len(orbit)//n for orbit in orbits])
+    print([len(G)//len(orbit) for orbit in orbits])
+    #n = len(orbits[0])
+    #print([len(orbit)//n for orbit in orbits])
     print("orbits:", len(orbits))
-    for orbit in orbits:
-        assert len(orbit)%n == 0
+    #for orbit in orbits:
+    #    assert len(orbit)%n == 0
 
 
 def test_bruhat():
@@ -480,12 +499,12 @@ def test_bruhat():
         for g in G:
             perm = [lookup[g*v] for v in X]
             #print(perm)
-            perms.append(Perm(perm))
-        tgt = Group(perms)
+            perms.append(gset.Perm(perm))
+        tgt = gset.Group(perms)
         #send_perms = [tgt.lookup[perm] for perm in perms]
         #assert send_perms == list(range(len(send_perms)))
         send_perms = list(range(len(perms)))
-        X = GSet(repG, tgt, send_perms)
+        X = gset.GSet(repG, tgt, send_perms)
         Xs.append(X)
 
         #print(X.send_perms)
@@ -499,7 +518,7 @@ def test_bruhat():
         print("Hs:", [len(G)//len(H) for H in found])
         for H in list(Hs):
             for g in repG:
-                K = Group([g*h*~g for h in H])
+                K = gset.Group([g*h*~g for h in H])
                 found.add(K)
         print("Hs:", [len(G)//len(H) for H in found])
         while 1:
@@ -538,11 +557,11 @@ def main():
         print("|Sp(%d, %d)| = %d"%(p, n, order_sp(n, p)))
 
     if argv.SL:
-        G = SL(n, p)
+        G = Group.SL(n, p)
         print("|G| =", len(G))
 
     if argv.GL:
-        G = GL(n, p)
+        G = Group.GL(n, p)
         print("|G| =", len(G))
 
 
