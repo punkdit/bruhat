@@ -431,10 +431,27 @@ def test():
         fig = p+q
         if fig in found:
             continue
-        orbit = set()
-        for g in G:
-            gfig = g*fig
-            orbit.add(g*fig)
+
+        # METHOD 1 ---------------------
+#        orbit = set()
+#        for g in G:
+#            gfig = g*fig
+#            orbit.add(g*fig)
+
+        # METHOD 2 ---------------------
+        orbit = set([fig])
+        bdy = set(orbit)
+        while bdy:
+            _bdy = set()
+            for fig in bdy:
+              for g in G.gen:
+                gfig = g*fig
+                if gfig in orbit:
+                    continue
+                _bdy.add(gfig)
+                orbit.add(gfig)
+            bdy = _bdy
+        # END METHODS ---------------------
 
         found.update(orbit)
         print("orbit:", len(orbit), end=", ", flush=True)
