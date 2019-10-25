@@ -18,12 +18,13 @@ from bruhat import gset
 from bruhat.action import mulclose
 from bruhat.spec import isprime
 from bruhat.argv import argv
-from bruhat.solve import parse, enum2, row_reduce, span
+from bruhat.solve import parse, enum2, row_reduce, span, shortstr
 from bruhat.dev import geometry
 from bruhat.util import cross
 
+EPSILON = 1e-8
 
-DEFAULT_P = 2
+DEFAULT_P = argv.get("p", 2)
 
 class Matrix(object):
     def __init__(self, A, p=DEFAULT_P, shape=None):
@@ -52,6 +53,9 @@ class Matrix(object):
     def __hash__(self):
         return self._hash
 
+    def is_zero(self):
+        return self.A.sum() == 0
+
     def __eq__(self, other):
         assert self.p == other.p
         return self.key == other.key
@@ -78,6 +82,10 @@ class Matrix(object):
             return Matrix(A, self.p)
         else:
             return NotImplemented
+
+    def transpose(self):
+        A = self.A
+        return Matrix(A.transpose(), self.p)
 
     def mask(self, A):
         return Matrix(self.A * A, self.p)
@@ -112,10 +120,11 @@ assert order_sp(4, 2)==720   # 6!
 
 
 class Group(object):
-    def __init__(self, gen, order=None):
+    def __init__(self, gen, order=None, invariant_form=None):
         self.gen = list(gen)
         self.order = order
         self.G = None
+        self.invariant_form = invariant_form
 
     def get_elements(self):
         if self.G is None:
@@ -134,7 +143,7 @@ class Group(object):
         return self.G[idx]
     
     @classmethod
-    def SL(cls, n, p=DEFAULT_P):
+    def SL(cls, n, p=DEFAULT_P, **kw):
         "special linear group"
         assert int(n)==n
         assert int(p)==p
@@ -151,10 +160,10 @@ class Group(object):
                 A[i, j] = 1
                 gen.append(Matrix(A, p))
         order = order_sl(n, p)
-        return cls(gen, order)
+        return cls(gen, order, **kw)
     
     @classmethod
-    def GL(cls, n, p=DEFAULT_P):
+    def GL(cls, n, p=DEFAULT_P, **kw):
         "general linear group"
         assert int(n)==n
         assert int(p)==p
@@ -167,8 +176,135 @@ class Group(object):
             A = Matrix(i*numpy.identity(n, scalar), p)
             gen.append(A)
         order = order_gl(n, p)
-        return cls(gen, order)
+        return cls(gen, order, **kw)
+
+    # See:
+    # Pairs of Generators for Matrix Groups. I
+    # D. E. Taylor 2006
+    # https://www.maths.usyd.edu.au/u/don/papers/genAC.pdf
+    # Also:
+    # http://doc.sagemath.org/html/en/reference/groups/sage/groups/matrix_gps/symplectic.html
     
+    @classmethod
+    def Sp_4_2(cls, F, **kw):
+        A = numpy.array([[1,0,1,1],[1,0,0,1],[0,1,0,1],[1,1,1,1]], dtype=scalar)
+        B = numpy.array([[0,0,1,0],[1,0,0,0],[0,0,0,1],[0,1,0,0]], dtype=scalar)
+        gen = [Matrix(A, 2), Matrix(B, 2)]
+        return cls(gen, 720, invariant_form=F, **kw)
+
+    @classmethod
+    def Sp(cls, n, p=DEFAULT_P, **kw):
+        gen = []
+        assert n%2 == 0
+
+        assert isprime(p)
+        F = numpy.zeros((n, n), dtype=scalar)
+        for i in range(n//2):
+            F[i, n-i-1] = 1
+            F[i + n//2, n//2-i-1] = p-1
+        F = Matrix(F, p)
+
+        for i in range(1, p):
+            vals = set((i**k)%p for k in range(p+1))
+            if len(vals)==p-1:
+                fgen = i # generates GL(1, p)
+                break
+        else:
+            assert 0
+        for i in range(1, p):
+            if (i*fgen)%p == 1:
+                ifgen = i
+                break
+        else:
+            assert 0
+
+        if n==2:
+            G = cls.SL(2, p, invariant_form=F, **kw)
+            return G
+        if n==4 and p==2:
+            return cls.Sp_4_2(F, **kw)
+
+        if p==2:
+            m = n//2
+            A = numpy.zeros((n, n), dtype=scalar)
+            B = numpy.zeros((n, n), dtype=scalar)
+            for i in range(n):
+                A[i, i] = 1
+            A[0, m-1] = 1
+            A[0, n-1] = 1
+            A[m, n-1] = 1
+            for i in range(m-1):
+                B[i+1, i] = 1
+                B[i+m, i+m+1] = 1
+            B[0, m] = 1
+            B[n-1, m-1] = 1
+            gen = [Matrix(A, 2), Matrix(B, 2)]
+        else:
+            m = n//2
+            A = numpy.zeros((n, n), dtype=scalar)
+            B = numpy.zeros((n, n), dtype=scalar)
+            for i in range(n):
+                A[i, i] = 1
+            A[0, 0] = fgen
+            A[n-1, n-1] = ifgen
+
+            for i in range(m-1):
+                B[i+1, i] = 1
+                B[m+i, m+i+1] = 1
+            B[0, 0] = 1
+            B[0, m] = 1
+            B[n-2, m-1] = 1
+            B[n-1, m-1] = ifgen
+
+            gen = [Matrix(A, p), Matrix(B, p)]
+
+        G = cls(gen, order_sp(n, p), invariant_form=F, **kw)
+        return G
+
+
+def test_symplectic():
+
+    n = argv.get("n", 4)
+    assert n%2==0
+    m = argv.get("m", 1)
+    assert m<=n
+
+    p = argv.get("p", 2)
+
+    G = Group.Sp(n, p)
+
+    F = G.invariant_form
+    for g in G.gen:
+        assert g * F * g.transpose()  == F
+
+    #G[0]
+    #print(len(G.G))
+
+    items = []
+    for M in qchoose_2(n, m, p):
+        M = Matrix(M, p)
+        A = M*F*M.transpose()
+        if A.is_zero():
+            items.append(M)
+    if argv.show:
+        for M in items:
+            print(M)
+    print(len(items))
+
+
+def test():
+    n = 4
+    m = 2
+
+    def all_matrices(m, n):
+        M = numpy.zeros((m, n), dtype=int)
+        yield M
+
+    G = Group.Sp(2*n, m)
+    for left in geometry.all_codes(m, n):
+      for right in geometry.all_codes(m, n):
+        M = numpy.concatenate((left, right), axis=1)
+        assert M.shape == (m, 2*n), M.shape
 
         
 def get_subgroup(G, desc, check=False):
@@ -274,7 +410,7 @@ def normal_form(A, p=DEFAULT_P):
 
 CHECK = argv.get("check", False)
 
-def _qchoose_2(n, m, p=DEFAULT_P):
+def qchoose_2(n, m, p=DEFAULT_P):
     assert m<=n
     col = m
     row = n-m
@@ -327,10 +463,6 @@ class Figure(object):
         return self._str != other._str
 
     def __lt__(self, other):
-#        print(self._str == other._str)
-#        print(self)
-#        print(other)
-#        assert (self._str == other._str) == (str(self) == str(other))
         return self._str < other._str
 
     def __le__(self, other):
@@ -344,13 +476,26 @@ class Figure(object):
     def __rmul__(self, g):
         assert isinstance(g, Matrix)
         A = g.A
-        #print("__rmul__")
-        #print("\t", self)
-        #print(g)
         p = self.p
         items = [(numpy.dot(B, A))%p for B in self.items]
-        #print("items:", items)
         return Figure(items, p)
+        
+#    def __mul__(self, g):
+#        assert isinstance(g, Matrix)
+#        A = g.A
+#        p = self.p
+#        items = [(numpy.dot(A, B))%p for B in self.items]
+#        return Figure(items, p)
+#
+#    def transpose(self):
+#        items = [A.transpose() for A in self.items]
+#        return Figure(items, self.p)
+#
+#    def is_zero(self):
+#        for A in self.items:
+#            if not A.is_zero():
+#                return False
+#        return True
         
     @classmethod
     def get_atomic(cls, m, n, p=DEFAULT_P):
@@ -367,7 +512,7 @@ class Figure(object):
         items = []
         for d in dims[1:]:
             assert d<=d0
-            items.append(list(_qchoose_2(d0, d)))
+            items.append(list(qchoose_2(d0, d)))
             d0 = d
         n = len(items)
         for select in cross(items):
@@ -379,6 +524,78 @@ class Figure(object):
             flag = list(reversed(flag))
             flag = cls(flag)
             yield flag
+
+
+def test_hecke():
+
+    n = argv.get("n", 3)
+    G = Group.SL(n)
+    print("|G| =", len(G))
+
+    left = argv.get("left", [n,1]) 
+    right = argv.get("right", [n,1]) 
+
+    left = list(Figure.qchoose(left))
+    llookup = dict((i, fig) for (fig, i) in enumerate(left))
+    right = list(Figure.qchoose(right))
+    rlookup = dict((i, fig) for (fig, i) in enumerate(right))
+    m = len(left)
+    n = len(right)
+
+    print("left:", len(left))
+    print("right:", len(right))
+    print("figures:", len(left)*len(right))
+
+    #H = numpy.zeros((m, n))
+    remain = set(numpy.ndindex((m, n)))
+
+    ops = []
+    while remain:
+        i, j = iter(remain).__next__()
+        #assert H[i, j] == 0
+
+        #fig = left[i] + right[j]
+        J = numpy.zeros((m, n))
+
+        bdy = set([(i, j)])
+        while bdy:
+            _bdy = set()
+            #print(bdy)
+            for (i, j) in bdy:
+              l, r = left[i], right[j]
+              for g in G.gen:
+                i = llookup[g*l]
+                j = llookup[g*r]
+                if J[i, j]:
+                    continue
+                _bdy.add((i, j))
+                J[i, j] = 1
+                remain.remove((i, j))
+            bdy = _bdy
+        #print(shortstr(J))
+        #print()
+        ops.append(J)
+
+    ops.sort(key = lambda J : J.sum())
+    for J in ops:
+
+        print(J.shape, int(round(J.sum())))
+        vals = numpy.linalg.eigvals(J)
+        #print(vals)
+        ss = []
+        for x in vals:
+            if abs(x.imag)>EPSILON and abs(x.real)>EPSILON:
+                ss.append(str(x))
+            elif abs(x.imag)>EPSILON:
+                ss.append("%.4f"%(x.imag)+"j")
+            elif abs(x.real - int(round(x.real))) < EPSILON:
+                ss.append("%.0f"%x.real)
+            else:
+                ss.append("%.4f"%x.real)
+        ss = set(ss)
+        print(' '.join(ss), '\n')
+
+    print(len(ops))
 
 
 class Orbit(object):
@@ -404,7 +621,7 @@ class Orbit(object):
 
 
 
-def test():
+def test_orbit():
 
     figures = set()
     for fig in Figure.qchoose([4,3,1]):
