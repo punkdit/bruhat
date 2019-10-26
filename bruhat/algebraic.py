@@ -18,13 +18,45 @@ from bruhat import gset
 from bruhat.action import mulclose
 from bruhat.spec import isprime
 from bruhat.argv import argv
-from bruhat.solve import parse, enum2, row_reduce, span, shortstr
+from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank
 from bruhat.dev import geometry
 from bruhat.util import cross
 
 EPSILON = 1e-8
 
 DEFAULT_P = argv.get("p", 2)
+
+
+def qchoose_2(n, m, p=DEFAULT_P):
+    assert m<=n
+    col = m
+    row = n-m
+    for A in geometry.get_cell(row, col, p):
+        yield A
+
+
+def normal_form(A, p=DEFAULT_P):
+    "reduced row-echelon form"
+    assert p==2
+    #print("normal_form")
+    #print(A)
+    A = row_reduce(A)
+    #print(A)
+    m, n = A.shape
+    j = 0
+    for i in range(m):
+        while A[i, j] == 0:
+            j += 1
+        i0 = i-1
+        while i0>=0:
+            if A[i0, j]:
+                A[i0, :] += A[i, :]
+                A %= p
+            i0 -= 1
+        j += 1
+    #print(A)
+    return A
+
 
 class Matrix(object):
     def __init__(self, A, p=DEFAULT_P, shape=None):
@@ -55,6 +87,9 @@ class Matrix(object):
 
     def is_zero(self):
         return self.A.sum() == 0
+
+    def __len__(self):
+        return len(self.A)
 
     def __eq__(self, other):
         assert self.p == other.p
@@ -90,6 +125,10 @@ class Matrix(object):
     def mask(self, A):
         return Matrix(self.A * A, self.p)
 
+    def normal_form(self):
+        A = normal_form(self.A, self.p)
+        return Matrix(A, self.p)
+
 
 # https://math.stackexchange.com/questions/34271/
 # order-of-general-and-special-linear-groups-over-finite-fields
@@ -120,10 +159,15 @@ assert order_sp(4, 2)==720   # 6!
 
 
 class Group(object):
-    def __init__(self, gen, order=None, invariant_form=None):
+    def __init__(self, gen, order=None, p=DEFAULT_P, invariant_form=None):
         self.gen = list(gen)
         self.order = order
         self.G = None
+        self.p = p
+        assert gen
+        A = gen[0]
+        self.n = len(A)
+        assert p == A.p
         self.invariant_form = invariant_form
 
     def get_elements(self):
@@ -160,7 +204,7 @@ class Group(object):
                 A[i, j] = 1
                 gen.append(Matrix(A, p))
         order = order_sl(n, p)
-        return cls(gen, order, **kw)
+        return cls(gen, order, p=p, **kw)
     
     @classmethod
     def GL(cls, n, p=DEFAULT_P, **kw):
@@ -176,7 +220,7 @@ class Group(object):
             A = Matrix(i*numpy.identity(n, scalar), p)
             gen.append(A)
         order = order_gl(n, p)
-        return cls(gen, order, **kw)
+        return cls(gen, order, p=p, **kw)
 
     # See:
     # Pairs of Generators for Matrix Groups. I
@@ -190,7 +234,7 @@ class Group(object):
         A = numpy.array([[1,0,1,1],[1,0,0,1],[0,1,0,1],[1,1,1,1]], dtype=scalar)
         B = numpy.array([[0,0,1,0],[1,0,0,0],[0,0,0,1],[0,1,0,0]], dtype=scalar)
         gen = [Matrix(A, 2), Matrix(B, 2)]
-        return cls(gen, 720, invariant_form=F, **kw)
+        return Sp(gen, 720, p=2, invariant_form=F, **kw)
 
     @classmethod
     def Sp(cls, n, p=DEFAULT_P, **kw):
@@ -219,10 +263,10 @@ class Group(object):
             assert 0
 
         if n==2:
-            G = cls.SL(2, p, invariant_form=F, **kw)
+            G = Sp.SL(2, p, invariant_form=F, **kw)
             return G
         if n==4 and p==2:
-            return cls.Sp_4_2(F, **kw)
+            return Sp.Sp_4_2(F, **kw)
 
         if p==2:
             m = n//2
@@ -258,8 +302,39 @@ class Group(object):
 
             gen = [Matrix(A, p), Matrix(B, p)]
 
-        G = cls(gen, order_sp(n, p), invariant_form=F, **kw)
+        G = Sp(gen, order_sp(n, p), p=p, invariant_form=F, **kw)
         return G
+
+
+class Sp(Group):
+
+    def qchoose(self, m):
+        F = self.invariant_form
+        p = self.p
+        n = self.n
+        for M in qchoose_2(n, m, p):
+            M = Matrix(M, p)
+            A = M*F*M.transpose()
+            if A.is_zero():
+                yield M
+
+    def all_flags(self, dims, p=DEFAULT_P):
+        m = dims[0]
+        items = [[M.A for M in self.qchoose(m)]]
+        for m1 in dims[1:]:
+            assert m1<=m
+            items.append(list(qchoose_2(m, m1)))
+            m = m1
+        n = len(items)
+        for select in cross(items):
+            A = select[0]
+            flag = [A]
+            for i in range(n-1):
+                A = numpy.dot(select[i+1], A) % p
+                flag.append(A)
+            flag = list(reversed(flag))
+            flag = Figure(flag)
+            yield flag
 
 
 def test_symplectic():
@@ -272,40 +347,97 @@ def test_symplectic():
     p = argv.get("p", 2)
 
     G = Group.Sp(n, p)
-
     F = G.invariant_form
     for g in G.gen:
         assert g * F * g.transpose()  == F
 
-    #G[0]
-    #print(len(G.G))
+    #for flag in G.all_flags([2, 1]):
+    #    print(flag)
 
-    items = []
-    for M in qchoose_2(n, m, p):
-        M = Matrix(M, p)
-        A = M*F*M.transpose()
-        if A.is_zero():
-            items.append(M)
+    if n==4:
+        left = list(G.all_flags([2, 1]))
+        right = list(G.all_flags([2, 1]))
+    elif n==6:
+        left = list(G.all_flags([3, 2, 1]))
+        right = list(G.all_flags([3, 2, 1]))
+
+    ops = build_hecke(G, left, right)
+    print(len(ops))
+
+    return
+
+    items = list(G.qchoose(m))
+
+    items.sort(key = str)
     if argv.show:
         for M in items:
             print(M)
     print(len(items))
 
 
-def test():
-    n = 4
-    m = 2
-
-    def all_matrices(m, n):
-        M = numpy.zeros((m, n), dtype=int)
+def all_matrices(m, n, p=DEFAULT_P):
+    shape = ((p,)*m*n)
+    for idxs in numpy.ndindex(shape):
+        M = numpy.array(idxs)
+        M.shape = (m, n)
         yield M
 
-    G = Group.Sp(2*n, m)
-    for left in geometry.all_codes(m, n):
-      for right in geometry.all_codes(m, n):
-        M = numpy.concatenate((left, right), axis=1)
-        assert M.shape == (m, 2*n), M.shape
+def all_codes(m, n, p=DEFAULT_P):
+    for m1 in range(m+1):
+        for M1 in geometry.all_codes(m1, n):
+            M = numpy.zeros((m, n), dtype=scalar)
+            M[:m1, :] = M1
+            yield M
 
+def test():
+    n = argv.get("n", 3)
+    m = argv.get("m", 2)
+    p = argv.get("p", 2)
+
+    G = Group.Sp(2*n, p)
+    F = G.invariant_form
+
+    if 0:
+        # WORKS:
+        items = []
+        for left in all_codes(m, n):
+          for right in all_matrices(m, n):
+            M = numpy.concatenate((left, right), axis=1)
+            assert M.shape == (m, 2*n), M.shape
+            M = normal_form(M, p)
+            if rank(M) < m:
+                continue
+            M = Matrix(M, p)
+            A = M*F*M.transpose()
+            if A.is_zero():
+                items.append(str(M))
+            
+        print(len(items), len(set(items)))
+    
+    G1 = Group.Sp(2*n + 2, p)
+    F1 = G1.invariant_form
+
+    items = set()
+    for M in G.qchoose(m):
+        A = M.A
+        #left = A[:, :n]
+        #right = A[:, n:]
+        for u in all_matrices(m, 1):
+          for v in all_matrices(m, 1):
+            B = numpy.concatenate((u, A, v), axis=1)
+            B = Matrix(B, p)
+            #print(B.shape, F1.shape)
+            C = B*F1*B.transpose()
+            if not C.is_zero():
+                continue
+            B = B.normal_form()
+            assert rank(B.A) == m
+            items.add(B)
+    print(len(items))
+            
+
+        
+        
         
 def get_subgroup(G, desc, check=False):
     A = parse(desc)
@@ -386,37 +518,7 @@ def test_dynkin():
 #        print(X)
     
 
-def normal_form(A, p=DEFAULT_P):
-    "reduced row-echelon form"
-    assert p==2
-    #print("normal_form")
-    #print(A)
-    A = row_reduce(A)
-    #print(A)
-    m, n = A.shape
-    j = 0
-    for i in range(m):
-        while A[i, j] == 0:
-            j += 1
-        i0 = i-1
-        while i0>=0:
-            if A[i0, j]:
-                A[i0, :] += A[i, :]
-                A %= p
-            i0 -= 1
-        j += 1
-    #print(A)
-    return A
-
 CHECK = argv.get("check", False)
-
-def qchoose_2(n, m, p=DEFAULT_P):
-    assert m<=n
-    col = m
-    row = n-m
-    for A in geometry.get_cell(row, col, p):
-        yield A
-
 
 class Figure(object):
     "A partial flag"
@@ -536,21 +638,50 @@ def test_hecke():
     right = argv.get("right", [n,1]) 
 
     left = list(Figure.qchoose(left))
-    llookup = dict((i, fig) for (fig, i) in enumerate(left))
     right = list(Figure.qchoose(right))
+
+    ops = build_hecke(G, left, right)
+
+    for J in ops:
+
+        print(J.shape, int(round(J.sum())))
+        vals = numpy.linalg.eigvals(J)
+        #print(vals)
+        ss = []
+        for x in vals:
+            if abs(x.imag)>EPSILON and abs(x.real)>EPSILON:
+                ss.append(str(x))
+            elif abs(x.imag)>EPSILON:
+                ss.append("%.4f"%(x.imag)+"j")
+            elif abs(x.real - int(round(x.real))) < EPSILON:
+                ss.append("%.0f"%x.real)
+            else:
+                ss.append("%.4f"%x.real)
+        ss = set(ss)
+        print(' '.join(ss), '\n')
+
+    print(len(ops))
+
+
+def build_hecke(G, left, right, verbose=argv.get("verbose", False)):
+
+    if verbose:
+        print("left:", len(left))
+        print("right:", len(right))
+        print("figures:", len(left)*len(right))
+
+    llookup = dict((i, fig) for (fig, i) in enumerate(left))
     rlookup = dict((i, fig) for (fig, i) in enumerate(right))
     m = len(left)
     n = len(right)
-
-    print("left:", len(left))
-    print("right:", len(right))
-    print("figures:", len(left)*len(right))
 
     #H = numpy.zeros((m, n))
     remain = set(numpy.ndindex((m, n)))
 
     ops = []
     while remain:
+        if verbose:
+            print("[%s:%s]"%(len(ops),len(remain)), end="", flush=True)
         i, j = iter(remain).__next__()
         #assert H[i, j] == 0
 
@@ -577,25 +708,7 @@ def test_hecke():
         ops.append(J)
 
     ops.sort(key = lambda J : J.sum())
-    for J in ops:
-
-        print(J.shape, int(round(J.sum())))
-        vals = numpy.linalg.eigvals(J)
-        #print(vals)
-        ss = []
-        for x in vals:
-            if abs(x.imag)>EPSILON and abs(x.real)>EPSILON:
-                ss.append(str(x))
-            elif abs(x.imag)>EPSILON:
-                ss.append("%.4f"%(x.imag)+"j")
-            elif abs(x.real - int(round(x.real))) < EPSILON:
-                ss.append("%.0f"%x.real)
-            else:
-                ss.append("%.4f"%x.real)
-        ss = set(ss)
-        print(' '.join(ss), '\n')
-
-    print(len(ops))
+    return ops
 
 
 class Orbit(object):
