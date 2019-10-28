@@ -18,7 +18,7 @@ from bruhat import gset
 from bruhat.action import mulclose
 from bruhat.spec import isprime
 from bruhat.argv import argv
-from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank
+from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx
 from bruhat.dev import geometry
 from bruhat.util import cross
 
@@ -35,9 +35,146 @@ def qchoose_2(n, m, p=DEFAULT_P):
         yield A
 
 
+def pdiv(i, j, p=DEFAULT_P):
+    " i/j mod p "
+    assert j!=0
+    for k in range(1, p):
+        if (j*k)%p == i:
+            return k
+    assert 0
+
+def pinv(i, p=DEFAULT_P):
+    return pdiv(1, i, p)
+
+
+def swap_row(A, j, k):
+    row = A[j, :].copy()
+    A[j, :] = A[k, :]
+    A[k, :] = row
+
+def swap_col(A, j, k):
+    col = A[:, j].copy()
+    A[:, j] = A[:, k]
+    A[:, k] = col
+
+def row_reduce_p(A, p=DEFAULT_P, truncate=False, inplace=False, check=False, verbose=False):
+    """ Remove zero rows if truncate==True
+    """
+
+    zero = 0
+    one = 1
+
+    assert len(A.shape)==2, A.shape
+    m, n = A.shape
+    if not inplace:
+        A = A.copy()
+
+    if m*n==0:
+        if truncate and m:
+            A = A[:0, :]
+        return A
+
+    if verbose:
+        print("row_reduce")
+        #print("%d rows, %d cols" % (m, n))
+
+    i = 0
+    j = 0
+    while i < m and j < n:
+        if verbose:
+            print("i, j = %d, %d" % (i, j))
+            print("A:")
+            print(A)
+
+        assert i<=j
+        if i and check:
+            assert (A[i:,:j]!=0).sum() == 0
+
+        # first find a nonzero entry in this col
+        for i1 in range(i, m):
+            if A[i1, j]:
+                break
+        else:
+            j += 1 # move to the next col
+            continue # <----------- continue ------------
+
+        if i != i1:
+            if verbose:
+                print("swap", i, i1)
+            swap_row(A, i, i1)
+
+        assert A[i, j] != zero
+        for i1 in range(i+1, m):
+            if A[i1, j]:
+                r = p-pdiv(A[i1, j], A[i, j], p)
+                if verbose:
+                    print("add %d times row %s to %s" % (r, i, i1))
+                A[i1, :] += r*A[i, :]
+                A %= p
+                assert A[i1, j] == zero
+
+        i += 1
+        j += 1
+
+    if truncate:
+        m = A.shape[0]-1
+        #print("sum:", m, A[m, :], A[m, :].sum())
+        while m>=0 and (A[m, :]!=0).sum()==0:
+            m -= 1
+        A = A[:m+1, :]
+
+    if verbose:
+        print()
+
+    return A
+
+
+def normal_form_p(A, p=DEFAULT_P):
+    "reduced row-echelon form"
+    #print("normal_form")
+    #print(A)
+    A = row_reduce_p(A)
+    #print(A)
+    m, n = A.shape
+    j = 0
+    for i in range(m):
+        while j<n and A[i, j] == 0:
+            j += 1
+        if j==n:
+            break
+        r = A[i, j]
+        if r != 1:
+            A[i, :] = pinv(r, p) * A[i, :]
+            A %= p
+        assert A[i, j] == 1
+        i0 = i-1
+        while i0>=0:
+            r = A[i0, j]
+            if r!=0:
+                A[i0, :] += (p-r)*A[i, :]
+                A %= p
+            i0 -= 1
+        j += 1
+    #print(A)
+    return A
+
+def test_row_reduce():
+    p = 3
+    m, n = 4, 4
+    A = numpy.zeros((m, n))
+    for idx in numpy.ndindex(A.shape):
+        A[idx] = random.randint(0, p-1)
+    B = row_reduce_p(A, p=p, verbose=False)
+    C = normal_form_p(B, p)
+    print(A)
+    print(B)
+    print(C)
+
+
 def normal_form(A, p=DEFAULT_P):
     "reduced row-echelon form"
-    assert p==2
+    if p!=2:
+        return normal_form_p(A, p)
     #print("normal_form")
     #print(A)
     A = row_reduce(A)
@@ -49,7 +186,8 @@ def normal_form(A, p=DEFAULT_P):
             j += 1
         i0 = i-1
         while i0>=0:
-            if A[i0, j]:
+            r = A[i0, j]
+            if r!=0:
                 A[i0, :] += A[i, :]
                 A %= p
             i0 -= 1
@@ -149,6 +287,16 @@ class Matrix(object):
         assert p==2
         for A in geometry.all_codes(m, n):
             yield cls(A, p)
+
+
+def test_matrix():
+    M = Matrix([[1,1,0],[0,1,0]])
+    M1 = Matrix([[1,0,0],[0,1,0]])
+    assert M.normal_form() == M1
+
+    M = Matrix([[1,2,0],[0,1,2]], p=3)
+    M1 = Matrix([[1,0,2],[0,1,0]], p=3)
+    assert M.normal_form() == M1
 
 
 # https://math.stackexchange.com/questions/34271/
@@ -327,14 +475,51 @@ class Group(object):
         return G
 
     @classmethod
-    def SO_3_5(cls, **kw):
-        p = 5
+    def SO_9_2(cls, **kw):
+        p = 2
         gens = [
-            [[2,0,0],[0,3,0],[0,0,1]], [[3,2,3],[0,2,0],[0,3,1]], [[1,4,4],[4,0,0],[2,0,4]]]
+            [[1,0,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0],[1,1,0,0,1,0,0,0,1],[0,0,0,0,0,1,0,0,1],[0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,1]],
+            [[1,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0],[0,0,0,0,1,0,0,0,0],[0,0,0,0,0,1,0,0,0],[0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,1],[0,1,0,0,0,0,0,0,0]]]
         gens = [Matrix(A, p) for A in gens]
-        G = Group(gens, p=p,
-            invariant_bilinear_form = Matrix([[0,1,0],[1,0,0],[0,0,2]], p),
-            invariant_quadratic_form = Matrix([[0,1,0],[0,0,0],[0,0,1]], p))
+        G = Group(gens, order=47377612800, p=p,
+            invariant_bilinear_form = Matrix(
+                [[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0],[0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,1],[0,1,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0],[0,0,0,0,1,0,0,0,0]]),
+            invariant_quadratic_form = Matrix(
+                [[1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0],[0,0,0,0,1,0,0,0,0]]))
+        return G
+
+    @classmethod
+    def SO_7_3(cls, **kw):
+        p = 3
+        gens = [
+[[2,0,0,0,0,0,0],[0,2,0,0,0,0,0],[0,0,1,0,0,0,0],[0,0,0,1,0,0,0],[0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1]],
+[[2,1,2,0,0,0,0],[0,2,0,0,0,0,0],[0,1,1,0,0,0,0],[0,0,0,1,0,0,0],[0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1]],
+[[1,2,2,0,0,0,0],[2,2,1,2,0,0,0],[0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1],[0,2,1,0,0,0,0],[2,1,1,1,0,0,0]],
+        ]
+        gens = [Matrix(A, p) for A in gens]
+        G = Group(gens, order=9170703360, p=p,
+            invariant_bilinear_form = Matrix(
+[[0,1,0,0,0,0,0],[1,0,0,0,0,0,0],[0,0,2,0,0,0,0],[0,0,0,2,0,0,0],[0,0,0,0,2,0,0],[0,0,0,0,0,2,0],[0,0,0,0,0,0,2]], p),
+            invariant_quadratic_form = Matrix(
+[[0,1,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,1,0,0,0,0],[0,0,0,1,0,0,0],[0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1]], p))
+        return G
+
+    @classmethod
+    def SO_7_2(cls, **kw):
+        p = 2
+        gens = [
+            [[1,0,0,0,0,0,0],[0,1,0,0,0,0,0],[0,0,1,0,0,0,0],[1,1,0,1,0,0,1],
+             [0,0,0,0,1,0,1],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1]],
+            [[1,0,0,0,0,0,0],[0,0,1,0,0,0,0],[0,0,0,1,0,0,0],[0,0,0,0,1,0,0],
+             [0,0,0,0,0,1,0],[0,0,0,0,0,0,1],[0,1,0,0,0,0,0]]]
+        gens = [Matrix(A, p) for A in gens]
+        G = Group(gens, order=1451520, p=p,
+            invariant_bilinear_form = Matrix(
+                [[0,0,0,0,0,0,0],[0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1],
+                 [0,1,0,0,0,0,0],[0,0,1,0,0,0,0],[0,0,0,1,0,0,0]], p),
+            invariant_quadratic_form = Matrix(
+                [[1,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],
+                 [0,1,0,0,0,0,0],[0,0,1,0,0,0,0],[0,0,0,1,0,0,0]], p))
         return G
 
     @classmethod
@@ -352,9 +537,52 @@ class Group(object):
         return G
 
     @classmethod
+    def SO_5_3(cls, **kw):
+        p = 3
+        gens = [
+                [[2,0,0,0,0],[0,2,0,0,0],[0,0,1,0,0],[0,0,0,1,0],[0,0,0,0,1]],
+                [[2,1,2,0,0],[0,2,0,0,0],[0,1,1,0,0],[0,0,0,1,0],[0,0,0,0,1]],
+                [[1,2,2,0,0],[2,2,1,2,0],[0,0,0,0,1],[0,2,1,0,0],[2,1,1,1,0]],
+        ]
+        gens = [Matrix(A, p) for A in gens]
+        G = Group(gens, p=p,
+            invariant_bilinear_form = Matrix(
+                [[0,1,0,0,0],[1,0,0,0,0],[0,0,2,0,0],[0,0,0,2,0],[0,0,0,0,2]], p),
+            invariant_quadratic_form = Matrix(
+                [[0,1,0,0,0],[0,0,0,0,0],[0,0,1,0,0],[0,0,0,1,0],[0,0,0,0,1]], p))
+        return G
+
+
+
+    @classmethod
+    def SO_3_5(cls, **kw):
+        p = 5
+        gens = [
+            [[2,0,0],[0,3,0],[0,0,1]], [[3,2,3],[0,2,0],[0,3,1]], [[1,4,4],[4,0,0],[2,0,4]]]
+        gens = [Matrix(A, p) for A in gens]
+        G = Group(gens, p=p,
+            invariant_bilinear_form = Matrix([[0,1,0],[1,0,0],[0,0,2]], p),
+            invariant_quadratic_form = Matrix([[0,1,0],[0,0,0],[0,0,1]], p))
+        return G
+
+    @classmethod
+    def SO_3_3(cls, **kw):
+        p = 3
+        gens = [
+            [[2,0,0],[0,2,0],[0,0,1]],
+            [[2,1,2],[0,2,0],[0,1,1]],
+            [[1,2,2],[2,0,0],[2,0,2]],
+            ]
+        gens = [Matrix(A, p) for A in gens]
+        G = Group(gens, p=p,
+            invariant_bilinear_form = Matrix([[0,1,0],[1,0,0],[0,0,2]], 3),
+            invariant_quadratic_form = Matrix([[0,1,0],[0,0,0],[0,0,1]], 3))
+        return G
+
+    @classmethod
     def SO_3_2(cls, **kw):
         p = 2
-        gens = [[1,0,0],[1,1,1],[0,0,1],[[1,0,0],[0,0,1],[0,1,0]]]
+        gens = [[[1,0,0],[1,1,1],[0,0,1]],[[1,0,0],[0,0,1],[0,1,0]]]
         gens = [Matrix(A, p) for A in gens]
         G = Group(gens, p=p,
             invariant_bilinear_form = Matrix([[0,0,0],[0,0,1],[0,1,0]], p),
@@ -382,17 +610,48 @@ def test_so():
     B = G.invariant_bilinear_form
     Q = G.invariant_quadratic_form
 
+    for g in G.gen:
+        assert g * B * g.transpose()  == B
+
     items = []
-    for u in Matrix.all_codes(m, n, p):
-        v = u * B * u.transpose()
-        w = u * Q * u.transpose() # <------ use this one
-        #print(u, v.is_zero(), w.is_zero())
-        if w.is_zero():
-            if argv.show:
-                print(u)
-            items.append(u)
+    #for u in Matrix.all_codes(m, n, p):
+    for M in qchoose_2(n, m, p):
+        M = Matrix(M, p, shape=(m,n))
+        if p>2:
+            w = M * B * M.transpose() # only works when p>2
+        else:
+            w = M * Q * M.transpose() # <------ use this one
+        #print(M, v.is_zero(), w.is_zero())
+        if not w.is_zero():
+            continue
+        #if argv.show:
+        #    print(M)
+        #fig = Figure([M.A], p=p)
+        #items.append(fig)
+        items.append(M)
     print(len(items))
+
+    orbit = set([items[0]])
+    bdy = set(orbit)
+    while bdy:
+        _bdy = set()
+        for M in bdy:
+          for g in G.gen:
+            gM = M*g
+            gM = gM.normal_form()
+            if gM in orbit:
+                continue
+            _bdy.add(gM)
+            orbit.add(gM)
+        bdy = _bdy
+    print(len(orbit))
+    for M in orbit:
+        w = M*B*M.transpose()
+        assert w.is_zero()
+    return
     
+    ops = build_hecke(G, items, items)
+    print("hecke:", len(ops))
 
 
 class Sp(Group):
