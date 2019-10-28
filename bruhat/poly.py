@@ -300,6 +300,7 @@ class Poly(object):
 
     def substitute(self, ns):
         s = self.python_str()
+        assert type(ns) is dict, repr(ns)
         p = eval(s, ns)
         return p
 

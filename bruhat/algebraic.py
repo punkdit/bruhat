@@ -57,6 +57,21 @@ def normal_form(A, p=DEFAULT_P):
     #print(A)
     return A
 
+def all_matrices(m, n, p=DEFAULT_P):
+    shape = ((p,)*m*n)
+    for idxs in numpy.ndindex(shape):
+        M = numpy.array(idxs)
+        M.shape = (m, n)
+        yield M
+
+def all_codes(m, n, p=DEFAULT_P):
+    assert p==2
+    for m1 in range(m+1):
+        for M1 in geometry.all_codes(m1, n):
+            M = numpy.zeros((m, n), dtype=scalar)
+            M[:m1, :] = M1
+            yield M
+
 
 class Matrix(object):
     def __init__(self, A, p=DEFAULT_P, shape=None):
@@ -129,6 +144,12 @@ class Matrix(object):
         A = normal_form(self.A, self.p)
         return Matrix(A, self.p)
 
+    @classmethod
+    def all_codes(cls, m, n, p=DEFAULT_P):
+        assert p==2
+        for A in geometry.all_codes(m, n):
+            yield cls(A, p)
+
 
 # https://math.stackexchange.com/questions/34271/
 # order-of-general-and-special-linear-groups-over-finite-fields
@@ -159,7 +180,8 @@ assert order_sp(4, 2)==720   # 6!
 
 
 class Group(object):
-    def __init__(self, gen, order=None, p=DEFAULT_P, invariant_form=None):
+    def __init__(self, gen, order=None, p=DEFAULT_P, **kw):
+        self.__dict__.update(kw)
         self.gen = list(gen)
         self.order = order
         self.G = None
@@ -168,7 +190,6 @@ class Group(object):
         A = gen[0]
         self.n = len(A)
         assert p == A.p
-        self.invariant_form = invariant_form
 
     def get_elements(self):
         if self.G is None:
@@ -305,6 +326,74 @@ class Group(object):
         G = Sp(gen, order_sp(n, p), p=p, invariant_form=F, **kw)
         return G
 
+    @classmethod
+    def SO_3_5(cls, **kw):
+        p = 5
+        gens = [
+            [[2,0,0],[0,3,0],[0,0,1]], [[3,2,3],[0,2,0],[0,3,1]], [[1,4,4],[4,0,0],[2,0,4]]]
+        gens = [Matrix(A, p) for A in gens]
+        G = Group(gens, p=p,
+            invariant_bilinear_form = Matrix([[0,1,0],[1,0,0],[0,0,2]], p),
+            invariant_quadratic_form = Matrix([[0,1,0],[0,0,0],[0,0,1]], p))
+        return G
+
+    @classmethod
+    def SO_5_2(cls, **kw):
+        p = 2
+        gens = [
+            [[1,0,0,0,0],[1,0,1,0,1],[1,0,1,1,1],[0,1,0,0,1],[0,1,1,1,1]],
+            [[1,0,0,0,0],[0,0,1,0,0],[0,0,0,1,0],[0,0,0,0,1],[0,1,0,0,0]]]
+        gens = [Matrix(A, p) for A in gens]
+        G = Group(gens, p=p,
+            invariant_bilinear_form = Matrix(
+                [[0,0,0,0,0],[0,0,0,1,0],[0,0,0,0,1],[0,1,0,0,0],[0,0,1,0,0]], p),
+            invariant_quadratic_form = Matrix(
+                [[1,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,1,0,0,0],[0,0,1,0,0]], p))
+        return G
+
+    @classmethod
+    def SO_3_2(cls, **kw):
+        p = 2
+        gens = [[1,0,0],[1,1,1],[0,0,1],[[1,0,0],[0,0,1],[0,1,0]]]
+        gens = [Matrix(A, p) for A in gens]
+        G = Group(gens, p=p,
+            invariant_bilinear_form = Matrix([[0,0,0],[0,0,1],[0,1,0]], p),
+            invariant_quadratic_form = Matrix([[1,0,0],[0,0,0],[0,1,0]], p))
+        return G
+
+    @classmethod
+    def SO(cls, n, p=DEFAULT_P, **kw):
+        attr = "SO_%d_%d"%(n, p)
+        method = getattr(cls, attr)
+        if method:
+            return method(**kw)
+        assert 0, (n, p)
+
+
+def test_so():
+
+    n = argv.get("n", 3)
+    m = argv.get("m", 1)
+    p = argv.get("p", 2)
+
+    G = Group.SO(n, p)
+    print("|G| =", len(G))
+
+    B = G.invariant_bilinear_form
+    Q = G.invariant_quadratic_form
+
+    items = []
+    for u in Matrix.all_codes(m, n, p):
+        v = u * B * u.transpose()
+        w = u * Q * u.transpose() # <------ use this one
+        #print(u, v.is_zero(), w.is_zero())
+        if w.is_zero():
+            if argv.show:
+                print(u)
+            items.append(u)
+    print(len(items))
+    
+
 
 class Sp(Group):
 
@@ -374,20 +463,6 @@ def test_symplectic():
             print(M)
     print(len(items))
 
-
-def all_matrices(m, n, p=DEFAULT_P):
-    shape = ((p,)*m*n)
-    for idxs in numpy.ndindex(shape):
-        M = numpy.array(idxs)
-        M.shape = (m, n)
-        yield M
-
-def all_codes(m, n, p=DEFAULT_P):
-    for m1 in range(m+1):
-        for M1 in geometry.all_codes(m1, n):
-            M = numpy.zeros((m, n), dtype=scalar)
-            M[:m1, :] = M1
-            yield M
 
 def test():
     n = argv.get("n", 3)
