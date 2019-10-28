@@ -635,14 +635,16 @@ def test_hecke():
     print("|G| =", len(G))
 
     left = argv.get("left", [n,1]) 
-    right = argv.get("right", [n,1]) 
+    right = argv.get("right", left)
 
     left = list(Figure.qchoose(left))
     right = list(Figure.qchoose(right))
 
     ops = build_hecke(G, left, right)
+    print("Hecke operators:", len(ops))
 
-    for J in ops:
+    if argv.eigvals:
+      for J in ops:
 
         print(J.shape, int(round(J.sum())))
         vals = numpy.linalg.eigvals(J)
@@ -660,7 +662,6 @@ def test_hecke():
         ss = set(ss)
         print(' '.join(ss), '\n')
 
-    print(len(ops))
 
 
 def build_hecke(G, left, right, verbose=argv.get("verbose", False)):

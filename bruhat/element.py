@@ -1353,6 +1353,12 @@ def test():
 
     assert one/x == one+x
 
+    frobenius = lambda a : a**2
+    assert frobenius(one) == one
+    assert frobenius(one+one) == one+one
+    assert frobenius(x) == x+1
+    assert frobenius(x+1) == x
+
     # --------------------------------------------------
 
     # GF(8)
