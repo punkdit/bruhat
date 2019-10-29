@@ -53,12 +53,20 @@ def main():
         fn = sl_pascal
 
     value = argv.get("q")
-    for row in range(5):
+    for row in range(7):
       for col in range(row+1):
         p = fn(row, col)
         if value is not None:
             p = p.substitute({"q": value})
-        s = str(p).replace(" + ", "+")
+            s = str(p).replace(" + ", "+")
+        else:
+            keys = [()] + [(("q", i),) for i in range(1, p.degree+1)]
+            items = [p.cs.get(key) for key in keys]
+            if max(items)>9:
+                s = ",".join([str(i) for i in items])
+            else:
+                s = "".join([str(i) for i in items])
+            #s = p.flatstr().replace(" + ", "+")
         print(s, end=" ")
       print()
 
