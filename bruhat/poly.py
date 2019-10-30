@@ -298,6 +298,15 @@ class Poly(object):
             ss.append(s)
         return ' + '.join(ss) or "0"
 
+    def qstr(self, name="q"):
+        keys = [()] + [((name, i),) for i in range(1, self.degree+1)]
+        items = [self.cs.get(key) for key in keys]
+        if max(items)>9:
+            s = ",".join([str(i) for i in items])
+        else:
+            s = "".join([str(i) for i in items])
+        return s
+
     def substitute(self, ns):
         s = self.python_str()
         assert type(ns) is dict, repr(ns)

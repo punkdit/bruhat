@@ -907,9 +907,10 @@ class Group(object):
             Hs = [H]
         else:
             Hs = self.subgroups()
+        lookup = dict((g, g) for g in self) # remember canonical word 
         for action in Hs:
             for g in self:
-                coset = Coset([g*h for h in action], self.items)
+                coset = Coset([lookup[g*h] for h in action], self.items)
                 cosets.add(coset)
         return list(cosets)
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Represent any Weyl group as a permutation group of a root system.
@@ -13,8 +13,6 @@ https://arxiv.org/pdf/math/0505518.pdf
 
 """
 
-from __future__ import print_function
-
 import sys, os
 import string
 from fractions import Fraction
@@ -26,6 +24,8 @@ from bruhat import action
 from bruhat.action import Perm, Group, mulclose
 from bruhat.gelim import solve, array, identity, dot, shortstr, eq, dotx, kernel
 from bruhat.gelim import Subspace
+from bruhat.poly import Poly
+from bruhat import element
 from bruhat.argv import argv
 from bruhat.util import cross, factorial
 
@@ -53,7 +53,7 @@ def rscale(v, a):
 
 
 
-def mulclose_pri(els, verbose=False, maxsize=None):
+def mulclose_short_slow(els, verbose=False, maxsize=None):
     "multiplicative closure; short words first"
     els = set(els)
     changed = True
@@ -72,6 +72,25 @@ def mulclose_pri(els, verbose=False, maxsize=None):
                 if maxsize and len(els)>=maxsize:
                     return list(els)
                 changed = True
+    return els 
+
+
+def mulclose_short(gen, verbose=False, maxsize=None):
+    "multiplicative closure; short words first"
+    els = set(gen)
+    bdy = set(els)
+    while bdy:
+
+        _bdy = set()
+        for A in gen:
+          for B in bdy:
+            C = A*B 
+            if C not in els:
+                els.add(C)
+                _bdy.add(C)
+                if maxsize and len(els)>=maxsize:
+                    return list(els)
+        bdy = _bdy
     return els 
 
 
@@ -109,7 +128,7 @@ class Weyl(object):
             #print g.str()
         #print
         roots = self.roots
-        weyl = mulclose_pri([self.identity]+gen)
+        weyl = mulclose_short([self.identity]+gen)
         weyl = list(weyl)
         weyl.sort(key = lambda g : (len(g.word), g.word))
         return weyl
@@ -945,7 +964,7 @@ def test_monoid(G):
         print(g.str())
         assert g*g == g
     
-    monoid = mulclose_pri([identity]+gen)
+    monoid = mulclose_short([identity]+gen)
     print("monoid:", len(monoid))
     #monoid = mulclose(monoid)
     #print "monoid:", len(monoid)
@@ -1231,12 +1250,41 @@ def main():
         if arg.startswith("D"):
             G = Weyl.build_D(n)
 
-        print("roots:", len(G.roots))
-        if argv.order:
-            print("order:", len(mulclose(G.gen)))
-
     if G is None:
         return
+
+    print("roots:", len(G.roots))
+    if argv.order:
+        gen = G.gen
+        roots = G.roots
+        els = G.generate()
+        G = Group(els, roots)
+        print("order:", len(els))
+
+        ring = element.Z
+        value = zero = Poly({}, ring)
+        q = Poly("q", ring)
+        for g in els:
+            #print(g.word)
+            value = value + q**(len(g.word))
+        print(value.qstr())
+
+        n = len(gen)
+        for i in range(n):
+            gen1 = gen[:i] + gen[i+1:]
+            H = Group(mulclose(gen1), roots)
+            gHs = G.left_cosets(H)
+            value = zero
+            for gH in gHs:
+                items = list(gH)
+                items.sort(key = lambda g : len(g.word))
+                #for g in items:
+                #    print(g.word, end=" ")
+                #print()
+                g = items[0]
+                value = value + q**len(g.word)
+            #print(len(gH))
+            print(value.qstr())
 
     if argv.show:
         for g in G.gen:

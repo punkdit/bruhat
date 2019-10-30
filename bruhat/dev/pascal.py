@@ -60,12 +60,7 @@ def main():
             p = p.substitute({"q": value})
             s = str(p).replace(" + ", "+")
         else:
-            keys = [()] + [(("q", i),) for i in range(1, p.degree+1)]
-            items = [p.cs.get(key) for key in keys]
-            if max(items)>9:
-                s = ",".join([str(i) for i in items])
-            else:
-                s = "".join([str(i) for i in items])
+            s = p.qstr("q")
             #s = p.flatstr().replace(" + ", "+")
         print(s, end=" ")
       print()
