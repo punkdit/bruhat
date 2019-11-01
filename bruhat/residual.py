@@ -8,6 +8,60 @@ from bruhat.poly import Poly
 from bruhat import element
 
 
+
+def show_qpoly(G):
+    gen = G.gen
+    roots = G.roots
+    els = G.generate()
+    e = G.identity
+    G = Group(els, roots)
+    print("order:", len(els))
+
+    ring = element.Z
+    value = zero = Poly({}, ring)
+    q = Poly("q", ring)
+    for g in els:
+        #print(g.word)
+        value = value + q**(len(g.word))
+    print(value.qstr())
+
+    #lookup = dict((g, g) for g in G) # remember canonical word
+
+    n = len(gen)
+    for i in range(n):
+        gen1 = gen[:i] + gen[i+1:]
+        H = mulclose_short([e]+gen1)
+        eH = Coset(H, roots)
+        H = Group(H, roots)
+        #gHs = G.left_cosets(H)
+
+        cosets = set([eH])
+        bdy = set(cosets)
+        while bdy:
+            _bdy = set()
+            for coset in bdy:
+              for g in gen:
+                gH = Coset([g*h for h in coset], roots)
+                if gH not in cosets:
+                    cosets.add(gH)
+                    _bdy.add(gH)
+            bdy = _bdy
+
+        value = zero
+        for gH in cosets:
+            items = list(gH)
+            items.sort(key = lambda g : len(g.word))
+            #for g in items:
+            #    print(g.word, end=" ")
+            #print()
+            g = items[0]
+            value = value + q**len(g.word)
+        #print(len(gH))
+        print(value.qstr())
+
+
+
+
 def main():
 
     desc = argv.next()
