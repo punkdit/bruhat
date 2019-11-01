@@ -1002,9 +1002,11 @@ def test_symplectic():
 
     #for flag in G.all_flags([2, 1]):
     #    print(flag)
+    print(len(G))
 
     if n==4:
         left = list(G.all_flags([2, 1]))
+        print(len(left))
         right = list(G.all_flags([2, 1]))
     elif n==6:
         left = list(G.all_flags([3, 2, 1]))
