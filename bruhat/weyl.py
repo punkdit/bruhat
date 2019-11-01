@@ -17,11 +17,12 @@ import sys, os
 import string
 from fractions import Fraction
 from operator import mul
+from functools import reduce
 
 import numpy
 
 from bruhat import action
-from bruhat.action import Perm, Group, mulclose
+from bruhat.action import Perm, Group, mulclose, Coset
 from bruhat.gelim import solve, array, identity, dot, shortstr, eq, dotx, kernel
 from bruhat.gelim import Subspace
 from bruhat.poly import Poly
@@ -75,7 +76,7 @@ def mulclose_short_slow(els, verbose=False, maxsize=None):
     return els 
 
 
-def mulclose_short(gen, verbose=False, maxsize=None):
+def mulclose_short(gen, order=None):
     "multiplicative closure; short words first"
     els = set(gen)
     bdy = set(els)
@@ -88,14 +89,14 @@ def mulclose_short(gen, verbose=False, maxsize=None):
             if C not in els:
                 els.add(C)
                 _bdy.add(C)
-                if maxsize and len(els)>=maxsize:
-                    return list(els)
+                if order and len(els)>=order:
+                    return els
         bdy = _bdy
     return els 
 
 
 class Weyl(object):
-    def __init__(self, roots, gen, simple=None, name=None, check=True):
+    def __init__(self, roots, gen, simple=None, name=None, order=None, check=True):
         #assert self.__class__ != Weyl # hmmm... do we need this?
         self.roots = roots # list of tuples
         self.gen = gen # list of Weyl group generators (Perm's)
@@ -106,6 +107,7 @@ class Weyl(object):
 
         self.n = len(gen)
         self.name = name
+        self.order = order
 
         if self.simple is None:
             self.build_simple()
@@ -128,7 +130,7 @@ class Weyl(object):
             #print g.str()
         #print
         roots = self.roots
-        weyl = mulclose_short([self.identity]+gen)
+        weyl = mulclose_short([self.identity]+gen, self.order)
         weyl = list(weyl)
         weyl.sort(key = lambda g : (len(g.word), g.word))
         return weyl
@@ -471,7 +473,7 @@ class Weyl(object):
         root = [-half]*8
         simple.append(tuple(root))
 
-        return Weyl_E8.buildfrom_simple(roots, simple, name="E_8", check=check)
+        return Weyl_E8.buildfrom_simple(roots, simple, name="E_8", order=696729600, check=check)
 
     @classmethod
     def build_E7(cls, check=False):
@@ -485,7 +487,7 @@ class Weyl(object):
                 roots.append(root)
         assert len(roots)==126
         simple = [rscale(-1, roots[0])] + [root for root in E8.simple if root in roots]
-        return Weyl_E7.buildfrom_simple(roots, simple, name="E_7", check=check)
+        return Weyl_E7.buildfrom_simple(roots, simple, name="E_7", order=2903040, check=check)
 
     @classmethod
     def build_E6(cls, check=False):
@@ -502,7 +504,7 @@ class Weyl(object):
         assert len(roots)==72
         simple = [(0, 0, 0, -1, 0, 0, 0, 1)]
         simple += [root for root in E8.simple if root in roots]
-        return Weyl_E6.buildfrom_simple(roots, simple, name="E_6", check=check)
+        return Weyl_E6.buildfrom_simple(roots, simple, name="E_6", order=51840, check=check)
 
     @classmethod
     def build_F4(cls, **kw):
@@ -523,7 +525,7 @@ class Weyl(object):
             (0, 1, -1, 0),
             (0, 0, 1, 0),
             (-half, -half, -half, -half)]
-        return Weyl_F.buildfrom_simple(roots, simple, name="F_4", **kw)
+        return Weyl_F.buildfrom_simple(roots, simple, name="F_4", order=1152, **kw)
 
     @classmethod
     def build_G2(cls, **kw):
@@ -1186,6 +1188,58 @@ def test_longest_element():
     print("OK")
     
 
+def show_qpoly(G):
+    gen = G.gen
+    roots = G.roots
+    els = G.generate()
+    e = G.identity
+    G = Group(els, roots)
+    print("order:", len(els))
+
+    ring = element.Z
+    value = zero = Poly({}, ring)
+    q = Poly("q", ring)
+    for g in els:
+        #print(g.word)
+        value = value + q**(len(g.word))
+    print(value.qstr())
+
+    lookup = dict((g, g) for g in G) # remember canonical word
+
+    n = len(gen)
+    for i in range(n):
+        gen1 = gen[:i] + gen[i+1:]
+        H = mulclose_short([e]+gen1)
+        eH = Coset(H, roots)
+        H = Group(H, roots)
+        #gHs = G.left_cosets(H)
+
+        cosets = set([eH])
+        bdy = set(cosets)
+        while bdy:
+            _bdy = set()
+            for coset in bdy:
+              for g in gen:
+                gH = Coset([g*h for h in coset], roots)
+                if gH not in cosets:
+                    cosets.add(gH)
+                    _bdy.add(gH)
+            bdy = _bdy
+
+        value = zero
+        for gH in cosets:
+            items = list(gH)
+            items.sort(key = lambda g : len(g.word))
+            #for g in items:
+            #    print(g.word, end=" ")
+            #print()
+            g = items[0]
+            value = value + q**len(g.word)
+        #print(len(gH))
+        print(value.qstr())
+
+
+
 def main():
 
     n = argv.n
@@ -1218,14 +1272,14 @@ def main():
         G = Weyl.build_E6()
         assert G.matrix() == {
             (0, 1): 3, (1, 2): 3, (2, 3): 3, (2, 4): 3, (4, 5): 3}
-        items = mulclose(G.gen, verbose=True)
-        print("|E6|=", len(items))
+        #items = mulclose(G.gen, verbose=True)
+        #print("|E6|=", len(items))
 
     if argv.F_4:
         G = Weyl.build_F4()
         assert G.matrix() == {(0, 1): 3, (1, 2): 4, (2, 3): 3}
-        items = mulclose(G.gen, verbose=True)
-        print("|F4|=", len(items)) # == 1152
+        #items = mulclose(G.gen, verbose=True)
+        #print("|F4|=", len(items)) # == 1152
 
     if argv.G_2:
         G = Weyl.build_G2()
@@ -1254,37 +1308,8 @@ def main():
         return
 
     print("roots:", len(G.roots))
-    if argv.order:
-        gen = G.gen
-        roots = G.roots
-        els = G.generate()
-        G = Group(els, roots)
-        print("order:", len(els))
-
-        ring = element.Z
-        value = zero = Poly({}, ring)
-        q = Poly("q", ring)
-        for g in els:
-            #print(g.word)
-            value = value + q**(len(g.word))
-        print(value.qstr())
-
-        n = len(gen)
-        for i in range(n):
-            gen1 = gen[:i] + gen[i+1:]
-            H = Group(mulclose(gen1), roots)
-            gHs = G.left_cosets(H)
-            value = zero
-            for gH in gHs:
-                items = list(gH)
-                items.sort(key = lambda g : len(g.word))
-                #for g in items:
-                #    print(g.word, end=" ")
-                #print()
-                g = items[0]
-                value = value + q**len(g.word)
-            #print(len(gH))
-            print(value.qstr())
+    if argv.show_qpoly:
+        show_qpoly(G)
 
     if argv.show:
         for g in G.gen:
