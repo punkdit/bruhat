@@ -524,6 +524,7 @@ class Group(object):
             assert isinstance(perm, Perm), type(perm)
             assert perm.items == self.items, (perm.items, items)
         self._str = None # cache
+        self.conjugates = []
 
     def str(self):
         if not self._str:
