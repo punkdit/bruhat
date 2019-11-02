@@ -80,7 +80,7 @@ class Coxeter(object):
             reduced[g] = (g,)
             lookup[(g,)] = g
             if bruhat:
-                reduced[g+g] = reduced[g] # Bruhat monoid
+                reduced[g+g] = reduced[g] # _Bruhat monoid
             else:
                 reduced[g+g] = reduced[''] # Coxeter group
             for h in gen:
@@ -200,6 +200,74 @@ class BruhatMonoid(Coxeter):
         Coxeter.__init__(self, *args, **kw)
 
 
+def test():
+
+    if argv.A_2:
+        M = BruhatMonoid("LP", {("L", "P") : 3})
+
+    elif argv.A_3:
+        M = BruhatMonoid("LPS", {("L", "P") : 3, ("L", "S"):3})
+
+    elif argv.A_4:
+        M = BruhatMonoid("LPSH", {("L", "P") : 3, ("P", "S"):3, ("S", "H"):3})
+        assert len(M.build())==120
+
+    elif argv.I_4:
+        M = BruhatMonoid("XZ", {("X", "Z") : 4})
+        assert len(M.build()) == 8
+
+    elif argv.I_5:
+        M = BruhatMonoid("LP", {("L", "P") : 5})
+        assert len(M.build())==10
+
+    elif argv.B_3:
+        M = BruhatMonoid("ABC", {("A", "B"):3, ("B", "C"):4})
+        assert len(M.build())==48
+
+    elif argv.G_2:
+        M = BruhatMonoid("LP", {("L", "P") : 6})
+        assert len(M.build())==12
+
+    elif argv.H_3:
+        M = BruhatMonoid("ABC", {("A", "B") : 5, ("B", "C") : 3})
+        assert len(M.build())==120
+
+    elif argv.F_4:
+        M = BruhatMonoid("ABCD", {("A", "B"):3, ("A", "C"):4, ("A", "D"):3})
+        #g = M.build()
+        #print(len(g))
+        #assert len(g)==1152
+
+    elif argv.D_4:
+        M = BruhatMonoid("ABCD", {("A", "B"):3, ("A", "C"):3, ("A", "D"):3})
+        #g = M.build()
+        #assert len(g)==192
+
+    else:
+        return
+
+
+    words = M.build()
+    mul = M.mul
+
+    order = len(words)
+    print("|M| =", order)
+
+    ideals = set()
+    for a in words:
+        ideal = set()
+        for b in words:
+            c = mul[a, b]
+            ideal.add(c)
+        ideal = list(ideal)
+        ideal.sort()
+        ideal = tuple(ideal)
+        ideals.add(ideal)
+
+    print(len(ideals))
+    print("R-trivial monoid:", len(ideals)==order)
+
+
 def main():
 
     bruhat = argv.bruhat
@@ -259,11 +327,14 @@ def main():
 
 if __name__ == "__main__":
 
-     if argv.profile:
+    if argv.profile:
         import cProfile as profile
         profile.run("main()")
 
-     else:
+    elif argv.test:
+        test()
+
+    else:
         main()
 
 

@@ -20,8 +20,8 @@ def mulclose_fast(gen, verbose=False, maxsize=None):
     bdy = list(els)
     changed = True 
     while bdy:
-        #if verbose:
-        #    print "mulclose:", len(els)
+        if verbose:
+            print(len(els), end=" ", flush=True)
         _bdy = []
         for A in gen:
             for B in bdy:
