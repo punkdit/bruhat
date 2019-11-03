@@ -70,6 +70,20 @@ class Network(object):
         self.lookup = lookup
         return self
     
+    @classmethod
+    def build_wheel(cls, m):
+        N = m+1
+        T = array(N, N)
+        get = lambda i : i+1
+    
+        for i in range(m):
+            T[get((i+1)%m), get(i)] += 1
+            T[get((i-1)%m), get(i)] += 1
+            T[0, get(i)] += 1
+    
+        self = cls(T)
+        return self
+    
     def make_state(self, values=None):
         v = numpy.zeros(self.N, dtype=int)
         if values is not None:
@@ -80,6 +94,22 @@ class Network(object):
     def get_critical(self):
         values = list(self.ceil - 1)[1:]
         return self.make_state(values)
+
+    def critical_group(self):
+        gen = self.gen
+        v = self.get_critical()
+        bdy = set([v])
+        found = set(bdy)
+        while bdy:
+            _bdy = set()
+            for a in bdy:
+              for b in gen:
+                c = a+b
+                if c not in found:
+                    _bdy.add(c)
+                    found.add(c)
+            bdy = _bdy
+        return found
 
     def all_states(self):
         N = self.N
@@ -166,9 +196,10 @@ class State(object):
 
 def main():
 
+    m = argv.get("m", 3)
+    n = argv.get("n", 3)
+
     if 0:
-        m = argv.get("m", 3)
-        n = argv.get("n", 3)
         L = Network.build_lattice(m, n)
     
         crit = L.get_critical()
@@ -183,30 +214,46 @@ def main():
         assert zero+zero == zero
         assert a+nega == zero
 
+    elif 1:
+        L = Network.build_wheel(m)
+
+    elif 1:
+        L = Network.build_lattice(m, n)
+
     else:
         L = Network.build_line(3)
-        crit = L.get_critical()
+    
+    crit = L.get_critical()
 
     #states = mulclose([L.get_critical()] + L.gen, verbose=True)
     #print(len(states))
 
+    print(L.T)
+    T = L.T.copy()
+    T[:, 0] = 1
+    print(numpy.linalg.det(T))
+
     counts = set()
     states = list(L.all_states())
-    print(len(states))
+    print("states:", len(states))
 
-    for b in states:
-      for a in L.gen:
-        print(a, ":", b, a+b)
+    G = L.critical_group()
+    print("G:", len(G))
+
+    if 0:
+        for b in states:
+          for a in L.gen:
+            print(a, ":", b, a+b)
 
     if 0:
         shuffle(states)
-        for b in states[:100]:
+        for b in states:
             c = crit+b
             count = 1
             while c!=crit:
                 c = c+b
                 count += 1
-                assert count < 1000
+                assert count < len(states)
             if count not in counts:
                 print(count, end=" ",flush=True)
                 counts.add(count)

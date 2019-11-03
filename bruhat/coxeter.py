@@ -220,9 +220,16 @@ def test():
         M = BruhatMonoid("LP", {("L", "P") : 5})
         assert len(M.build())==10
 
+    elif argv.B_2:
+        M = BruhatMonoid("AB", {("A", "B"):4})
+        #assert len(M.build())==48
+
     elif argv.B_3:
         M = BruhatMonoid("ABC", {("A", "B"):3, ("B", "C"):4})
-        assert len(M.build())==48
+        #assert len(M.build())==48
+
+    elif argv.B_4:
+        M = BruhatMonoid("ABCD", {("A", "B"):3, ("B", "C"):3, ("C", "D"):4})
 
     elif argv.G_2:
         M = BruhatMonoid("LP", {("L", "P") : 6})
@@ -266,6 +273,17 @@ def test():
 
     print(len(ideals))
     print("R-trivial monoid:", len(ideals)==order)
+
+    f = open("monoid.dot", "w")
+    print("digraph\n{", file=f)
+    for w in words:
+        for x in M.gen:
+            #v = mul[x, w]
+            v = mul[w, x]
+            print("%s -> %s" % (w or "e", v or "e"), file=f)
+    print("}", file=f)
+    f.close()
+    os.popen("dot -Tpdf monoid.dot > monoid.pdf").read()
 
 
 def main():
@@ -318,7 +336,7 @@ def main():
         #print A_3.reduced
 
     if argv.A_4:
-        A_4 = Coxeter("LPSH", {("L", "P") : 3, ("L", "S"):3, ("S", "H"):3})
+        A_4 = Coxeter("LPSH", {("L", "P") : 3, ("P", "S"):3, ("S", "H"):3})
         assert len(A_4.build())==120
 
     print("OK")

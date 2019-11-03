@@ -1308,6 +1308,7 @@ def main():
         return
 
     print("roots:", len(G.roots))
+    print(len(G.build_group()))
     if argv.show_qpoly:
         show_qpoly(G)
 
