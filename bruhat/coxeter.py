@@ -206,7 +206,7 @@ def test():
         M = BruhatMonoid("LP", {("L", "P") : 3})
 
     elif argv.A_3:
-        M = BruhatMonoid("LPS", {("L", "P") : 3, ("L", "S"):3})
+        M = BruhatMonoid("LPS", {("L", "P") : 3, ("P", "S"):3})
 
     elif argv.A_4:
         M = BruhatMonoid("LPSH", {("L", "P") : 3, ("P", "S"):3, ("S", "H"):3})
@@ -260,6 +260,26 @@ def test():
     order = len(words)
     print("|M| =", order)
 
+    idem = []
+    for g in words:
+        if mul[g, g] == g:
+            idem.append(g)
+    print("idem: %d"%len(idem))
+
+    idem.sort(key = len, reverse=True)
+    print(idem)
+
+    for g in idem:
+      for h in idem:
+        count = 0
+        for x in words:
+            if x == mul[mul[g, x], h]:
+                count += 1
+        print("%2d"%count, end=" ")
+      print()
+
+    return
+
     ideals = set()
     for a in words:
         ideal = set()
@@ -276,10 +296,12 @@ def test():
 
     f = open("monoid.dot", "w")
     print("digraph\n{", file=f)
+    #gen = [M.gen[0]]+[M.gen[2]]
+    gen = M.gen
     for w in words:
-        for x in M.gen:
-            #v = mul[x, w]
-            v = mul[w, x]
+        for x in gen:
+            v = mul[x, w]
+            #v = mul[w, x]
             print("%s -> %s" % (w or "e", v or "e"), file=f)
     print("}", file=f)
     f.close()
@@ -330,7 +352,7 @@ def main():
         assert len(g)==192
 
     if argv.A_3:
-        A_3 = Coxeter("LPS", {("L", "P") : 3, ("L", "S"):3}, bruhat=bruhat)
+        A_3 = Coxeter("LPS", {("L", "P") : 3, ("P", "S"):3}, bruhat=bruhat)
         assert len(A_3.build())==24
         #print A_3.lookup
         #print A_3.reduced

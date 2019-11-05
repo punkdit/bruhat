@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 
@@ -50,5 +50,9 @@ for (k,v) in {
     os.environ[k] = v
 
 
-from sage.all_cmdline import *   # import sage library
+try:
+    from sage.all_cmdline import *   # import sage library
+except:
+    pass
+
 
