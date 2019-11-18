@@ -889,6 +889,8 @@ def test_so():
     B = G.invariant_bilinear_form
     Q = G.invariant_quadratic_form
 
+    print(B)
+
     for g in G.gen:
         assert g * B * g.transpose()  == B
 

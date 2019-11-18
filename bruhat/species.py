@@ -9,7 +9,7 @@ See chapter 4 here:
     https://www.cis.upenn.edu/~sweirich/papers/yorgey-thesis.pdf
 """
 
-from types import GeneratorType
+#from types import GeneratorType
 import string
 letters = list(string.ascii_lowercase)
 
@@ -354,8 +354,9 @@ class Species(object):
         self.construct = f
         self.name = name or self.__class__.__name__
 
+    name = None
     def __repr__(self):
-        return self.name
+        return self.name or self.__class__.__name__
 
     def __str__(self):
         return "%s%s"%(self.__class__.__name__, self.sequence())
@@ -680,8 +681,6 @@ def test():
         assert test_eq(F@X, F, skip_empty=True)
         assert test_eq(F@X, F(X), skip_empty=True)
 
-    return
-
     for F in items:
       for G in items:
 
@@ -791,12 +790,25 @@ def main():
     print(F.sequence(7))
     print(FF.sequence(7))
 
+
+def test_functor():
+
+    J = lambda F : E + E*F
+
+    K = X
+    for i in range(5):
+        print(K.sequence(7))
+        K = J(K)
+    
+
+
 if __name__ == "__main__":
 
     if argv.test:
         test()
     else:
-        main()
+        #main()
+        test_functor()
 
 
 
