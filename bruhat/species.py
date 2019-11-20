@@ -276,42 +276,6 @@ class Set(object): # copied from bruhat.rel
         items = [(ai, bi) for ai in a for bi in b]
         return Set(items)
         
-    def all_partitions(self):
-        # A partition is a Set of non-empty subsets of self
-        # such that: disjoint, non-empty (?), covering.
-        items = self.items
-        if not items:
-            if EMPTY_SET_HAS_A_PARTITION:
-                yield empty
-            return
-        #assert items
-        if len(items) == 1:
-            yield Set((self,))
-            return
-        if len(items) == 2:
-            yield Set((self,))
-            a, b = self
-            q = Set([Set([a]), Set([b])])
-            yield q
-            return
-        #head = Set((Set(items[:1]),))
-        head = Set(items[:1])
-        tail = Set(items[1:])
-        #head = items[0]
-        #tail = items[1:]
-        #print("head:", head)
-        #print("tail:", tail)
-        for partition in tail.all_partitions():
-            #print("partition:", partition)
-            partition = partition.items # a tuple of Set's of Set's
-            #print("%s + %s" % ((head,), partition))
-            yield Set((head,) + partition)
-            for i in range(len(partition)):
-                left = partition[:i]
-                right = partition[i+1:]
-                middle = partition[i].union(head) # a Set
-                yield Set(left + (middle,) + right)
-
     def all_parts2(self):
         "all the ways to break self into two subsets"
         items = self.items
@@ -338,6 +302,75 @@ class Set(object): # copied from bruhat.rel
             right = Set([items[i] for i in range(n) if idxs[i]==1])
             yield left, right
 
+    def all_partitions(self):
+        # A partition is a Set of non-empty subsets of self
+        # such that: disjoint, non-empty (?), covering.
+        items = self.items
+        if not items:
+            if EMPTY_SET_HAS_A_PARTITION:
+                yield empty
+            return
+        if len(items) == 1:
+            yield Set((self,))
+            return
+        if len(items) == 2:
+            yield Set((self,))
+            a, b = self
+            q = Set([Set([a]), Set([b])])
+            yield q
+            return
+        head = Set(items[:1])
+        tail = Set(items[1:])
+        for partition in tail.all_partitions():
+            partition = partition.items # a tuple of Set's of Set's
+            yield Set((head,) + partition)
+            for i in range(len(partition)):
+                left = partition[:i]
+                right = partition[i+1:]
+                middle = partition[i].union(head) # a Set
+                yield Set(left + (middle,) + right)
+
+    def all_trees(self):
+        # A tree is a sequence of partitions of self, 
+        # each succesively refining the next, including top and bot.
+        # See: https://oeis.org/A000311
+        items = self.items
+        top = Set((self,))
+        if len(items) == 0:
+            return
+        if len(items) == 1:
+            yield (top,) # top == bot
+            return 
+        if len(items) == 2:
+            a, b = self
+            bot = Set([Set([a]), Set([b])])
+            yield (top, bot)
+            return 
+
+        for partition in self.all_partitions():
+            if len(partition) == 1:
+                continue
+            if len(partition) == len(self):
+                yield (top, partition) # top, bot
+                continue
+            stack = [] # not a stack
+            for part in partition:
+                trees = list(part.all_trees())
+                stack.append(trees)
+            for section in cross(stack):
+                n = max(len(tree) for tree in section)
+                result = [partition]
+                for i in range(n):
+                    items = [
+                        tree[min(i, len(tree)-1)]
+                        for tree in section] # brain hurts...
+                    items = Set(items)
+                    result.append(items)
+                yield tuple(result)
+
+
+
+
 empty = Set()
 star = Set(["*"])
 
@@ -345,6 +378,9 @@ assert len(list(Set(0).all_parts2())) == 1
 assert len(list(Set(1).all_parts2())) == 2
 assert len(list(Set(3).all_parts2())) == 8
 assert len(list(Set(3).all_partitions())) == 5
+
+assert len(list(Set(4).all_trees())) == 26
+
 
 
 # -------------------------------------------------------
@@ -533,6 +569,7 @@ Par = Species(lambda items : Set(items.all_partitions()), "Par")
 BinaryTree = Species(all_binary_trees, "BinaryTree")
 OrderedBinaryTree = Species(all_obinary_trees, "OrderedBinaryTree")
 Pow = Species(all_subsets, "Pow")
+Tree = Species(lambda items : Set(items.all_trees()), "Tree")
 
 def all_handshakes(items):
     items = list(items)
@@ -686,7 +723,6 @@ def test():
 
         # From "Introduction to the Theory of Species of Structures" 
         # Francois Bergeron, Gilbert Labelle, and Pierre Leroux 
-        # http://bergeron.math.uqam.ca/wp-content/uploads/2013/11/book.pdf
 
         # Exercise 2.38
         assert test_eq( (F+G).point(), F.point()+G.point() )
@@ -751,7 +787,9 @@ def main():
     F = Handshake
     F = List
     F = Par
+    F = Tree
     print(F.sequence(7))
+
     return
 
     print(BinaryTree.sequence(7)) # 0, 1, 1, 3, 15, 105, 945
@@ -807,8 +845,8 @@ if __name__ == "__main__":
     if argv.test:
         test()
     else:
-        #main()
-        test_functor()
+        main()
+        #test_functor()
 
 
 
