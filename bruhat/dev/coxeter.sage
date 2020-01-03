@@ -3,7 +3,7 @@
 
 from sage.monoids.hecke_monoid import HeckeMonoid
 
-G = CoxeterGroup(["A", 3])
+G = CoxeterGroup(["B", 3])
 
 M = HeckeMonoid(G)
 gen = M.monoid_generators()
@@ -14,8 +14,9 @@ idem = []
 for a in M:
     if a*a == a:
         idem.append(a)
-idem = list(reversed(idem))
+#idem = list(reversed(idem))
 print(len(idem))
+#print(idem)
 
 for g in idem:
   for h in idem:

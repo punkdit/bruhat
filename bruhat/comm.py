@@ -575,6 +575,12 @@ def main():
         basis = grobner(polys)
         #print len(basis)
 
+    polys = [x1+x2+x3, x1*x2+x1*x3+x2*x3, x1*x2*x3]
+    basis = grobner(polys)
+    #for p in basis:
+    #    print(p)
+    #print(basis)
+
     # -------------------------------------
     # divided difference operator:
 
