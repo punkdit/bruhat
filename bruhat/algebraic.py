@@ -889,6 +889,8 @@ def test_so():
     B = G.invariant_bilinear_form
     Q = G.invariant_quadratic_form
 
+    print(B)
+
     for g in G.gen:
         assert g * B * g.transpose()  == B
 
@@ -999,6 +1001,22 @@ def test_symplectic():
     F = G.invariant_form
     for g in G.gen:
         assert g * F * g.transpose()  == F
+        print(g)
+
+    lookup = {}
+    items = []
+    for idx, v in enumerate(enum2(n)):
+        v = numpy.array(v)
+        v.shape = (n, 1)
+        v = Matrix(v)
+        lookup[v] = idx
+        items.append(v)
+    for g in G.gen:
+        for idx, v in enumerate(items):
+            u = g*v
+            jdx = lookup[u]
+            print("%s:%s"%(idx+1,jdx+1), end=" ")
+        print()
 
     #for flag in G.all_flags([2, 1]):
     #    print(flag)
