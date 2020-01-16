@@ -42,6 +42,10 @@ def shortstr(*items, **kw):
         A = A.view()
         A.shape = (1, len(A))
     m, n = A.shape
+
+    if m==0 or n==0:
+        return "[]"
+
     items = {}
     dw = 3
     for i in range(m):
