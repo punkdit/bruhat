@@ -83,6 +83,9 @@ class Matrix(object):
             A[i, i] = one
         return A
 
+    def keys(self):
+        return self.elements.keys()
+
     def __setitem__(self, key, value):
         row, col = key
         #idx = self.row_lookup[row]
@@ -215,8 +218,8 @@ class Cell(object):
     #def get_dual(self):
 
 
-class Complex(object):
-    "chain complex"
+class Assembly(object):
+    "an assembly of cells"
 
     def __init__(self, lookup, ring):
         # lookup: map grade to map of key->cell
@@ -251,7 +254,7 @@ class Complex(object):
         return self.lookup[grade][key]
 
     def get_cells(self, grade):
-        cells = list(self.lookup[grade].values())
+        cells = list(self.lookup.setdefault(grade, {}).values())
         cells.sort()
         return cells
 
@@ -270,7 +273,26 @@ class Complex(object):
                 A[row, col] = col[row] # confused?
         return A
 
+    def get_degree(self):
+        lookup = self.lookup
+        grades = [grade for grade in lookup if lookup[grade]]
+        grades.sort()
+        return max(grades)+1 if grades else 0
+
+    def get_chain(self):
+        ring = self.ring
+
+        n = self.get_degree()
+        cells = {}
+        bdys = {}
+        for grade in range(n+1):
+            cells[grade] = self.get_cells(grade)
+            bdys[grade] = self.get_bdymap(grade)
+        chain = Chain(cells, bdys, ring)
+        return chain
+
     def build_tetrahedron(cx):
+        assert not cx.lookup
         one = cx.one
     
         for idx in range(4):
@@ -290,17 +312,18 @@ class Complex(object):
     
         return cx
 
-    def build_torus(self, rows, cols):
-        one = self.one
+    def build_torus(cx, rows, cols):
+        assert not cx.lookup
+        one = cx.one
 
         # build verts
         for i in range(rows):
           for j in range(cols):
             cell = Cell(0)
             key = (i, j)
-            self.set(key, cell)
+            cx.set(key, cell)
 
-        verts = self.lookup[0]
+        verts = cx.lookup[0]
 
         # build edges
         for i in range(rows):
@@ -317,9 +340,9 @@ class Complex(object):
                 assert b_vert is not None
                 cell = Cell(1, {a_vert:-one, b_vert:one})
                 key = (i, j, k)
-                self.set(key, cell)
+                cx.set(key, cell)
 
-        edges = self.lookup[1]
+        edges = cx.lookup[1]
 
         # build faces
         for i in range(rows):
@@ -329,20 +352,44 @@ class Complex(object):
             bot = edges[((i+1)%rows, j, "h")]
             right = edges[(i, (j+1)%cols, "v")]
             cell = Cell(2, {top:one, left:-one, bot:-one, right:one})
-            self.set((i, j), cell)
+            cx.set((i, j), cell)
 
-        return self
+        return cx
 
+
+class Chain(object):
+    "chain complex"
+    def __init__(self, cells, bdys, ring):
+        self.ring = ring
+        self.cells = dict(cells) # map grade -> list of Cell's
+        self.bdys = dict(bdys) # map grade -> Matrix(grade-1, grade)
+
+    def get_degree(self):
+        cells = self.cells
+        grades = [grade for grade in cells if cells[grade]]
+        grades.sort()
+        return max(grades)+1 if grades else 0
+
+    def get_cells(self, grade):
+        return self.cells.setdefault(grade, [])
+
+    def get_bdymap(self, grade):
+        A = self.bdys.get(grade)
+        if A is None: # default to zero
+            A = Matrix(self.get_cells(grade-1), self.get_cells(grade), self.ring)
+            self.bdys[grade] = A
+        return A.copy()
 
 
 class Flow(object):
     "morse matching of a chain complex"
 
-    def __init__(self, cx):
-        self.cx = cx
-        self.ring = cx.ring
-        self.zero = cx.ring.zero
-        self.one = cx.ring.one
+    def __init__(self, chain):
+        assert isinstance(chain, Chain)
+        self.chain = chain
+        self.ring = chain.ring
+        self.zero = chain.ring.zero
+        self.one = chain.ring.one
         # map grade -> list of pairs of cells (a,b) with a.grade==grade and b.grade==grade+1
         self.pairs = {} 
 
@@ -359,9 +406,9 @@ class Flow(object):
 
     def get_pairs(self):
         pairs = []
-        cx = self.cx
-        edges = cx.get_cells(1)
-        faces = cx.get_cells(2)
+        chain = self.chain
+        edges = chain.get_cells(1)
+        faces = chain.get_cells(2)
         for edge in edges:
             for vert in edge:
                 pairs.append((vert, edge))
@@ -370,56 +417,38 @@ class Flow(object):
                 pairs.append((edge, face))
         return pairs
 
+    def get_pairs(self):
+        pairs = []
+        chain = self.chain
+        n = chain.get_degree()
+        for grade in range(1, n):
+            bdy = chain.get_bdymap(grade)
+            for row, col in bdy.keys():
+                pairs.append((row, col))
+        return pairs
+
     def get_critical(self, grade):
-        cx = self.cx
+        chain = self.chain
         remove = set()
         for _grade, pairs in self.pairs.items():
           for src, tgt in pairs:
             remove.add(src)
             remove.add(tgt)
         critical = []
-        cells = cx.get_cells(grade)
+        cells = chain.get_cells(grade)
         for cell in cells:
             if cell not in remove:
                 critical.append(cell)
         return critical
 
-#    def get_flowmap(self, grade):
-#        # grade --> grade+1
-#        cx = self.cx
-#        zero = self.zero
-#        one = self.one
-#        bdy = cx.get_bdymap(grade+1) # grade+1 --> grade
-#        edges = cx.get_cells(grade)
-#        faces = cx.get_cells(grade+1)
-#        A = Matrix(faces, edges, {}, self.ring)
-#        pairs = self.pairs.setdefault(grade, [])
-#        for src, tgt in pairs:
-#            assert src.grade == grade
-#            assert A[tgt, src] == zero
-#            value = bdy[src, tgt]
-#            assert value != zero
-#            A[tgt, src] = -one/value
-#        return A
-
-#    def get_adj(self, grade):
-#        "return flow (adjacency) matrix for this grade"
-#        cx = self.cx
-#        A = cx.get_bdymap(grade) # grade --> grade-1
-#        B = self.get_flowmap(grade-1) # grade-1 --> grade
-#        C = B*A # grade --> grade
-#        for cell in cx.get_cells(grade):
-#            C[cell, cell] = 0
-#        return C
-
-    def get_adj(self, grade):
-        # grade --> grade
-        cx = self.cx
-        bdy = cx.get_bdymap(grade) # grade --> grade-1
+    def get_down_adj(self, grade):
+        # grade --> grade-1 --> grade
+        chain = self.chain
         zero = self.zero
         one = self.one
-        edges = cx.get_cells(grade)
-        verts = cx.get_cells(grade-1)
+        bdy = chain.get_bdymap(grade) # grade --> grade-1
+        edges = chain.get_cells(grade)
+        verts = chain.get_cells(grade-1)
         A = Matrix(edges, verts, {}, self.ring) # grade-1 --> grade
         pairs = self.pairs.setdefault(grade-1, [])
         for src, tgt in pairs: # grade-1 --> grade
@@ -432,6 +461,32 @@ class Flow(object):
             assert bdy[src, tgt] != 0
             bdy[src, tgt] = 0
         return A*bdy
+
+    def get_up_adj(self, grade):
+        # grade --> grade+1 --> grade
+        #print("get_up_adj")
+        chain = self.chain
+        zero = self.zero
+        one = self.one
+        bdy = chain.get_bdymap(grade+1) # grade+1 --> grade
+        src = chain.get_cells(grade)
+        tgt = chain.get_cells(grade+1)
+        A = Matrix(tgt, src, {}, self.ring) # grade --> grade+1
+        pairs = self.pairs.setdefault(grade, [])
+        for src, tgt in pairs: # grade --> grade+1
+            assert src.grade == grade
+            assert A[tgt, src] == zero
+            value = bdy[src, tgt]
+            assert value != zero
+            A[tgt, src] = -one/value
+        #print("A =")
+        #print(A)
+        for src, tgt in pairs: # grade --> grade+1
+            assert bdy[src, tgt] != zero
+            bdy[src, tgt] = zero
+        #print("bdy =")
+        #print(bdy)
+        return bdy*A
 
     def accept(self, src, tgt):
         assert isinstance(src, Cell)
@@ -450,15 +505,15 @@ class Flow(object):
             if pair[0] == tgt:
                 return False
 
-        cx = self.cx
-        zero = cx.zero
+        chain = self.chain
+        zero = self.zero
         self.add(src, tgt)
         for grade in (1, 2):
-            A = self.get_adj(grade)
+            A = self.get_down_adj(grade)
             #print(A)
             #N = len(A)
             B = A.copy()
-            cells = cx.get_cells(grade)
+            cells = chain.get_cells(grade)
             while B.nonzero():
                 #B = numpy.dot(A, B)
                 B = A*B
@@ -499,59 +554,68 @@ class Flow(object):
                 self.add(src, tgt)
             idx += 1
 
-#    def XX_morse_homology(self, grade=1):
-#        cx = self.cx
-#        cells = {}
-#        crit = {}
-#        for deg in [grade-1, grade, grade+1]:
-#            cells[deg] = cx.get_cells(deg)
-#            crit[deg] = self.get_critical(deg)
-#
-#        chain = []
-#        for deg in [grade+1, grade]:
-#            bdy = Matrix(crit[deg-1], crit[deg], {}, self.ring)
-#            A = self.get_adj(deg)  # deg --> deg-1 --> deg
-#            B = cx.get_bdymap(deg) # deg --> deg-1
-#            C = Matrix.identity(cells[deg], self.ring)
-#            while C.sum():
-#                #print()
-#                #print(shortstr(C.todense()))
-#                D = B*C # deg --> deg-1
-#                for a in crit[deg-1]:
-#                  for b in crit[deg]:
-#                    if D[a, b]:
-#                        bdy[a, b] += D[a, b]
-#
-#                C = A*C
-#
-#            #print(bdy.todense())
-#            chain.append(bdy)
-#        return chain
-
-    def get_bdymap(self, grade=1): # grade --> grade-1
-        cx = self.cx
-
+    def get_bdymap(self, grade): # grade --> grade-1
+        chain = self.chain
         tgt = self.get_critical(grade-1)
         src = self.get_critical(grade)
     
         bdy = Matrix(tgt, src, {}, self.ring)
-        A = self.get_adj(grade)  # grade --> grade-1 --> grade
-        B = cx.get_bdymap(grade) # grade --> grade-1
-        cells = cx.get_cells(grade)
+        A = self.get_down_adj(grade)  # grade --> grade-1 --> grade
+        B = chain.get_bdymap(grade) # grade --> grade-1
+        cells = chain.get_cells(grade)
         C = Matrix.identity(cells, self.ring)
-        while C.sum():
-            #print()
-            #print(shortstr(C.todense()))
+        while C.nonzero():
             D = B*C # grade --> grade-1
             for a in tgt:
               for b in src:
-                if D[a, b]:
-                    bdy[a, b] += D[a, b]
-
+                bdy[a, b] += D[a, b]
             C = A*C
-
-        #print(bdy.todense())
         return bdy
+
+    def get_f(self, grade):
+        # chain map, from cells --> critical cells
+        chain = self.chain
+        src = chain.get_cells(grade)
+        tgt = self.get_critical(grade)
+    
+        #print()
+        #print("get_f", grade)
+
+        f = Matrix(tgt, src, {}, self.ring)
+        A = self.get_up_adj(grade)  # grade --> grade+1 --> grade
+        C = Matrix.retraction(tgt, src, self.ring)
+        while C.nonzero():
+            #print(C)
+            for a in tgt:
+              for b in src:
+                f[a, b] += C[a, b]
+            C = C*A
+        #print("f =")
+        #print(f)
+        return f
+
+    def get_g(self, grade):
+        # chain map, from critical cells --> cells
+        chain = self.chain
+        src = self.get_critical(grade)
+        tgt = chain.get_cells(grade)
+    
+        #print()
+        #print("get_g", grade)
+
+        g = Matrix(tgt, src, {}, self.ring)
+        A = self.get_down_adj(grade)  # grade --> grade-1 --> grade
+        C = Matrix.inclusion(tgt, src, self.ring)
+        while C.nonzero():
+            #print(C)
+            for a in tgt:
+              for b in src:
+                g[a, b] += C[a, b]
+            C = A*C
+        #print("g =")
+        #print(g)
+        return g
+
 
 
 
@@ -560,8 +624,8 @@ class Flow(object):
 def main():
     ring = element.Q
 
-    cx = Complex({}, ring).build_tetrahedron()
-    #cx = Complex({}, ring).build_torus(2, 2)
+    #cx = Assembly({}, ring).build_tetrahedron()
+    cx = Assembly({}, ring).build_torus(2, 2)
     
     A = cx.get_bdymap(1)
     #print(shortstr(A.todense()))
@@ -570,35 +634,55 @@ def main():
     #print(shortstr(B.todense()))
 
     C = A*B
-    assert C.sum() == 0
+    assert not C.nonzero()
     #print(shortstr(C.todense()))
 
-    flow = Flow(cx)
+    chain = cx.get_chain()
+    flow = Flow(chain)
     flow.build()
 
     print(flow)
 
-#    
-#    A = flow.get_adj(1)
-#    print(A.longstr())
-#
-#    B = A
-#    for i in range(100):
-#        #print(B)
-#        B = A*B
-#        assert B.sum()
-#        
-#
-#    return
+    A = flow.get_bdymap(2) # 2 --> 1
+    B = flow.get_bdymap(1) # 1 --> 0
 
-    A = flow.get_bdymap(2)
-    B = flow.get_bdymap(1)
-
-    print(shortstr(A.todense()))
-    print(shortstr(B.todense()))
+    #print(A)
+    #print(B)
     C = B*A
-    assert C.sum() == 0
+    assert not C.nonzero()
 
+    for grade in [0, 1, 2]:
+      for cell in flow.get_critical(grade):
+        print(cell)
+
+    f0 = flow.get_f(0)
+    f1 = flow.get_f(1)
+    f2 = flow.get_f(2)
+
+    assert f0*chain.get_bdymap(1) == B*f1
+    assert f1*chain.get_bdymap(2) == A*f2
+
+    g0 = flow.get_g(0)
+    g1 = flow.get_g(1)
+    g2 = flow.get_g(2)
+
+    assert chain.get_bdymap(1)*g1 == g0*B
+    assert chain.get_bdymap(2)*g2 == g1*A
+
+    #print()
+    #for grade in range(3):
+    #    print("grade =", grade)
+    #    f = flow.get_f(grade)
+    #    print(f)
+
+    fs = [f0, f1, f2]
+    gs = [g0, g1, g2]
+    for idx in [0, 1, 2]:
+        print(fs[idx]*gs[idx])
+        print(gs[idx]*fs[idx])
+        print()
+    
+    print("OK")
 
 
 if __name__ == "__main__":
