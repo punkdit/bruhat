@@ -43,7 +43,9 @@ class Matrix(object):
 
     def __str__(self):
         #return "Matrix(%d, %d)"%(len(self.rows), len(self.cols))
-        return str(shortstr(self.todense()))
+        s = str(shortstr(self.todense()))
+        s = s.replace(" 0 ", " . ")
+        return s
 
     def longstr(self):
         elements = self.elements
@@ -146,6 +148,14 @@ class Matrix(object):
     def sum(self):
         return sum(self.elements.values(), self.zero)
 
+    def nonzero(self):
+        zero = self.zero
+        for v in self.elements.values():
+            if v != zero:
+                return True
+        assert not self.elements
+        return False
+
     def todense(self, rows=None, cols=None):
         if rows is None:
             rows = self.rows
@@ -245,7 +255,7 @@ class Complex(object):
         cells.sort()
         return cells
 
-    def get_bdymap(self, grade):
+    def get_bdymap(self, grade): # warning: needs to return unique object
         # grade -> grade-1
         cols = self.get_cells(grade)
         rows = self.get_cells(grade-1)
@@ -374,33 +384,54 @@ class Flow(object):
                 critical.append(cell)
         return critical
 
-    def get_flowmap(self, grade):
-        # grade --> grade+1
+#    def get_flowmap(self, grade):
+#        # grade --> grade+1
+#        cx = self.cx
+#        zero = self.zero
+#        one = self.one
+#        bdy = cx.get_bdymap(grade+1) # grade+1 --> grade
+#        edges = cx.get_cells(grade)
+#        faces = cx.get_cells(grade+1)
+#        A = Matrix(faces, edges, {}, self.ring)
+#        pairs = self.pairs.setdefault(grade, [])
+#        for src, tgt in pairs:
+#            assert src.grade == grade
+#            assert A[tgt, src] == zero
+#            value = bdy[src, tgt]
+#            assert value != zero
+#            A[tgt, src] = -one/value
+#        return A
+
+#    def get_adj(self, grade):
+#        "return flow (adjacency) matrix for this grade"
+#        cx = self.cx
+#        A = cx.get_bdymap(grade) # grade --> grade-1
+#        B = self.get_flowmap(grade-1) # grade-1 --> grade
+#        C = B*A # grade --> grade
+#        for cell in cx.get_cells(grade):
+#            C[cell, cell] = 0
+#        return C
+
+    def get_adj(self, grade):
+        # grade --> grade
         cx = self.cx
+        bdy = cx.get_bdymap(grade) # grade --> grade-1
         zero = self.zero
         one = self.one
-        bdy = cx.get_bdymap(grade+1) # grade+1 --> grade
         edges = cx.get_cells(grade)
-        faces = cx.get_cells(grade+1)
-        A = Matrix(faces, edges, {}, self.ring)
-        pairs = self.pairs.setdefault(grade, [])
-        for src, tgt in pairs:
-            assert src.grade == grade
+        verts = cx.get_cells(grade-1)
+        A = Matrix(edges, verts, {}, self.ring) # grade-1 --> grade
+        pairs = self.pairs.setdefault(grade-1, [])
+        for src, tgt in pairs: # grade-1 --> grade
+            assert src.grade == grade-1
             assert A[tgt, src] == zero
             value = bdy[src, tgt]
             assert value != zero
             A[tgt, src] = -one/value
-        return A
-
-    def get_adj(self, grade):
-        "return flow (adjacency) matrix for this grade"
-        cx = self.cx
-        A = cx.get_bdymap(grade) # grade --> grade-1
-        B = self.get_flowmap(grade-1) # grade-1 --> grade
-        C = B*A # grade --> grade
-        for cell in cx.get_cells(grade):
-            C[cell, cell] = 0
-        return C
+        for src, tgt in pairs: # grade-1 --> grade
+            assert bdy[src, tgt] != 0
+            bdy[src, tgt] = 0
+        return A*bdy
 
     def accept(self, src, tgt):
         assert isinstance(src, Cell)
@@ -428,7 +459,7 @@ class Flow(object):
             #N = len(A)
             B = A.copy()
             cells = cx.get_cells(grade)
-            while B.sum():
+            while B.nonzero():
                 #B = numpy.dot(A, B)
                 B = A*B
                 #for j in range(N):
@@ -521,8 +552,18 @@ def main():
 
     print(flow)
 
-    A = flow.get_adj(0)
-    print(A.longstr())
+#    
+#    A = flow.get_adj(1)
+#    print(A.longstr())
+#
+#    B = A
+#    for i in range(100):
+#        #print(B)
+#        B = A*B
+#        assert B.sum()
+#        
+#
+#    return
 
     chain = flow.morse_homology(1)
 
