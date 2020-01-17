@@ -499,34 +499,60 @@ class Flow(object):
                 self.add(src, tgt)
             idx += 1
 
-    def morse_homology(self, grade=1):
+#    def XX_morse_homology(self, grade=1):
+#        cx = self.cx
+#        cells = {}
+#        crit = {}
+#        for deg in [grade-1, grade, grade+1]:
+#            cells[deg] = cx.get_cells(deg)
+#            crit[deg] = self.get_critical(deg)
+#
+#        chain = []
+#        for deg in [grade+1, grade]:
+#            bdy = Matrix(crit[deg-1], crit[deg], {}, self.ring)
+#            A = self.get_adj(deg)  # deg --> deg-1 --> deg
+#            B = cx.get_bdymap(deg) # deg --> deg-1
+#            C = Matrix.identity(cells[deg], self.ring)
+#            while C.sum():
+#                #print()
+#                #print(shortstr(C.todense()))
+#                D = B*C # deg --> deg-1
+#                for a in crit[deg-1]:
+#                  for b in crit[deg]:
+#                    if D[a, b]:
+#                        bdy[a, b] += D[a, b]
+#
+#                C = A*C
+#
+#            #print(bdy.todense())
+#            chain.append(bdy)
+#        return chain
+
+    def get_bdymap(self, grade=1): # grade --> grade-1
         cx = self.cx
-        cells = {}
-        crit = {}
-        for deg in [grade-1, grade, grade+1]:
-            cells[deg] = cx.get_cells(deg)
-            crit[deg] = self.get_critical(deg)
 
-        chain = []
-        for deg in [grade+1, grade]:
-            bdy = Matrix(crit[deg-1], crit[deg], {}, self.ring)
-            A = self.get_adj(deg)  # deg --> deg-1 --> deg
-            B = cx.get_bdymap(deg) # deg --> deg-1
-            C = Matrix.identity(cells[deg], self.ring)
-            while C.sum():
-                #print()
-                #print(shortstr(C.todense()))
-                D = B*C # deg --> deg-1
-                for a in crit[deg-1]:
-                  for b in crit[deg]:
-                    if D[a, b]:
-                        bdy[a, b] += D[a, b]
+        tgt = self.get_critical(grade-1)
+        src = self.get_critical(grade)
+    
+        bdy = Matrix(tgt, src, {}, self.ring)
+        A = self.get_adj(grade)  # grade --> grade-1 --> grade
+        B = cx.get_bdymap(grade) # grade --> grade-1
+        cells = cx.get_cells(grade)
+        C = Matrix.identity(cells, self.ring)
+        while C.sum():
+            #print()
+            #print(shortstr(C.todense()))
+            D = B*C # grade --> grade-1
+            for a in tgt:
+              for b in src:
+                if D[a, b]:
+                    bdy[a, b] += D[a, b]
 
-                C = A*C
+            C = A*C
 
-            #print(bdy.todense())
-            chain.append(bdy)
-        return chain
+        #print(bdy.todense())
+        return bdy
+
 
 
 
@@ -534,8 +560,8 @@ class Flow(object):
 def main():
     ring = element.Q
 
-    #cx = Complex({}, ring).build_tetrahedron()
-    cx = Complex({}, ring).build_torus(2, 2)
+    cx = Complex({}, ring).build_tetrahedron()
+    #cx = Complex({}, ring).build_torus(2, 2)
     
     A = cx.get_bdymap(1)
     #print(shortstr(A.todense()))
@@ -565,9 +591,9 @@ def main():
 #
 #    return
 
-    chain = flow.morse_homology(1)
+    A = flow.get_bdymap(2)
+    B = flow.get_bdymap(1)
 
-    A, B = chain
     print(shortstr(A.todense()))
     print(shortstr(B.todense()))
     C = B*A
