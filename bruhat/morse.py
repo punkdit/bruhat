@@ -139,6 +139,14 @@ class Matrix(object):
             A[i, j] += other[i, j]
         return A
 
+    def __sub__(self, other):
+        assert self.ring == other.ring
+        assert self.set_cols == other.set_rows
+        A = self.copy()
+        for i,j in other.elements.keys():
+            A[i, j] -= other[i, j]
+        return A
+
     def __mul__(self, other):
         assert self.ring == other.ring
         assert self.set_cols == other.set_rows
@@ -458,45 +466,28 @@ class Flow(object):
             A[tgt, src] = -one/value
         return A
 
-    def get_down_adj(self, grade):
+    def get_down_match(self, grade):
         # grade --> grade-1 --> grade
         chain = self.chain
         zero = self.zero
         one = self.one
         bdy = chain.get_bdymap(grade) # grade --> grade-1
         pairs = self.pairs.setdefault(grade-1, [])
-#        edges = chain.get_cells(grade)
-#        verts = chain.get_cells(grade-1)
-#        A = Matrix(edges, verts, {}, self.ring) # grade-1 --> grade
-#        for src, tgt in pairs: # grade-1 --> grade
-#            assert src.grade == grade-1
-#            assert A[tgt, src] == zero
-#            value = bdy[src, tgt]
-#            assert value != zero
-#            A[tgt, src] = -one/value
         A = self.get_match(grade-1)
         for src, tgt in pairs: # grade-1 --> grade
             assert bdy[src, tgt] != 0
             bdy[src, tgt] = 0
         return A*bdy
 
-    def get_up_adj(self, grade):
+    def get_up_match(self, grade):
         # grade --> grade+1 --> grade
-        #print("get_up_adj")
+        #print("get_up_match")
         chain = self.chain
         zero = self.zero
         one = self.one
         bdy = chain.get_bdymap(grade+1) # grade+1 --> grade
-        src = chain.get_cells(grade)
-        tgt = chain.get_cells(grade+1)
-        A = Matrix(tgt, src, {}, self.ring) # grade --> grade+1
         pairs = self.pairs.setdefault(grade, [])
-        for src, tgt in pairs: # grade --> grade+1
-            assert src.grade == grade
-            assert A[tgt, src] == zero
-            value = bdy[src, tgt]
-            assert value != zero
-            A[tgt, src] = -one/value
+        A = self.get_match(grade)
         #print("A =")
         #print(A)
         for src, tgt in pairs: # grade --> grade+1
@@ -527,7 +518,7 @@ class Flow(object):
         zero = self.zero
         self.add(src, tgt)
         for grade in (1, 2):
-            A = self.get_down_adj(grade)
+            A = self.get_down_match(grade)
             #print(A)
             #N = len(A)
             B = A.copy()
@@ -578,7 +569,7 @@ class Flow(object):
         src = self.get_critical(grade)
     
         bdy = Matrix(tgt, src, {}, self.ring)
-        A = self.get_down_adj(grade)  # grade --> grade-1 --> grade
+        A = self.get_down_match(grade)  # grade --> grade-1 --> grade
         B = chain.get_bdymap(grade) # grade --> grade-1
         cells = chain.get_cells(grade)
         C = Matrix.identity(cells, self.ring)
@@ -600,7 +591,7 @@ class Flow(object):
         #print("get_f", grade)
 
         f = Matrix(tgt, src, {}, self.ring)
-        A = self.get_up_adj(grade)  # grade --> grade+1 --> grade
+        A = self.get_up_match(grade)  # grade --> grade+1 --> grade
         C = Matrix.retraction(tgt, src, self.ring)
         while C.nonzero():
             #print(C)
@@ -622,7 +613,7 @@ class Flow(object):
         #print("get_g", grade)
 
         g = Matrix(tgt, src, {}, self.ring)
-        A = self.get_down_adj(grade)  # grade --> grade-1 --> grade
+        A = self.get_down_match(grade)  # grade --> grade-1 --> grade
         C = Matrix.inclusion(tgt, src, self.ring)
         while C.nonzero():
             #print(C)
@@ -634,16 +625,33 @@ class Flow(object):
         #print(g)
         return g
 
-
+    def get_homotopy(self, grade):
+        # grade --> grade+1
+        ring = self.ring
+        chain = self.chain
+        tgt = chain.get_cells(grade+1)
+        src = chain.get_cells(grade)
+        A = self.get_match(grade)
+        B = self.get_down_match(grade+1)
+        chi = Matrix(tgt, src, {}, ring)
+        while A.nonzero():
+            for a in tgt:
+              for b in src:
+                chi[a, b] += A[a, b]
+            A = B*A
+        return chi
 
 
 
 
 def main():
-    ring = element.Q
+    #ring = element.Q
+    ring = element.FiniteField(7)
 
-    #cx = Assembly({}, ring).build_tetrahedron()
-    cx = Assembly({}, ring).build_torus(2, 2)
+    if argv.tetra:
+        cx = Assembly({}, ring).build_tetrahedron()
+    else:
+        cx = Assembly({}, ring).build_torus(2, 2)
     
     A = cx.get_bdymap(1)
     #print(shortstr(A.todense()))
@@ -669,9 +677,9 @@ def main():
     C = B*A
     assert not C.nonzero()
 
-    for grade in [0, 1, 2]:
-      for cell in flow.get_critical(grade):
-        print(cell)
+    #for grade in [0, 1, 2]:
+    #  for cell in flow.get_critical(grade):
+    #    print(cell)
 
     f0 = flow.get_f(0)
     f1 = flow.get_f(1)
@@ -687,18 +695,43 @@ def main():
     assert chain.get_bdymap(1)*g1 == g0*B
     assert chain.get_bdymap(2)*g2 == g1*A
 
+    fs = [f0, f1, f2]
+    gs = [g0, g1, g2]
+
     #print()
     #for grade in range(3):
     #    print("grade =", grade)
     #    f = flow.get_f(grade)
     #    print(f)
 
-    fs = [f0, f1, f2]
-    gs = [g0, g1, g2]
-    for idx in [0, 1, 2]:
-        print(fs[idx]*gs[idx])
-        print(gs[idx]*fs[idx])
-        print()
+    chi0 = flow.get_homotopy(0)
+    chi1 = flow.get_homotopy(1)
+    chi2 = flow.get_homotopy(2)
+
+    chis = [chi0, chi1, chi2]
+
+    for i in [1, 2]:
+        cells = chain.get_cells(i)
+        I = Matrix.identity(cells, ring)
+        lhs = gs[i] * fs[i] - I
+        rhs = chain.get_bdymap(i+1)*chis[i] + chis[i-1]*chain.get_bdymap(i)
+        assert lhs == rhs
+        #print(lhs)
+
+        cells = flow.get_critical(i)
+        I = Matrix.identity(cells, ring)
+        lhs = fs[i] * gs[i]
+        #print(lhs)
+        #print(I)
+        assert lhs == I
+        
+
+    #return
+
+    #for idx in [0, 1, 2]:
+        #print(fs[idx]*gs[idx])
+        #print(gs[idx]*fs[idx])
+        #print()
     
     print("OK")
 
