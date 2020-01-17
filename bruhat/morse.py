@@ -441,22 +441,40 @@ class Flow(object):
                 critical.append(cell)
         return critical
 
+    def get_match(self, grade):
+        chain = self.chain
+        zero = self.zero
+        one = self.one
+        bdy = chain.get_bdymap(grade+1) # grade+1 --> grade
+        src = chain.get_cells(grade)
+        tgt = chain.get_cells(grade+1)
+        A = Matrix(tgt, src, {}, self.ring) # grade --> grade+1
+        pairs = self.pairs.setdefault(grade, [])
+        for src, tgt in pairs: # grade --> grade+1
+            assert src.grade == grade
+            assert A[tgt, src] == zero
+            value = bdy[src, tgt]
+            assert value != zero
+            A[tgt, src] = -one/value
+        return A
+
     def get_down_adj(self, grade):
         # grade --> grade-1 --> grade
         chain = self.chain
         zero = self.zero
         one = self.one
         bdy = chain.get_bdymap(grade) # grade --> grade-1
-        edges = chain.get_cells(grade)
-        verts = chain.get_cells(grade-1)
-        A = Matrix(edges, verts, {}, self.ring) # grade-1 --> grade
         pairs = self.pairs.setdefault(grade-1, [])
-        for src, tgt in pairs: # grade-1 --> grade
-            assert src.grade == grade-1
-            assert A[tgt, src] == zero
-            value = bdy[src, tgt]
-            assert value != zero
-            A[tgt, src] = -one/value
+#        edges = chain.get_cells(grade)
+#        verts = chain.get_cells(grade-1)
+#        A = Matrix(edges, verts, {}, self.ring) # grade-1 --> grade
+#        for src, tgt in pairs: # grade-1 --> grade
+#            assert src.grade == grade-1
+#            assert A[tgt, src] == zero
+#            value = bdy[src, tgt]
+#            assert value != zero
+#            A[tgt, src] = -one/value
+        A = self.get_match(grade-1)
         for src, tgt in pairs: # grade-1 --> grade
             assert bdy[src, tgt] != 0
             bdy[src, tgt] = 0
