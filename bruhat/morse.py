@@ -13,6 +13,7 @@ import numpy
 from bruhat.argv import argv
 from bruhat import element
 from bruhat.elim import shortstr
+from bruhat.solve import parse
 
 
 
@@ -34,6 +35,10 @@ class Matrix(object):
         self.ring = ring
         self.one = ring.one
         self.zero = ring.zero
+
+    @property
+    def shape(self):
+        return len(self.rows), len(self.cols)
 
     def copy(self):
         return Matrix(self.rows, self.cols, self.elements, self.ring)
@@ -166,6 +171,9 @@ class Matrix(object):
                 return True
         assert not self.elements
         return False
+
+    def is_zero(self):
+        return not self.nonzero()
 
     def todense(self, rows=None, cols=None):
         if rows is None:
@@ -372,11 +380,34 @@ class Chain(object):
         self.cells = dict(cells) # map grade -> list of Cell's
         self.bdys = dict(bdys) # map grade -> Matrix(grade-1, grade)
 
+    @classmethod
+    def fromnumpy(cls, M, ring):
+        m, n = M.shape
+        tgt = [Cell(0, {}, "c%d"%i) for i in range(m)]
+        src = [Cell(1, {}, "r%d"%i) for i in range(n)]
+        A = Matrix(tgt, src, {}, ring)
+        for i in range(m):
+          for j in range(n):
+            if M[i, j]:
+                A[tgt[i], src[j]] = ring.promote(M[i, j])
+        chain = cls({0:tgt, 1:src}, {1:A}, ring)
+        return chain
+
     def get_degree(self):
         cells = self.cells
         grades = [grade for grade in cells if cells[grade]]
         grades.sort()
         return max(grades)+1 if grades else 0
+
+    def check(self):
+        cells = self.cells
+        grades = [grade for grade in cells if cells[grade]]
+        grades.sort()
+        assert not grades or min(grades)>=0
+        for i in grades:
+            A = self.get_bdymap(i)
+            B = self.get_bdymap(i+1)
+            assert (A*B).is_zero()
 
     def get_cells(self, grade):
         return self.cells.setdefault(grade, [])
@@ -384,7 +415,7 @@ class Chain(object):
     def get_bdymap(self, grade):
         A = self.bdys.get(grade)
         if A is None: # default to zero
-            A = Matrix(self.get_cells(grade-1), self.get_cells(grade), self.ring)
+            A = Matrix(self.get_cells(grade-1), self.get_cells(grade), {}, self.ring)
             self.bdys[grade] = A
         return A.copy()
 
@@ -405,7 +436,7 @@ class Flow(object):
         assert isinstance(src, Cell)
         assert isinstance(tgt, Cell)
         assert src.grade == tgt.grade-1
-        assert src in tgt
+        #assert src in tgt
         pairs = self.pairs.setdefault(src.grade, [])
         pairs.append((src, tgt))
 
@@ -462,7 +493,7 @@ class Flow(object):
             assert src.grade == grade
             assert A[tgt, src] == zero
             value = bdy[src, tgt]
-            assert value != zero
+            assert value != zero, "cannot match non-bdy"
             A[tgt, src] = -one/value
         return A
 
@@ -645,29 +676,34 @@ class Flow(object):
 
 
 def main():
-    #ring = element.Q
-    ring = element.FiniteField(7)
+    ring = element.Q
+    #ring = element.FiniteField(7)
 
+    cx = None
     if argv.tetra:
         cx = Assembly({}, ring).build_tetrahedron()
+    elif argv.matrix:
+        M = parse("""
+        1.1..1
+        11.1..
+        .11.1.
+        ...111
+        """)
+        chain = Chain.fromnumpy(M, ring)
     else:
         cx = Assembly({}, ring).build_torus(2, 2)
     
-    A = cx.get_bdymap(1)
-    #print(shortstr(A.todense()))
+    if cx is not None:
+        chain = cx.get_chain()
 
-    B = cx.get_bdymap(2)
-    #print(shortstr(B.todense()))
+    chain.check()
 
-    C = A*B
-    assert not C.nonzero()
-    #print(shortstr(C.todense()))
+    #print(chain.get_bdymap(1))
 
-    chain = cx.get_chain()
     flow = Flow(chain)
     flow.build()
 
-    print(flow)
+    #print(flow)
 
     A = flow.get_bdymap(2) # 2 --> 1
     B = flow.get_bdymap(1) # 1 --> 0
@@ -675,7 +711,7 @@ def main():
     #print(A)
     #print(B)
     C = B*A
-    assert not C.nonzero()
+    assert C.is_zero()
 
     #for grade in [0, 1, 2]:
     #  for cell in flow.get_critical(grade):
@@ -733,7 +769,111 @@ def main():
         #print(gs[idx]*fs[idx])
         #print()
     
-    print("OK")
+
+
+
+def test_matrix():
+    ring = element.Q
+    #ring = element.FiniteField(2)
+
+    # tetra-hedron face map:
+    M = parse("""
+    1.1..1
+    11.1..
+    .11.1.
+    ...111
+    """)
+    chain = Chain.fromnumpy(M, ring)
+    chain.check()
+
+    M = chain.get_bdymap(1)
+    print(M)
+    rows, cols = M.rows, M.cols
+
+    flow = Flow(chain)
+    #flow.build()
+    
+    # match goes from src:grade-1 --> tgt:grade
+    # rows are faces, cols are edges
+    assert flow.accept(rows[1], cols[0])
+    flow.add(rows[1], cols[0])
+
+    assert flow.accept(rows[2], cols[1])
+    flow.add(rows[2], cols[1])
+
+    assert flow.accept(rows[3], cols[4])
+    flow.add(rows[3], cols[4])
+
+    print(flow)
+
+    A = flow.get_bdymap(2) # 2 --> 1
+    B = flow.get_bdymap(1) # 1 --> 0
+
+    print(A, A.shape)
+    print(B, B.shape)
+    print(B.cols, B.rows)
+    C = B*A
+    assert C.is_zero()
+
+
+    f0 = flow.get_f(0)
+    f1 = flow.get_f(1)
+    f2 = flow.get_f(2)
+
+    assert f0*chain.get_bdymap(1) == B*f1
+    assert f1*chain.get_bdymap(2) == A*f2
+
+    g0 = flow.get_g(0)
+    g1 = flow.get_g(1)
+    g2 = flow.get_g(2)
+
+    assert chain.get_bdymap(1)*g1 == g0*B
+    assert chain.get_bdymap(2)*g2 == g1*A
+
+    fs = [f0, f1, f2]
+    gs = [g0, g1, g2]
+
+    chi0 = flow.get_homotopy(0)
+    chi1 = flow.get_homotopy(1)
+    chi2 = flow.get_homotopy(2)
+
+    chis = [chi0, chi1, chi2]
+
+    for i in [1, 2]:
+        cells = chain.get_cells(i)
+        I = Matrix.identity(cells, ring)
+        lhs = gs[i] * fs[i] - I
+        rhs = chain.get_bdymap(i+1)*chis[i] + chis[i-1]*chain.get_bdymap(i)
+        assert lhs == rhs
+        #print(lhs)
+
+        cells = flow.get_critical(i)
+        I = Matrix.identity(cells, ring)
+        lhs = fs[i] * gs[i]
+        #print(lhs)
+        #print(I)
+        assert lhs == I
+        
+    print()
+    for grade in range(2):
+        print("grade =", grade)
+        print("f =")
+        print(fs[grade])
+        print("g =")
+        print(gs[grade])
+        print("chi =")
+        print(chis[grade])
+        #print("rows:", chis[grade].rows)
+        #print("cols:", chis[grade].cols)
+        print("fg =")
+        print(fs[grade]*gs[grade])
+        print("gf =")
+        print(gs[grade]*fs[grade])
+        print()
+
+    print(flow.get_bdymap(1))
+    #print(chain.get_bdymap(1) * chis[0])
+
 
 
 if __name__ == "__main__":
@@ -743,6 +883,8 @@ if __name__ == "__main__":
         seed(_seed)
 
     main()
+    test_matrix()
 
+    print("OK")
 
 
