@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Formal power series over a ring.
+Univariate formal power series over a ring: R[[x]].
 """
 
 from bruhat.element import Q
