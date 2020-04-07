@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 
 """
-Another attempt at action.py
-Here we do everything with indexes.. probably more efficient than action.py
+Compute limits & colimits in the category of GSet's .
+
+Based on bruhat/action.py, but 
+here we do everything (set maps, permutations, etc.)
+with indexes, which is probably more efficient than action.py.
 """
+
 
 import numpy
 scalar = numpy.int64
