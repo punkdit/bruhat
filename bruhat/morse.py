@@ -597,24 +597,24 @@ class Flow(object):
                 self.add(src, tgt)
             idx += 1
 
-#    def _get_bdymap(self, grade): # grade --> grade-1
-#        chain = self.chain
-#        src = self.get_critical(grade) # CM_grade
-#        tgt = self.get_critical(grade-1) # CM_{grade-1}
-#    
-#        bdy = Matrix(tgt, src, {}, self.ring) # CM_grade --> CM_{grade-1}
-#        A = self.get_down_match(grade)  # C_grade --> C_grade-1 --> C_grade
-#        B = chain.get_bdymap(grade) # C_grade --> C_grade-1
-#        cells = chain.get_cells(grade)
-#        C = Matrix.identity(cells, self.ring) # C_grade --> C_grade
-#        while C.nonzero():
-#            D = B*C # C_grade --> C_grade --> C_{grade-1}
-#            #bdy = bdy + D # fail
-#            for a in tgt:
-#              for b in src:
-#                bdy[a, b] += D[a, b]
-#            C = A*C
-#        return bdy
+    def _get_bdymap(self, grade): # grade --> grade-1
+        chain = self.chain
+        src = self.get_critical(grade) # CM_grade
+        tgt = self.get_critical(grade-1) # CM_{grade-1}
+    
+        bdy = Matrix(tgt, src, {}, self.ring) # CM_grade --> CM_{grade-1}
+        A = self.get_down_match(grade)  # C_grade --> C_grade-1 --> C_grade
+        B = chain.get_bdymap(grade) # C_grade --> C_grade-1
+        cells = chain.get_cells(grade)
+        C = Matrix.identity(cells, self.ring) # C_grade --> C_grade
+        while C.nonzero():
+            D = B*C # C_grade --> C_grade --> C_{grade-1}
+            #bdy = bdy + D # fail
+            for a in tgt:
+              for b in src:
+                bdy[a, b] += D[a, b]
+            C = A*C
+        return bdy
 
     def get_bdymap(self, grade): # grade --> grade-1
         chain = self.chain
@@ -626,18 +626,13 @@ class Flow(object):
         B = chain.get_bdymap(grade) # C_grade --> C_grade-1
         cells = chain.get_cells(grade)
         cells_1 = chain.get_cells(grade-1)
-        R = Matrix.inclusion(cells, src, self.ring) # CM_grade --> C_grade
         L = Matrix.retraction(tgt, cells_1, self.ring) # C_grade-1 --> CM_grade-1
-        C = Matrix.identity(cells, self.ring) # C_grade --> C_grade
-        while C.nonzero():
-            D = B*C # C_grade --> C_grade --> C_{grade-1}
-            #bdy = bdy + D # fail
-            bdy += L*D*R
-            #for a in tgt:
-            #  for b in src:
-            #    bdy[a, b] += D[a, b]
-            C = A*C
-        #assert bdy == self._get_bdymap(grade)
+        B = L*B
+        R = Matrix.inclusion(cells, src, self.ring) # CM_grade --> C_grade
+        while R.nonzero():
+            bdy += B*R
+            R = A*R
+        assert bdy == self._get_bdymap(grade)
         return bdy
 
     def get_f(self, grade):
@@ -782,31 +777,31 @@ def test_chain(chain):
         #print()
     
 
+def test_main():
+
+    for ring in [element.Q, element.FiniteField(2), element.FiniteField(7)]:
+
+        cx = Assembly({}, ring).build_tetrahedron()
+        chain = cx.get_chain()
+        test_chain(chain)
+    
+        M = parse("""
+        1.1..1
+        11.1..
+        .11.1.
+        ...111
+        """)
+        chain = Chain.fromnumpy(M, ring)
+        test_chain(chain)
+    
+        cx = Assembly({}, ring).build_torus(2, 2)
+        chain = cx.get_chain()
+        test_chain(chain)
+    
+
+
+
 def main():
-    ring = element.Q
-    #ring = element.FiniteField(7)
-
-    cx = Assembly({}, ring).build_tetrahedron()
-    chain = cx.get_chain()
-    test_chain(chain)
-
-    M = parse("""
-    1.1..1
-    11.1..
-    .11.1.
-    ...111
-    """)
-    chain = Chain.fromnumpy(M, ring)
-    test_chain(chain)
-
-    cx = Assembly({}, ring).build_torus(2, 2)
-    chain = cx.get_chain()
-    test_chain(chain)
-
-
-
-
-def test_matrix():
     ring = element.Q
     #ring = element.FiniteField(2)
 
@@ -916,8 +911,8 @@ if __name__ == "__main__":
     if _seed is not None:
         seed(_seed)
 
-    main()
-    test_matrix()
+    test_main()
+    #main()
 
     print("OK")
 
