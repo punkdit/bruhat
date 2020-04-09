@@ -138,7 +138,10 @@ class Matrix(object):
 
     def __add__(self, other):
         assert self.ring == other.ring
-        assert self.set_cols == other.set_rows
+        #x, y = self.set_cols, other.set_cols
+        assert self.set_cols == other.set_cols #, (x.issubset(y), y.issubset(x))
+        #x, y = self.set_rows, other.set_rows
+        assert self.set_rows == other.set_rows #, (x.issubset(y), y.issubset(x))
         A = self.copy()
         for i,j in other.elements.keys():
             A[i, j] += other[i, j]
@@ -146,7 +149,8 @@ class Matrix(object):
 
     def __sub__(self, other):
         assert self.ring == other.ring
-        assert self.set_cols == other.set_rows
+        assert self.set_cols == other.set_cols
+        assert self.set_rows == other.set_rows
         A = self.copy()
         for i,j in other.elements.keys():
             A[i, j] -= other[i, j]
@@ -429,10 +433,14 @@ class Flow(object):
         self.ring = chain.ring
         self.zero = chain.ring.zero
         self.one = chain.ring.one
-        # map grade -> list of pairs of cells (a,b) with a.grade==grade and b.grade==grade+1
+
+        # These are the pairs of the Morse matching we are building.
+        # Map grade -> list of pairs of cells (a,b) 
+        # with a.grade==grade and b.grade==grade+1 .
         self.pairs = {} 
 
     def add(self, src, tgt):
+        "Add a match "
         assert isinstance(src, Cell)
         assert isinstance(tgt, Cell)
         assert src.grade == tgt.grade-1
@@ -443,30 +451,12 @@ class Flow(object):
     def remove(self, src, tgt):
         self.pairs[src.grade].remove((src, tgt))
 
-    def get_pairs(self):
-        pairs = []
-        chain = self.chain
-        edges = chain.get_cells(1)
-        faces = chain.get_cells(2)
-        for edge in edges:
-            for vert in edge:
-                pairs.append((vert, edge))
-        for face in faces:
-            for edge in face:
-                pairs.append((edge, face))
-        return pairs
-
-    def get_pairs(self):
-        pairs = []
-        chain = self.chain
-        n = chain.get_degree()
-        for grade in range(1, n):
-            bdy = chain.get_bdymap(grade)
-            for row, col in bdy.keys():
-                pairs.append((row, col))
+    def get_pairs(self, grade):
+        pairs = self.pairs.setdefault(grade, [])
         return pairs
 
     def get_critical(self, grade):
+        " return list of critical cells at grade "
         chain = self.chain
         remove = set()
         for _grade, pairs in self.pairs.items():
@@ -481,14 +471,15 @@ class Flow(object):
         return critical
 
     def get_match(self, grade):
+        " return linear op: C_grade --> C_{grade+1} "
         chain = self.chain
         zero = self.zero
         one = self.one
         bdy = chain.get_bdymap(grade+1) # grade+1 --> grade
         src = chain.get_cells(grade)
         tgt = chain.get_cells(grade+1)
-        A = Matrix(tgt, src, {}, self.ring) # grade --> grade+1
-        pairs = self.pairs.setdefault(grade, [])
+        A = Matrix(tgt, src, {}, self.ring) # C_grade --> C_{grade+1}
+        pairs = self.get_pairs(grade)
         for src, tgt in pairs: # grade --> grade+1
             assert src.grade == grade
             assert A[tgt, src] == zero
@@ -498,26 +489,28 @@ class Flow(object):
         return A
 
     def get_down_match(self, grade):
-        # grade --> grade-1 --> grade
+        # C_grade --> C_grade-1 --> C_grade
         chain = self.chain
         zero = self.zero
         one = self.one
         bdy = chain.get_bdymap(grade) # grade --> grade-1
-        pairs = self.pairs.setdefault(grade-1, [])
-        A = self.get_match(grade-1)
+        #pairs = self.pairs.setdefault(grade-1, [])
+        pairs = self.get_pairs(grade-1)
+        A = self.get_match(grade-1) # C_{grade-1} --> C_grade
         for src, tgt in pairs: # grade-1 --> grade
-            assert bdy[src, tgt] != 0
-            bdy[src, tgt] = 0
+            assert bdy[src, tgt] != zero
+            bdy[src, tgt] = zero
         return A*bdy
 
     def get_up_match(self, grade):
-        # grade --> grade+1 --> grade
+        # C_grade --> C_grade+1 --> C_grade
         #print("get_up_match")
         chain = self.chain
         zero = self.zero
         one = self.one
         bdy = chain.get_bdymap(grade+1) # grade+1 --> grade
-        pairs = self.pairs.setdefault(grade, [])
+#        pairs = self.pairs.setdefault(grade, [])
+        pairs = self.get_pairs(grade)
         A = self.get_match(grade)
         #print("A =")
         #print(A)
@@ -532,15 +525,15 @@ class Flow(object):
         assert isinstance(src, Cell)
         assert isinstance(tgt, Cell)
         assert src.grade == tgt.grade-1
-        pairs = self.pairs.setdefault(src.grade, [])
+        pairs = self.get_pairs(src.grade)
         for pair in pairs:
             if pair[0] == src or pair[1] == tgt:
                 return False
-        pairs = self.pairs.setdefault(src.grade-1, [])
+        pairs = self.get_pairs(src.grade-1)
         for pair in pairs:
             if pair[1] == src:
                 return False
-        pairs = self.pairs.setdefault(src.grade+1, [])
+        pairs = self.get_pairs(src.grade+1)
         for pair in pairs:
             if pair[0] == tgt:
                 return False
@@ -583,8 +576,18 @@ class Flow(object):
             lines.append("grade=%d: %s"%(grade, line))
         return "Flow(%s)"%(', '.join(lines),)
 
+    def get_all_pairs(self):
+        pairs = []
+        chain = self.chain
+        n = chain.get_degree()
+        for grade in range(1, n):
+            bdy = chain.get_bdymap(grade)
+            for row, col in bdy.keys():
+                pairs.append((row, col))
+        return pairs
+
     def build(self):
-        pairs = self.get_pairs()
+        pairs = self.get_all_pairs()
         shuffle(pairs)
 
         idx = 0
@@ -594,22 +597,47 @@ class Flow(object):
                 self.add(src, tgt)
             idx += 1
 
+#    def _get_bdymap(self, grade): # grade --> grade-1
+#        chain = self.chain
+#        src = self.get_critical(grade) # CM_grade
+#        tgt = self.get_critical(grade-1) # CM_{grade-1}
+#    
+#        bdy = Matrix(tgt, src, {}, self.ring) # CM_grade --> CM_{grade-1}
+#        A = self.get_down_match(grade)  # C_grade --> C_grade-1 --> C_grade
+#        B = chain.get_bdymap(grade) # C_grade --> C_grade-1
+#        cells = chain.get_cells(grade)
+#        C = Matrix.identity(cells, self.ring) # C_grade --> C_grade
+#        while C.nonzero():
+#            D = B*C # C_grade --> C_grade --> C_{grade-1}
+#            #bdy = bdy + D # fail
+#            for a in tgt:
+#              for b in src:
+#                bdy[a, b] += D[a, b]
+#            C = A*C
+#        return bdy
+
     def get_bdymap(self, grade): # grade --> grade-1
         chain = self.chain
-        tgt = self.get_critical(grade-1)
-        src = self.get_critical(grade)
+        src = self.get_critical(grade) # CM_grade
+        tgt = self.get_critical(grade-1) # CM_{grade-1}
     
-        bdy = Matrix(tgt, src, {}, self.ring)
-        A = self.get_down_match(grade)  # grade --> grade-1 --> grade
-        B = chain.get_bdymap(grade) # grade --> grade-1
+        bdy = Matrix(tgt, src, {}, self.ring) # CM_grade --> CM_{grade-1}
+        A = self.get_down_match(grade)  # C_grade --> C_grade-1 --> C_grade
+        B = chain.get_bdymap(grade) # C_grade --> C_grade-1
         cells = chain.get_cells(grade)
-        C = Matrix.identity(cells, self.ring)
+        cells_1 = chain.get_cells(grade-1)
+        R = Matrix.inclusion(cells, src, self.ring) # CM_grade --> C_grade
+        L = Matrix.retraction(tgt, cells_1, self.ring) # C_grade-1 --> CM_grade-1
+        C = Matrix.identity(cells, self.ring) # C_grade --> C_grade
         while C.nonzero():
-            D = B*C # grade --> grade-1
-            for a in tgt:
-              for b in src:
-                bdy[a, b] += D[a, b]
+            D = B*C # C_grade --> C_grade --> C_{grade-1}
+            #bdy = bdy + D # fail
+            bdy += L*D*R
+            #for a in tgt:
+            #  for b in src:
+            #    bdy[a, b] += D[a, b]
             C = A*C
+        #assert bdy == self._get_bdymap(grade)
         return bdy
 
     def get_f(self, grade):
@@ -626,9 +654,10 @@ class Flow(object):
         C = Matrix.retraction(tgt, src, self.ring)
         while C.nonzero():
             #print(C)
-            for a in tgt:
-              for b in src:
-                f[a, b] += C[a, b]
+            #for a in tgt:
+            #  for b in src:
+            #    f[a, b] += C[a, b]
+            f += C
             C = C*A
         #print("f =")
         #print(f)
@@ -648,9 +677,10 @@ class Flow(object):
         C = Matrix.inclusion(tgt, src, self.ring)
         while C.nonzero():
             #print(C)
-            for a in tgt:
-              for b in src:
-                g[a, b] += C[a, b]
+            #for a in tgt:
+            #  for b in src:
+            #    g[a, b] += C[a, b]
+            g += C
             C = A*C
         #print("g =")
         #print(g)
@@ -675,28 +705,10 @@ class Flow(object):
 
 
 
-def main():
-    ring = element.Q
-    #ring = element.FiniteField(7)
-
-    cx = None
-    if argv.tetra:
-        cx = Assembly({}, ring).build_tetrahedron()
-    elif argv.matrix:
-        M = parse("""
-        1.1..1
-        11.1..
-        .11.1.
-        ...111
-        """)
-        chain = Chain.fromnumpy(M, ring)
-    else:
-        cx = Assembly({}, ring).build_torus(2, 2)
-    
-    if cx is not None:
-        chain = cx.get_chain()
+def test_chain(chain):
 
     chain.check()
+    ring = chain.ring
 
     #print(chain.get_bdymap(1))
 
@@ -769,6 +781,28 @@ def main():
         #print(gs[idx]*fs[idx])
         #print()
     
+
+def main():
+    ring = element.Q
+    #ring = element.FiniteField(7)
+
+    cx = Assembly({}, ring).build_tetrahedron()
+    chain = cx.get_chain()
+    test_chain(chain)
+
+    M = parse("""
+    1.1..1
+    11.1..
+    .11.1.
+    ...111
+    """)
+    chain = Chain.fromnumpy(M, ring)
+    test_chain(chain)
+
+    cx = Assembly({}, ring).build_torus(2, 2)
+    chain = cx.get_chain()
+    test_chain(chain)
+
 
 
 
