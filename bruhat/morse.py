@@ -198,36 +198,15 @@ class Matrix(object):
 
 
 class Cell(object):
+    "The basis elements for the vector space at a grade in a Chain complex."
 
-    def __init__(self, grade, bdy={}, key=None):
+    def __init__(self, grade, key=None):
         self.grade = grade
-        self.bdy = dict(bdy) # map Cell -> scalar
         self.key = key
-
-    def __repr__(self):
-        return "Cell(%d, %s, %s)"%(self.grade, self.bdy, self.key)
 
     def __str__(self):
         return "Cell(%d, %s)"%(self.grade, self.key)
-
-    def check(self):
-        grade = self.grade
-        for cell in self.bdy:
-            assert cell.grade == grade-1
-
-    def append(self, cell, w):
-        assert isinstance(cell, Cell)
-        assert cell.grade == self.grade-1
-        self.bdy[cell] = w
-
-    def __len__(self):
-        return len(self.bdy)
-
-    def __iter__(self):
-        return iter(self.bdy)
-
-    def __getitem__(self, cell):
-        return self.bdy[cell]
+    __repr__ = __str__
 
     def __lt__(self, other):
         return self.key < other.key
@@ -235,21 +214,20 @@ class Cell(object):
     def __le__(self, other):
         return self.key <= other.key
 
-    #def get_dual(self):
 
 
 class Assembly(object):
-    "an assembly of cells"
+    "An assembly of cells, used for constructing Chain complexes."
 
     def __init__(self, lookup, ring):
         # lookup: map grade to map of key->cell
-        #self.lookup = {0:{}, 1:{}, 2:{}}
         self.lookup = dict(lookup)
+        self.bdys = {} # map cell to bdy map
         self.ring = ring
         self.zero = ring.zero
         self.one = ring.one
 
-    def set(self, key, cell):
+    def set(self, key, cell, bdy={}):
         assert isinstance(cell, Cell)
         lookup = self.lookup
         cells = lookup.setdefault(cell.grade, {})
@@ -257,16 +235,20 @@ class Assembly(object):
         cells[key] = cell
         assert cell.key is None
         cell.key = key
+        bdys = self.bdys
+        assert bdys.get(cell) is None
+        bdys[cell] = dict(bdy)
 
     def mk_vert(self, key):
-        cell = Cell(0, {})
+        cell = Cell(0)
         self.set(key, cell)
         return cell
 
     def mk_edge(self, key, src, tgt):
         one = self.one
-        cell = Cell(1, {self[0, src]:-one, self[0, tgt]:one})
-        self.set(key, cell)
+        cell = Cell(1)
+        bdy = {self[0, src]:-one, self[0, tgt]:one}
+        self.set(key, cell, bdy)
         return cell
 
     def __getitem__(self, key):
@@ -282,15 +264,18 @@ class Assembly(object):
         # grade -> grade-1
         cols = self.get_cells(grade)
         rows = self.get_cells(grade-1)
+        bdys = self.bdys
         A = Matrix(rows, cols, {}, self.ring)
         zero = self.zero
         one = self.one
         for col in cols:
             assert col.grade == grade
-            for row in col:
+            bdy = bdys[col]
+            #for row in col:
+            for row, value in bdy.items():
                 assert row.grade == grade-1
                 assert A[row, col] == zero
-                A[row, col] = col[row] # confused?
+                A[row, col] = value
         return A
 
     def get_degree(self):
@@ -325,10 +310,10 @@ class Assembly(object):
         cx.mk_edge(5, 4, 2)
         cx.mk_edge(6, 4, 3)
     
-        cx.set(1, Cell(2, {cx[1, 1]:-one, cx[1, 6]:-one, cx[1, 3]:-one}))
-        cx.set(2, Cell(2, {cx[1, 1]: one, cx[1, 2]: one, cx[1, 4]:-one}))
-        cx.set(3, Cell(2, {cx[1, 2]:-one, cx[1, 3]: one, cx[1, 5]: one}))
-        cx.set(4, Cell(2, {cx[1, 4]: one, cx[1, 5]:-one, cx[1, 6]: one}))
+        cx.set(1, Cell(2), {cx[1, 1]:-one, cx[1, 6]:-one, cx[1, 3]:-one})
+        cx.set(2, Cell(2), {cx[1, 1]: one, cx[1, 2]: one, cx[1, 4]:-one})
+        cx.set(3, Cell(2), {cx[1, 2]:-one, cx[1, 3]: one, cx[1, 5]: one})
+        cx.set(4, Cell(2), {cx[1, 4]: one, cx[1, 5]:-one, cx[1, 6]: one})
     
         return cx
 
@@ -350,7 +335,6 @@ class Assembly(object):
           for j in range(cols):
             ks = "hv" # horizontal, _vertical edge
             for k in ks:
-                bdy = []
                 a_vert = verts.get((i, j))
                 assert a_vert is not None
                 if k == "h":
@@ -358,9 +342,8 @@ class Assembly(object):
                 else:
                     b_vert = verts.get(((i+1)%rows, j))
                 assert b_vert is not None
-                cell = Cell(1, {a_vert:-one, b_vert:one})
                 key = (i, j, k)
-                cx.set(key, cell)
+                cx.set(key, Cell(1), {a_vert:-one, b_vert:one})
 
         edges = cx.lookup[1]
 
@@ -371,8 +354,9 @@ class Assembly(object):
             left = edges[(i, j, "v")]
             bot = edges[((i+1)%rows, j, "h")]
             right = edges[(i, (j+1)%cols, "v")]
-            cell = Cell(2, {top:one, left:-one, bot:-one, right:one})
-            cx.set((i, j), cell)
+            cell = Cell(2)
+            bdy = {top:one, left:-one, bot:-one, right:one}
+            cx.set((i, j), cell, bdy)
 
         return cx
 
@@ -387,8 +371,8 @@ class Chain(object):
     @classmethod
     def fromnumpy(cls, M, ring):
         m, n = M.shape
-        tgt = [Cell(0, {}, "c%d"%i) for i in range(m)]
-        src = [Cell(1, {}, "r%d"%i) for i in range(n)]
+        tgt = [Cell(0, "c%d"%i) for i in range(m)]
+        src = [Cell(1, "r%d"%i) for i in range(n)]
         A = Matrix(tgt, src, {}, ring)
         for i in range(m):
           for j in range(n):
@@ -558,12 +542,6 @@ class Flow(object):
         self.remove(src, tgt)
         return True
 
-#    def __str__(self):
-#        items = ['%s->%s' % (src, tgt) for (src, tgt) in self.pairs[0]]
-#        items += ['%s->%s' % (src, tgt) for (src, tgt) in self.pairs[1]]
-#        s = ", ".join(items)
-#        return "Flow(%s)"%(s,)
-
     def __str__(self):
         grades = list(self.pairs.keys())
         grades.sort()
@@ -597,7 +575,7 @@ class Flow(object):
                 self.add(src, tgt)
             idx += 1
 
-    def _get_bdymap(self, grade): # grade --> grade-1
+    def _get_bdymap(self, grade): # XXX REMOVE ME
         chain = self.chain
         src = self.get_critical(grade) # CM_grade
         tgt = self.get_critical(grade-1) # CM_{grade-1}
@@ -632,7 +610,7 @@ class Flow(object):
         while R.nonzero():
             bdy += B*R
             R = A*R
-        assert bdy == self._get_bdymap(grade)
+        assert bdy == self._get_bdymap(grade) # XXX REMOVE ME
         return bdy
 
     def get_f(self, grade):
@@ -710,7 +688,7 @@ def test_chain(chain):
     flow = Flow(chain)
     flow.build()
 
-    #print(flow)
+    print(flow)
 
     A = flow.get_bdymap(2) # 2 --> 1
     B = flow.get_bdymap(1) # 1 --> 0
