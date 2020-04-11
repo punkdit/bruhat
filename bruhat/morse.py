@@ -7,6 +7,7 @@ Earlier version: qupy.ldpc.cell
 """
 
 from random import shuffle, seed
+from math import sin, cos, pi
 
 import numpy
 
@@ -129,8 +130,6 @@ class Matrix(object):
                     value.append(r)
 
         else:
-            #idx = self.row_lookup[row]
-            #jdx = self.col_lookup[col]
             assert row in self.set_rows
             assert col in self.set_cols
             value = self.elements.get((row, col), 0)
@@ -138,10 +137,8 @@ class Matrix(object):
 
     def __add__(self, other):
         assert self.ring == other.ring
-        #x, y = self.set_cols, other.set_cols
-        assert self.set_cols == other.set_cols #, (x.issubset(y), y.issubset(x))
-        #x, y = self.set_rows, other.set_rows
-        assert self.set_rows == other.set_rows #, (x.issubset(y), y.issubset(x))
+        assert self.set_cols == other.set_cols
+        assert self.set_rows == other.set_rows
         A = self.copy()
         for i,j in other.elements.keys():
             A[i, j] += other[i, j]
@@ -200,9 +197,21 @@ class Matrix(object):
 class Cell(object):
     "The basis elements for the vector space at a grade in a Chain complex."
 
-    def __init__(self, grade, key=None):
+    def __init__(self, grade, key=None, name=None, **attrs):
         self.grade = grade
         self.key = key
+        self.__dict__.update(attrs)
+        self._name = name
+
+    pos = None # for layout code
+    infty = False # for layout code
+
+    @property
+    def name(self):
+        if self._name is not None:
+            return self._name
+        c = 'vef'[self.grade] # vertex, edge, face, ...
+        return "%s_{%s}"%(c, self.key)
 
     def __str__(self):
         return "Cell(%d, %s)"%(self.grade, self.key)
@@ -296,28 +305,42 @@ class Assembly(object):
         chain = Chain(cells, bdys, ring)
         return chain
 
-    def build_tetrahedron(cx):
+    @classmethod
+    def build_tetrahedron(cls, ring):
+        cx = Assembly({}, ring)
         assert not cx.lookup
         one = cx.one
     
         for idx in range(4):
-            cx.mk_vert(idx+1)
+            cell = cx.mk_vert(idx+1)
+            if idx == 0:
+                x, y = 0, 0
+            else:
+                theta = 2*pi*idx/3.
+                x, y = sin(theta), cos(theta)
+            cell.pos = x, y
     
-        cx.mk_edge(1, 3, 1)
-        cx.mk_edge(2, 1, 2)
-        cx.mk_edge(3, 1, 4)
-        cx.mk_edge(4, 3, 2)
-        cx.mk_edge(5, 4, 2)
-        cx.mk_edge(6, 4, 3)
+        cx.mk_edge(1, 3, 1) # inner edge
+        cx.mk_edge(2, 1, 2) # inner edge
+        cx.mk_edge(3, 1, 4) # inner edge
+        cx.mk_edge(4, 3, 2) # outer edge
+        cx.mk_edge(5, 4, 2) # outer edge
+        cx.mk_edge(6, 4, 3) # outer edge
     
         cx.set(1, Cell(2), {cx[1, 1]:-one, cx[1, 6]:-one, cx[1, 3]:-one})
         cx.set(2, Cell(2), {cx[1, 1]: one, cx[1, 2]: one, cx[1, 4]:-one})
         cx.set(3, Cell(2), {cx[1, 2]:-one, cx[1, 3]: one, cx[1, 5]: one})
-        cx.set(4, Cell(2), {cx[1, 4]: one, cx[1, 5]:-one, cx[1, 6]: one})
+        cell = Cell(2)
+        cell.infty = True # note for layout code
+        theta = 2*pi/6.
+        cell.pos = -sin(theta), cos(theta)
+        cx.set(4, cell, {cx[1, 4]: one, cx[1, 5]:-one, cx[1, 6]: one})
     
         return cx
 
-    def build_torus(cx, rows, cols):
+    @classmethod
+    def build_torus(cls, rows, cols, ring):
+        cx = Assembly({}, ring)
         assert not cx.lookup
         one = cx.one
 
@@ -326,6 +349,7 @@ class Assembly(object):
           for j in range(cols):
             cell = Cell(0)
             key = (i, j)
+            cell.pos = i, j
             cx.set(key, cell)
 
         verts = cx.lookup[0]
@@ -369,10 +393,14 @@ class Chain(object):
         self.bdys = dict(bdys) # map grade -> Matrix(grade-1, grade)
 
     @classmethod
-    def fromnumpy(cls, M, ring):
+    def fromnumpy(cls, M, ring, rows=None, cols=None):
         m, n = M.shape
-        tgt = [Cell(0, "c%d"%i) for i in range(m)]
-        src = [Cell(1, "r%d"%i) for i in range(n)]
+        if cols is None:
+            cols = [i+1 for i in range(n)]
+        if rows is None:
+            rows = [i+1 for i in range(m)]
+        tgt = [Cell(0, row) for row in rows]
+        src = [Cell(1, col) for col in cols]
         A = Matrix(tgt, src, {}, ring)
         for i in range(m):
           for j in range(n):
@@ -397,8 +425,14 @@ class Chain(object):
             B = self.get_bdymap(i+1)
             assert (A*B).is_zero()
 
-    def get_cells(self, grade):
-        return self.cells.setdefault(grade, [])
+    def get_cells(self, grade=None):
+        if grade is None:
+            cells = []
+            for grade in self.cells.keys():
+                cells += self.cells[grade]
+        else:
+            cells = self.cells.setdefault(grade, [])
+        return cells
 
     def get_bdymap(self, grade):
         A = self.bdys.get(grade)
@@ -429,18 +463,36 @@ class Flow(object):
         assert isinstance(tgt, Cell)
         assert src.grade == tgt.grade-1
         #assert src in tgt
+        #print("add", src.grade, tgt.grade, list(self.pairs.keys()))
         pairs = self.pairs.setdefault(src.grade, [])
+        #print("add", list(self.pairs.keys()))
+        #print()
         pairs.append((src, tgt))
 
     def remove(self, src, tgt):
         self.pairs[src.grade].remove((src, tgt))
 
     def get_pairs(self, grade):
-        pairs = self.pairs.setdefault(grade, [])
+        pairs = self.pairs.get(grade, [])
         return pairs
 
-    def get_critical(self, grade):
+    def all_grades(self):
+        grades = set()
+        for grade in self.pairs.keys():
+            grades.add(grade)
+            grades.add(grade+1)
+        grades = list(grades)
+        grades.sort()
+        return grades
+
+    def get_critical(self, grade=None):
         " return list of critical cells at grade "
+        if grade is None:
+            critical = []
+            for grade in self.all_grades():
+                critical += self.get_critical(grade) # recurse
+            return critical
+
         chain = self.chain
         remove = set()
         for _grade, pairs in self.pairs.items():
@@ -478,7 +530,6 @@ class Flow(object):
         zero = self.zero
         one = self.one
         bdy = chain.get_bdymap(grade) # grade --> grade-1
-        #pairs = self.pairs.setdefault(grade-1, [])
         pairs = self.get_pairs(grade-1)
         A = self.get_match(grade-1) # C_{grade-1} --> C_grade
         for src, tgt in pairs: # grade-1 --> grade
@@ -488,21 +539,15 @@ class Flow(object):
 
     def get_up_match(self, grade):
         # C_grade --> C_grade+1 --> C_grade
-        #print("get_up_match")
         chain = self.chain
         zero = self.zero
         one = self.one
         bdy = chain.get_bdymap(grade+1) # grade+1 --> grade
-#        pairs = self.pairs.setdefault(grade, [])
         pairs = self.get_pairs(grade)
         A = self.get_match(grade)
-        #print("A =")
-        #print(A)
         for src, tgt in pairs: # grade --> grade+1
             assert bdy[src, tgt] != zero
             bdy[src, tgt] = zero
-        #print("bdy =")
-        #print(bdy)
         return bdy*A
 
     def accept(self, src, tgt):
@@ -525,20 +570,16 @@ class Flow(object):
         chain = self.chain
         zero = self.zero
         self.add(src, tgt)
-        for grade in (1, 2):
+        for grade in self.all_grades():
             A = self.get_down_match(grade)
-            #print(A)
-            #N = len(A)
             B = A.copy()
             cells = chain.get_cells(grade)
             while B.nonzero():
-                #B = numpy.dot(A, B)
                 B = A*B
-                #for j in range(N):
                 for j in cells:
-                    if B[j, j] != zero:
+                    if B[j, j] != zero: # found a loop
                         self.remove(src, tgt)
-                        return False
+                        return False 
         self.remove(src, tgt)
         return True
 
@@ -565,6 +606,7 @@ class Flow(object):
         return pairs
 
     def build(self):
+        "randomly build a Morse matching "
         pairs = self.get_all_pairs()
         shuffle(pairs)
 
@@ -619,21 +661,12 @@ class Flow(object):
         src = chain.get_cells(grade)
         tgt = self.get_critical(grade)
     
-        #print()
-        #print("get_f", grade)
-
         f = Matrix(tgt, src, {}, self.ring)
         A = self.get_up_match(grade)  # grade --> grade+1 --> grade
         C = Matrix.retraction(tgt, src, self.ring)
         while C.nonzero():
-            #print(C)
-            #for a in tgt:
-            #  for b in src:
-            #    f[a, b] += C[a, b]
             f += C
             C = C*A
-        #print("f =")
-        #print(f)
         return f
 
     def get_g(self, grade):
@@ -642,21 +675,12 @@ class Flow(object):
         src = self.get_critical(grade)
         tgt = chain.get_cells(grade)
     
-        #print()
-        #print("get_g", grade)
-
         g = Matrix(tgt, src, {}, self.ring)
         A = self.get_down_match(grade)  # grade --> grade-1 --> grade
         C = Matrix.inclusion(tgt, src, self.ring)
         while C.nonzero():
-            #print(C)
-            #for a in tgt:
-            #  for b in src:
-            #    g[a, b] += C[a, b]
             g += C
             C = A*C
-        #print("g =")
-        #print(g)
         return g
 
     def get_homotopy(self, grade):
@@ -669,9 +693,7 @@ class Flow(object):
         B = self.get_down_match(grade+1)
         chi = Matrix(tgt, src, {}, ring)
         while A.nonzero():
-            for a in tgt:
-              for b in src:
-                chi[a, b] += A[a, b]
+            chi += A
             A = B*A
         return chi
 
@@ -759,7 +781,7 @@ def test_main():
 
     for ring in [element.Q, element.FiniteField(2), element.FiniteField(7)]:
 
-        cx = Assembly({}, ring).build_tetrahedron()
+        cx = Assembly.build_tetrahedron(ring)
         chain = cx.get_chain()
         test_chain(chain)
     
@@ -772,7 +794,7 @@ def test_main():
         chain = Chain.fromnumpy(M, ring)
         test_chain(chain)
     
-        cx = Assembly({}, ring).build_torus(2, 2)
+        cx = Assembly.build_torus(2, 2, ring)
         chain = cx.get_chain()
         test_chain(chain)
     
