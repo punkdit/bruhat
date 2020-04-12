@@ -317,7 +317,7 @@ class Assembly(object):
                 x, y = 0, 0
             else:
                 theta = 2*pi*idx/3.
-                x, y = sin(theta), cos(theta)
+                x, y = 1.5*sin(theta), 1.5*cos(theta)
             cell.pos = x, y
     
         cx.mk_edge(1, 3, 1) # inner edge
