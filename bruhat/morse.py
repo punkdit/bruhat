@@ -211,7 +211,14 @@ class Cell(object):
         if self._name is not None:
             return self._name
         c = 'vef'[self.grade] # vertex, edge, face, ...
-        return "%s_{%s}"%(c, self.key)
+        key = self.key
+        if type(key) is int:
+            key = str(key)
+        elif type(key) is tuple:
+            key = ''.join(str(k) for k in key)
+        else:
+            key = str(key)
+        return "%s_{%s}"%(c, key)
 
     def __str__(self):
         return "Cell(%d, %s)"%(self.grade, self.key)
@@ -308,7 +315,6 @@ class Assembly(object):
     @classmethod
     def build_tetrahedron(cls, ring):
         cx = Assembly({}, ring)
-        assert not cx.lookup
         one = cx.one
     
         for idx in range(4):
@@ -339,7 +345,85 @@ class Assembly(object):
         return cx
 
     @classmethod
-    def build_torus(cls, rows, cols, ring):
+    def build_surface(cls, ring, top_left, bot_right,
+            open_top=False, open_bot=False, 
+            open_left=False, open_right=False):
+        # open boundary is "rough". default is smooth
+
+        cx = Assembly({}, ring)
+        one = cx.one
+
+        i0, j0 = top_left
+        i1, j1 = bot_right
+
+        # build verts
+        for i in range(i0, i1):
+          for j in range(j0, j1):
+            if i==i0 and open_top:
+                continue
+            if i==i1-1 and open_bot:
+                continue
+            if j==j0 and open_left:
+                continue
+            if j==j1-1 and open_right:
+                continue
+            cell = Cell(0)
+            cell.pos = j, -i
+            key = (i, j)
+            cx.set(key, cell)
+
+        verts = cx.lookup[0]
+
+        # build edges
+        for i in range(i0, i1):
+          for j in range(j0, j1):
+            ks = "hv" # horizontal, _vertical edge
+            if i==i1-1 and j==j1-1:
+                continue
+            elif i==i1-1:
+                ks = "h"
+            elif j==j1-1:
+                ks = "v"
+            for k in ks:
+                bdy = {}
+                vert = verts.get((i, j))
+                if vert is not None:
+                    bdy[vert] = one
+                if k == "h":
+                    vert = verts.get((i, j+1))
+                    pos = j+0.5, -i
+                else:
+                    vert = verts.get((i+1, j))
+                    pos = j, -(i+0.5)
+                if vert is not None:
+                    bdy[vert] = -one
+                if len(bdy)==0:
+                    continue
+                cell = Cell(1, pos=pos)
+                key = (i, j, k)
+                cx.set(key, cell, bdy)
+
+        edges = cx.lookup[1]
+
+        # build faces
+        for i in range(i0, i1-1):
+          for j in range(j0, j1-1):
+            top = edges.get((i, j, "h"))
+            left = edges.get((i, j, "v"))
+            bot = edges.get((i+1, j, "h"))
+            right = edges.get((i, j+1, "v"))
+            bdy = {top:one, left:-one, bot:-one, right:one}
+            bdy = dict((cell, value) 
+                for (cell, value) in bdy.items() if cell)
+            if len(bdy)==0:
+                continue
+            cell = Cell(2)
+            cx.set((i, j), cell, bdy)
+
+        return cx
+
+    @classmethod
+    def build_torus(cls, ring, rows, cols):
         cx = Assembly({}, ring)
         assert not cx.lookup
         one = cx.one
@@ -440,6 +524,78 @@ class Chain(object):
             A = Matrix(self.get_cells(grade-1), self.get_cells(grade), {}, self.ring)
             self.bdys[grade] = A
         return A.copy()
+
+
+
+class Field(object):
+    "height field on the cells of a chain complex"
+
+    def __init__(self, chain):
+        assert isinstance(chain, Chain)
+
+        nbd = {} # map cell --> list of neighbour cells
+        cells = chain.get_cells()
+        for cell in cells:
+            nbd[cell] = set()
+
+        for grade in range(chain.get_degree()):
+            A = chain.get_bdymap(grade)
+            for row, col in A.elements.keys():
+                assert A[row, col] != 0
+                nbd[row].add(col)
+                nbd[col].add(row)
+
+        self.nbd = nbd
+        self._clamp = {}
+        self.cells = cells
+        self.chain = chain
+
+    def clamp(self, cell, value):
+        self._clamp[cell] = value
+
+    def get_flow(self):
+        cells = self.cells
+        clamp  = self._clamp
+        nbd = self.nbd
+        chain = self.chain
+        field = dict((cell, 0.) for cell in cells)
+        field.update(clamp)
+
+        interior = [cell for cell in cells if cell not in clamp]
+        for _ in range(1000):
+            shuffle(interior)
+            for cell in interior:
+                bdy = nbd[cell]
+                assert bdy
+                value = sum(field[c] for c in bdy) / len(bdy)
+                field[cell] = value
+
+        flow = Flow(chain)
+        #pairs = flow.get_all_pairs()
+        #shuffle(pairs)
+        #for (row, col) in pairs:
+        #    assert row.grade == col.grade-1
+        #    if field[row] > field[col] and flow.accept(row, col):
+        #        flow.add(row, col)
+
+        done = False
+        while not done:
+            done = True
+            for grade in range(2):
+                cells = chain.get_cells(grade)
+                for c0 in cells:
+                    cs = [c for c in nbd[c0] if c.grade==grade+1]
+                    cs = [c for c in cs if field[c] < field[c0]]
+                    cs = [c1 for c1 in cs if flow.accept(c0, c1)]
+                    if len(cs)!=1:
+                        continue
+                    c1 = cs[0]
+                    if flow.accept(c0, c1):
+                        flow.add(c0, c1)
+                        done = False
+
+        return flow
+
 
 
 class Flow(object):
@@ -601,8 +757,11 @@ class Flow(object):
         n = chain.get_degree()
         for grade in range(1, n):
             bdy = chain.get_bdymap(grade)
-            for row, col in bdy.keys():
+            for row, col in bdy.keys(): # random order in keys
+                assert row.key
+                assert col.key
                 pairs.append((row, col))
+        pairs.sort()
         return pairs
 
     def build(self):
@@ -616,25 +775,6 @@ class Flow(object):
             if self.accept(src, tgt):
                 self.add(src, tgt)
             idx += 1
-
-    def _get_bdymap(self, grade): # XXX REMOVE ME
-        chain = self.chain
-        src = self.get_critical(grade) # CM_grade
-        tgt = self.get_critical(grade-1) # CM_{grade-1}
-    
-        bdy = Matrix(tgt, src, {}, self.ring) # CM_grade --> CM_{grade-1}
-        A = self.get_down_match(grade)  # C_grade --> C_grade-1 --> C_grade
-        B = chain.get_bdymap(grade) # C_grade --> C_grade-1
-        cells = chain.get_cells(grade)
-        C = Matrix.identity(cells, self.ring) # C_grade --> C_grade
-        while C.nonzero():
-            D = B*C # C_grade --> C_grade --> C_{grade-1}
-            #bdy = bdy + D # fail
-            for a in tgt:
-              for b in src:
-                bdy[a, b] += D[a, b]
-            C = A*C
-        return bdy
 
     def get_bdymap(self, grade): # grade --> grade-1
         chain = self.chain
@@ -652,7 +792,6 @@ class Flow(object):
         while R.nonzero():
             bdy += B*R
             R = A*R
-        assert bdy == self._get_bdymap(grade) # XXX REMOVE ME
         return bdy
 
     def get_f(self, grade):
@@ -780,6 +919,7 @@ def test_chain(chain):
 def test_main():
 
     for ring in [element.Q, element.FiniteField(2), element.FiniteField(7)]:
+    #for ring in [element.FiniteField(2)]:
 
         cx = Assembly.build_tetrahedron(ring)
         chain = cx.get_chain()
@@ -794,7 +934,8 @@ def test_main():
         chain = Chain.fromnumpy(M, ring)
         test_chain(chain)
     
-        cx = Assembly.build_torus(2, 2, ring)
+        #cx = Assembly.build_torus(ring, 2, 2)
+        cx = Assembly.build_surface(ring, (0, 0), (2, 2))
         chain = cx.get_chain()
         test_chain(chain)
     
