@@ -221,8 +221,10 @@ class Cell(object):
         return "%s_{%s}"%(c, key)
 
     def __str__(self):
+        return self.name
+
+    def __repr__(self):
         return "Cell(%d, %s)"%(self.grade, self.key)
-    __repr__ = __str__
 
     def __lt__(self, other):
         return self.key < other.key
@@ -317,13 +319,14 @@ class Assembly(object):
         cx = Assembly({}, ring)
         one = cx.one
     
+        radius = 1.5 # for layout
         for idx in range(4):
             cell = cx.mk_vert(idx+1)
             if idx == 0:
                 x, y = 0, 0
             else:
                 theta = 2*pi*idx/3.
-                x, y = 1.5*sin(theta), 1.5*cos(theta)
+                x, y = radius*sin(theta), radius*cos(theta)
             cell.pos = x, y
     
         cx.mk_edge(1, 3, 1) # inner edge
@@ -339,7 +342,7 @@ class Assembly(object):
         cell = Cell(2)
         cell.infty = True # note for layout code
         theta = 2*pi/6.
-        cell.pos = -sin(theta), cos(theta)
+        cell.pos = -radius*sin(theta), radius*cos(theta)
         cx.set(4, cell, {cx[1, 4]: one, cx[1, 5]:-one, cx[1, 6]: one})
     
         return cx
@@ -471,10 +474,17 @@ class Assembly(object):
 
 class Chain(object):
     "chain complex"
-    def __init__(self, cells, bdys, ring):
+    def __init__(self, cells, bdys, ring, check=False):
         self.ring = ring
         self.cells = dict(cells) # map grade -> list of Cell's
         self.bdys = dict(bdys) # map grade -> Matrix(grade-1, grade)
+        lookup = {}
+        for grade, cells in cells.items():
+            for cell in cells:
+                lookup[cell.grade, cell.key] = cell
+        self.lookup = lookup
+        if check:
+            self.check()
 
     @classmethod
     def fromnumpy(cls, M, ring, rows=None, cols=None):
@@ -492,6 +502,14 @@ class Chain(object):
                 A[tgt[i], src[j]] = ring.promote(M[i, j])
         chain = cls({0:tgt, 1:src}, {1:A}, ring)
         return chain
+
+    def dump(self):
+        print("Chain ====================")
+        for grade in range(self.get_degree()):
+            M = self.get_bdymap(grade)
+            print("grade:", grade)
+            print(M)
+        print("==========================")
 
     def get_degree(self):
         cells = self.cells
@@ -525,6 +543,60 @@ class Chain(object):
             self.bdys[grade] = A
         return A.copy()
 
+    def transvect(self, i, j, grade=1, check=True):
+        """
+            apply _transvection i-->j (a.k.a. CNOT gate) at grade
+        """
+        ring = self.ring
+        one = ring.one
+        C0 = self.get_cells(grade-1)
+        C1 = self.get_cells(grade)
+        C2 = self.get_cells(grade+1)
+        
+        #Sx = Matrix(C1, C2, {}, ring)
+        #Sz = Matrix(C0, C1, {}, ring)
+    
+        f0 = Matrix.identity(C0, ring)
+        f1 = Matrix.identity(C1, ring)
+        f1[C1[j], C1[i]] = one
+        f1_inv = Matrix.identity(C1, ring)
+        f1_inv[C1[j], C1[i]] = -one
+        assert f1*f1_inv == Matrix.identity(C1, ring)
+        f2 = Matrix.identity(C2, ring)
+
+        Sx = f1*self.get_bdymap(grade+1)
+        Sz = self.get_bdymap(grade)*f1_inv
+        tgt = Chain({0:C0,1:C1,2:C2}, {1:Sz,2:Sx}, ring, check=check)
+        hom = Hom(self, tgt, {0:f0,1:f1,2:f2}, ring, check=check)
+
+        return tgt, hom
+
+
+
+class Hom(object):
+    "Chain complex map"
+    def __init__(self, src, tgt, fs, ring, check=True):
+        assert isinstance(src, Chain)
+        assert isinstance(tgt, Chain)
+        self.ring = ring
+        self.fs = dict(fs) # map grade --> Matrix
+        self.src = src
+        self.tgt = tgt
+        if check:
+            self.check()
+
+    def check(self):
+        fs = self.fs
+        src, tgt = self.src, self.tgt
+        for grade in fs.keys(): # um, what grades to check ?? XXX
+            f = fs[grade]
+            g = fs.get(grade-1)
+            if g is None:
+                continue
+
+            lhs = g*src.get_bdymap(grade)
+            rhs = tgt.get_bdymap(grade)*f
+            assert lhs == rhs
 
 
 class Field(object):
@@ -550,14 +622,25 @@ class Field(object):
         self.cells = cells
         self.chain = chain
 
-    def clamp(self, cell, value):
+    def clamp(self, item, value):
+        if isinstance(item, Cell):
+            cell = item
+        else:
+            for cell in self.cells:
+                #print(cell.name)
+                if cell.name == item:
+                    break
+                if (cell.grade, cell.key) == item:
+                    break
+            else:
+                assert 0, "cell %r not found"%item
+        #print("clamp", cell, value)
         self._clamp[cell] = value
 
-    def get_flow(self):
+    def solve(self):
+        nbd = self.nbd
         cells = self.cells
         clamp  = self._clamp
-        nbd = self.nbd
-        chain = self.chain
         field = dict((cell, 0.) for cell in cells)
         field.update(clamp)
 
@@ -569,7 +652,12 @@ class Field(object):
                 assert bdy
                 value = sum(field[c] for c in bdy) / len(bdy)
                 field[cell] = value
+        return field
 
+    def get_flow(self):
+        nbd = self.nbd
+        chain = self.chain
+        field = self.solve()
         flow = Flow(chain)
         #pairs = flow.get_all_pairs()
         #shuffle(pairs)
@@ -590,11 +678,43 @@ class Field(object):
                     if len(cs)!=1:
                         continue
                     c1 = cs[0]
-                    if flow.accept(c0, c1):
-                        flow.add(c0, c1)
-                        done = False
+                    flow.add(c0, c1)
+                    done = False
+
+        for grade in range(2):
+            cells = chain.get_cells(grade)
+            for c0 in cells:
+                cs = [c for c in nbd[c0] if c.grade==grade+1]
+                cs = [c for c in cs if field[c] < field[c0]]
+                cs = [c1 for c1 in cs if flow.accept(c0, c1)]
+                if len(cs)<2:
+                    continue
+                cs.sort(key = lambda c1:field[c1] - field[c0])
+                c1 = cs[0]
+                flow.add(c0, c1)
 
         return flow
+
+    def show(self):
+        "use polyscope : https://polyscope.run/py/ "
+
+        assert 0, "TODO"
+        import polyscope as ps
+
+        ps.init()
+
+        ### Register a point cloud
+        # `my_points` is a Nx3 numpy array
+        #ps.register_point_cloud("my points", my_points)
+
+        ### Register a mesh
+        # `verts` is a Nx3 numpy array of vertex positions
+        # `faces` is a Fx3 array of indices, or a nested list
+        # ...
+
+        ps.register_surface_mesh("my mesh", verts, faces, smooth_shade=True)
+
+        ps.show()
 
 
 
@@ -613,22 +733,38 @@ class Flow(object):
         # with a.grade==grade and b.grade==grade+1 .
         self.pairs = {} 
 
-    def add(self, src, tgt):
+    def add(self, src, tgt, check=False):
         "Add a match "
+        if isinstance(src, tuple):
+            src = self.chain.lookup[src]
+        if isinstance(tgt, tuple):
+            tgt = self.chain.lookup[tgt]
         assert isinstance(src, Cell)
         assert isinstance(tgt, Cell)
         assert src.grade == tgt.grade-1
         #assert src in tgt
         #print("add", src.grade, tgt.grade, list(self.pairs.keys()))
+        if check:
+            assert self.accept(src, tgt), "%s --> %s DISSALLOWED" % (src, tgt)
         pairs = self.pairs.setdefault(src.grade, [])
         #print("add", list(self.pairs.keys()))
         #print()
         pairs.append((src, tgt))
 
+    def add_match(self, grade, src, tgt, check=True):
+        src = self.chain.lookup[grade, src]
+        tgt = self.chain.lookup[grade+1, tgt]
+        self.add(src, tgt, check)
+
     def remove(self, src, tgt):
         self.pairs[src.grade].remove((src, tgt))
 
-    def get_pairs(self, grade):
+    def get_pairs(self, grade=None):
+        if grade is None:
+            pairs = []
+            for grade, _pairs in self.pairs.items():
+                pairs += _pairs
+            return pairs
         pairs = self.pairs.get(grade, [])
         return pairs
 
@@ -1045,6 +1181,55 @@ def main():
     #print(chain.get_bdymap(1) * chis[0])
 
 
+def test_surface():
+
+    ring = element.FiniteField(2)
+    one = ring.one
+
+    C0 = [Cell(0, i) for i in [0]]
+    C1 = [Cell(1, i) for i in [0,1]]
+    C2 = [Cell(2, i) for i in [0]]
+
+    Sx = Matrix(C1, C2, {}, ring)
+    Sx[C1[0], C2[0]] = one
+    Sz = Matrix(C0, C1, {}, ring)
+    Sz[C0[0], C1[1]] = one
+    src = Chain({0:C0,1:C1,2:C2}, {1:Sz,2:Sx}, ring, check=True)
+
+    Sx = Matrix(C1, C2, {}, ring)
+    Sx[C1[0], C2[0]] = one
+    Sx[C1[1], C2[0]] = one
+    Sz = Matrix(C0, C1, {}, ring)
+    Sz[C0[0], C1[0]] = one
+    Sz[C0[0], C1[1]] = one
+    tgt = Chain({0:C0,1:C1,2:C2}, {1:Sz,2:Sx}, ring, check=True)
+
+    f0 = Matrix.identity(C0, ring)
+    f1 = Matrix.identity(C1, ring)
+    f1[C1[1], C1[0]] = one
+    f2 = Matrix.identity(C2, ring)
+    hom = Hom(src, tgt, {0:f0,1:f1,2:f2}, ring, check=True)
+
+    #tgt, cnot = src.cnot(0, 1)
+
+
+    m, n = 3, 2
+    
+    ambly = Assembly.build_surface(
+        ring, (0, 0), (m, n),
+        open_top=True, open_bot=True)
+    
+    chain = ambly.get_chain()
+    for grade in [1, 2]:
+        print(chain.get_bdymap(grade))
+
+    tgt, hom = chain.transvect(1,2)
+    tgt.dump()
+
+    tgt, hom = tgt.transvect(1,2)
+    tgt.dump()
+
+
 
 if __name__ == "__main__":
 
@@ -1054,6 +1239,7 @@ if __name__ == "__main__":
 
     test_main()
     #main()
+    test_surface()
 
     print("OK")
 
