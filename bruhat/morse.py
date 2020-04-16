@@ -504,12 +504,12 @@ class Chain(object):
         return chain
 
     def dump(self):
-        print("Chain ====================")
+        print("=========== Chain ==============")
         for grade in range(self.get_degree()):
             M = self.get_bdymap(grade)
             print("grade:", grade)
             print(M)
-        print("==========================")
+        print("================================")
 
     def get_degree(self):
         cells = self.cells
@@ -555,12 +555,17 @@ class Chain(object):
         
         #Sx = Matrix(C1, C2, {}, ring)
         #Sz = Matrix(C0, C1, {}, ring)
+
+        if type(i) is int:
+            i = C1[i]
+        if type(j) is int:
+            j = C1[j]
     
         f0 = Matrix.identity(C0, ring)
         f1 = Matrix.identity(C1, ring)
-        f1[C1[j], C1[i]] = one
+        f1[j, i] = one
         f1_inv = Matrix.identity(C1, ring)
-        f1_inv[C1[j], C1[i]] = -one
+        f1_inv[j, i] = -one
         assert f1*f1_inv == Matrix.identity(C1, ring)
         f2 = Matrix.identity(C2, ring)
 
@@ -1212,6 +1217,30 @@ def test_surface():
 
     #tgt, cnot = src.cnot(0, 1)
 
+    # ---- Higgott encoder ----
+
+    C0 = [Cell(0, i) for i in range(2)]
+    C1 = [Cell(1, i) for i in range(5)]
+    C2 = [Cell(2, i) for i in range(2)]
+
+    Sx = Matrix(C1, C2, {}, ring)
+    Sx[C1[1], C2[0]] = one
+    Sx[C1[3], C2[1]] = one
+    Sz = Matrix(C0, C1, {}, ring)
+    Sz[C0[0], C1[0]] = one
+    Sz[C0[1], C1[4]] = one
+    src = Chain({0:C0,1:C1,2:C2}, {1:Sz,2:Sx}, ring, check=True)
+    src.dump()
+
+    chain = src
+    for i, j in [(2, 0), (1, 4), (2, 4), (3, 0), (3, 2), (1, 2)]:
+        chain, hom = chain.transvect(i, j)
+    chain.dump()
+    
+
+
+    # -------------------------
+
 
     m, n = 3, 2
     
@@ -1220,14 +1249,13 @@ def test_surface():
         open_top=True, open_bot=True)
     
     chain = ambly.get_chain()
-    for grade in [1, 2]:
-        print(chain.get_bdymap(grade))
+    #chain.dump()
 
     tgt, hom = chain.transvect(1,2)
-    tgt.dump()
+    #tgt.dump()
 
     tgt, hom = tgt.transvect(1,2)
-    tgt.dump()
+    #tgt.dump()
 
 
 
