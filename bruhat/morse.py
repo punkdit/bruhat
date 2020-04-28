@@ -423,11 +423,11 @@ class Chain(object):
         grades.sort(reverse=True)
         return grades
 
-#    def get_degree(self):
-#        cells = self.cells
-#        grades = [grade for grade in cells if cells[grade]]
-#        grades.sort()
-#        return max(grades)+1 if grades else 0
+    def get_degree(self): # XXX REMOVE THIS XXX
+        cells = self.cells
+        grades = [grade for grade in cells if cells[grade]]
+        grades.sort()
+        return max(grades)+1 if grades else 0
 
     @classmethod
     def from_array(cls, M, ring, rows=None, cols=None):
@@ -1319,15 +1319,15 @@ def test_chain(chain):
 
     #print(chain.get_bdymap(1))
 
-    return
-
-    # FIX TODO TODO 
-    # FIX TODO TODO 
-    # FIX TODO TODO 
-    # FIX TODO TODO 
-    # FIX TODO TODO 
-    # FIX TODO TODO 
-    # FIX TODO TODO 
+#    return
+#
+#    # FIX TODO TODO 
+#    # FIX TODO TODO 
+#    # FIX TODO TODO 
+#    # FIX TODO TODO 
+#    # FIX TODO TODO 
+#    # FIX TODO TODO 
+#    # FIX TODO TODO 
 
     flow = Flow(chain)
     flow.build()
