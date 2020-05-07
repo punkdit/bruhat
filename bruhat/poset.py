@@ -4,7 +4,7 @@ from bruhat.species import all_subsets
 from bruhat.action import all_functions
 
 
-def closure(pairs):
+def closure(pairs, els=None):
     homs = set((a,b) for (a,b) in pairs) # set of (a,b) where a<=b
     els = set([a for (a,b) in pairs]+[b for (a,b) in pairs])
     for a in els:
@@ -36,8 +36,8 @@ def closure(pairs):
 
 
 class Poset(object):
-    def __init__(self, pairs):
-        pairs, els, ups, dns = closure(pairs)
+    def __init__(self, pairs, els=None):
+        pairs, els, ups, dns = closure(pairs, els)
         items = list(pairs)
         items.sort() # canonical
         els = list(els)
@@ -190,6 +190,30 @@ class Poset(object):
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return Poset(pairs)
 
+    def tensor(P, Q):
+        els = [(l, r) for l in P for r in Q]
+        pairs = []
+        for l in P:
+            for (r1, r2) in Q.pairs:
+                pairs.append(((l,r1), (l,r2)))
+        for r in Q:
+            for (l1, l2) in P.pairs:
+                pairs.append(((l1, r), (l2, r)))
+        R = Poset(pairs, els)
+        assert R.bot == (P.bot, Q.bot)
+        for (l1, l2) in P.pairs:
+          for r in Q:
+            lsup = P.sup(l1, l2)
+            assert R.sup((l1, r), (l2, r)) == (lsup, r)
+        for l in P:
+          for (r1, r2) in Q.pairs:
+            rsup = Q.sup(r1, r2)
+            assert R.sup((l, r1), (l, r2)) == (l, rsup)
+        
+        return R
+    __matmul__ = tensor
+
+
 
 class Hom(object):
     "Morphism between Poset's"
@@ -300,6 +324,10 @@ def main():
     i = P.get_id()
     assert i*i == i
 
+    F = Poset.free_suplattice([])
+    assert len(F)==1
+    assert F.bot is not None
+
     F = Poset.free_suplattice('ABC')
     assert len(F) == 8
     assert F.sup("A", "A") == "A"
@@ -325,7 +353,14 @@ def main():
         f.check()
     assert len(Q) == 5
 
+    #print(len(list(P.hom_iter(P)))) # 178
     print(len(P.suphom(P)))
+
+    print("II =", len(I@I))
+
+    PP = P@P
+    print(PP.els)
+    print(len(P@P))
 
     F = Poset.free_suplattice("ABC")
     assert len(F.suphom(I)) == len(F)
