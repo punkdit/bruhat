@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+from bruhat.species import all_subsets
+from bruhat.action import all_functions
+
 
 def closure(pairs):
     homs = set((a,b) for (a,b) in pairs) # set of (a,b) where a<=b
@@ -44,6 +47,17 @@ class Poset(object):
         self.els = els
         self.ups = ups
         self.dns = dns
+        self._sup = {} # cache
+
+    @classmethod
+    def free_suplattice(cls, gens):
+        items = list(all_subsets(gens))
+        pairs = [(a, b) for a in items for b in items if set(a).issubset(set(b))]
+        try:
+            pairs = [('+'.join(a), '+'.join(b)) for (a,b) in pairs]
+        except:
+            pass
+        return cls(pairs)
 
     def __str__(self):
         return "Poset(%s, %s)"%(self.els, self.pairs)
@@ -61,28 +75,196 @@ class Poset(object):
     def __getitem__(self, i):
         return self.els[i]
 
+    def __contains__(self, el):
+        return el in self.ups
+
     def __len__(self):
         return len(self.els)
 
-    def sup(self, a, b):
+    def min(self, items):
+        #  assert len(items) # XXX TODO ???
         pairs = self.pairs
-        upa = set(self.ups[a])
-        upb = set(self.ups[b])
-        up = upa.intersection(upb)
+        up = set(items)
         while len(up) > 1:
             items = list(up)
             n = len(up)
-            for a in items:
-              for b in items:
-                if a==b:
+            for a1 in items:
+              for b1 in items:
+                if a1==b1:
                     continue
-                if (a,b) in pairs and b in up:
-                    up.remove(b)
+                if (a1, b1) in pairs and b1 in up:
+                    up.remove(b1)
             if len(up) == n:
-                return None
-        if len(up):
+                break
+        if len(up)==1:
             return list(up)[0]
 
+    def max(self, items):
+        #  assert len(items) # XXX TODO ???
+        pairs = self.pairs
+        dn = set(items)
+        while len(dn) > 1:
+            items = list(dn)
+            n = len(dn)
+            for a1 in items:
+              for b1 in items:
+                if a1==b1:
+                    continue
+                if (b1, a1) in pairs and b1 in dn:
+                    dn.remove(b1)
+            if len(dn) == n:
+                break
+        if len(dn)==1:
+            return list(dn)[0]
+
+    _top = None
+    @property
+    def top(self):
+        if self._top is None:
+            self._top = self.max(self.els)
+        return self._top
+
+    _bot = None
+    @property
+    def bot(self):
+        if self._bot is None:
+            self._bot = self.min(self.els)
+        return self._bot
+
+    def sup(self, a, b): 
+        "return colimit of a & b, if it exists, otherwise None"
+        if (a, b) in self._sup:
+            return self._sup[a, b]
+        upa = set(self.ups[a])
+        upb = set(self.ups[b])
+        up = upa.intersection(upb)
+        value = self.min(up)
+        self._sup[a, b] = value
+        return value
+
+    def get_id(self):
+        "build identity Hom"
+        send = dict((a, a) for a in self.els)
+        return Hom(self, self, send)
+
+    def hom_iter(self, other):
+        left = self.els
+        right = other.els
+        for f in all_functions(left, right):
+            for (a,b) in self.pairs:
+                fa, fb = f[a], f[b]
+                if (fa, fb) not in other.pairs:
+                    break
+            else:
+                yield Hom(self, other, f)
+
+    def hom(self, other):
+        "poset of hom's"
+        hom = list(self.hom_iter(other))
+        pairs = [(f,g) for f in hom for g in hom if f<=g]
+        return Poset(pairs)
+
+    def suphom(self, other):
+        "poset of hom's that preserve sup's, including empty sup == bot"
+        els = self.els
+        pairs = [(a, b) for a in els for b in els]
+        assert self.bot is not None, "self is not sup-complete"
+        assert other.bot is not None, "other is not sup-complete"
+        hom = []
+        for f in self.hom_iter(other):
+            #print(f, "?")
+            if f[self.bot] != other.bot:
+                #print("\t fail 1")
+                continue
+            for (a, b) in pairs:
+                c = self.sup(a, b)
+                assert c is not None, "sup(%s, %s) == None" % (a, b)
+                fa, fb = f[a], f[b]
+                d = other.sup(fa, fb)
+                if d!=f[c]:
+                    #print("\t fail 2", a, b, c, fa, fb, d)
+                    break
+            else:
+                #print("\tappend")
+                hom.append(f)
+        pairs = [(f,g) for f in hom for g in hom if f<=g]
+        return Poset(pairs)
+
+
+class Hom(object):
+    "Morphism between Poset's"
+    def __init__(self, src, tgt, send):
+        assert isinstance(src, Poset)
+        assert isinstance(tgt, Poset)
+        send = dict(send)
+        els = set(send.keys())
+        items = list(send.items())
+        items.sort()
+        self.items = tuple(items)
+        assert len(els) == len(src), (els, len(src))
+        for k,v in send.items():
+            assert k in src
+            assert v in tgt
+        self.src = src
+        self.tgt = tgt
+        self.send = send
+
+    def check(self):
+        src = self.src
+        tgt = self.tgt
+        send = self.send
+        for a,b in src.pairs:
+            p = send[a], send[b]
+            assert p in tgt.pairs
+
+    def __str__(self):
+        return "Hom(%s)"%(self.items,)
+    __repr__ = __str__
+
+    def __mul__(self, other):
+        # other then self
+        assert other.tgt == self.src
+        pairs = {}
+        for (k,v) in other.send.items():
+            v = self.send[v]
+            pairs[k] = v
+        return Hom(other.src, self.tgt, pairs)
+
+    def __getitem__(self, k):
+        return self.send[k]
+
+    def __eq__(self, other):
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        return self.send == other.send
+
+    def __ne__(self, other):
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        return self.send != other.send
+    
+    _hash = None
+    def __hash__(self):
+        if self._hash is None:
+            self._hash = hash(self.items)
+        return self._hash
+
+    def __le__(self, other):
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        for a in self.src.els:
+            lhs = self.send[a]
+            rhs = other.send[a]
+            if lhs > rhs:
+                return False
+        return True
+    
+    def __lt__(self, other):
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        return not self==other and self<=other
+    
+        
 
 def main():
 
@@ -99,6 +281,15 @@ def main():
     P = Poset('aa bb'.split())
     assert P.sup('a', 'b') == None
 
+    P = Poset('a1 b1 a0 b0'.split())
+    assert P.sup('a', 'b') == None
+
+    P = Poset('a1 b1 a0 b0 12 02'.split())
+    assert P.sup('a', 'b') == None
+
+    P = Poset('a1 b1 a0 b0 a2 b2 20 21'.split())
+    assert P.sup('a', 'b') == '2'
+
     P = Poset('0a 0b 0c a1 b1 c1'.split())
     assert len(P) == 5
 
@@ -106,6 +297,40 @@ def main():
     assert P.sup('a', '0') == 'a'
     assert P.sup('a', '1') == '1'
 
+    i = P.get_id()
+    assert i*i == i
+
+    F = Poset.free_suplattice('ABC')
+    assert len(F) == 8
+    assert F.sup("A", "A") == "A"
+    assert F.sup("", "A") == "A"
+    assert F.sup("", "A+B") == "A+B"
+    assert ("A", "A+B") in F.pairs
+    assert F.sup("A", "A+B") == "A+B"
+
+
+    assert len(list(f for f in I.hom_iter(I))) == 3
+
+    P = Poset('0a 0b 0c a1 b1 c1'.split())
+    for f in P.hom_iter(I):
+        f.check()
+
+    Q = P.hom(I)
+    for f in Q:
+        f.check()
+    assert len(Q) == 10
+
+    Q = P.suphom(I)
+    for f in Q:
+        f.check()
+    assert len(Q) == 5
+
+    print(len(P.suphom(P)))
+
+    F = Poset.free_suplattice("ABC")
+    assert len(F.suphom(I)) == len(F)
+
+    print("OK")
 
 
 if __name__ == "__main__":
