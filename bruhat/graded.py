@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 """
-
 Earlier version: qupy.ldpc.cell
-See also: bruhat.vec , bruhat.morse
+Used by: bruhat.morse
+See also: bruhat.vec 
 """
 
 from random import shuffle, seed
@@ -92,6 +92,7 @@ class Cell(object):
         return hash((self.grade, self.key))
 
 
+the_star = Cell(0, ("*",)) # tensor unit
 
 class Matrix(object):
     """ 
@@ -129,6 +130,15 @@ class Matrix(object):
     @property
     def shape(self):
         return (len(self.rows), len(self.cols))
+
+    @classmethod
+    def unit(cls, ring):
+        one = ring.one
+        return Matrix([the_star], [the_star], {(the_star,the_star):one}, ring, 0, 0)
+
+    @classmethod
+    def zero(cls, ring):
+        return Matrix([], [], {}, ring, 0, 0)
 
     def check(self):
         elements = self.elements
@@ -341,18 +351,18 @@ class Matrix(object):
         A = a.to_array()
         B = elim.cokernel(a.ring, A)
         n = B.shape[0]
-        X = Space(n, a.ring)
-        hom = Hom(a.tgt, X)
-        b = Map.from_array(B, hom)
+        #X = Space(n, a.ring)
+        #hom = Hom(a.tgt, X)
+        b = Matrix.from_array(B, a.ring)
         return b
 
     def kernel(a): # TODO
         A = a.to_array()
         B = elim.kernel(a.ring, A)
         n = B.shape[1] # src
-        X = Space(n, a.ring)
-        hom = Hom(X, a.src)
-        b = Map.from_array(B, hom)
+        #X = Space(n, a.ring)
+        #hom = Hom(X, a.src)
+        b = Matrix.from_array(B, a.ring)
         return b
 
     def image(a): # TODO
@@ -360,12 +370,12 @@ class Matrix(object):
         At = A.transpose()
         At = elim.row_reduce(a.ring, At, truncate=True)
         A = At.transpose()
-        X = Space(A.shape[1], a.ring)
-        hom = Hom(X, a.tgt)
-        b = Map.from_array(A, hom)
+        #X = Space(A.shape[1], a.ring)
+        #hom = Hom(X, a.tgt)
+        b = Matrix.from_array(A, a.ring)
         return b
 
-    def rank(a): # TODO
+    def rank(a):
         A = a.to_array()
         d = elim.rank(a.ring, A)
         return d
@@ -422,11 +432,13 @@ class Chain(object):
         grades.sort(reverse=True)
         return grades
 
-    def get_degree(self): # XXX REMOVE THIS XXX
-        cells = self.cells
-        grades = [grade for grade in cells if cells[grade]]
-        grades.sort()
-        return max(grades)+1 if grades else 0
+    def get_mingrade(self):
+        g = min(self.bdys.keys(), default=0)
+        return g-1
+
+    def get_maxgrade(self):
+        g = max(self.bdys.keys(), default=0)
+        return g
 
     @classmethod
     def from_array(cls, M, ring, rows=None, cols=None):
@@ -511,7 +523,6 @@ class Chain(object):
         return chain
 
     def tensor(left, right):
-        # bit of a shit-show here... 
         assert left.ring == right.ring
         ring = left.ring
         lgrades = left.get_grades()
@@ -678,21 +689,33 @@ class Hom(object):
         self.fs = dict(fs) # map grade --> Matrix
         self.src = src
         self.tgt = tgt
+        self.g0 = min(src.get_mingrade(), tgt.get_mingrade())
+        self.g1 = max(src.get_maxgrade(), tgt.get_maxgrade())
         if check:
             self.check()
+
+    def get(self, grade):
+        f = self.fs.get(grade)
+        if f is None:
+            f = Matrix(
+                self.tgt.get_cells(grade), 
+                self.src.get_cells(grade), 
+                {}, self.ring, grade, grade)
+            self.fs[grade] = f
+        return f
 
     def check(self):
         fs = self.fs
         src, tgt = self.src, self.tgt
-        for grade in fs.keys(): # um, what grades to check ?? XXX
-            f = fs[grade]
-            g = fs.get(grade-1)
-            if g is None:
-                continue
+        for grade in range(self.g0, self.g1+1):
+            f = self.get(grade)
+            g = self.get(grade-1)
 
             lhs = g*src.get_bdymap(grade)
             rhs = tgt.get_bdymap(grade)*f
             assert lhs == rhs
+
+    #def homology(self):
 
 
 
@@ -730,6 +753,13 @@ def test_matrix(ring):
     #print(A)
     A.check()
 
+    print("kernel:")
+    print(A.kernel())
+    print("image:")
+    print(A.image())
+    print("cokernel:")
+    print(A.cokernel())
+
     At = A.dual()
     #print(A*At)
     At.check()
@@ -760,6 +790,8 @@ def test_main():
     #for ring in [element.FiniteField(2)]:
 
         test_matrix(ring)
+
+        break
 
 
 if __name__ == "__main__":

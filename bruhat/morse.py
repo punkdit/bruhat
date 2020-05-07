@@ -549,8 +549,9 @@ class Flow(object):
     def get_all_pairs(self):
         pairs = []
         chain = self.chain
-        n = chain.get_degree()
-        for grade in range(1, n):
+        #n = chain.get_degree()
+        #for grade in range(1, n):
+        for grade in chain.get_grades():
             bdy = chain.get_bdymap(grade)
             for row, col in bdy.keys(): # random order in keys
                 assert row.key
