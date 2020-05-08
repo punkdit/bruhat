@@ -22,45 +22,46 @@ def closure(pairs, els=None):
                 changed = True
             if a!=b:
                 assert a!=d, "loop found: %s = %s" % (a, b)
-    ups = {}
-    dns = {}
-    for (a, b) in homs:
-        up = ups.get(a, [])
-        up.append(b)
-        ups[a] = up
-        dn = dns.get(b, [])
-        dn.append(a)
-        dns[b] = dn
 
-    return homs, els, ups, dns
+    return homs, els
 
 
 class Poset(object):
-    def __init__(self, pairs, els=None):
-        pairs, els, ups, dns = closure(pairs, els)
+    def __init__(self, pairs, els=None, check=True):
+        pairs, els = closure(pairs, els)
         items = list(pairs)
         items.sort() # canonical
         els = list(els)
         els.sort() # canonical
+
+        ups = {}
+        dns = {}
+        for (a, b) in pairs:
+            up = ups.get(a, [])
+            up.append(b)
+            ups[a] = up
+            dn = dns.get(b, [])
+            dn.append(a)
+            dns[b] = dn
+
         self.items = items
-        self.pairs = pairs
+        self.pairs = pairs # set(items)
         self.els = els
         self.ups = ups
         self.dns = dns
         self._sup = {} # cache
 
-    @classmethod
-    def free_suplattice(cls, gens):
-        items = list(all_subsets(gens))
-        pairs = [(a, b) for a in items for b in items if set(a).issubset(set(b))]
-        try:
-            pairs = [('+'.join(a), '+'.join(b)) for (a,b) in pairs]
-        except:
-            pass
-        return cls(pairs)
+    def add_pairs(self, pairs):
+        "add relations to form a new Poset"
+        ups = self.ups
+        for (a, b) in pairs:
+            assert a in ups
+            assert b in ups
+        pairs = self.items + pairs
+        return Poset(pairs)
 
     def __str__(self):
-        return "Poset(%s, %s)"%(self.els, self.pairs)
+        return "%s(%s, %s)"%(self.__class__.__name__, self.els, self.pairs)
     __repr__ = __str__
 
     def __eq__(self, other):
@@ -96,8 +97,7 @@ class Poset(object):
                     up.remove(b1)
             if len(up) == n:
                 break
-        if len(up)==1:
-            return list(up)[0]
+        return up
 
     def max(self, items):
         #  assert len(items) # XXX TODO ???
@@ -117,18 +117,28 @@ class Poset(object):
         if len(dn)==1:
             return list(dn)[0]
 
+    def uniq_min(self, items):
+        up = self.min(items)
+        if len(up)==1:
+            return list(up)[0]
+
+    def uniq_max(self, items):
+        dn = self.max(items)
+        if len(dn)==1:
+            return list(dn)[0]
+
     _top = None
     @property
     def top(self):
         if self._top is None:
-            self._top = self.max(self.els)
+            self._top = self.uniq_max(self.els)
         return self._top
 
     _bot = None
     @property
     def bot(self):
         if self._bot is None:
-            self._bot = self.min(self.els)
+            self._bot = self.uniq_min(self.els)
         return self._bot
 
     def sup(self, a, b): 
@@ -138,7 +148,7 @@ class Poset(object):
         upa = set(self.ups[a])
         upb = set(self.ups[b])
         up = upa.intersection(upb)
-        value = self.min(up)
+        value = self.uniq_min(up)
         self._sup[a, b] = value
         return value
 
@@ -164,7 +174,75 @@ class Poset(object):
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return Poset(pairs)
 
-    def suphom(self, other):
+    def tensor(L, R):
+        gen = [(l, r) for l in L for r in R if l!=L.bot and r!=R.bot]
+        pairs = []
+        for l in L:
+            for (r1, r2) in R.pairs:
+                pairs.append(((l,r1), (l,r2)))
+        for r in R:
+            for (l1, l2) in L.pairs:
+                pairs.append(((l1, r), (l2, r)))
+
+        F = Poset(pairs, els)
+        assert F.bot == (L.bot, R.bot)
+        for (l1, l2) in L.pairs:
+          for r in R:
+            lsup = L.sup(l1, l2)
+            assert F.sup((l1, r), (l2, r)) == (lsup, r)
+        for l in L:
+          for (r1, r2) in R.pairs:
+            rsup = R.sup(r1, r2)
+            assert F.sup((l, r1), (l, r2)) == (l, rsup)
+        return F
+
+
+    __matmul__ = tensor
+
+
+class SupPoset(Poset):
+
+    def __init__(self, pairs, els=None, check=True):
+        Poset.__init__(self, pairs, els, check=check)
+        if check:
+            self.check()
+
+    def check(self):
+        assert self.bot is not None
+        for a in self.els:
+          for b in self.els:
+            assert self.sup(a, b) is not None
+
+    @classmethod
+    def promote(cls, item, check=True):
+        if isinstance(item, SupPoset):
+            return item
+        if not isinstance(item, Poset):
+            raise TypeError
+        return cls(item.pairs, check=check)
+
+    @classmethod
+    def free(cls, gens, check=True):
+        items = list(all_subsets(gens))
+        pairs = [(a, b) for a in items for b in items if set(a).issubset(set(b))]
+        try:
+            # try to simplify this...
+            assert "+" not in gens
+            pairs = [('+'.join(a), '+'.join(b)) for (a,b) in pairs]
+        except:
+            pass
+        return cls(pairs, check=check)
+
+    def add_pairs(self, pairs):
+        "add relations to form a new Poset"
+        ups = self.ups
+        for (a, b) in pairs:
+            assert a in ups
+            assert b in ups
+        pairs = list(self.pairs) + list(pairs)
+        return self.__class__(pairs)
+
+    def hom(self, other):
         "poset of hom's that preserve sup's, including empty sup == bot"
         els = self.els
         pairs = [(a, b) for a in els for b in els]
@@ -190,34 +268,10 @@ class Poset(object):
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return Poset(pairs)
 
-    def tensor(P, Q):
-        els = [(l, r) for l in P for r in Q]
-        pairs = []
-        for l in P:
-            for (r1, r2) in Q.pairs:
-                pairs.append(((l,r1), (l,r2)))
-        for r in Q:
-            for (l1, l2) in P.pairs:
-                pairs.append(((l1, r), (l2, r)))
-        R = Poset(pairs, els)
-        assert R.bot == (P.bot, Q.bot)
-        for (l1, l2) in P.pairs:
-          for r in Q:
-            lsup = P.sup(l1, l2)
-            assert R.sup((l1, r), (l2, r)) == (lsup, r)
-        for l in P:
-          for (r1, r2) in Q.pairs:
-            rsup = Q.sup(r1, r2)
-            assert R.sup((l, r1), (l, r2)) == (l, rsup)
-        
-        return R
-    __matmul__ = tensor
-
-
 
 class Hom(object):
     "Morphism between Poset's"
-    def __init__(self, src, tgt, send):
+    def __init__(self, src, tgt, send, check=True):
         assert isinstance(src, Poset)
         assert isinstance(tgt, Poset)
         send = dict(send)
@@ -232,6 +286,8 @@ class Hom(object):
         self.src = src
         self.tgt = tgt
         self.send = send
+        if check:
+            self.check()
 
     def check(self):
         src = self.src
@@ -295,12 +351,20 @@ def main():
     I = Poset(['01']) # 0 <= 1
     #print(I)
 
+#    P = Poset(['ab', 'ba'])
+#    assert len(P) == 1
+#
+#    P = Poset(['ab', 'bc', 'ca'])
+#    assert len(P) == 1
+
     ok = False
     try:
         P = Poset(['ab', 'bc', 'ca'])
     except AssertionError:
         ok = True
     assert ok
+
+    
 
     P = Poset('aa bb'.split())
     assert P.sup('a', 'b') == None
@@ -324,11 +388,11 @@ def main():
     i = P.get_id()
     assert i*i == i
 
-    F = Poset.free_suplattice([])
+    F = SupPoset.free([])
     assert len(F)==1
     assert F.bot is not None
 
-    F = Poset.free_suplattice('ABC')
+    F = SupPoset.free('ABC')
     assert len(F) == 8
     assert F.sup("A", "A") == "A"
     assert F.sup("", "A") == "A"
@@ -336,6 +400,16 @@ def main():
     assert ("A", "A+B") in F.pairs
     assert F.sup("A", "A+B") == "A+B"
 
+    if 0:
+        sup = F.sup
+        G = F.add_pairs([
+            ("A", sup("B", "C")),
+            ("B", sup("A", "C")),
+            ("C", sup("B", "A")),
+        ])
+        print(G)
+    
+        return
 
     assert len(list(f for f in I.hom_iter(I))) == 3
 
@@ -347,23 +421,26 @@ def main():
     for f in Q:
         f.check()
     assert len(Q) == 10
+    assert len(list(P.hom_iter(P))) == 178
 
-    Q = P.suphom(I)
+    P = SupPoset.promote(P)
+    I = SupPoset.promote(I)
+
+    Q = P.hom(I)
     for f in Q:
         f.check()
     assert len(Q) == 5
 
-    #print(len(list(P.hom_iter(P)))) # 178
-    print(len(P.suphom(P)))
+    #assert len(P.hom(P))==50 # slow...
 
-    print("II =", len(I@I))
+#    print("II =", len(I@I))
+#
+#    PP = P@P
+#    print(PP.els)
+#    print(len(P@P))
 
-    PP = P@P
-    print(PP.els)
-    print(len(P@P))
-
-    F = Poset.free_suplattice("ABC")
-    assert len(F.suphom(I)) == len(F)
+    F = SupPoset.free("ABC")
+    assert len(F.hom(I)) == len(F)
 
     print("OK")
 
