@@ -2,13 +2,12 @@
 
 from bruhat.species import all_subsets
 from bruhat.action import all_functions
+from bruhat import equ
 
 
 def closure(pairs, els=None):
     homs = set((a,b) for (a,b) in pairs) # set of (a,b) where a<=b
-    els = set([a for (a,b) in pairs]+[b for (a,b) in pairs])
-    for a in els:
-        homs.add((a,a))
+    ident = set()
     changed = True
     while changed:
         changed = False
@@ -20,9 +19,22 @@ def closure(pairs, els=None):
             if (a,d) not in homs:
                 homs.add((a,d))
                 changed = True
-            if a!=b:
-                assert a!=d, "loop found: %s = %s" % (a, b)
+            if a!=b and a==d:
+                ident.add((a,b))
+            #if a!=b:
+            #    assert a!=d, "loop found: %s = %s" % (a, b)
 
+    # At this point we have a PreOrder, now we
+    # identify elements to form a Poset.
+    relation = lambda a,b : (a,b) in ident
+    els = list(set([a for (a,b) in homs]+[b for (a,b) in homs]))
+    send = equ.quotient_rep(els, relation)
+    get = send.get
+    homs = set((get(a, a), get(b, b)) for (a, b) in homs)
+
+    els = set([a for (a,b) in homs]+[b for (a,b) in homs])
+    for a in els:
+        homs.add((a,a))
     return homs, els
 
 
@@ -50,6 +62,23 @@ class Poset(object):
         self.ups = ups
         self.dns = dns
         self._sup = {} # cache
+        if check:
+            self.check()
+
+    def check(self):
+        pairs = self.pairs
+        ups = self.ups
+        dns = self.dns
+        for (a, b) in pairs:
+            assert a in ups
+            assert b in ups
+            assert b in ups[a]
+            assert a in dns[b]
+            for (c, d) in pairs:
+                if b!=c:
+                    continue
+                assert (a, d) in pairs
+                assert a==b or a!=d, self # irreflexive
 
     def add_pairs(self, pairs):
         "add relations to form a new Poset"
@@ -83,11 +112,14 @@ class Poset(object):
         return len(self.els)
 
     def min(self, items):
-        #  assert len(items) # XXX TODO ???
+        if not items:
+            return [] # <----- return
+        #print("min", self)
         pairs = self.pairs
         up = set(items)
         while len(up) > 1:
             items = list(up)
+            #print("\t", items)
             n = len(up)
             for a1 in items:
               for b1 in items:
@@ -95,12 +127,15 @@ class Poset(object):
                     continue
                 if (a1, b1) in pairs and b1 in up:
                     up.remove(b1)
+            #print("\t", up)
             if len(up) == n:
                 break
+        assert up
         return up
 
     def max(self, items):
-        #  assert len(items) # XXX TODO ???
+        if not items:
+            return [] # <----- return
         pairs = self.pairs
         dn = set(items)
         while len(dn) > 1:
@@ -114,8 +149,8 @@ class Poset(object):
                     dn.remove(b1)
             if len(dn) == n:
                 break
-        if len(dn)==1:
-            return list(dn)[0]
+        assert dn
+        return dn
 
     def uniq_min(self, items):
         up = self.min(items)
@@ -153,7 +188,7 @@ class Poset(object):
         return value
 
     def get_id(self):
-        "build identity Hom"
+        "build _identity Hom"
         send = dict((a, a) for a in self.els)
         return Hom(self, self, send)
 
@@ -208,6 +243,7 @@ class SupPoset(Poset):
             self.check()
 
     def check(self):
+        Poset.check(self)
         assert self.bot is not None
         for a in self.els:
           for b in self.els:
@@ -233,14 +269,35 @@ class SupPoset(Poset):
             pass
         return cls(pairs, check=check)
 
-    def add_pairs(self, pairs):
-        "add relations to form a new Poset"
+    def add_pairs(self, pairs, check=True):
+        "add relations to form a new SupPoset"
         ups = self.ups
         for (a, b) in pairs:
             assert a in ups
             assert b in ups
-        pairs = list(self.pairs) + list(pairs)
-        return self.__class__(pairs)
+        pairs = set(self.items + pairs)
+
+        while 1:
+            self = Poset(pairs, check=check)
+            assert self.bot is not None
+            ident = set()
+            for a in self:
+              for b in self:
+                upa = set(self.ups[a])
+                upb = set(self.ups[b])
+                up = upa.intersection(upb)
+                assert len(up)
+                up = self.min(up)
+                assert len(up)
+                if len(up) == 1:
+                    continue
+                for a1 in up:
+                  for b1 in up:
+                    ident.add((a1, b1))
+            print("ident:", ident)
+            if not ident:
+                return SupPoset.promote(self)
+            pairs = self.items + list(ident)
 
     def hom(self, other):
         "poset of hom's that preserve sup's, including empty sup == bot"
@@ -351,19 +408,18 @@ def main():
     I = Poset(['01']) # 0 <= 1
     #print(I)
 
-#    P = Poset(['ab', 'ba'])
-#    assert len(P) == 1
-#
-#    P = Poset(['ab', 'bc', 'ca'])
-#    assert len(P) == 1
+    P = Poset(['ab', 'ba'])
+    assert len(P) == 1
 
-    ok = False
-    try:
-        P = Poset(['ab', 'bc', 'ca'])
-    except AssertionError:
-        ok = True
-    assert ok
+    P = Poset(['ab', 'bc', 'ca'])
+    assert len(P) == 1, P
 
+#    ok = False
+#    try:
+#        P = Poset(['ab', 'bc', 'ca'])
+#    except AssertionError:
+#        ok = True
+#    assert ok
     
 
     P = Poset('aa bb'.split())
@@ -400,7 +456,7 @@ def main():
     assert ("A", "A+B") in F.pairs
     assert F.sup("A", "A+B") == "A+B"
 
-    if 0:
+    if 1:
         sup = F.sup
         G = F.add_pairs([
             ("A", sup("B", "C")),
