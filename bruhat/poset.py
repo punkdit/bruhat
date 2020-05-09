@@ -201,11 +201,12 @@ class Poset(object):
                 if (fa, fb) not in other.pairs:
                     break
             else:
-                yield Hom(self, other, f)
+                #yield Hom(self, other, f)
+                yield f
 
     def hom(self, other):
         "poset of hom's"
-        hom = list(self.hom_iter(other))
+        hom = [Hom(self, other, f) for f in self.hom_iter(other)]
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return Poset(pairs)
 
@@ -247,7 +248,15 @@ class SupPoset(Poset):
         assert self.bot is not None
         for a in self.els:
           for b in self.els:
-            assert self.sup(a, b) is not None
+            if self.sup(a, b) is None:
+                print("SupPoset.check:")
+                print(a)
+                for up in self.ups[a]:
+                    print("\t", up)
+                print(b)
+                for up in self.ups[b]:
+                    print("\t", up)
+                raise AssertionError
 
     @classmethod
     def promote(cls, item, check=True):
@@ -299,7 +308,7 @@ class SupPoset(Poset):
                 return SupPoset.promote(self)
             pairs = self.items + list(ident)
 
-    def hom(self, other):
+    def hom(self, other, check=True):
         "poset of hom's that preserve sup's, including empty sup == bot"
         els = self.els
         pairs = [(a, b) for a in els for b in els]
@@ -322,8 +331,9 @@ class SupPoset(Poset):
             else:
                 #print("\tappend")
                 hom.append(f)
+        hom = [Hom(self, other, f, check=check) for f in hom]
         pairs = [(f,g) for f in hom for g in hom if f<=g]
-        return Poset(pairs)
+        return SupPoset(pairs, check=check)
 
 
 class Hom(object):
@@ -355,7 +365,8 @@ class Hom(object):
             assert p in tgt.pairs
 
     def __str__(self):
-        return "Hom(%s)"%(self.items,)
+        s = ', '.join("%s:%s"%k for k in self.items)
+        return "Hom(%s)"%(s,)
     __repr__ = __str__
 
     def __mul__(self, other):
@@ -389,10 +400,11 @@ class Hom(object):
     def __le__(self, other):
         assert self.src == other.src
         assert self.tgt == other.tgt
+        pairs = self.tgt.pairs
         for a in self.src.els:
             lhs = self.send[a]
             rhs = other.send[a]
-            if lhs > rhs:
+            if (lhs, rhs) not in pairs:
                 return False
         return True
     
@@ -456,22 +468,22 @@ def main():
     assert ("A", "A+B") in F.pairs
     assert F.sup("A", "A+B") == "A+B"
 
-    if 1:
+    if 0:
         sup = F.sup
         G = F.add_pairs([
             ("A", sup("B", "C")),
             ("B", sup("A", "C")),
             ("C", sup("B", "A")),
         ])
-        print(G)
+        #print(G)
     
-        return
+        #return
 
     assert len(list(f for f in I.hom_iter(I))) == 3
 
     P = Poset('0a 0b 0c a1 b1 c1'.split())
     for f in P.hom_iter(I):
-        f.check()
+        Hom(P, I, f).check()
 
     Q = P.hom(I)
     for f in Q:
@@ -487,7 +499,14 @@ def main():
         f.check()
     assert len(Q) == 5
 
+    R = SupPoset('0a 0b a1 b1'.split())
+    RR = R.hom(R)
+    SupPoset.promote(RR)
+
+    PP = P.hom(P)
+    #PP.check()
     #assert len(P.hom(P))==50 # slow...
+    PP = SupPoset.promote(PP)
 
 #    print("II =", len(I@I))
 #
