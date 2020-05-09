@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 
+
 from bruhat.species import all_subsets
 from bruhat.action import all_functions
 from bruhat import equ
+from bruhat.argv import argv
+
+#CHECK = True # much slower...
+CHECK = False
 
 
 def closure(pairs, els=None):
@@ -23,28 +28,21 @@ def closure(pairs, els=None):
                 ident.add((a,b))
             #if a!=b:
             #    assert a!=d, "loop found: %s = %s" % (a, b)
-
-    # At this point we have a PreOrder, now we
-    # identify elements to form a Poset.
-    relation = lambda a,b : (a,b) in ident
-    els = list(set([a for (a,b) in homs]+[b for (a,b) in homs]))
-    send = equ.quotient_rep(els, relation)
-    get = send.get
-    homs = set((get(a, a), get(b, b)) for (a, b) in homs)
-
     els = set([a for (a,b) in homs]+[b for (a,b) in homs])
     for a in els:
         homs.add((a,a))
     return homs, els
 
 
-class Poset(object):
-    def __init__(self, pairs, els=None, check=True):
-        pairs, els = closure(pairs, els)
-        items = list(pairs)
-        items.sort() # canonical
+
+class PreOrder(object):
+    def __init__(self, els, pairs, check=CHECK):
+        if els is None:
+            els = set([a for (a,b) in pairs]+[b for (a,b) in pairs])
         els = list(els)
         els.sort() # canonical
+        items = list(pairs)
+        items.sort() # canonical
 
         ups = {}
         dns = {}
@@ -65,29 +63,28 @@ class Poset(object):
         if check:
             self.check()
 
+    @classmethod
+    def generate(cls, pairs, els=None, check=CHECK):
+        pairs, els = closure(pairs, els)
+        P = cls(els, pairs, check)
+        return P
+
     def check(self):
         pairs = self.pairs
+        els = self.els
+        for a in els:
+            assert (a, a) in pairs, self
         ups = self.ups
         dns = self.dns
         for (a, b) in pairs:
-            assert a in ups
-            assert b in ups
-            assert b in ups[a]
-            assert a in dns[b]
+            assert a in ups, self
+            assert b in ups, self
+            assert b in ups[a], self
+            assert a in dns[b], self
             for (c, d) in pairs:
                 if b!=c:
                     continue
-                assert (a, d) in pairs
-                assert a==b or a!=d, self # irreflexive
-
-    def add_pairs(self, pairs):
-        "add relations to form a new Poset"
-        ups = self.ups
-        for (a, b) in pairs:
-            assert a in ups
-            assert b in ups
-        pairs = self.items + pairs
-        return Poset(pairs)
+                assert (a, d) in pairs, self
 
     def __str__(self):
         return "%s(%s, %s)"%(self.__class__.__name__, self.els, self.pairs)
@@ -100,7 +97,7 @@ class Poset(object):
         return self.items != other.items
 
     def __hash__(self):
-        return hash(tuple(self.items))
+        return hash(tuple(self.items)) # XX cache me
 
     def __getitem__(self, i):
         return self.els[i]
@@ -110,6 +107,77 @@ class Poset(object):
 
     def __len__(self):
         return len(self.els)
+
+
+    def get_id(self):
+        "build _identity Hom"
+        send = dict((a, a) for a in self.els)
+        return Hom(self, self, send)
+
+    def hom_iter(self, other):
+        left = self.els
+        right = other.els
+        for f in all_functions(left, right):
+            for (a,b) in self.pairs:
+                fa, fb = f[a], f[b]
+                if (fa, fb) not in other.pairs:
+                    break
+            else:
+                #yield Hom(self, other, f)
+                yield f
+
+    def hom(self, other):
+        "poset of hom's"
+        hom = [Hom(self, other, f) for f in self.hom_iter(other)]
+        pairs = [(f,g) for f in hom for g in hom if f<=g]
+        return Poset(hom, pairs)
+
+
+class Poset(PreOrder):
+    def check(self):
+        PreOrder.check(self)
+        pairs = self.pairs
+        for (a, b) in pairs:
+            assert (b, a) not in pairs or a==b, (a, b)
+
+    @classmethod
+    def promote(cls, item, check=CHECK):
+        if isinstance(item, Poset):
+            return item
+        if not isinstance(item, PreOrder):
+            raise TypeError
+
+        # At this point we have a PreOrder, now we
+        # identify elements to form a Poset.
+        #print("promote:", item)
+        ident = set()
+        pairs = item.pairs
+        for (a, b) in pairs:
+            if a!=b and (b, a) in pairs:
+                ident.add((a, b)) # identify these two
+        relation = lambda a,b : (a,b) in ident
+        els = list(set([a for (a,b) in pairs]+[b for (a,b) in pairs]))
+        send = equ.quotient_rep(els, relation)
+        #print("send:", send)
+        get = send.get
+        els = set(get(a, a) for a in els)
+        pairs = set((get(a, a), get(b, b)) for (a, b) in pairs)
+        return Poset(els, pairs, check=check)
+
+    @classmethod
+    def generate(cls, pairs):
+        P = PreOrder.generate(pairs)
+        P = cls.promote(P)
+        return P
+
+    def add_pairs(self, pairs):
+        "add relations to form a new Poset"
+        ups = self.ups
+        for (a, b) in pairs:
+            assert a in ups
+            assert b in ups
+        pairs = self.items + pairs
+        return Poset(pairs)
 
     def min(self, items):
         if not items:
@@ -187,30 +255,7 @@ class Poset(object):
         self._sup[a, b] = value
         return value
 
-    def get_id(self):
-        "build _identity Hom"
-        send = dict((a, a) for a in self.els)
-        return Hom(self, self, send)
-
-    def hom_iter(self, other):
-        left = self.els
-        right = other.els
-        for f in all_functions(left, right):
-            for (a,b) in self.pairs:
-                fa, fb = f[a], f[b]
-                if (fa, fb) not in other.pairs:
-                    break
-            else:
-                #yield Hom(self, other, f)
-                yield f
-
-    def hom(self, other):
-        "poset of hom's"
-        hom = [Hom(self, other, f) for f in self.hom_iter(other)]
-        pairs = [(f,g) for f in hom for g in hom if f<=g]
-        return Poset(pairs)
-
-    def tensor(L, R):
+    def tensor(L, R): # XXX
         gen = [(l, r) for l in L for r in R if l!=L.bot and r!=R.bot]
         pairs = []
         for l in L:
@@ -231,15 +276,13 @@ class Poset(object):
             rsup = R.sup(r1, r2)
             assert F.sup((l, r1), (l, r2)) == (l, rsup)
         return F
-
-
     __matmul__ = tensor
 
 
 class SupPoset(Poset):
 
-    def __init__(self, pairs, els=None, check=True):
-        Poset.__init__(self, pairs, els, check=check)
+    def __init__(self, els, pairs, check=CHECK):
+        Poset.__init__(self, els, pairs, check=check)
         if check:
             self.check()
 
@@ -259,15 +302,16 @@ class SupPoset(Poset):
                 raise AssertionError
 
     @classmethod
-    def promote(cls, item, check=True):
+    def promote(cls, item, check=CHECK):
         if isinstance(item, SupPoset):
             return item
-        if not isinstance(item, Poset):
-            raise TypeError
-        return cls(item.pairs, check=check)
+        if not isinstance(item, PreOrder):
+            raise TypeError(item)
+        item = Poset.promote(item, check)
+        return cls(item.els, item.pairs, check=check)
 
     @classmethod
-    def free(cls, gens, check=True):
+    def free(cls, gens, check=CHECK):
         items = list(all_subsets(gens))
         pairs = [(a, b) for a in items for b in items if set(a).issubset(set(b))]
         try:
@@ -276,9 +320,9 @@ class SupPoset(Poset):
             pairs = [('+'.join(a), '+'.join(b)) for (a,b) in pairs]
         except:
             pass
-        return cls(pairs, check=check)
+        return cls(None, pairs, check=check)
 
-    def add_pairs(self, pairs, check=True):
+    def add_pairs(self, pairs, check=CHECK):
         "add relations to form a new SupPoset"
         ups = self.ups
         for (a, b) in pairs:
@@ -287,7 +331,7 @@ class SupPoset(Poset):
         pairs = set(self.items + pairs)
 
         while 1:
-            self = Poset(pairs, check=check)
+            self = Poset.generate(pairs, check=check)
             assert self.bot is not None
             ident = set()
             for a in self:
@@ -308,7 +352,7 @@ class SupPoset(Poset):
                 return SupPoset.promote(self)
             pairs = self.items + list(ident)
 
-    def hom(self, other, check=True):
+    def hom(self, other, check=CHECK):
         "poset of hom's that preserve sup's, including empty sup == bot"
         els = self.els
         pairs = [(a, b) for a in els for b in els]
@@ -333,12 +377,12 @@ class SupPoset(Poset):
                 hom.append(f)
         hom = [Hom(self, other, f, check=check) for f in hom]
         pairs = [(f,g) for f in hom for g in hom if f<=g]
-        return SupPoset(pairs, check=check)
+        return SupPoset(hom, pairs, check=check)
 
 
 class Hom(object):
     "Morphism between Poset's"
-    def __init__(self, src, tgt, send, check=True):
+    def __init__(self, src, tgt, send, check=CHECK):
         assert isinstance(src, Poset)
         assert isinstance(tgt, Poset)
         send = dict(send)
@@ -417,36 +461,30 @@ class Hom(object):
 
 def main():
 
-    I = Poset(['01']) # 0 <= 1
-    #print(I)
+    make_poset = lambda desc:Poset.generate(desc.split())
 
-    P = Poset(['ab', 'ba'])
-    assert len(P) == 1
+    I = Poset.generate(['01']) # 0 <= 1
+    assert len(I) == 2
 
-    P = Poset(['ab', 'bc', 'ca'])
+    P = Poset.generate(['ab', 'ba'])
     assert len(P) == 1, P
 
-#    ok = False
-#    try:
-#        P = Poset(['ab', 'bc', 'ca'])
-#    except AssertionError:
-#        ok = True
-#    assert ok
-    
+    P = Poset.generate(['ab', 'bc', 'ca'])
+    assert len(P) == 1, P
 
-    P = Poset('aa bb'.split())
+    P = make_poset('aa bb')
     assert P.sup('a', 'b') == None
 
-    P = Poset('a1 b1 a0 b0'.split())
+    P = make_poset('a1 b1 a0 b0')
     assert P.sup('a', 'b') == None
 
-    P = Poset('a1 b1 a0 b0 12 02'.split())
+    P = make_poset('a1 b1 a0 b0 12 02')
     assert P.sup('a', 'b') == None
 
-    P = Poset('a1 b1 a0 b0 a2 b2 20 21'.split())
+    P = make_poset('a1 b1 a0 b0 a2 b2 20 21')
     assert P.sup('a', 'b') == '2'
 
-    P = Poset('0a 0b 0c a1 b1 c1'.split())
+    P = make_poset('0a 0b 0c a1 b1 c1')
     assert len(P) == 5
 
     assert P.sup('a', 'b') == '1'
@@ -481,7 +519,7 @@ def main():
 
     assert len(list(f for f in I.hom_iter(I))) == 3
 
-    P = Poset('0a 0b 0c a1 b1 c1'.split())
+    P = make_poset('0a 0b 0c a1 b1 c1')
     for f in P.hom_iter(I):
         Hom(P, I, f).check()
 
@@ -499,14 +537,14 @@ def main():
         f.check()
     assert len(Q) == 5
 
-    R = SupPoset('0a 0b a1 b1'.split())
+    R = SupPoset.generate('0a 0b a1 b1'.split())
     RR = R.hom(R)
     SupPoset.promote(RR)
 
-    PP = P.hom(P)
+    PP = P.hom(P, check=True)
+    assert isinstance(PP, SupPoset)
     #PP.check()
     #assert len(P.hom(P))==50 # slow...
-    PP = SupPoset.promote(PP)
 
 #    print("II =", len(I@I))
 #
@@ -514,7 +552,7 @@ def main():
 #    print(PP.els)
 #    print(len(P@P))
 
-    F = SupPoset.free("ABC")
+    F = SupPoset.free("ABC", check=True)
     assert len(F.hom(I)) == len(F)
 
     print("OK")
@@ -522,5 +560,11 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    if argv.profile:
+        import cProfile as profile
+        profile.run("main()")
+    else:
+        main()
+
+
 
