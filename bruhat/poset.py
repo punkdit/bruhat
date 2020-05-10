@@ -44,15 +44,11 @@ class PreOrder(object):
         items = list(pairs)
         items.sort() # canonical
 
-        ups = {}
-        dns = {}
+        ups = dict((a, set()) for a in els)
+        dns = dict((a, set()) for a in els)
         for (a, b) in pairs:
-            up = ups.get(a, [])
-            up.append(b)
-            ups[a] = up
-            dn = dns.get(b, [])
-            dn.append(a)
-            dns[b] = dn
+            ups[a].add(b)
+            dns[b].add(a)
 
         self.items = items
         self.pairs = pairs # set(items)
@@ -60,6 +56,7 @@ class PreOrder(object):
         self.ups = ups
         self.dns = dns
         self._sup = {} # cache
+        self._inf = {} # cache
         if check:
             self.check()
 
@@ -256,7 +253,7 @@ class Poset(PreOrder):
             self._bot = self.uniq_min(self.els)
         return self._bot
 
-    def sup(self, a, b): 
+    def sup2(self, a, b): 
         "return colimit of a & b, if it exists, otherwise None"
         if (a, b) in self._sup:
             return self._sup[a, b]
@@ -267,28 +264,57 @@ class Poset(PreOrder):
         self._sup[a, b] = value
         return value
 
-    def tensor(L, R): # XXX
-        gen = [(l, r) for l in L for r in R if l!=L.bot and r!=R.bot]
-        pairs = []
-        for l in L:
-            for (r1, r2) in R.pairs:
-                pairs.append(((l,r1), (l,r2)))
-        for r in R:
-            for (l1, l2) in L.pairs:
-                pairs.append(((l1, r), (l2, r)))
+    def inf2(self, a, b): 
+        "return limit of a & b, if it exists, otherwise None"
+        if (a, b) in self._inf:
+            return self._inf[a, b]
+        dna = set(self.dns[a])
+        dnb = set(self.dns[b])
+        dn = dna.intersection(dnb)
+        value = self.uniq_max(dn)
+        self._inf[a, b] = value
+        return value
 
-        F = Poset(pairs, els)
-        assert F.bot == (L.bot, R.bot)
-        for (l1, l2) in L.pairs:
-          for r in R:
-            lsup = L.sup(l1, l2)
-            assert F.sup((l1, r), (l2, r)) == (lsup, r)
-        for l in L:
-          for (r1, r2) in R.pairs:
-            rsup = R.sup(r1, r2)
-            assert F.sup((l, r1), (l, r2)) == (l, rsup)
-        return F
-    __matmul__ = tensor
+    def sup(self, items):
+        items = list(items)
+        while len(items)>1:
+            a = self.sup2(items.pop(), items.pop())
+            items.append(a)
+        if items:
+            return items[0]
+        return self.bot
+
+    def inf(self, items):
+        items = list(items)
+        while len(items)>1:
+            a = self.inf2(items.pop(), items.pop())
+            items.append(a)
+        if items:
+            return items[0]
+        return self.top
+
+#    def tensor(L, R): # XXX
+#        gen = [(l, r) for l in L for r in R if l!=L.bot and r!=R.bot]
+#        pairs = []
+#        for l in L:
+#            for (r1, r2) in R.pairs:
+#                pairs.append(((l,r1), (l,r2)))
+#        for r in R:
+#            for (l1, l2) in L.pairs:
+#                pairs.append(((l1, r), (l2, r)))
+#
+#        F = Poset(pairs, els)
+#        assert F.bot == (L.bot, R.bot)
+#        for (l1, l2) in L.pairs:
+#          for r in R:
+#            lsup = L.sup2(l1, l2)
+#            assert F.sup2((l1, r), (l2, r)) == (lsup, r)
+#        for l in L:
+#          for (r1, r2) in R.pairs:
+#            rsup = R.sup2(r1, r2)
+#            assert F.sup2((l, r1), (l, r2)) == (l, rsup)
+#        return F
+#    __matmul__ = tensor
 
 
 class SupPoset(Poset):
@@ -303,7 +329,7 @@ class SupPoset(Poset):
         assert self.bot is not None
         for a in self.els:
           for b in self.els:
-            if self.sup(a, b) is None:
+            if self.sup2(a, b) is None:
                 print("SupPoset.check:")
                 print(a)
                 for up in self.ups[a]:
@@ -337,12 +363,28 @@ class SupPoset(Poset):
         hom = Hom(hom.src, P, hom.send, check=check)
         return hom
 
-    def add_pairs(self, pairs, check=True):
+    def add_pairs(self, rels, check=True):
         "add relations to form a new SupPoset"
         ups = self.ups
-        for (a, b) in pairs:
+        for (a, b) in rels:
             assert a in ups
             assert b in ups
+
+        pairs = self.pairs
+        els = []
+        for x in self.els:
+            for (lhs, rhs) in rels: # lhs <= rhs
+                if (rhs,x) in pairs and not (lhs,x) in pairs:
+                    break
+            else:
+                els.append(x)
+        els = set(els)
+        pairs = [(a, b) for (a, b) in self.pairs if a in els and b in els]
+        P = SupPoset(els, pairs)
+        # inclusion is a right adjoint
+        radj = Hom(P, self, dict((a, a) for a in els))
+        ladj = radj.get_ladj()
+        return ladj
 
     def hom(self, other, check=CHECK):
         "poset of hom's that preserve sup's, including empty sup == bot"
@@ -357,10 +399,10 @@ class SupPoset(Poset):
                 #print("\t fail 1")
                 continue
             for (a, b) in pairs:
-                c = self.sup(a, b)
-                assert c is not None, "sup(%s, %s) == None" % (a, b)
+                c = self.sup2(a, b)
+                assert c is not None, "sup2(%s, %s) == None" % (a, b)
                 fa, fb = f[a], f[b]
-                d = other.sup(fa, fb)
+                d = other.sup2(fa, fb)
                 if d!=f[c]:
                     #print("\t fail 2", a, b, c, fa, fb, d)
                     break
@@ -449,7 +491,47 @@ class Hom(object):
         assert self.tgt == other.tgt
         return not self==other and self<=other
     
-        
+    def is_ladj(self):
+        "is a left adjoint functor"
+        src = self.src
+        tgt = self.tgt
+        send = self.send
+        for a in src.els:
+          for b in src.els:
+            c = src.sup2(a, b)
+            if send[c] != tgt.sup2(send[a], send[b]):
+                return False
+        return True
+
+    def is_radj(self):
+        "is a right adjoint functor"
+        src = self.src
+        tgt = self.tgt
+        send = self.send
+        for a in src.els:
+          for b in src.els:
+            c = src.inf2(a, b)
+            if send[c] != tgt.inf2(send[a], send[b]):
+                return False
+        return True
+
+    def get_ladj(self, check=True):
+        src = self.src
+        tgt = self.tgt
+        radj = self.send
+        # XXX check that src has all inf's ?
+        ladj = {}
+        for x in tgt.els:
+            ladj[x] = tgt.inf([y for y in src.els if (x,radj[y]) in tgt.pairs])
+        ladj = Hom(tgt, src, ladj)
+        if check:
+            #print(src, "-->")
+            #print(tgt)
+            #print(self)
+            assert self.is_radj(), self
+            assert ladj.is_ladj(), ladj
+        return ladj
+
 
 def main():
 
@@ -476,23 +558,23 @@ def main():
     assert len(P) == 1, P
 
     P = make_poset('aa bb')
-    assert P.sup('a', 'b') == None
+    assert P.sup2('a', 'b') == None
 
     P = make_poset('a1 b1 a0 b0')
-    assert P.sup('a', 'b') == None
+    assert P.sup2('a', 'b') == None
 
     P = make_poset('a1 b1 a0 b0 12 02')
-    assert P.sup('a', 'b') == None
+    assert P.sup2('a', 'b') == None
 
     P = make_poset('a1 b1 a0 b0 a2 b2 20 21')
-    assert P.sup('a', 'b') == '2'
+    assert P.sup2('a', 'b') == '2'
 
     P = make_poset('0a 0b 0c a1 b1 c1')
     assert len(P) == 5
 
-    assert P.sup('a', 'b') == '1'
-    assert P.sup('a', '0') == 'a'
-    assert P.sup('a', '1') == '1'
+    assert P.sup2('a', 'b') == '1'
+    assert P.sup2('a', '0') == 'a'
+    assert P.sup2('a', '1') == '1'
 
     i = P.get_id()
     assert i*i == i
@@ -503,30 +585,27 @@ def main():
 
     F = SupPoset.free('ABC')
     assert len(F) == 8
-    assert F.sup("A", "A") == "A"
-    assert F.sup("", "A") == "A"
-    assert F.sup("", "A+B") == "A+B"
+    assert F.sup2("A", "A") == "A"
+    assert F.sup2("", "A") == "A"
+    assert F.sup2("", "A+B") == "A+B"
     assert ("A", "A+B") in F.pairs
-    assert F.sup("A", "A+B") == "A+B"
+    assert F.sup2("A", "A+B") == "A+B"
 
-    if 0:
-        sup = F.sup
-        hom = F.add_pairs([
-            #("A", sup("B", "C")),
-            #("B", sup("A", "C")),
-            ("C", sup("B", "A")),
-        ])
-        G = hom.tgt
-        print(G)
-        top = G.top
-        els = list(G.els)
-        els.sort()
-        for a in els:
-          for b in els:
-            if a<b:
-                print("%5s sup %5s = %s" % (a, b, G.sup(a, b)))
-    
-        return
+    sup = F.sup
+    AB = sup("AB")
+    AC = sup("AC")
+    BC = sup("BC")
+    ABC = sup("ABC")
+    hom = F.add_pairs([("A", BC), ("B", AC), ("C", AB),], check=True)
+    G = hom.tgt
+    assert hom.is_ladj()
+    assert hom["A"] == "A"
+    assert hom["B"] == "B"
+    assert hom["C"] == "C"
+    assert hom[AB] == hom[ABC] == G.sup("ABC")
+    assert hom[AC] == G.sup("ABC")
+    assert hom[BC] == G.sup("ABC")
+    assert len(G) == 5
 
     assert len(list(f for f in I.hom_iter(I))) == 3
 
