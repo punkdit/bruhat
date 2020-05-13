@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 from random import choice
 
 from bruhat.species import all_subsets
@@ -10,6 +11,7 @@ from bruhat.argv import argv
 #CHECK = True # much slower...
 CHECK = False
 
+OPEN_COMMAND = "gvfs-open" # used to display pdf files
 
 def closure(pairs, els):
     homs = set((a,b) for (a,b) in pairs) # set of (a,b) where a<=b
@@ -121,7 +123,7 @@ class PreOrder(object):
         send = dict((a, a) for a in self.els)
         return Hom(self, self, send)
 
-    def hom_iter(self, other):
+    def send_iter(self, other):
         left = self.els
         right = other.els
         for f in all_functions(left, right):
@@ -135,7 +137,7 @@ class PreOrder(object):
 
     def hom(self, other):
         "poset of hom's"
-        hom = [Hom(self, other, f) for f in self.hom_iter(other)]
+        hom = [Hom(self, other, f) for f in self.send_iter(other)]
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return Poset(hom, pairs)
 
@@ -177,6 +179,13 @@ class PreOrder(object):
         f = open(filename, 'w')
         print(s, file=f)
         f.close()
+
+    def show(self):
+        i = str(hash(self)).replace('-', 'm')
+        name = "tmp.%s.dot"%i
+        self.get_dot(name)
+        os.system("dot -Tpdf %s > %s.pdf"% (name,name))
+        os.system("%s %s.pdf" % (OPEN_COMMAND, name,))
 
 
 class Poset(PreOrder):
@@ -385,6 +394,10 @@ class SupPoset(Poset):
             pass
         return cls(None, pairs, check=check)
 
+#    @classmethod
+#    def free_on_poset(cls, P, check=CHECK):
+        
+
     @classmethod
     def promote(cls, item, check=CHECK):
         if isinstance(item, SupPoset):
@@ -437,14 +450,14 @@ class SupPoset(Poset):
         ladj = radj.get_ladj()
         return ladj
 
-    def hom(self, other, check=CHECK):
+    def slow_hom(self, other, check=CHECK):
         "poset of hom's that preserve sup's, including empty sup == bot"
         els = self.els
         pairs = [(a, b) for a in els for b in els]
         assert self.bot is not None, "self is not sup-complete"
         assert other.bot is not None, "other is not sup-complete"
         hom = []
-        for f in self.hom_iter(other):
+        for f in self.send_iter(other):
             #print(f, "?")
             if f[self.bot] != other.bot:
                 #print("\t fail 1")
@@ -485,6 +498,32 @@ class SupPoset(Poset):
         R = Poset(rels, pairs)
         rels = R.min(R.els) # woop
         return rels
+
+    def send_iter(self, other, check=True):
+        assert isinstance(other, SupPoset)
+        gen = self.get_gen()
+        #print("gen:", gen)
+        els = other.els
+        for send in all_functions(gen, els):
+            for items in all_subsets(gen):
+                lhs = self.sup(items)
+                rhs = other.sup([send[g] for g in items])
+                x = send.get(lhs)
+                if x==rhs:
+                    continue
+                #print(lhs, "-->", rhs, x)
+                if x is not None:
+                    break
+                send[lhs] = rhs
+            else:
+                #print(send)
+                yield send
+
+    def hom(self, other, check=True):
+        hom = [Hom(self, other, send, check=check) 
+            for send in self.send_iter(other, check)]
+        pairs = [(f,g) for f in hom for g in hom if f<=g]
+        return SupPoset(hom, pairs, check=check)
 
     def is_iso(self, other):
         assert isinstance(other, SupPoset)
@@ -549,6 +588,24 @@ class SupPoset(Poset):
         return P
 
     __matmul__ = tensor
+
+    def get_clean(P, check=True):
+        gen = P.get_gen()
+        rels = P.get_rels()
+        Q = SupPoset.free(gen)
+        pairs = [(a, Q.sup(items)) for (a, items) in rels]
+        hom = Q.add_pairs(pairs)
+        R = hom.tgt
+        return R 
+
+    def sum(L, R):
+        els = [(l, r) for l in L.els for r in R.els]
+        pairs = [((l1, r1), (l2, r2)) 
+            for (l1,r1) in els for (l2,r2) in els
+            if (l1,l2) in L.pairs and (r1,r2) in R.pairs]
+        return SupPoset(els, pairs)
+    __add__ = sum
+
 
 
 class Hom(object):
@@ -777,17 +834,17 @@ def main():
 
     # hom's -----------------------------------------
 
-    assert len(list(f for f in I.hom_iter(I))) == 3
+    assert len(list(f for f in I.send_iter(I))) == 3
 
     P = make_poset('0a 0b 0c a1 b1 c1')
-    for f in P.hom_iter(I):
+    for f in P.send_iter(I):
         Hom(P, I, f).check()
 
     Q = P.hom(I)
     for f in Q:
         f.check()
     assert len(Q) == 10
-    assert len(list(P.hom_iter(P))) == 178
+    assert len(list(P.send_iter(P))) == 178
 
     f = P.get_id()
     assert f.is_iso()
@@ -800,6 +857,9 @@ def main():
         f.check()
     assert len(Q) == 5
 
+    # --------------------------
+    # SupPoset's
+
     make_supposet = lambda desc : SupPoset.generate(desc.split(), check=True).tgt
 
     R = make_supposet('0a 0b a1 b1')
@@ -808,8 +868,8 @@ def main():
 
     PP = P.hom(P, check=False)
     assert isinstance(PP, SupPoset)
-    #PP.check()
-    #assert len(P.hom(P))==50 # slow...
+    PP.check()
+    assert len(PP) == 50
 
     F = SupPoset.free("ABC", check=True)
     assert len(F.hom(I)) == len(F)
@@ -834,30 +894,43 @@ def main():
     # ----------------------------------------
 
     P = SupPoset.free(range(8))
-
-    #print(P.els)
     assert P.bot == ()
-
-#    for i in range(10):
-#        X = [choice(P.els) for _ in range(20)]
-#        #X.append(P.bot)
-#        print(P.min(X))
-#        print(P.sup(X))
-    
-    #return
+    assert len(P) == 2**8
 
     # ----------------------------------------
 
     P = make_supposet('0a 0b ac ae be bd cf ef eg dg fh gh')
-    gen = P.get_gen()
-    rels = P.get_rels()
-    #print(rels)
+    R = P.get_clean()
+    assert R.is_iso(P)
 
-    Q = SupPoset.free(gen)
+    # ----------------------------------------
+
+    Q = SupPoset.free('DEFGH')
+    rels = [('D', ('E', 'F')), ('F', ('G', 'H'))]
     pairs = [(a, Q.sup(items)) for (a, items) in rels]
     hom = Q.add_pairs(pairs)
-    R = hom.tgt
-    assert R.is_iso(P)
+    #R = hom.tgt
+    #R.get_dot("out.dot")
+    #print(len(R))
+
+    Q = SupPoset.free('ABC')
+    rels = [('B', ('A', 'C')),]
+    pairs = [(a, Q.sup(items)) for (a, items) in rels]
+    pairs.append(("A", "B"))
+    hom = Q.add_pairs(pairs)
+    #R = hom.tgt
+    #R.get_dot("out.R.dot")
+    #print(len(R))
+
+    Q = SupPoset.free('ABC')
+    rels = [('B', ('A', 'C')),('A', ('B', 'C')),  ('C', ('A', 'B')), ]
+    pairs = [(a, Q.sup(items)) for (a, items) in rels]
+    hom = Q.add_pairs(pairs)
+    #R = hom.tgt
+    #R.get_dot("out.P.dot")
+    #print(len(R))
+
+    #return
 
     # ----------------------------------------
     # tensor
@@ -877,9 +950,20 @@ def main():
     assert P.get_gen() == set('abc')
     assert P.get_rels() == {('c',('a','b')), ('a',('b','c')), ('b',('a','c'))}
 
+    PI = P+I
+    PI.check()
+    assert len(PI) == 10
+    print(PI.get_gen())
+    #PI.show()
 
-    PP = P@P
-    assert len(PP) == 50, len(PP)
+    if 0:
+        Q = P.hom(P)
+        Q = Q.get_clean()
+        print(Q)
+        Q.get_dot("out.dot")
+
+    #PP = P@P # slow.....
+    #assert len(PP) == 50, len(PP)
 
     print("OK")
 
