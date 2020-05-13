@@ -265,8 +265,8 @@ def from_sparse_ham(n, H):
     for i, j in H.keys():
         if i!=j:
             points[i].nbd.append(points[j])
-    bag = Graph(points)
-    return bag
+    graph = Graph(points)
+    return graph
 
 
 def from_ham(H, syndromes=None):
@@ -283,8 +283,8 @@ def from_ham(H, syndromes=None):
             continue
         if H[i, j]:
             points[i].nbd.append(points[j])
-    bag = Graph(points)
-    return bag
+    graph = Graph(points)
+    return graph
 
 
 def from_ham_syndromes(H, syndromes):
@@ -309,8 +309,8 @@ def from_ham_syndromes(H, syndromes):
         if syndromes[i][j]:
             points[i].nbd.append(checks[j])
             checks[j].nbd.append(points[i])
-    bag = Graph(points+checks)
-    return bag
+    graph = Graph(points+checks)
+    return graph
 
 
 
@@ -330,19 +330,19 @@ def get_perm(m, n, fn):
     return U, V
 
 
-def search_recursive(bag0, bag1, fn=None, depth=1):
+def search_recursive(graph0, graph1, fn=None, depth=1):
 
     assert depth>0
 
     if fn is None:
         fn = {}
-        if len(bag0)!=len(bag1):
+        if len(graph0)!=len(graph1):
             return
 
-        assert bag0 is not bag1
+        assert graph0 is not graph1
 
-    orbits0 = bag0.get_orbits(depth)
-    orbits1 = bag1.get_orbits(depth)
+    orbits0 = graph0.get_orbits(depth)
+    orbits1 = graph1.get_orbits(depth)
 
     if len(orbits0) != len(orbits1):
         return
@@ -356,51 +356,51 @@ def search_recursive(bag0, bag1, fn=None, depth=1):
 
     idx = len(fn)
 
-    # choose any uncoloured bag0 point
-    p = bag0.points[idx]
+    # choose any uncoloured graph0 point
+    p = graph0.points[idx]
     assert p.colour == ''
 
     key = p.get_desc(depth)
     orbit = orbits1[key]
 
     #p.colour = str(idx)
-    bag0.set_colour(p, str(idx))
+    graph0.set_colour(p, str(idx))
 
-    # go through each candidate in bag1
+    # go through each candidate in graph1
     for p1 in orbit:
         assert p1.colour == ''
     
         #p1.colour = str(idx)
-        bag1.set_colour(p1, str(idx))
+        graph1.set_colour(p1, str(idx))
     
         assert fn.get(idx) is None
         fn[idx] = p1.idx
     
-        if len(fn) == len(bag0):
+        if len(fn) == len(graph0):
             yield dict(fn)
 
         else:
 
-            for _fn in search_recursive(bag0, bag1, fn, depth):
+            for _fn in search_recursive(graph0, graph1, fn, depth):
                 yield _fn
 
         del fn[idx]
         assert len(fn) == idx
 
         #p1.colour = ''
-        bag1.set_colour(p1)
+        graph1.set_colour(p1)
 
     #p.colour = ''
-    bag0.set_colour(p, '')
+    graph0.set_colour(p, '')
 
 
 class Backtrack(Exception):
     pass
 
 class State(object):
-    def __init__(self, bag0, bag1, depth=1):
-        orbits0 = bag0.get_orbits(depth) # map: desc -> list of points
-        orbits1 = bag1.get_orbits(depth) # map: desc -> list of points
+    def __init__(self, graph0, graph1, depth=1):
+        orbits0 = graph0.get_orbits(depth) # map: desc -> list of points
+        orbits1 = graph1.get_orbits(depth) # map: desc -> list of points
     
         if len(orbits0) != len(orbits1):
             raise Backtrack() # <-------------- raise
@@ -411,7 +411,7 @@ class State(object):
         keys1.sort()
         if keys0 != keys1:
             raise Backtrack() # <-------------- raise
-        self.bags = bag0, bag1
+        self.graphs = graph0, graph1
         self.orbitss = orbits0, orbits1
         self.keyss = keys0, keys1
         self.idx0 = None
@@ -421,8 +421,8 @@ class State(object):
         assert self.idx0 is None
         assert idx0 is not None
 
-        bag0, bag1 = self.bags
-        p0 = bag0.points[idx0]
+        graph0, graph1 = self.graphs
+        p0 = graph0.points[idx0]
         assert p0.colour == ''
     
         key0 = p0.get_desc(self.depth)
@@ -443,17 +443,17 @@ class State(object):
         return p.idx
 
     def do(self, fn):
-        bag0, bag1 = self.bags
+        graph0, graph1 = self.graphs
         # make assignment: idx0 -> idx1
         p0 = self.p0
         #assert p0.colour == ''
         #p0.colour = str(self.idx0)
-        bag0.set_colour(p0, str(self.idx0))
+        graph0.set_colour(p0, str(self.idx0))
 
         p1 = self.orbit1[self.idx1]
         #assert p1.colour == ''
         #p1.colour = str(self.idx0)
-        bag1.set_colour(p1, str(self.idx0))
+        graph1.set_colour(p1, str(self.idx0))
     
         assert fn.get(self.idx0) is None
         fn[self.idx0] = p1.idx
@@ -461,7 +461,7 @@ class State(object):
         self.p1 = p1
 
     def undo(self, fn):
-        bag0, bag1 = self.bags
+        graph0, graph1 = self.graphs
         # undo assignment
         del fn[self.idx0]
         assert self.p1 is not None
@@ -471,8 +471,8 @@ class State(object):
         assert p0.colour==str(self.idx0)
         #p0.colour = ''
         #p1.colour = ''
-        bag0.set_colour(p0)
-        bag1.set_colour(p1)
+        graph0.set_colour(p0)
+        graph1.set_colour(p1)
         self.p1 = None
 
     def next(self):
@@ -482,23 +482,23 @@ class State(object):
             raise Backtrack() # <-------------- raise
 
 
-def search(bag0, bag1, depth=1, fn=None, verbose=False):
+def search(graph0, graph1, depth=1, fn=None, verbose=False):
 
-    assert bag0 is not bag1
-    if len(bag0) != len(bag1):
+    assert graph0 is not graph1
+    if len(graph0) != len(graph1):
         return
 
     # doesn't help any:
-    #if bag0.get_stats() != bag1.get_stats():
+    #if graph0.get_stats() != graph1.get_stats():
     #    return
 
     if fn is None:
         fn = {}
 
-    remain = range(len(bag0))
+    remain = range(len(graph0))
 
-    orbits = bag0.get_orbits(depth)
-    bag1.get_orbits()
+    orbits = graph0.get_orbits(depth)
+    graph1.get_orbits()
 
     keys = list(orbits.keys())
     keys.sort(key = lambda key : len(orbits[key]))
@@ -513,11 +513,11 @@ def search(bag0, bag1, depth=1, fn=None, verbose=False):
     remain.sort()
 
     for idx in fn:
-        bag0.set_colour(bag0[idx], str(idx))
-        bag1.set_colour(bag1[fn[idx]], str(idx))
+        graph0.set_colour(graph0[idx], str(idx))
+        graph1.set_colour(graph1[fn[idx]], str(idx))
 
     try:
-        state = State(bag0, bag1, depth)
+        state = State(graph0, graph1, depth)
     except Backtrack:
         return
 
@@ -538,17 +538,17 @@ def search(bag0, bag1, depth=1, fn=None, verbose=False):
         for idx in remain:
             assert fn.get(idx) is None
 
-        assert len(remain)+len(fn)+1==len(bag0)
+        assert len(remain)+len(fn)+1==len(graph0)
 
         state = stack[-1]
         state.do(fn)
 
-        assert len(remain)+len(fn)==len(bag0)
+        assert len(remain)+len(fn)==len(graph0)
 
         if verbose:
             print( fn)
 
-        if len(fn) == len(bag0):
+        if len(fn) == len(graph0):
             if verbose:
                 print( "FOUND")
             yield dict(fn)
@@ -556,7 +556,7 @@ def search(bag0, bag1, depth=1, fn=None, verbose=False):
         else:
             # try to add another state
             try:
-                _state = State(bag0, bag1, depth)
+                _state = State(graph0, graph1, depth)
                 #idx = remain.pop(randint(0, len(remain)-1))
                 idx = remain.pop(0)
                 _state.choose(idx)
@@ -578,9 +578,9 @@ def search(bag0, bag1, depth=1, fn=None, verbose=False):
             state = stack[-1]
             if verbose:
                 print( "UNDO")
-            assert len(remain)+len(fn)==len(bag0)
+            assert len(remain)+len(fn)==len(graph0)
             state.undo(fn)
-            assert len(remain)+len(fn)+1==len(bag0)
+            assert len(remain)+len(fn)+1==len(graph0)
             try:
                 if verbose:
                     print( "NEXT")
@@ -599,10 +599,10 @@ def all_autos(Gx):
     #Gx = parse(gcolor_gauge)
     m, n = Gx.shape
 
-    bag0 = Tanner.build(Gx)
-    bag1 = Tanner.build(Gx)
+    graph0 = Tanner.build(Gx)
+    graph1 = Tanner.build(Gx)
 
-    for fn in search(bag0, bag1):
+    for fn in search(graph0, graph1):
         U, V = get_perm(m, n, fn)
         yield U, V
 
@@ -612,36 +612,36 @@ def peterson_graph():
     inside = [Point('', i) for i in range(5)]
     outside = [Point('', i+5) for i in range(5)]
 
-    bag = Graph(inside+outside)
+    graph = Graph(inside+outside)
 
     for i in range(5):
 
-        bag.join(i, (i+2)%5)
-        bag.join(i, (i+3)%5)
-        bag.join(i, i+5)
+        graph.join(i, (i+2)%5)
+        graph.join(i, (i+3)%5)
+        graph.join(i, i+5)
 
         if i<4:
-            bag.join(i+5, i+6)
+            graph.join(i+5, i+6)
         else:
-            bag.join(i+5, i+1)
+            graph.join(i+5, i+1)
 
-    return bag
+    return graph
 
 
 def cyclic_graph():
     n = 5
 
     points = [Point('', i) for i in range(n)]
-    bag = Graph(points)
+    graph = Graph(points)
 
 #    for i in range(n):
 #        points[i].nbd.append(points[(i+1)%n])
 #        points[(i+1)%n].nbd.append(points[i])
 
     for i in range(n):
-        bag.add_directed(points[i], points[(i+1)%n])
+        graph.add_directed(points[i], points[(i+1)%n])
 
-    return bag
+    return graph
 
 
 
@@ -705,17 +705,17 @@ def test():
     Gx = parse(gcolor_gauge)
     m, n = Gx.shape
 
-    bag0 = Tanner.build(Gx)
-    bag1 = Tanner.build(Gx)
+    graph0 = Tanner.build(Gx)
+    graph1 = Tanner.build(Gx)
 
     #global search
     #search = search_recursive
 
     count = 0
-    for fn in search(bag0, bag1):
+    for fn in search(graph0, graph1):
         #print "iso", fn
-        bag = bag0.map(fn)
-        #print bag.shortstr()
+        graph = graph0.map(fn)
+        #print graph.shortstr()
         U, V = get_perm(m, n, fn)
         Gx1 = numpy.dot(U, numpy.dot(Gx, V))
         assert numpy.abs(Gx-Gx1).sum()==0
@@ -726,21 +726,21 @@ def test():
     # S_3 symmetry of cubical hamiltonian
     depth = 1
     H = parse(cube_ham)
-    bag0 = from_ham(H)
-    bag1 = from_ham(H)
+    graph0 = from_ham(H)
+    graph1 = from_ham(H)
     count = 0 
-    for fn in search(bag0, bag1, depth=depth):
+    for fn in search(graph0, graph1, depth=depth):
         count += 1
     assert count == 6
 
-    bag0 = peterson_graph()
-    bag1 = peterson_graph()
-    assert len(list(search(bag0, bag1, depth=1))) == 120
+    graph0 = peterson_graph()
+    graph1 = peterson_graph()
+    assert len(list(search(graph0, graph1, depth=1))) == 120
 
     # directed graph
-    bag0 = cyclic_graph()
-    bag1 = cyclic_graph()
-    assert len(list(search(bag0, bag1))) == 5
+    graph0 = cyclic_graph()
+    graph1 = cyclic_graph()
+    assert len(list(search(graph0, graph1))) == 5
 
 
 from bruhat.argv import argv
