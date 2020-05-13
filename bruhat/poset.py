@@ -164,10 +164,16 @@ class PreOrder(object):
                     remain.remove((a,d))
         return remain
 
-    def get_dot(self, filename=None):
+    def get_dot(self, filename=None, labels=True):
         pairs = self.get_skel()
         lines = ["digraph {"]
+        if labels:
+            lookup = dict((a, str(a)) for a in self.els)
+        else:
+            lookup = dict((a, idx+1) for (idx,a) in enumerate(self.els))
         for a,b in pairs:
+            a = lookup[a]
+            b = lookup[b]
             a = a or "_"
             line = '  "%s" -> "%s"'%(b, a)
             #line = line.replace("+", "")
@@ -180,10 +186,10 @@ class PreOrder(object):
         print(s, file=f)
         f.close()
 
-    def show(self):
+    def show(self, labels=True):
         i = str(hash(self)).replace('-', 'm')
         name = "tmp.%s.dot"%i
-        self.get_dot(name)
+        self.get_dot(name, labels=labels)
         os.system("dot -Tpdf %s > %s.pdf"% (name,name))
         os.system("%s %s.pdf" % (OPEN_COMMAND, name,))
 
@@ -477,7 +483,7 @@ class SupPoset(Poset):
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return SupPoset(hom, pairs, check=check)
 
-    def get_rels(self):
+    def get_rels(self): # SLOOOW
         pairs = self.pairs
         gen = list(self.get_gen())
         gen.sort()
@@ -525,11 +531,12 @@ class SupPoset(Poset):
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return SupPoset(hom, pairs, check=check)
 
-    def is_iso(self, other):
+    def is_iso(self, other): # SLOOOOOOOOOOOOOW
         assert isinstance(other, SupPoset)
         gen = self.get_gen()
         #print("gen:", gen)
         els = other.els
+        #els = other.get_gen()
         for send in all_functions(gen, els):
             send = dict(send)
             vals = list(send.values())
@@ -542,6 +549,7 @@ class SupPoset(Poset):
             for items in all_subsets(gen):
                 lhs = self.sup(items)
                 rhs = other.sup([send[g] for g in items])
+                assert rhs is not None
                 x = send.get(lhs)
                 if x==rhs:
                     continue
@@ -654,11 +662,15 @@ class Hom(object):
         return self.send[k]
 
     def __eq__(self, other):
+        if other is None:
+            return False
         assert self.src == other.src
         assert self.tgt == other.tgt
         return self.send == other.send
 
     def __ne__(self, other):
+        if other is None:
+            return True
         assert self.src == other.src
         assert self.tgt == other.tgt
         return self.send != other.send
@@ -938,32 +950,63 @@ def main():
     II = I@I
     assert len(II) == 2
 
-    P = make_supposet('0a 0b a1 b1')
-    assert P.get_gen() == set('ab')
-    assert P.get_rels() == set()
+    F2 = make_supposet('0a 0b a1 b1')
+    assert F2.get_gen() == set('ab')
+    assert F2.get_rels() == set()
 
-    PP = P@P
-    assert len(PP) == 2**4
-
+    FF = F2@F2
+    assert len(FF) == 2**4
 
     P = make_supposet('0a 0b 0c a1 b1 c1')
     assert P.get_gen() == set('abc')
     assert P.get_rels() == {('c',('a','b')), ('a',('b','c')), ('b',('a','c'))}
+    #PP = P@P # slow.....
+    #assert len(PP) == 50, len(PP)
 
     PI = P+I
     PI.check()
     assert len(PI) == 10
-    print(PI.get_gen())
+    assert len(PI.get_gen()) == 4
     #PI.show()
 
-    if 0:
-        Q = P.hom(P)
-        Q = Q.get_clean()
-        print(Q)
-        Q.get_dot("out.dot")
+    M = make_supposet('0a ab b1 0c c1')
+    Mop = M.hom(I)
+    assert M.is_iso(Mop)
 
-    #PP = P@P # slow.....
-    #assert len(PP) == 50, len(PP)
+    V = make_supposet('0a ab ac b1 c1')
+    Vop = make_supposet('0a 0b ac bc c1')
+    assert not V.is_iso(Vop)
+    assert Vop.is_iso(V.hom(I))
+    assert V.is_iso(Vop.hom(I))
+
+    if 1:
+        #V_Vop = V.hom(Vop)
+        #print(len(V_Vop)) # == 48
+    
+        V_V = V.hom(V)
+        assert len(V_V) == 50
+    
+        VVop = V@Vop
+        assert len(VVop) == 50
+
+        #assert len(VVop) == 50
+        #print(V_V.is_iso(VVop))
+
+        #assert V_V.is_iso(VVop)
+        #V_V.show(labels=False)
+        #VVop.show(labels=False)
+    
+        #Vop_V = Vop.hom(V) # == 48
+        #print(V_Vop.is_iso(Vop_V))
+
+    F2op = F2.hom(I)
+    #assert F2op.is_iso(F2)
+    lhs = Vop.hom(F2)
+    rhs = V @ F2
+    #assert lhs.is_iso(rhs)
+
+    #lhs.show(labels=False)
+    #rhs.show(labels=False)
 
     print("OK")
 

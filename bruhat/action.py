@@ -438,14 +438,14 @@ def all_functions(source, target):
     m, n = len(source), len(target)
     source = list(source)
     target = list(target)
-    assert n**m < 1e8, "too big"
+    assert n**m < 1e8, "%d too big"%(n**m,)
     if m==0:
         yield {}
     elif n==0:
         return # no functions here
     elif m==1:
         for i in range(n):
-            yield dict([(source[0], target[i])])
+            yield {source[0]: target[i]}
     else:
         for func in all_functions(source[1:], target):
             for i in range(n):
