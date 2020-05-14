@@ -5,7 +5,7 @@ from random import choice
 
 from bruhat.species import all_subsets
 from bruhat.action import all_functions
-from bruhat import equ
+from bruhat import equ, isomorph
 from bruhat.argv import argv
 
 #CHECK = True # much slower...
@@ -147,7 +147,7 @@ class PreOrder(object):
                 return True
         return False
 
-    def get_op(self, check=True):
+    def get_op(self, check=False):
         els = self.els
         pairs = [(b, a) for (a, b) in self.pairs]
         return self.__class__(els, pairs, check=check)
@@ -390,8 +390,11 @@ class SupPoset(Poset):
 
     @classmethod
     def free(cls, gens, check=CHECK):
+        assert len(gens) < 16, "too big: %d"%(len(gens),)
         items = list(all_subsets(gens))
-        pairs = [(a, b) for a in items for b in items if set(a).issubset(set(b))]
+        lookup = dict((a, set(a)) for a in items)
+        pairs = [(a, b) for a in items for b in items 
+            if lookup[a].issubset(lookup[b])]
         try:
             # try to simplify this...
             assert "+" not in gens
@@ -433,7 +436,7 @@ class SupPoset(Poset):
                     gen.remove(c)
         return gen
 
-    def add_pairs(self, rels, check=True):
+    def add_pairs(self, rels, check=False):
         "add relations to form a new SupPoset"
         ups = self.ups
         for (a, b) in rels:
@@ -505,7 +508,7 @@ class SupPoset(Poset):
         rels = R.min(R.els) # woop
         return rels
 
-    def send_iter(self, other, check=True):
+    def send_iter(self, other, check=False):
         assert isinstance(other, SupPoset)
         gen = self.get_gen()
         #print("gen:", gen)
@@ -525,13 +528,13 @@ class SupPoset(Poset):
                 #print(send)
                 yield send
 
-    def hom(self, other, check=True):
+    def hom(self, other, check=False):
         hom = [Hom(self, other, send, check=check) 
             for send in self.send_iter(other, check)]
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return SupPoset(hom, pairs, check=check)
 
-    def is_iso(self, other): # SLOOOOOOOOOOOOOW
+    def slow_is_iso(self, other): # SLOOOOOOOOOOOOOW
         assert isinstance(other, SupPoset)
         gen = self.get_gen()
         #print("gen:", gen)
@@ -564,13 +567,55 @@ class SupPoset(Poset):
                     return True
         return False
 
+    def get_graph(self):
+        points = []
+        lookup = {}
+        # decorate the top and the bot is enough
+        # for undirected graph to detect isomorphism of SupPoset's.
+        names = {self.bot:'b', self.top:'t'}
+        for idx, x in enumerate(self.els):
+            desc = names.get(x, '')
+            p = isomorph.Point(desc, idx)
+            points.append(p)
+            lookup[x] = idx
+        pairs = self.get_skel()
+        graph = isomorph.Graph(points)
+        for (a, b) in pairs:
+            i = lookup[a]
+            j = lookup[b]
+            graph.join(i, j)
+            #graph.add_directed(points[i], points[j])
+        #print(graph)
+        #print(lookup)
+        return graph
+
+    def is_iso(self, other, check=False):
+        assert isinstance(other, SupPoset)
+
+        if len(self) != len(other):
+            return False
+
+        #print("\n=========== is_iso ====================")
+        lhs = self.get_graph()
+        rhs = other.get_graph()
+
+        for f in isomorph.search(lhs, rhs):
+            #break
+            send = dict((el, other.els[f[idx]]) for (idx, el) in enumerate(self.els))
+            hom = Hom(self, other, send, check=check)
+            if check:
+                assert hom.is_iso()
+            return True
+        return False # no isomorph's found
+
     def tensor(L, R):
         lgen = L.get_gen()
         rgen = R.get_gen()
         pair = lambda a, b : (a, b)
         gen = [pair(l, r) for l in lgen for r in rgen]
-        #print("gen:", gen)
+        #print("gen:", len(gen))
         P = SupPoset.free(gen)
+        #print("P:", len(P))
         send = dict((g, (g,)) for g in gen)
         pair = lambda a, b: send[(a, b)]
         lrels = L.get_rels()
@@ -597,7 +642,7 @@ class SupPoset(Poset):
 
     __matmul__ = tensor
 
-    def get_clean(P, check=True):
+    def get_clean(P, check=False):
         gen = P.get_gen()
         rels = P.get_rels()
         Q = SupPoset.free(gen)
@@ -642,7 +687,11 @@ class Hom(object):
         send = self.send
         for a,b in src.pairs:
             p = send[a], send[b]
-            assert p in tgt.pairs
+            if p not in tgt.pairs:
+                print("not order preserving: %s --> %s"%(
+                    (a,b), (send[a],send[b])))
+                print(self)
+                raise AssertionError
 
     def __str__(self):
         s = ', '.join("%s:%s"%k for k in self.items)
@@ -743,8 +792,17 @@ class Hom(object):
         radj = self.send
         # XXX check that src has all inf's ?
         ladj = {}
+        els = src.els
+        pairs = tgt.pairs
         for x in tgt.els:
-            ladj[x] = tgt.inf([y for y in src.els if (x,radj[y]) in tgt.pairs])
+            items = []
+            up = tgt.ups[x]
+            for y in els:
+                if radj[y] in up:
+                    items.append(y)
+            ladj[x] = tgt.inf(items)
+            # much slower:
+            #ladj[x] = tgt.inf([y for y in src.els if (x,radj[y]) in tgt.pairs])
         ladj = Hom(tgt, src, ladj)
         if check:
             #print(src, "-->")
@@ -876,9 +934,8 @@ def main():
 
     R = make_supposet('0a 0b a1 b1')
     RR = R.hom(R)
-    RR = SupPoset.promote(RR)
 
-    PP = P.hom(P, check=False)
+    PP = P.hom(P)
     assert isinstance(PP, SupPoset)
     PP.check()
     assert len(PP) == 50
@@ -896,6 +953,7 @@ def main():
     e = Q.sup2(c, d)
     assert set([Q.bot, a, b, c, d, e]) == set(Q.els)
 
+    # 3x3 trellis
     P = SupPoset.free('abcd')
     hom = P.add_pairs('ac bd'.split())
     Q = hom.tgt
@@ -911,6 +969,12 @@ def main():
 
     # ----------------------------------------
 
+    P = make_supposet('0a 0b a1 b1')
+    assert P.is_iso(P)
+
+    # ----------------------------------------
+
+    # 3x3 trellis
     P = make_supposet('0a 0b ac ae be bd cf ef eg dg fh gh')
     R = P.get_clean()
     assert R.is_iso(P)
@@ -969,17 +1033,45 @@ def main():
     assert len(PI.get_gen()) == 4
     #PI.show()
 
+    #print(len(PI@PI)) # too big XXX
+
+    # smallest non-modular lattice
     M = make_supposet('0a ab b1 0c c1')
     Mop = M.hom(I)
     assert M.is_iso(Mop)
 
+    # tadpole's
     V = make_supposet('0a ab ac b1 c1')
     Vop = make_supposet('0a 0b ac bc c1')
     assert not V.is_iso(Vop)
     assert Vop.is_iso(V.hom(I))
     assert V.is_iso(Vop.hom(I))
 
-    if 1:
+    # 3x2 trellis
+    B = make_supposet('0a 0b bc ac bd d1 c1')
+
+    def test_duals(A, B):
+        Aop = A.get_op()
+        Bop = B.get_op()
+        lhs = A@B
+        rhs = Aop.hom(B)
+        assert lhs.is_iso(rhs)
+        #rhs = (Aop @ Bop).get_op()
+        #assert lhs.is_iso(rhs)
+
+    for A in [I, F2, V, B]:
+      for B in [I, F2, V, B]:
+        try:
+            test_duals(A, B)
+        except AssertionError:
+            print("test_duals: FAIL")
+            A.show()
+            B.show()
+            print(A)
+            print(B)
+            raise
+
+    if 0:
         #V_Vop = V.hom(Vop)
         #print(len(V_Vop)) # == 48
     
@@ -988,22 +1080,16 @@ def main():
     
         VVop = V@Vop
         assert len(VVop) == 50
-
-        #assert len(VVop) == 50
-        #print(V_V.is_iso(VVop))
-
-        #assert V_V.is_iso(VVop)
-        #V_V.show(labels=False)
-        #VVop.show(labels=False)
+        assert V_V.is_iso(VVop)
     
         #Vop_V = Vop.hom(V) # == 48
         #print(V_Vop.is_iso(Vop_V))
-
-    F2op = F2.hom(I)
-    #assert F2op.is_iso(F2)
-    lhs = Vop.hom(F2)
-    rhs = V @ F2
-    #assert lhs.is_iso(rhs)
+    
+        F2op = F2.hom(I)
+        assert F2op.is_iso(F2)
+        lhs = Vop.hom(F2)
+        rhs = V @ F2
+        assert lhs.is_iso(rhs)
 
     #lhs.show(labels=False)
     #rhs.show(labels=False)

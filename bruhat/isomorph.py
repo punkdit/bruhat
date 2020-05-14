@@ -36,7 +36,7 @@ class Point(object):
         self.__dict__.update(kw)
 
     def __str__(self):
-        return "Point(desc=%s, idx=%s, nbd=%s)"%(
+        return "Point(desc=%r, idx=%s, nbd=%s)"%(
             self.desc, self.idx, [p.idx for p in self.nbd])
     __repr__ = __str__
 
@@ -483,6 +483,7 @@ class State(object):
 
 
 def search(graph0, graph1, depth=1, fn=None, verbose=False):
+    # return dict: int --> int
 
     assert graph0 is not graph1
     if len(graph0) != len(graph1):
@@ -741,6 +742,8 @@ def test():
     graph0 = cyclic_graph()
     graph1 = cyclic_graph()
     assert len(list(search(graph0, graph1))) == 5
+    #for f in (search(graph0, graph1)):
+    #    print(f)
 
 
 from bruhat.argv import argv
