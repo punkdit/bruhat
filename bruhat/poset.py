@@ -58,6 +58,7 @@ class PreOrder(object):
         self.items = items
         self.pairs = pairs # set(items)
         self.els = els
+        self.set_els = set(els)
         self.ups = ups
         self.dns = dns
         self._sup = {} # cache
@@ -112,7 +113,8 @@ class PreOrder(object):
         return self.els[i]
 
     def __contains__(self, el):
-        return el in self.ups
+        #return el in self.ups
+        return el in self.set_els
 
     def __len__(self):
         return len(self.els)
@@ -141,11 +143,47 @@ class PreOrder(object):
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return Poset(hom, pairs)
 
-    def is_iso(self, other):
+    def slow_is_iso(self, other):
         for hom in self.hom(other):
             if hom.is_iso():
                 return True
         return False
+
+    def get_graph(self):
+        "encode self into a graph structure for isomorph testing"
+        points = []
+        lookup = {}
+        for idx, x in enumerate(self.els):
+            p = isomorph.Point('', idx)
+            points.append(p)
+            lookup[x] = idx
+        pairs = self.get_skel()
+        graph = isomorph.Graph(points)
+        for (a, b) in pairs:
+            i = lookup[a]
+            j = lookup[b]
+            #graph.join(i, j)
+            graph.add_directed(points[i], points[j])
+        #print(graph)
+        #print(lookup)
+        return graph
+
+    def is_iso(self, other, check=False):
+        #if len(self.els) != len(other.els) or len(self.pairs) != len(other.pairs):
+        if len(self.els) != len(other.els):
+            return False
+
+        #print("\n=========== is_iso ====================")
+        lhs = self.get_graph()
+        rhs = other.get_graph()
+
+        for f in isomorph.search(lhs, rhs):
+            send = dict((el, other.els[f[idx]]) for (idx, el) in enumerate(self.els))
+            hom = Hom(self, other, send, check=check)
+            if check:
+                assert hom.is_iso()
+            return True
+        return False # no isomorph's found
 
     def get_op(self, check=False):
         els = self.els
@@ -365,6 +403,36 @@ class Poset(PreOrder):
 #        #print("inf", items, value)
 #        return value
 
+    def get_graph(self):
+        "encode self into a graph structure for isomorph testing"
+        points = []
+        lookup = {}
+        # decorate the tops and the bots is enough
+        # for undirected graph to detect isomorphism of SupPoset's.
+        bots = self.min(self.els)
+        tops = self.max(self.els)
+        names = {}
+        for x in self.els:
+            if x in bots:
+                names[x] = 'b'
+            elif x in tops:
+                names[x] = 't'
+        for idx, x in enumerate(self.els):
+            desc = names.get(x, '')
+            p = isomorph.Point(desc, idx)
+            points.append(p)
+            lookup[x] = idx
+        pairs = self.get_skel()
+        graph = isomorph.Graph(points)
+        for (a, b) in pairs:
+            i = lookup[a]
+            j = lookup[b]
+            graph.join(i, j)
+            #graph.add_directed(points[i], points[j])
+        #print(graph)
+        #print(lookup)
+        return graph
+
 
 class SupPoset(Poset):
 
@@ -405,7 +473,6 @@ class SupPoset(Poset):
 
 #    @classmethod
 #    def free_on_poset(cls, P, check=CHECK):
-        
 
     @classmethod
     def promote(cls, item, check=CHECK):
@@ -534,87 +601,12 @@ class SupPoset(Poset):
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return SupPoset(hom, pairs, check=check)
 
-    def slow_is_iso(self, other): # SLOOOOOOOOOOOOOW
-        assert isinstance(other, SupPoset)
-        gen = self.get_gen()
-        #print("gen:", gen)
-        els = other.els
-        #els = other.get_gen()
-        for send in all_functions(gen, els):
-            send = dict(send)
-            vals = list(send.values())
-            if len(vals) < len(gen):
-                continue
-            if other.bot in vals:
-                continue
-            #print()
-            #print(send)
-            for items in all_subsets(gen):
-                lhs = self.sup(items)
-                rhs = other.sup([send[g] for g in items])
-                assert rhs is not None
-                x = send.get(lhs)
-                if x==rhs:
-                    continue
-                #print(lhs, "-->", rhs, x)
-                if x is not None:
-                    break
-                send[lhs] = rhs
-            else:
-                #print(send)
-                f = Hom(self, other, send)
-                if f.is_iso():
-                    return True
-        return False
-
-    def get_graph(self):
-        points = []
-        lookup = {}
-        # decorate the top and the bot is enough
-        # for undirected graph to detect isomorphism of SupPoset's.
-        names = {self.bot:'b', self.top:'t'}
-        for idx, x in enumerate(self.els):
-            desc = names.get(x, '')
-            p = isomorph.Point(desc, idx)
-            points.append(p)
-            lookup[x] = idx
-        pairs = self.get_skel()
-        graph = isomorph.Graph(points)
-        for (a, b) in pairs:
-            i = lookup[a]
-            j = lookup[b]
-            graph.join(i, j)
-            #graph.add_directed(points[i], points[j])
-        #print(graph)
-        #print(lookup)
-        return graph
-
-    def is_iso(self, other, check=False):
-        assert isinstance(other, SupPoset)
-
-        if len(self) != len(other):
-            return False
-
-        #print("\n=========== is_iso ====================")
-        lhs = self.get_graph()
-        rhs = other.get_graph()
-
-        for f in isomorph.search(lhs, rhs):
-            #break
-            send = dict((el, other.els[f[idx]]) for (idx, el) in enumerate(self.els))
-            hom = Hom(self, other, send, check=check)
-            if check:
-                assert hom.is_iso()
-            return True
-        return False # no isomorph's found
-
     def tensor(L, R):
         lgen = L.get_gen()
         rgen = R.get_gen()
-        pair = lambda a, b : (a, b)
-        gen = [pair(l, r) for l in lgen for r in rgen]
+        #pair = lambda a, b : (a, b)
+        gen = [(l, r) for l in lgen for r in rgen]
         #print("gen:", len(gen))
-        P = SupPoset.free(gen)
         #print("P:", len(P))
         send = dict((g, (g,)) for g in gen)
         pair = lambda a, b: send[(a, b)]
@@ -623,23 +615,26 @@ class SupPoset(Poset):
         rels = []
         for l in lgen:
             for (r, items) in rrels:
-                assert pair(l, r) in P, pair(l, r)
+                #assert pair(l, r) in P, pair(l, r)
                 rel = (pair(l, r), tuple(pair(l, r1) for r1 in items))
                 rels.append(rel)
         for r in rgen:
             for (l, items) in lrels:
-                assert pair(l, r) in P, pair(l, r)
+                #assert pair(l, r) in P, pair(l, r)
                 rel = (pair(l, r), tuple(pair(l1, r) for l1 in items))
                 rels.append(rel)
 
-        #print("rels:", len(rels))
-        pairs = [(a, P.sup(items)) for (a, items) in rels]
-        #print("pairs")
-        hom = P.add_pairs(pairs)
-        P = hom.tgt
-
+        if 0:
+            # Only works for small examples
+            P = SupPoset.free(gen)
+            pairs = [(a, P.sup(items)) for (a, items) in rels]
+            hom = P.add_pairs(pairs)
+            P = hom.tgt
+        else:
+            P = ConcretePoset(gen)
+            pairs = [(a, P.sup(items)) for (a, items) in rels]
+            P = P.add_pairs(pairs) # does not construct hom ...
         return P
-
     __matmul__ = tensor
 
     def get_clean(P, check=False):
@@ -651,14 +646,130 @@ class SupPoset(Poset):
         R = hom.tgt
         return R 
 
-    def sum(L, R):
+    def direct_sum(L, R):
         els = [(l, r) for l in L.els for r in R.els]
         pairs = [((l1, r1), (l2, r2)) 
             for (l1,r1) in els for (l2,r2) in els
             if (l1,l2) in L.pairs and (r1,r2) in R.pairs]
         return SupPoset(els, pairs)
-    __add__ = sum
+    __add__ = direct_sum
+    __mul__ = direct_sum
 
+
+#class Set(object):
+#    def __init__(self, items):
+#        assert isinstance(items, tuple)
+#        self.items = items
+
+    def is_modular(self):
+        pairs = self.pairs
+        sup2, inf2 = self.sup2, self.inf2
+        for (c, a) in pairs:
+            for b in self.els:
+                lhs = inf2(a, sup2(b, c))
+                rhs = sup2(inf2(a, b), c)
+                if lhs != rhs:
+                    return False
+        return True
+
+    def is_distributive(self):
+        els = self.els
+        sup2, inf2 = self.sup2, self.inf2
+        for a in els:
+         for b in els:
+          for c in els:
+            lhs = inf2(a, sup2(b, c))
+            rhs = sup2(inf2(a, b), inf2(a, c))
+            if lhs != rhs:
+                #print("is_distributive", a, b, c, lhs, rhs)
+                return False
+        return True
+
+
+class ConcretePoset(Poset):
+    def __init__(self, gen, check=True):
+        els = list(all_subsets(gen))
+        els.sort(key = lambda i:(len(i), i)) # shortest first
+        set_els = set(els)
+        gen = [(a,) for a in gen]
+        for a in gen:
+            assert a in set_els
+        self.gen = gen
+        assert len(set(gen)) == len(self.gen) # uniq
+        assert len(els) == 2**len(gen)
+        assert len(els[0])==0
+        assert len(els[-1])==len(gen)
+        self._bot = els[0]
+        self._top = els[-1]
+        self.els = els
+        self.set_els = set_els
+
+    def min(self, items):
+        if items is self.els: # HACK
+            return [self._bot]
+        assert 0, "TODO"
+
+    def max(self, items):
+        if items is self.els: # HACK
+            return [self._top]
+        assert 0, "TODO"
+
+    def get_skel(self):
+        els = self.els
+        pairs = []
+        for a in els:
+          n = len(a)
+          sa = set(a)
+          for b in els:
+            if len(b) != n+1:
+                continue
+            sb = set(b)
+            if not sb.issuperset(sa):
+                continue
+            if len(sb.difference(sa)) == 1:
+                pairs.append((a, b)) # a <= b
+        #print("ConcretePoset.get_skel")
+        #print(pairs)
+        return pairs
+
+    def sup2(self, a, b): 
+        top = self.top
+        c = tuple(i for i in top if i in b and i in a)
+        assert c in self.set_els
+        return c
+
+    def inf2(self, a, b): 
+        c = tuple(i for i in a if i in b)
+        assert c in self.set_els
+        return c
+
+    def add_pairs(self, rels, check=False):
+        if not rels:
+            return self
+
+        "add relations to form a new SupPoset"
+        set_els = self.set_els
+        for (a, b) in rels:
+            assert a in set_els, (a, list(set_els))
+            assert b in set_els, (b, list(set_els))
+
+        le = lambda a,b : set(a).issubset(b)
+        els = []
+        for x in self.els:
+            for (lhs, rhs) in rels: # lhs <= rhs
+                if le(rhs,x) and not le(lhs,x):
+                    break
+            else:
+                els.append(x)
+        els = set(els)
+        #pairs = [(a, b) for (a, b) in self.pairs if a in els and b in els]
+        pairs = [(a, b) for a in els for b in els if le(a, b)]
+        P = SupPoset(els, pairs)
+        ## inclusion is a right adjoint
+        #radj = Hom(P, self, dict((a, a) for a in els))
+        #ladj = radj.get_ladj()
+        #return ladj
+        return P
 
 
 class Hom(object):
@@ -815,15 +926,33 @@ class Hom(object):
 
 def main():
 
+    # ---------------------------------------
+    # PreOrder
+
+    make_preorder = lambda desc:PreOrder.generate(desc.split(), check=True)
+
     P = PreOrder.generate([], list('012'))
     assert len(P) == 3
 
-    P = PreOrder.generate('01 12 20'.split())
+    P = make_preorder('01 12 20')
     assert len(P) == 3
 
     hom = P.add_pairs(['03'])
     assert hom.src is P
-    assert len(hom.tgt) == 4
+    Q = hom.tgt
+    assert len(Q) == 4
+
+    assert not P.is_iso(Q)
+
+    Q = make_preorder('01 10 02')
+    assert len(P)==len(Q)
+    assert not P.is_iso(Q)
+
+    Q = make_preorder('12 23 31')
+    assert P.is_iso(Q)
+
+    # ---------------------------------------
+    # Poset
 
     make_poset = lambda desc:Poset.generate(desc.split()).tgt
 
@@ -862,26 +991,29 @@ def main():
     i = P.get_id()
     assert i*i == i
 
+    # ---------------------------------------
+    # SupPoset
+
     F = SupPoset.free([])
     assert len(F)==1
     assert F.bot is not None
 
-    F = SupPoset.free('ABC')
-    assert len(F) == 8
-    assert F.sup2("A", "A") == "A"
-    assert F.sup2("", "A") == "A"
-    assert F.sup2("", "A+B") == "A+B"
-    assert ("A", "A+B") in F.pairs
-    assert F.sup2("A", "A+B") == "A+B"
+    F3 = SupPoset.free('ABC')
+    assert len(F3) == 8
+    assert F3.sup2("A", "A") == "A"
+    assert F3.sup2("", "A") == "A"
+    assert F3.sup2("", "A+B") == "A+B"
+    assert ("A", "A+B") in F3.pairs
+    assert F3.sup2("A", "A+B") == "A+B"
 
-    assert F.get_gen() == set("ABC")
+    assert F3.get_gen() == set("ABC")
 
-    sup = F.sup
+    sup = F3.sup
     AB = sup("AB")
     AC = sup("AC")
     BC = sup("BC")
     ABC = sup("ABC")
-    hom = F.add_pairs([("A", BC), ("B", AC), ("C", AB),], check=True)
+    hom = F3.add_pairs([("A", BC), ("B", AC), ("C", AB),], check=True)
     G = hom.tgt
     assert hom.is_ladj()
     assert hom["A"] == "A"
@@ -940,9 +1072,9 @@ def main():
     PP.check()
     assert len(PP) == 50
 
-    F = SupPoset.free("ABC", check=True)
-    assert len(F.hom(I)) == len(F)
-    #F.get_dot("out.dot")
+    F3 = SupPoset.free("ABC", check=True)
+    assert len(F3.hom(I)) == len(F3)
+    #F3.get_dot("out.dot")
 
     P = SupPoset.free('abd')
     hom = P.add_pairs('bd'.split())
@@ -1009,7 +1141,7 @@ def main():
     #return
 
     # ----------------------------------------
-    # tensor
+    # 
     
     II = I@I
     assert len(II) == 2
@@ -1021,24 +1153,43 @@ def main():
     FF = F2@F2
     assert len(FF) == 2**4
 
-    P = make_supposet('0a 0b 0c a1 b1 c1')
-    assert P.get_gen() == set('abc')
-    assert P.get_rels() == {('c',('a','b')), ('a',('b','c')), ('b',('a','c'))}
-    #PP = P@P # slow.....
-    #assert len(PP) == 50, len(PP)
+    # ----------------------------------------
+    # 
 
-    PI = P+I
-    PI.check()
-    assert len(PI) == 10
-    assert len(PI.get_gen()) == 4
-    #PI.show()
+    P = F2*F2*I
+    assert len(P) == 32
+
+    assert F2.is_modular()
+    assert F2.is_distributive()
+    
+    assert len(F3) == 8
+    assert F3.is_modular()
+    assert F3.is_distributive()
+    
+    M3 = make_supposet('0a 0b 0c a1 b1 c1')
+    assert M3.get_gen() == set('abc')
+    assert M3.get_rels() == {('c',('a','b')), ('a',('b','c')), ('b',('a','c'))}
+    #PP = M3@M3 # slow.....
+    #assert len(PP) == 50, len(PP)
+    assert M3.is_modular()
+    assert not M3.is_distributive()
+
+    M3I = M3*I
+    M3I.check()
+    assert len(M3I) == 10
+    assert len(M3I.get_gen()) == 4
+    #M3I.show()
+    assert M3I.is_modular()
+    assert not M3I.is_distributive()
 
     #print(len(PI@PI)) # too big XXX
 
     # smallest non-modular lattice
-    M = make_supposet('0a ab b1 0c c1')
-    Mop = M.hom(I)
-    assert M.is_iso(Mop)
+    N5 = make_supposet('0a ab b1 0c c1')
+    N5op = N5.hom(I)
+    assert N5.is_iso(N5op)
+    assert not N5.is_modular()
+    assert not N5.is_distributive()
 
     # tadpole's
     V = make_supposet('0a ab ac b1 c1')
@@ -1046,53 +1197,44 @@ def main():
     assert not V.is_iso(Vop)
     assert Vop.is_iso(V.hom(I))
     assert V.is_iso(Vop.hom(I))
+    assert V.is_modular()
+    assert V.is_distributive()
+    assert Vop.is_modular()
+    assert Vop.is_distributive()
 
     # 3x2 trellis
     B = make_supposet('0a 0b bc ac bd d1 c1')
+    assert B.is_modular()
+    assert B.is_distributive()
+
+    L7 = make_supposet('0a 0b ac ad ae bd c1 d1 e1')
+    #N6 = make_supposet('0a ab bc c1 0d d1')
+    N6 = make_supposet('0a ab b1 0c cd d1')
+    assert not N6.is_modular()
+    assert not N6.is_distributive()
 
     def test_duals(A, B):
         Aop = A.get_op()
         Bop = B.get_op()
         lhs = A@B
         rhs = Aop.hom(B)
-        assert lhs.is_iso(rhs)
+        result = lhs.is_iso(rhs)
+        return result
         #rhs = (Aop @ Bop).get_op()
         #assert lhs.is_iso(rhs)
 
-    for A in [I, F2, V, B]:
-      for B in [I, F2, V, B]:
-        try:
-            test_duals(A, B)
-        except AssertionError:
-            print("test_duals: FAIL")
-            A.show()
-            B.show()
-            print(A)
-            print(B)
-            raise
+    # testing a that
+    # the only objects with duals are the distributive lattices
+    items = [I, F2, V, B, M3, N5]
+    for A in items:
+      for B in items:
+        result = test_duals(A, B)
+        a, b, c = result, A.is_distributive(), B.is_distributive()
+        if a:
+            assert b and c
+        else:
+            assert not b or not c
 
-    if 0:
-        #V_Vop = V.hom(Vop)
-        #print(len(V_Vop)) # == 48
-    
-        V_V = V.hom(V)
-        assert len(V_V) == 50
-    
-        VVop = V@Vop
-        assert len(VVop) == 50
-        assert V_V.is_iso(VVop)
-    
-        #Vop_V = Vop.hom(V) # == 48
-        #print(V_Vop.is_iso(Vop_V))
-    
-        F2op = F2.hom(I)
-        assert F2op.is_iso(F2)
-        lhs = Vop.hom(F2)
-        rhs = V @ F2
-        assert lhs.is_iso(rhs)
-
-    #lhs.show(labels=False)
-    #rhs.show(labels=False)
 
     print("OK")
 
