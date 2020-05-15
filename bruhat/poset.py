@@ -119,7 +119,6 @@ class PreOrder(object):
     def __len__(self):
         return len(self.els)
 
-
     def get_id(self):
         "build _identity Hom"
         send = dict((a, a) for a in self.els)
@@ -553,7 +552,7 @@ class SupPoset(Poset):
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return SupPoset(hom, pairs, check=check)
 
-    def get_rels(self): # SLOOOW
+    def get_rel(self): # SLOOOW
         pairs = self.pairs
         gen = list(self.get_gen())
         gen.sort()
@@ -601,7 +600,7 @@ class SupPoset(Poset):
         pairs = [(f,g) for f in hom for g in hom if f<=g]
         return SupPoset(hom, pairs, check=check)
 
-    def tensor(L, R):
+    def slow_tensor(L, R):
         lgen = L.get_gen()
         rgen = R.get_gen()
         #pair = lambda a, b : (a, b)
@@ -610,8 +609,8 @@ class SupPoset(Poset):
         #print("P:", len(P))
         send = dict((g, (g,)) for g in gen)
         pair = lambda a, b: send[(a, b)]
-        lrels = L.get_rels()
-        rrels = R.get_rels()
+        lrels = L.get_rel()
+        rrels = R.get_rel()
         rels = []
         for l in lgen:
             for (r, items) in rrels:
@@ -624,22 +623,51 @@ class SupPoset(Poset):
                 rel = (pair(l, r), tuple(pair(l1, r) for l1 in items))
                 rels.append(rel)
 
-        if 0:
-            # Only works for small examples
-            P = SupPoset.free(gen)
-            pairs = [(a, P.sup(items)) for (a, items) in rels]
-            hom = P.add_pairs(pairs)
-            P = hom.tgt
-        else:
-            P = ConcretePoset(gen)
-            pairs = [(a, P.sup(items)) for (a, items) in rels]
-            P = P.add_pairs(pairs) # does not construct hom ...
+        # Only works for small examples
+        P = SupPoset.free(gen)
+        pairs = [(a, P.sup(items)) for (a, items) in rels]
+        hom = P.add_pairs(pairs)
+        P = hom.tgt
+        return P
+
+    def tensor(L, R, verbose=False):
+        lgen = L.get_gen()
+        rgen = R.get_gen()
+        #pair = lambda a, b : (a, b)
+        gen = [(l, r) for l in lgen for r in rgen]
+        #print("gen:", len(gen))
+        #print("P:", len(P))
+        send = dict((g, (g,)) for g in gen)
+        pair = lambda a, b: send[(a, b)]
+        lrels = L.get_rel()
+        rrels = R.get_rel()
+        rels = []
+        for l in lgen:
+            for (r, items) in rrels:
+                #assert pair(l, r) in P, pair(l, r)
+                rel = (pair(l, r), tuple(pair(l, r1) for r1 in items))
+                rels.append(rel)
+        for r in rgen:
+            for (l, items) in lrels:
+                #assert pair(l, r) in P, pair(l, r)
+                rel = (pair(l, r), tuple(pair(l1, r) for l1 in items))
+                rels.append(rel)
+
+        if verbose:
+            print("tensor")
+            print(gen)
+            print(len(rels), rels)
+        P = ConcretePoset(gen)
+        pairs = [(a, P.sup(items)) for (a, items) in rels]
+        if verbose:
+            print(pairs)
+        P = P.add_pairs(pairs) # does not construct hom ...
         return P
     __matmul__ = tensor
 
     def get_clean(P, check=False):
         gen = P.get_gen()
-        rels = P.get_rels()
+        rels = P.get_rel()
         Q = SupPoset.free(gen)
         pairs = [(a, Q.sup(items)) for (a, items) in rels]
         hom = Q.add_pairs(pairs)
@@ -734,18 +762,22 @@ class ConcretePoset(Poset):
 
     def sup2(self, a, b): 
         top = self.top
-        c = tuple(i for i in top if i in b and i in a)
+        assert a in self.set_els
+        assert b in self.set_els
+        c = tuple(i for i in top if i in b or i in a) # union
         assert c in self.set_els
         return c
 
     def inf2(self, a, b): 
-        c = tuple(i for i in a if i in b)
+        assert a in self.set_els
+        assert b in self.set_els
+        c = tuple(i for i in a if i in b) # intersection
         assert c in self.set_els
         return c
 
     def add_pairs(self, rels, check=False):
-        if not rels:
-            return self
+        #if not rels:
+        #    return self # XX convert to SupPoset
 
         "add relations to form a new SupPoset"
         set_els = self.set_els
@@ -754,6 +786,7 @@ class ConcretePoset(Poset):
             assert b in set_els, (b, list(set_els))
 
         le = lambda a,b : set(a).issubset(b)
+        #le = lambda a,b:self.sup2(a,b)==b # a bit slower
         els = []
         for x in self.els:
             for (lhs, rhs) in rels: # lhs <= rhs
@@ -1142,25 +1175,46 @@ def main():
 
     # ----------------------------------------
     # 
+
+    P = ConcretePoset('abcd')
+    assert len(P) == 2**4
+    els = P.els
+    for a in els:
+      for b in els:
+        c = P.sup2(a, b)
+        assert set(c).issuperset(a)
+        assert set(c).issuperset(b), (a, b, c)
+
+    # ----------------------------------------
+    # 
     
     II = I@I
     assert len(II) == 2
 
     F2 = make_supposet('0a 0b a1 b1')
     assert F2.get_gen() == set('ab')
-    assert F2.get_rels() == set()
+    assert F2.get_rel() == set()
 
-    FF = F2@F2
-    assert len(FF) == 2**4
+    T = make_supposet('0a ab') # a chain
+    #print(T.get_gen())
+    #print(T.get_rel())
 
-    # ----------------------------------------
-    # 
+    TT = T@T
+    assert len(TT.get_gen()) == 4
+
+    TT1 = T.slow_tensor(T)
+    
+    assert TT.is_iso(TT1)
+
+    # -------------------------
 
     P = F2*F2*I
     assert len(P) == 32
 
     assert F2.is_modular()
     assert F2.is_distributive()
+    assert (I@F2).is_iso(F2)
+    assert (F2@F2).is_iso(SupPoset.free('ABCD'))
     
     assert len(F3) == 8
     assert F3.is_modular()
@@ -1168,21 +1222,22 @@ def main():
     
     M3 = make_supposet('0a 0b 0c a1 b1 c1')
     assert M3.get_gen() == set('abc')
-    assert M3.get_rels() == {('c',('a','b')), ('a',('b','c')), ('b',('a','c'))}
-    #PP = M3@M3 # slow.....
-    #assert len(PP) == 50, len(PP)
+    assert M3.get_rel() == {('c',('a','b')), ('a',('b','c')), ('b',('a','c'))}
     assert M3.is_modular()
     assert not M3.is_distributive()
+
+    #PP = M3@M3
+    PP = M3.slow_tensor(M3)
+    #print(PP)
+    #print(PP.els)
+    assert len(PP) == 50, len(PP)
 
     M3I = M3*I
     M3I.check()
     assert len(M3I) == 10
     assert len(M3I.get_gen()) == 4
-    #M3I.show()
     assert M3I.is_modular()
     assert not M3I.is_distributive()
-
-    #print(len(PI@PI)) # too big XXX
 
     # smallest non-modular lattice
     N5 = make_supposet('0a ab b1 0c c1')
@@ -1190,6 +1245,10 @@ def main():
     assert N5.is_iso(N5op)
     assert not N5.is_modular()
     assert not N5.is_distributive()
+
+    lhs = I.tensor(N5, verbose=False)
+    #print(len(lhs))
+    assert (I@N5).is_iso(N5)
 
     # tadpole's
     V = make_supposet('0a ab ac b1 c1')
@@ -1201,6 +1260,10 @@ def main():
     assert V.is_distributive()
     assert Vop.is_modular()
     assert Vop.is_distributive()
+
+    P = V@V
+    #print(len(P))
+    assert P.is_iso(V.slow_tensor(V))
 
     # 3x2 trellis
     B = make_supposet('0a 0b bc ac bd d1 c1')
@@ -1218,23 +1281,25 @@ def main():
         Bop = B.get_op()
         lhs = A@B
         rhs = Aop.hom(B)
-        result = lhs.is_iso(rhs)
-        return result
-        #rhs = (Aop @ Bop).get_op()
-        #assert lhs.is_iso(rhs)
+        a = lhs.is_iso(rhs)
+        rhs = (Aop @ Bop).get_op()
+        b = lhs.is_iso(rhs)
+        return [a, b]
 
-    # testing a that
-    # the only objects with duals are the distributive lattices
-    items = [I, F2, V, B, M3, N5]
-    for A in items:
-      for B in items:
+    # test that the distributive lattices have dual objects
+    names = "I F2 T V B M3 N5".split()
+    for sA in names:
+      for sB in names:
+        A, B = eval(sA), eval(sB)
         result = test_duals(A, B)
-        a, b, c = result, A.is_distributive(), B.is_distributive()
-        if a:
-            assert b and c
-        else:
-            assert not b or not c
-
+        result += [
+            A.is_modular(), A.is_distributive(), 
+            B.is_modular(), B.is_distributive()]
+        result = [int(i) for i in result]
+        #print(sA, sB, '\t', result)
+        assert result[0] == result[1]
+        if result[3] and result[5]:
+            assert result[0] # distributive implies duals
 
     print("OK")
 
