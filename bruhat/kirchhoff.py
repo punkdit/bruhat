@@ -81,7 +81,12 @@ class Graph(object):
         for i in range(n):
             B[i,i] = -B[i].sum()
 
-        #print(B)
+        print("B =")
+        print(B)
+        #for row in B:
+        #  for col in row:
+        #    print("%6s"%col, end=" ")
+        #  print()
 
         B = get_submatrix(B, 0)
 

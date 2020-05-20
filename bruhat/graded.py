@@ -156,10 +156,12 @@ class Matrix(object):
         m, n = M.shape
         if cols is None:
             cols = [i+1 for i in range(n)]
-            cols = [Cell(src_grade, "c%s"%col) for col in cols]
+#            cols = [Cell(src_grade, "c%s"%col) for col in cols]
+            cols = [Cell(src_grade, col) for col in cols]
         if rows is None:
             rows = [i+1 for i in range(m)]
-            rows = [Cell(tgt_grade, "r%s"%row) for row in rows]
+#            rows = [Cell(tgt_grade, "r%s"%row) for row in rows]
+            rows = [Cell(tgt_grade, row) for row in rows]
         A = cls(rows, cols, {}, ring)
         for i in range(m):
           for j in range(n):

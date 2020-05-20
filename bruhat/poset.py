@@ -1005,6 +1005,8 @@ def main():
     P = make_poset('aa bb')
     assert P.sup2('a', 'b') == None
 
+    #P = make_poset('aa bb cc')
+
     P = make_poset('a1 b1 a0 b0')
     assert P.sup2('a', 'b') == None
 
@@ -1141,6 +1143,7 @@ def main():
 
     # 3x3 trellis
     P = make_supposet('0a 0b ac ae be bd cf ef eg dg fh gh')
+    assert P.hom(I).is_iso(P)
     R = P.get_clean()
     assert R.is_iso(P)
 
@@ -1289,8 +1292,10 @@ def main():
     # test that the distributive lattices have dual objects
     names = "I F2 T V B M3 N5".split()
     for sA in names:
+      A = eval(sA)
+      assert A.get_op().is_iso(A.hom(I))
       for sB in names:
-        A, B = eval(sA), eval(sB)
+        B = eval(sB)
         result = test_duals(A, B)
         result += [
             A.is_modular(), A.is_distributive(), 
