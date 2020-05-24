@@ -154,13 +154,13 @@ class Matrix(object):
         if isinstance(M, list):
             M = numpy.array(M)
         m, n = M.shape
+        # WARNING:
+        # by default we reuse labels for cols & rows
         if cols is None:
             cols = [i+1 for i in range(n)]
-#            cols = [Cell(src_grade, "c%s"%col) for col in cols]
             cols = [Cell(src_grade, col) for col in cols]
         if rows is None:
             rows = [i+1 for i in range(m)]
-#            rows = [Cell(tgt_grade, "r%s"%row) for row in rows]
             rows = [Cell(tgt_grade, row) for row in rows]
         A = cls(rows, cols, {}, ring)
         for i in range(m):
@@ -443,9 +443,25 @@ class Chain(object):
         return g
 
     @classmethod
-    def from_array(cls, M, ring, rows=None, cols=None):
+    def from_array_i(cls, M, ring, rows=None, cols=None): # arghhh...
         src_grade = 1
         tgt_grade = 0
+        A = Matrix.from_array(M, ring, rows, cols, src_grade, tgt_grade)
+        chain = cls({tgt_grade:A.rows, src_grade:A.cols}, {src_grade:A}, ring)
+        return chain
+
+    @classmethod
+    def from_array(cls, M, ring):
+        src_grade = 1
+        tgt_grade = 0
+        if isinstance(M, list):
+            M = numpy.array(M)
+        m, n = M.shape
+        # We need distinct names for the row cells & col cells...
+        cols = [i+1 for i in range(n)]
+        cols = [Cell(src_grade, "e%s"%col, "e_{%s}"%col) for col in cols]
+        rows = [i+1 for i in range(m)]
+        rows = [Cell(tgt_grade, "v%s"%row, "v_{%s}"%row) for row in rows]
         A = Matrix.from_array(M, ring, rows, cols, src_grade, tgt_grade)
         chain = cls({tgt_grade:A.rows, src_grade:A.cols}, {src_grade:A}, ring)
         return chain
@@ -755,13 +771,14 @@ def test_matrix(ring):
     #print(A)
     A.check()
 
-    print("kernel:")
-    print(A.kernel())
-    print("image:")
-    print(A.image())
-    print("cokernel:")
-    print(A.cokernel())
-
+    if 0:
+        print("kernel:")
+        print(A.kernel())
+        print("image:")
+        print(A.image())
+        print("cokernel:")
+        print(A.cokernel())
+    
     At = A.dual()
     #print(A*At)
     At.check()

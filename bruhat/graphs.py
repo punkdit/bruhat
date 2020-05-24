@@ -959,7 +959,7 @@ def render():
         # should be zero
         #deca.draw(u, None, c, [trafo.scale(r, r), trafo.translate(x, y)])
     
-        name = "renderings/desargues_deca_v2_4_1"
+        name = "output/desargues_deca_v2_4_1"
         c.writeSVGfile(name)
         c.writePDFfile(name)
 
