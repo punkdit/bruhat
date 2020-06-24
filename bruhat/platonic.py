@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Construct the five platonic solids, their incidence geometry and
@@ -11,7 +11,7 @@ from bruhat.argv import argv
 from bruhat.util import write, uniqtuples
 from bruhat.geometry import Geometry
 from bruhat import isomorph
-from action import Group, Perm
+from bruhat.action import Group, Perm
 
 
 
@@ -37,6 +37,9 @@ class Vector(object):
         #    if abs(self.cs[i] - other.cs[i]) > EPSILON:
         #        return False
         #return True
+
+    def __getitem__(self, idx):
+        return self.cs[idx]
         
     def __ne__(self, other):
         return self.__str__() != other.__str__()
@@ -78,6 +81,9 @@ class Item(object):
     def __hash__(self):
         #return hash(tuple(self.verts))
         return self._hash
+
+    def __getitem__(self, idx):
+        return self.verts[idx]
 
     def reflect_x(self):
         verts = [v.reflect(0) for v in self.verts]
@@ -263,9 +269,9 @@ def make_simplex():
 
 
 def make_geometry(name):
-    print "make_geometry", name
+    #print "make_geometry", name
     faces = eval("make_%s"%name)()
-    print "faces:", len(faces)
+    #print "faces:", len(faces)
 
     edges = []
     n = len(faces)
@@ -277,7 +283,7 @@ def make_geometry(name):
         if len(items) == 2:
             edge = Edge(items)
             edges.append(edge)
-    print "edges:", len(edges)
+    #print "edges:", len(edges)
 
     verts = set()
     n = len(edges)
@@ -289,7 +295,7 @@ def make_geometry(name):
         if len(items) == 1:
             vert = Vertex(items)
             verts.add(vert)
-    print "verts:", len(verts)
+    #print "verts:", len(verts)
 
     items = faces + edges + list(verts)
     tpmap = {}
@@ -317,8 +323,8 @@ def test():
 
     for name in "simplex cube octahedron dodecahedron icosahedron".split():
         make_geometry(name)
-        print
-    print "OK"
+        print()
+    print("OK")
 
 
 
@@ -327,7 +333,7 @@ def orbiplex(G, k=4):
     #import numpy
     #from gelim import zeros, dotx, rank, nullity
 
-    print "orbiplex: |G|=%d" % len(G)
+    print("orbiplex: |G|=%d" % len(G))
     items = G.items
 
     k = argv.get("k", k)
@@ -373,8 +379,7 @@ def main():
         perm = Perm(f, items)
         perms.append(perm)
         write('.')
-    print
-    print "symmetry:", len(perms)
+    print("symmetry:", len(perms))
     assert len(set(perms)) == len(perms)
 
     G = Group(perms, items)
