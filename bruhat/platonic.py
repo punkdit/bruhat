@@ -45,10 +45,30 @@ class Vector(object):
         return self.__str__() != other.__str__()
         return not (self==other)
 
+    def __add__(self, other):
+        cs = [self[0]+other[0],self[1]+other[1],self[2]+other[2]]
+        return Vector(*cs)
+
+    def __sub__(self, other):
+        cs = [self[0]-other[0],self[1]-other[1],self[2]-other[2]]
+        return Vector(*cs)
+
     def reflect(self, i):
         cs = list(self.cs)
         cs[i] = -cs[i]
         return Vector(*cs)
+
+    def cross(self, other):
+        cs = [
+            self[1]*other[2] - self[2]*other[1],
+            self[2]*other[0] - self[0]*other[2],
+            self[0]*other[1] - self[1]*other[0]]
+        return Vector(*cs)
+
+    def dot(self, other):
+        r = self[0]*other[0]+self[1]*other[1]+self[2]*other[2]
+        return r
+
 
 
 class Item(object):
@@ -85,6 +105,10 @@ class Item(object):
     def __getitem__(self, idx):
         return self.verts[idx]
 
+    def reversed(self):
+        verts = list(reversed(self.verts))
+        return Face(verts)
+
     def reflect_x(self):
         verts = [v.reflect(0) for v in self.verts]
         return self.__class__(verts)
@@ -112,6 +136,18 @@ class Face(Item):
 
 class Vertex(Item):
     pass
+
+
+def fix_orientation(face):
+    v0, v1, v2 = face[:3]
+    a = v1-v0
+    b = v2-v0
+    n = a.cross(b)
+    items = [v.dot(n) for v in face]
+    reverse = items[0] < 0
+    if reverse:
+        face = face.reversed()
+    return face
 
 
 def make_cube():
@@ -143,7 +179,7 @@ def make_cube():
             Vector(+1, -1, k)]
         Face(vs)
 
-    return Face.pop()
+    return [fix_orientation(face) for face in Face.pop()]
 
 
 def make_dodecahedron():
@@ -180,7 +216,7 @@ def make_dodecahedron():
     f2 = f0.reflect_z()
     f3 = f1.reflect_z()
 
-    return Face.pop()
+    return [fix_orientation(face) for face in Face.pop()]
 
 
 def make_icosahedron():
@@ -228,7 +264,7 @@ def make_icosahedron():
     f2 = f0.reflect_y()
     f3 = f0.reflect_z()
 
-    return Face.pop()
+    return [fix_orientation(face) for face in Face.pop()]
 
 
 
@@ -249,7 +285,7 @@ def make_octahedron():
     f2 = f1.reflect_y()
     f3 = f2.reflect_x()
 
-    return Face.pop()
+    return [fix_orientation(face) for face in Face.pop()]
 
 
 def make_simplex():
@@ -265,7 +301,7 @@ def make_simplex():
     Face([v0, v2, v3])
     Face([v1, v2, v3])
 
-    return Face.pop()
+    return [fix_orientation(face) for face in Face.pop()]
 
 
 def make_geometry(name):
