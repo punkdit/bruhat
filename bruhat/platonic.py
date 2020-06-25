@@ -302,6 +302,7 @@ def make_simplex():
     Face([v1, v2, v3])
 
     return [fix_orientation(face) for face in Face.pop()]
+make_tetrahedron = make_simplex
 
 
 def make_geometry(name):
