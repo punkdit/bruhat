@@ -255,6 +255,9 @@ class Perm(object):
     def __getitem__(self, i):
         return self.perm[i]
 
+    def __len__(self):
+        return len(self.perm)
+
     def fixed(self):
         perm = self.perm
         return [i for i in range(len(perm)) if perm[i]==i]

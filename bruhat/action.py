@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+"""
+Group actions.
+
+see also: gset.py
+
+"""
+
 from __future__ import print_function
 
 import sys
