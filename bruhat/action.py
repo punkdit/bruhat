@@ -2409,34 +2409,34 @@ def burnside(G, Hs=None):
             r'\text{subgroup} \text{order} \text{cosets} \text{conjugates} \text{cyclic}'.split(), rows)
         print(s)
 
-#    if argv.make_dot:
-#        arrows = []
-#        names = [H.name for H in Hs]
-#        parents = dict((name, []) for name in names)
-#        for H in Hs:
-#          for K in Hs:
-#            # Look for K a subgroup of H
-#            if len(K) >= len(H):
-#                continue
-#            for K1 in K.conjugates:
-#              if H.is_subgroup(K1):
-#                arrows.append((K.name, H.name))
-#                parents[K.name].append(H.name)
-#                break
-#        print "digraph"
-#        print "{"
-#        print "    rankdir = BT;"
-#        arrows = list(arrows)
-#        arrows.sort()
-#        for src, tgt in arrows:
-#            factor = False
-#            for p in parents[src]:
-#                if tgt in parents[p]:
-#                    break
-#            else:
-#                print "    %s -> %s;" % (src, tgt)
-#        print "}"
-#        return
+    if argv.make_dot:
+        arrows = []
+        names = [H.name for H in Hs]
+        parents = dict((name, []) for name in names)
+        for H in Hs:
+          for K in Hs:
+            # Look for K a subgroup of H
+            if len(K) >= len(H):
+                continue
+            for K1 in K.conjugates:
+              if H.is_subgroup(K1):
+                arrows.append((K.name, H.name))
+                parents[K.name].append(H.name)
+                break
+        print("digraph")
+        print("{")
+        print("    rankdir = BT;")
+        arrows = list(arrows)
+        arrows.sort()
+        for src, tgt in arrows:
+            factor = False
+            for p in parents[src]:
+                if tgt in parents[p]:
+                    break
+            else:
+                print("    %s -> %s;" % (src, tgt))
+        print("}")
+        return
 
     if 0:
         # We don't need to do this again: isomorphic homs all

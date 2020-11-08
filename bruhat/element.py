@@ -1444,6 +1444,24 @@ def test():
         burnside(cayley(GL3_2)) # high memory usage
 
     # -------------------------
+    # 
+
+    ring = Z
+    GL = Linear(3, ring)
+
+    gen = [
+        [[0, 0, -1], [0, 1, 0], [1, 0, 0]],
+        [[1, 0, 0], [0, 0, 1], [0, -1, 0]],
+    ]
+    gen = [GL.get(g) for g in gen]
+
+    B_3 = mulclose(gen)
+    assert len(B_3) == 24
+    if argv.B_3:
+        B_3 = cayley(B_3)
+        burnside(B_3)
+
+    # -------------------------
 
     field = FiniteField(3)
     GL = Linear(2, field)
