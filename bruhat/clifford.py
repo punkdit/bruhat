@@ -8,7 +8,6 @@ from bruhat.vec import Space, Hom, Map
 from bruhat.action import mulclose, mulclose_names, Perm, Group
 from bruhat.argv import argv
 from bruhat.util import factorial, partitions
-from bruhat.rep import get_perms, Young
 
 def atpow(A, n):
     return reduce(matmul, [A]*n)

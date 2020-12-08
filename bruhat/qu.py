@@ -26,6 +26,9 @@ class Specht(object):
             perm = Perm(perm, items)
             gen1.append(perm)
 
+        perms = mulclose(gen1)
+        G = Group(perms, items)
+
         #I = space.ident
 
         # tensor power of the space
@@ -45,11 +48,11 @@ class Specht(object):
             swap = Map(items, thom)
             gen2.append(swap)
 
-        G = mulclose(gen1)
         action = mulclose_hom(gen1, gen2)
         for g in G:
           for h in G:
             assert action[g*h] == action[g]*action[h] # check it's a group hom
+
 
         # Build the young symmetrizers
         projs = []
@@ -58,7 +61,7 @@ class Specht(object):
             if len(part) > d:
                 continue
             parts.append(part)
-            t = Young(part)
+            t = Young(G, part)
     
             rowG = t.get_rowperms()
             colG = t.get_colperms()
@@ -92,7 +95,9 @@ class Specht(object):
 
 def test():
 
-    t = Young((4, 3, 1, 1))
+    n = 9
+    G = Group.symmetric(n)
+    t = Young(G, (4, 3, 1, 1))
     assert t.rows == [[0, 1, 2, 3], [4, 5, 6], [7], [8]]
     assert t.cols == [[0, 4, 7, 8], [1, 5], [2, 6], [3]]
 
@@ -157,7 +162,7 @@ def main():
     hom = A.hom
     space = hom.src
     N = 2**3
-    basis = space.basis()
+    basis = space.get_basis()
     orbits = set()
     for v in basis:
         v1 = space.zero_vector()
