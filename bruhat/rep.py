@@ -268,28 +268,6 @@ def burnside(tp): # make it a method
 
 
 
-def test():
-
-    ring = element.Q
-
-    n = argv.get("n", 3)
-    G = Group.symmetric(n)
-
-    tp = Cat(G, ring)
-    burnside(tp)
-
-    return
-
-
-    rep = Rep.perm_rep(G, cat)
-    rep.check()
-
-    r2 = rep @ rep
-    r2.check()
-
-    r2.dump()
-
-
 def specht(n, space):
 
     assert n>=2
@@ -338,7 +316,7 @@ def specht(n, space):
 
     
 def tensor_rep(G, space):
-    "build rep of natural G action on tensor power of space"
+    "build rep of permutation action of G on tensor power of space"
 
     gen = G.items
     n = len(gen)
@@ -434,6 +412,28 @@ class Young(object):
             lines.append(line)
         return '\n'.join(lines) + ']'
 
+
+
+def test():
+
+    ring = element.Q
+
+    n = argv.get("n", 3)
+    G = Group.symmetric(n)
+
+    tp = Cat(G, ring)
+    burnside(tp)
+
+    return
+
+
+    rep = Rep.perm_rep(G, cat)
+    rep.check()
+
+    r2 = rep @ rep
+    r2.check()
+
+    r2.dump()
 
 
     
