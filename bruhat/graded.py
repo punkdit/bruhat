@@ -810,7 +810,7 @@ def test_main():
 
         test_matrix(ring)
 
-        break
+        #break
 
 
 if __name__ == "__main__":

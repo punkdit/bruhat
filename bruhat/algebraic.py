@@ -1052,23 +1052,31 @@ def test():
     G = Group.Sp(2*n, p)
     F = G.invariant_form
 
-    if 0:
-        # WORKS:
-        items = []
-        for left in all_codes(m, n):
-          for right in all_matrices(m, n):
-            M = numpy.concatenate((left, right), axis=1)
-            assert M.shape == (m, 2*n), M.shape
-            M = normal_form(M, p)
-            if rank(M) < m:
-                continue
-            M = Matrix(M, p)
-            A = M*F*M.transpose()
-            if A.is_zero():
-                items.append(str(M))
-            
-        print(len(items), len(set(items)))
+    # WORKS:
+    items = []
+    for left in all_codes(m, n):
+      for right in all_matrices(m, n):
+        M = numpy.concatenate((left, right), axis=1)
+        assert M.shape == (m, 2*n), M.shape
+        M = normal_form(M, p)
+        if rank(M) < m:
+            continue
+        M = Matrix(M, p)
+        A = M*F*M.transpose()
+        if A.is_zero():
+            items.append(str(M))
+        
+    print(len(set(items)))
+
     
+def test_1():
+    n = argv.get("n", 3)
+    m = argv.get("m", 2)
+    p = argv.get("p", 2)
+
+    G = Group.Sp(2*n, p)
+    F = G.invariant_form
+
     G1 = Group.Sp(2*n + 2, p)
     F1 = G1.invariant_form
 
