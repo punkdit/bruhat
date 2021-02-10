@@ -17,32 +17,89 @@ from bruhat import series
 #def is_scalar(x):
 #    return isinstance(x, int)
 
+def tpl_zip(left, right):
+    i = j = 0
+    while 1:
+        if i < len(left) and j < len(right):
+            kl, vl = left[i]
+            kr, vr = right[j]
+            if kl < kr:
+                yield (kl, vl, 0)
+                i += 1
+            elif kl == kr:
+                yield (kl, vl, vr)
+                i += 1
+                j += 1
+            else:
+                assert kl > kr
+                yield (kr, 0, vr)
+                j += 1
+        elif i < len(left):
+            kl, vl = left[i]
+            yield (kl, vl, 0)
+            i += 1
+        elif j < len(right):
+            kr, vr = right[j]
+            yield (kr, 0, vr)
+            j += 1
+        else:
+            break
 
-def tpl_add(tj, tk):
-    tj = dict(tj)
-    tk = dict(tk)
-    for k,v in tk.items():
-        tj[k] = tj.get(k, 0) + v
-        assert tj[k] > 0
-    tj = list(tj.items())
-    tj.sort()
-    tj = tuple(tj)
-    return tj
+
+#def tpl_add_old(tj, tk):
+#    tj = dict(tj)
+#    tk = dict(tk)
+#    for k,v in tk.items():
+#        tj[k] = tj.get(k, 0) + v
+#        assert tj[k] > 0
+#    tj = list(tj.items())
+#    tj.sort()
+#    tj = tuple(tj)
+#    return tj
                 
 
-def tpl_div(top, bot): # not used
-    top = dict(top)
-    bot = dict(bot)
-    result = {}
-    for k,v in bot.items():
-        w = top.get(k, 0)
-        if w < v:
-            return None
-        if v < w:
-            result[k] = w-v
-    result = list(result.items())
-    result.sort()
+def tpl_add(left, right):
+    result = tuple((k, l+r) for (k, l, r) in tpl_zip(left, right) if l+r)
+    #assert result == tpl_add_old(left, right)
     return result
+
+def tpl_sub(left, right):
+    result = tuple((k, l-r) for (k, l, r) in tpl_zip(left, right) if l-r)
+    return result
+
+def tpl_union(left, right):
+    result = tuple((k, max(l,r)) for (k, l, r) in tpl_zip(left, right))
+    return result
+
+def tpl_ge(left, right):
+    for (k, l, r) in tpl_zip(left, right):
+        if l<r:
+            return False
+    return True
+
+def tpl_compare(left, right):
+    l = sum([l[1] for l in left], 0)
+    r = sum([r[1] for r in right], 0)
+    if l > r:
+        return True
+    if l == r and left>right: # ?
+        return True
+    return False
+
+
+#def tpl_div(top, bot): # not used
+#    top = dict(top)
+#    bot = dict(bot)
+#    result = {}
+#    for k,v in bot.items():
+#        w = top.get(k, 0)
+#        if w < v:
+#            return None
+#        if v < w:
+#            result[k] = w-v
+#    result = list(result.items())
+#    result.sort()
+#    return result
 
 
 def tpl_degree(tpl):
@@ -73,17 +130,20 @@ class Poly(object):
         coefs = {}
         keys = []
         degree = 0
+        head = ()
         for key, value in cs.items():
             if value == 0:
                 continue
             key = list(key)
             key.sort()
             key = tuple(key)
+            if tpl_compare(key, head):
+                head = key
             dkey = dict(key)
             assert len(dkey) == len(key)
             deg = 0
             for v in dkey.values():
-                assert v
+                assert v, repr(dkey)
                 deg += v
             degree = max(degree, deg)
             coefs[key] = value
@@ -93,6 +153,7 @@ class Poly(object):
         self.keys = keys
         self.cs = coefs
         self.degree = degree
+        self.head = head
         self.ring = ring
 
     def __len__(self):
@@ -103,11 +164,17 @@ class Poly(object):
         val = self.cs[key]
         return Poly({key : val}, self.ring)
 
+    def get(self, key):
+        return self.cs.get(key, self.ring.zero)
+
     def terms(self):
         cs = self.cs
         for key in self.keys:
             val = self.cs[key]
             yield Poly({key : val}, self.ring)
+
+    def get_const(self):
+        return self.cs.get((), self.ring.zero)
 
     @classmethod
     def promote(cls, item, ring):
@@ -116,6 +183,9 @@ class Poly(object):
         #assert is_scalar(item)
         item = ring.promote(item)
         return Poly({() : item}, ring)
+
+    def get_zero(self):
+        return Poly({():self.ring.zero}, self.ring)
 
     def __eq__(self, other):
         other = self.promote(other, self.ring)
@@ -175,6 +245,73 @@ class Poly(object):
           for k2, v2 in list(other.cs.items()):
             k = tpl_add(k1, k2)
             cs[k] = cs.get(k, 0) + v1*v2
+        return Poly(cs, ring)
+
+    def reduce1(P, Q):
+        "return R, S such that Q=R*P+S "
+        m0 = P.head
+        for m1 in list(Q.cs.keys()):
+            if tpl_ge(m1, m0):
+                break
+        else:
+            return P.get_zero(), Q
+
+        m2 = tpl_sub(m1, m0)
+        #print("reduce: m1-m0 = ", m1, m0, m2)
+        ring = P.ring
+        m2 = Poly({m2:ring.one}, ring)
+        R = (Q.get(m1)//P.get(m0)) * m2
+        S = Q - R * P
+        assert S.degree <= Q.degree
+        return R, S
+
+    def reduce(P, Q):
+        "return R, S such that Q=R*P+S "
+        if P==0:
+            return 0, Q
+        R, S = P.reduce1(Q)
+        assert Q == R*P + S
+        while R and S:
+            R1, S1 = P.reduce1(S)
+            S = S1
+            R = R + R1
+            assert Q == R*P + S
+            if R1 == 0:
+                break
+        return R, S
+
+    def __div__(self, other):
+        other = self.promote(other, self.ring)
+        R, S = other.reduce(self)
+        return R
+    __truediv__ = __div__
+
+    def diff(self, var):
+        "_differentiate wrt var"
+        if isinstance(var, Poly):
+            v = str(var)
+            assert var == Poly(v, self.ring)
+            var = v
+        #print("diff", self, ",", var)
+        cs = {}
+        for k, coeff in self.cs.items():
+            #print(k, coeff)
+            match = (var, 0)
+            rest = []
+            for item in k:
+                if item[0] == var:
+                    match = item
+                else:
+                    rest.append(item)
+            #print("match:", match[0], match[1])
+            deg = match[1]
+            if deg == 0:
+                continue
+            if deg > 1:
+                rest.append((var, deg-1))
+                coeff *= deg
+            rest = tuple(rest)
+            cs[rest] = coeff
         return Poly(cs, ring)
 
     def __pow__(self, n):
@@ -352,7 +489,57 @@ def test():
         a += Poly("a_%d"%i, ring)
         b += Poly("b_%d"%i, ring)
 
+    p = x**2 * y + x*y - 17
+    q = x**2 * y**2 + x*y**2 - 3
+    _, R = p.reduce(q)
+    assert R == 17*y - 3
+
+    assert (x*y + y) / y == (x + 1)
+    assert (x**2 - y**2) / (x+y) == (x-y)
+
     print("OK")
+
+
+def test_hilbert():
+    # ---------------------------------------------------------------
+    # Here we work out the coefficients of a Hilbert polynomial
+    # given by the rational function top/bot.
+    # These coefficients give the dimension of irreps of SL(3).
+
+    top = one - x*y
+    bot = ((one-x)**3) * ((one-y)**3)
+
+    def diff(top, bot, var):
+        top, bot = top.diff(var)*bot - bot.diff(var)*top, bot*bot
+        return top, bot
+
+    fracs = {}
+    fracs[0,0] = (top, bot)
+
+    N = 3
+    for i in range(N):
+      for j in range(N):
+        top, bot = fracs[i, j]
+        top, bot = diff(top, bot, 'x')
+        fracs[i, j+1] = top, bot
+
+        top, bot = fracs[i, j]
+        top, bot = diff(top, bot, 'y')
+        fracs[i+1, j] = top, bot
+        print(".", end="", flush=True)
+    print()
+
+    for i in range(N+1):
+      for j in range(N+1):
+        if (i, j) not in fracs:
+            continue
+        top, bot = fracs[i, j]
+        t = top.get_const()
+        b = bot.get_const()
+        val = t//b//factorial(i)//factorial(j)
+        print(val, end=" ")
+      print()
+
 
 
 class Formal(series.Series):
@@ -500,9 +687,11 @@ def main():
 
 if __name__ == "__main__":
 
-    if argv.test:
+    fn = argv.next()
+    if fn is None:
         test()
     else:
-        main()
+        fn = eval(fn)
+        fn()
 
 
