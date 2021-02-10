@@ -6,6 +6,7 @@ Multivariate commutative polynomials.
 
 from functools import reduce
 import operator
+from random import randint, shuffle, seed
 
 from bruhat.argv import argv
 from bruhat.util import cross, factorial
@@ -143,7 +144,7 @@ class Poly(object):
             assert len(dkey) == len(key)
             deg = 0
             for v in dkey.values():
-                assert v, repr(dkey)
+                assert v, "got some zero exponents: %s"%repr(dkey)
                 deg += v
             degree = max(degree, deg)
             coefs[key] = value
@@ -285,6 +286,26 @@ class Poly(object):
         R, S = other.reduce(self)
         return R
     __truediv__ = __div__
+
+    def normalized(P):
+        "divide by leading coefficient"
+        head = P.head
+        c = P.get(head)
+        if c != P.ring.one:
+            P = P / c
+        return P
+
+    def critical_pair(P, Q):
+        P = P.normalized()
+        Q = Q.normalized()
+        m = tpl_union(P.head, Q.head)
+        mi = tpl_sub(m, P.head)
+        mj = tpl_sub(m, Q.head)
+        ring = P.ring
+        mi = Poly({mi:1}, ring)
+        mj = Poly({mj:1}, ring)
+        S = mi * P - mj * Q
+        return S
 
     def diff(self, var):
         "_differentiate wrt var"
@@ -450,8 +471,83 @@ class Poly(object):
         p = eval(s, ns)
         return p
 
+    @classmethod
+    def random(cls, vars, ring, degree=3, terms=3):
+        cs = {}
+        rank = len(vars)
+        for i in range(terms):
+            key = [0]*rank
+            remain = degree
+            for j in range(rank):
+                key[j] = randint(0, remain)
+                remain -= key[j]
+            shuffle(key)
+            key = tuple((vars[i], key[i]) for i in range(rank) if key[i])
+            value = randint(-2, 2)
+            cs[key] = value
+        P = cls(cs, ring)
+        return P
+
+
+def reduce_many(polys, P):
+    seen = set([P])
+    while 1:
+        print("reduce_many", len(seen))
+        for Q in polys:
+            print(Q, "reduce", P)
+            Q1, P1 = Q.reduce(P)
+            print("\t", Q1, "||", P1)
+            P = P1
+        if P in seen:
+            break
+        print("\t", P)
+        seen.add(P)
+        #assert len(seen) < 5
+    return P
+
+
+def grobner(polys):
+    "Build a grobner basis from polys."
+
+    assert polys
+    ring = polys[0].ring
+    polys = [p for p in polys if p]
+
+    basis = set(polys)
+    pairs = set()
+    for i in range(len(polys)):
+      for j in range(i+1, len(polys)):
+        pairs.add((polys[i], polys[j]))
+
+    while pairs:
+        print("grobner", len(pairs))
+        P, Q = pairs.pop()
+        S = P.critical_pair(Q)
+        if S==0:
+            continue
+
+        #write("(")
+        S = reduce_many(basis, S)
+        #write(")")
+        if S==0:
+            continue
+
+        S = S.normalized()
+
+        for P in basis:
+            pairs.add((P, S))
+        basis.add(S)
+        #write('.')
+
+    return basis
+
+
+
+
+
 
 def test():
+
     global ring
 
     ring = Q
@@ -460,6 +556,7 @@ def test():
     one = Poly({():1}, ring)
     x = Poly("x", ring)
     y = Poly("y", ring)
+    z = Poly("z", ring)
     xx = Poly({(("x", 2),) : 1}, ring)
     xy = Poly({(("x", 1), ("y", 1)) : 1}, ring)
 
@@ -496,6 +593,47 @@ def test():
 
     assert (x*y + y) / y == (x + 1)
     assert (x**2 - y**2) / (x+y) == (x-y)
+
+    # -------------------------------------
+    # 
+
+    for trial in range(20):
+        p = Poly.random(list('xyz'), ring)
+        q = Poly.random(list('xyz'), ring)
+        #print p, "||", q
+        r, s = p.reduce(q)
+
+    # -------------------------------------
+    # 
+
+    p = x**2*y-x**2
+    q = x*y**2-y**2
+    assert p.critical_pair(q) == x*y**2 - x**2*y
+    assert p.critical_pair(q) == -q.critical_pair(p)
+    assert p.critical_pair(p) == 0
+    assert q.critical_pair(q) == 0
+
+
+    # -------------------------------------
+    # 
+
+    p = x**2*y-x**2
+    q = x*y**2-y**2
+    polys = [p, q]
+    basis = grobner(polys)
+    #print basis
+
+    for i in range(10):
+        polys = [Poly.random(list('xyz'), ring) for _ in range(2)]
+        basis = grobner(polys)
+        #print len(basis)
+
+    polys = [x+y+z, x*y+x*z+y*z, x*y*z]
+    basis = grobner(polys)
+    #for p in basis:
+    #    print(p)
+    #print(basis)
+
 
     print("OK")
 
@@ -686,6 +824,10 @@ def main():
 
 
 if __name__ == "__main__":
+
+    _seed = argv.get("seed")
+    if _seed is not None:
+        seed(_seed)
 
     fn = argv.next()
     if fn is None:
