@@ -574,7 +574,7 @@ def main():
     for i in range(10):
         polys = [Poly.random(3) for _ in range(2)]
         basis = grobner(polys)
-        #print len(basis)
+        #print(len(basis))
 
     polys = [x1+x2+x3, x1*x2+x1*x3+x2*x3, x1*x2*x3]
     basis = grobner(polys)

@@ -47,18 +47,6 @@ def tpl_zip(left, right):
             break
 
 
-#def tpl_add_old(tj, tk):
-#    tj = dict(tj)
-#    tk = dict(tk)
-#    for k,v in tk.items():
-#        tj[k] = tj.get(k, 0) + v
-#        assert tj[k] > 0
-#    tj = list(tj.items())
-#    tj.sort()
-#    tj = tuple(tj)
-#    return tj
-                
-
 def tpl_add(left, right):
     result = tuple((k, l+r) for (k, l, r) in tpl_zip(left, right) if l+r)
     #assert result == tpl_add_old(left, right)
@@ -78,29 +66,19 @@ def tpl_ge(left, right):
             return False
     return True
 
-def tpl_compare(left, right):
+def tpl_gt(left, right):
+    "total order on monomials"
+    if left==right:
+        return False
     l = sum([l[1] for l in left], 0)
     r = sum([r[1] for r in right], 0)
-    if l > r:
-        return True
-    if l == r and left>right: # ?
-        return True
-    return False
+    if l != r:
+        return l>r
+    for (k, l, r) in tpl_zip(left, right):
+        if l != r:
+            return l>r
+    assert 0 # should not get here...
 
-
-#def tpl_div(top, bot): # not used
-#    top = dict(top)
-#    bot = dict(bot)
-#    result = {}
-#    for k,v in bot.items():
-#        w = top.get(k, 0)
-#        if w < v:
-#            return None
-#        if v < w:
-#            result[k] = w-v
-#    result = list(result.items())
-#    result.sort()
-#    return result
 
 
 def tpl_degree(tpl):
@@ -138,7 +116,7 @@ class Poly(object):
             key = list(key)
             key.sort()
             key = tuple(key)
-            if tpl_compare(key, head):
+            if tpl_gt(key, head):
                 head = key
             dkey = dict(key)
             assert len(dkey) == len(key)
@@ -147,7 +125,7 @@ class Poly(object):
                 assert v, "got some zero exponents: %s"%repr(dkey)
                 deg += v
             degree = max(degree, deg)
-            coefs[key] = value
+            coefs[key] = ring.promote(value)
             keys.append(key)
         #assert len(coefs) == len(cs), (coefs, cs)
         keys.sort()
@@ -250,24 +228,35 @@ class Poly(object):
 
     def reduce1(P, Q):
         "return R, S such that Q=R*P+S "
+#        print("reduce1(%s, %s)"%(P, Q))
         m0 = P.head
-        for m1 in list(Q.cs.keys()):
+
+        best = None
+        #for m1 in Q.cs:
+        for m1 in Q.keys:
             if tpl_ge(m1, m0):
-                break
-        else:
+              if best is None or tpl_gt(m1, best):
+                best = m1
+        if best is None:
             return P.get_zero(), Q
 
-        m2 = tpl_sub(m1, m0)
-        #print("reduce: m1-m0 = ", m1, m0, m2)
+#        print("reduce1: m0=%s, best=%s"%(m0, best))
+        m2 = tpl_sub(best, m0)
+#        print("reduce1: best-m0 = ", m2)
         ring = P.ring
         m2 = Poly({m2:ring.one}, ring)
-        R = (Q.get(m1)//P.get(m0)) * m2
+#        print("--->", Q.get(best), P.get(m0), Q.get(best)/P.get(m0))
+        R = (Q.get(best)/P.get(m0)) * m2
         S = Q - R * P
         assert S.degree <= Q.degree
+#        print("\tR=%s, S=%s"%(R, S))
+#        print()
+        assert S.get(best) == 0
         return R, S
 
     def reduce(P, Q):
         "return R, S such that Q=R*P+S "
+#        print("reduce(%s, %s)"%(P, Q))
         if P==0:
             return 0, Q
         R, S = P.reduce1(Q)
@@ -333,7 +322,7 @@ class Poly(object):
                 coeff *= deg
             rest = tuple(rest)
             cs[rest] = coeff
-        return Poly(cs, ring)
+        return Poly(cs, self.ring)
 
     def __pow__(self, n):
         ring = self.ring
@@ -492,15 +481,15 @@ class Poly(object):
 def reduce_many(polys, P):
     seen = set([P])
     while 1:
-        print("reduce_many", len(seen))
+#        print("reduce_many", len(seen))
         for Q in polys:
-            print(Q, "reduce", P)
+#            print(Q, "reduce", P)
             Q1, P1 = Q.reduce(P)
-            print("\t", Q1, "||", P1)
+#            print("\t", Q1, "||", P1)
             P = P1
         if P in seen:
             break
-        print("\t", P)
+#        print("\t", P)
         seen.add(P)
         #assert len(seen) < 5
     return P
@@ -520,15 +509,13 @@ def grobner(polys):
         pairs.add((polys[i], polys[j]))
 
     while pairs:
-        print("grobner", len(pairs))
+#        print("grobner", len(pairs))
         P, Q = pairs.pop()
         S = P.critical_pair(Q)
         if S==0:
             continue
 
-        #write("(")
         S = reduce_many(basis, S)
-        #write(")")
         if S==0:
             continue
 
@@ -537,7 +524,6 @@ def grobner(polys):
         for P in basis:
             pairs.add((P, S))
         basis.add(S)
-        #write('.')
 
     return basis
 
@@ -548,10 +534,8 @@ def grobner(polys):
 
 def test():
 
-    global ring
-
+    #global ring
     ring = Q
-
     zero = Poly({}, ring)
     one = Poly({():1}, ring)
     x = Poly("x", ring)
@@ -597,11 +581,20 @@ def test():
     # -------------------------------------
     # 
 
-    for trial in range(20):
+    for trial in range(100):
         p = Poly.random(list('xyz'), ring)
         q = Poly.random(list('xyz'), ring)
         #print p, "||", q
         r, s = p.reduce(q)
+
+        if p==0:
+            continue
+        pq = p*q
+        r, s = p.reduce(pq)
+        assert s==0
+        assert r==q
+
+    #return
 
     # -------------------------------------
     # 
@@ -623,10 +616,11 @@ def test():
     basis = grobner(polys)
     #print basis
 
+    # yikes, easy for this to go off the rails!
     for i in range(10):
-        polys = [Poly.random(list('xyz'), ring) for _ in range(2)]
+        polys = [Poly.random(list('xy'), ring) for _ in range(3)]
         basis = grobner(polys)
-        #print len(basis)
+        #print(len(basis))
 
     polys = [x+y+z, x*y+x*z+y*z, x*y*z]
     basis = grobner(polys)
@@ -643,6 +637,13 @@ def test_hilbert():
     # Here we work out the coefficients of a Hilbert polynomial
     # given by the rational function top/bot.
     # These coefficients give the dimension of irreps of SL(3).
+
+    ring = Q
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+    x = Poly("x", ring)
+    y = Poly("y", ring)
+    z = Poly("z", ring)
 
     top = one - x*y
     bot = ((one-x)**3) * ((one-y)**3)
