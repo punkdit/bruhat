@@ -328,7 +328,7 @@ class Poly(object):
         ring = self.ring
         if n==0:
             return Poly({():ring.one}, ring)
-        assert n>0
+        assert n>0, repr(n)
         p = self
         for i in range(n-1):
             p = self*p
@@ -525,7 +525,16 @@ def grobner(polys):
             pairs.add((P, S))
         basis.add(S)
 
-    return basis
+    #return basis
+
+    new = []
+    for p in basis:
+        if new:
+            p = reduce_many(new, p)
+        if p != 0:
+            new.append(p)
+
+    return new
 
 
 
@@ -632,11 +641,12 @@ def test():
     print("OK")
 
 
-def test_hilbert():
+def test_hilbert_sl3():
     # ---------------------------------------------------------------
     # Here we work out the coefficients of a Hilbert polynomial
     # given by the rational function top/bot.
     # These coefficients give the dimension of irreps of SL(3).
+    # See also test_graded_sl3 below.
 
     ring = Q
     zero = Poly({}, ring)
@@ -679,6 +689,66 @@ def test_hilbert():
         print(val, end=" ")
       print()
 
+
+def all_degree(vs, deg, ring):
+    n = len(vs)
+    assert n>0
+    if n==1:
+        v = vs[0]
+        yield v**deg
+        return
+
+    items = list(range(deg+1))
+    for idxs in cross((items,)*(n-1)):
+        idxs = list(idxs)
+        remain = deg - sum(idxs)
+        if remain < 0:
+            continue
+        idxs.append(remain)
+        p = Poly({():1}, ring)
+        assert p==1
+        for idx, v in zip(idxs, vs):
+            p = p * v**idx
+        yield p
+            
+
+
+def test_graded_sl3():
+    # ---------------------------------------------------------------
+    # slightly more explicit calculation than test_hilbert above
+
+    ring = Q
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+    x = Poly("x", ring)
+    y = Poly("y", ring)
+    z = Poly("z", ring)
+    u = Poly("u", ring)
+    v = Poly("v", ring)
+    w = Poly("w", ring)
+
+    rel = x*u + y*v + z*w
+    rels = [rel]
+    rels = grobner(rels)
+
+    for a in range(4):
+      for b in range(4):
+        gens = []
+        for p in all_degree([x, y, z], a, ring):
+          for q in all_degree([u, v, w], b, ring):
+            rem = p*q
+            #gens.append(pq)
+            for rel in rels:
+                div, rem = rel.reduce(rem)
+                #print(pq, div, rem)
+            gens.append(rem)
+    
+        basis = grobner(gens)
+        print(len(basis), end=' ', flush=True)
+      print()
+
+
+    print("OK")
 
 
 class Formal(series.Series):
