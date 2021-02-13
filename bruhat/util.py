@@ -108,6 +108,21 @@ def allsignedperms(items):
 assert list(allsignedperms("ab")) == [(1, ('a', 'b')), (-1, ('b', 'a'))]
 
 
+def determinant(A):
+    "return determinant of a square numpy matrix"
+    m, n = A.shape
+    assert m==n
+    value = 0
+    N = list(range(n))
+    for sign, perm in allsignedperms(N):
+        #print(sign, perm)
+        v = sign
+        for i, idx in enumerate(perm):
+            v = v*A[i, idx]
+        value = value + v
+    return value
+
+
 def write(s):
     sys.stdout.write(str(s)+' ')
     sys.stdout.flush()

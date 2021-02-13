@@ -8,8 +8,10 @@ from functools import reduce
 import operator
 from random import randint, shuffle, seed
 
+import numpy
+
 from bruhat.argv import argv
-from bruhat.util import cross, factorial
+from bruhat.util import cross, factorial, choose, determinant
 from bruhat.theta import divisors
 from bruhat.element import Fraction, Q
 from bruhat import series
@@ -510,7 +512,7 @@ def grobner(polys):
 
     while pairs:
 #        print("grobner", len(pairs))
-        P, Q = pairs.pop()
+        P, Q = pairs.pop() # XXX make this _deterministic...
         S = P.critical_pair(Q)
         if S==0:
             continue
@@ -749,6 +751,45 @@ def test_graded_sl3():
 
 
     print("OK")
+
+
+def test_plucker():
+    ring = Q
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+
+    rows, cols = argv.get("rows", 2), argv.get("cols", 4)
+    U = numpy.empty((rows, cols), dtype=object)
+    for i in range(rows):
+      for j in range(cols):
+        U[i, j] = Poly("x[%d,%d]"%(i, j), ring)
+
+    print(U)
+    COLS = list(range(cols))
+    w = {} # the plucker coordinates
+    for idxs in choose(COLS, rows):
+        V = U[:, idxs]
+        #print(V)
+        a = determinant(V)
+        w[idxs] = a
+        #print(idxs, a)
+
+    if (rows, cols) == (2, 4):
+        assert w[0,1]*w[2,3]-w[0,2]*w[1,3]+w[0,3]*w[1,2] == 0
+
+    for idxs in choose(COLS, rows-1):
+      for jdxs in choose(COLS, rows+1):
+        if len(idxs) and idxs[-1] >= jdxs[0]:
+            continue
+        print(idxs, jdxs)
+        sign = ring.one
+        rel = ring.zero
+        for l in range(rows+1):
+            ldxs = idxs+(jdxs[l],)
+            rdxs = jdxs[:l] + jdxs[l+1:]
+            rel += sign*w[ldxs]*w[rdxs]
+            sign *= -1
+        print(rel)
 
 
 class Formal(series.Series):
