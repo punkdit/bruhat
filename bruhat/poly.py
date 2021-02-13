@@ -642,6 +642,7 @@ def test():
 
     print("OK")
 
+dim_sl3 = lambda a, b : (a+1)*(b+1)*(a+b+2)//2
 
 def test_hilbert_sl3():
     # ---------------------------------------------------------------
@@ -688,11 +689,12 @@ def test_hilbert_sl3():
         t = top.get_const()
         b = bot.get_const()
         val = t//b//factorial(i)//factorial(j)
+        assert val == dim_sl3(i, j)
         print(val, end=" ")
       print()
 
 
-def all_degree(vs, deg, ring):
+def all_monomials(vs, deg, ring):
     n = len(vs)
     assert n>0
     if n==1:
@@ -736,8 +738,8 @@ def test_graded_sl3():
     for a in range(4):
       for b in range(4):
         gens = []
-        for p in all_degree([x, y, z], a, ring):
-          for q in all_degree([u, v, w], b, ring):
+        for p in all_monomials([x, y, z], a, ring):
+          for q in all_monomials([u, v, w], b, ring):
             rem = p*q
             #gens.append(pq)
             for rel in rels:
@@ -746,9 +748,74 @@ def test_graded_sl3():
             gens.append(rem)
     
         basis = grobner(gens)
+        assert len(basis) == dim_sl3(a, b)
         print(len(basis), end=' ', flush=True)
       print()
 
+
+    print("OK")
+
+
+def test_graded_sl4():
+
+    ring = Q
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+    poly = lambda v : Poly(v, ring)
+
+    p1 = poly("p1")
+    p2 = poly("p2")
+    p3 = poly("p3")
+    p4 = poly("p4")
+    p12 = poly("p12")
+    p13 = poly("p13")
+    p14 = poly("p14")
+    p23 = poly("p23")
+    p24 = poly("p24")
+    p34 = poly("p34")
+    p123 = poly("p123")
+    p124 = poly("p124")
+    p134 = poly("p134")
+    p234 = poly("p234")
+
+    rels = [
+        p23*p1 - p13*p2 + p12*p3,       p24*p1 - p14*p2 + p12*p4,
+        p34*p1 - p14*p3 + p13*p4,       p34*p2 - p24*p3 + p23*p4,
+        p14*p23 - p13*p24 + p12*p34,    p234*p1 - p134*p2 + p124*p3 - p123*p4,
+        p134*p12 - p124*p13 + p123*p14, p234*p12 - p124*p23 + p123*p24,
+        p234*p13 - p134*p23 + p123*p34, p234*p14 - p134*p24 + p124*p34,
+    ]
+
+    grades = [
+        [p1, p2, p3, p4],
+        [p12, p13, p14, p23, p24, p34],
+        [p123, p124, p134, p234],
+    ]
+    multi = argv.get("multi")
+    n = 5 if multi is None else sum(multi)+1
+    n = argv.get("n", n)
+    for g0 in range(n):
+     for g1 in range(n):
+      for g2 in range(n):
+        if multi is not None and (g0, g1, g2)!=multi:
+            print(".  ", end='')
+            continue
+        elif g0+g1+g2 > n-1:
+            print(".  ", end='')
+            continue
+        gens = []
+        for m0 in all_monomials(grades[0], g0, ring):
+         for m1 in all_monomials(grades[1], g1, ring):
+          for m2 in all_monomials(grades[2], g2, ring):
+            m = m0*m1*m2
+            for rel in rels:
+                div, m = rel.reduce(m)
+            gens.append(m)
+            
+        basis = grobner(gens)
+        print(len(basis), end=' ', flush=True)
+      print()
+     print()
 
     print("OK")
 
@@ -779,6 +846,54 @@ def test_plucker():
 
     for idxs in choose(COLS, rows-1):
       for jdxs in choose(COLS, rows+1):
+        if len(idxs) and idxs[-1] >= jdxs[0]:
+            continue
+        #print(idxs, jdxs)
+        sign = ring.one
+        rel = ring.zero
+        for l in range(rows+1):
+            ldxs = idxs+(jdxs[l],)
+            rdxs = jdxs[:l] + jdxs[l+1:]
+            rel += sign*w[ldxs]*w[rdxs]
+            sign *= -1
+        assert rel==0
+
+
+def test_plucker_flag():
+    ring = Q
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+
+    n = argv.get("n", 4)
+    U = numpy.empty((n, n), dtype=object)
+    for i in range(n):
+      for j in range(n):
+        U[i, j] = Poly("x[%d,%d]"%(i, j), ring)
+
+    print(U)
+
+    N = list(range(n))
+    w = {} # the plucker coordinates
+    for k in range(1, n):
+      for idxs in choose(N, k):
+        V = U[:k, idxs]
+        #print(V)
+        a = determinant(V)
+        if k==1:
+            w[idxs[0]] = a
+        else:
+            w[idxs] = a
+        #print(idxs, a)
+
+    if n==4:
+        assert w[1,2]*w[0] - w[0,2]*w[1] + w[0,1]*w[2] == 0
+        assert w[0,1]*w[2,3]-w[0,2]*w[1,3]+w[0,3]*w[1,2] == 0
+        assert w[1,2,3]*w[0,3] - w[0,2,3]*w[1,3] + w[0,1,3]*w[2,3] == 0
+
+    return
+
+    for idxs in choose(N, rows-1):
+      for jdxs in choose(N, rows+1):
         if len(idxs) and idxs[-1] >= jdxs[0]:
             continue
         print(idxs, jdxs)
