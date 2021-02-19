@@ -154,8 +154,21 @@ class Poly(object):
             val = self.cs[key]
             yield Poly({key : val}, self.ring)
 
+    def is_const(self):
+        cs = self.cs
+        return not cs or list(cs.keys()) == [(),]
+
     def get_const(self):
         return self.cs.get((), self.ring.zero)
+
+    def get_vars(self):
+        vs = set()
+        for key in self.keys:
+            for item in key:
+                vs.add(item[0])
+        vs = list(vs)
+        vs.sort()
+        return vs
 
     @classmethod
     def promote(cls, item, ring):
@@ -456,11 +469,23 @@ class Poly(object):
             s = "".join([str(i) for i in items])
         return s
 
-    def substitute(self, ns):
+    def substitute(self, ns): # try not to use this :P
         s = self.python_str()
         assert type(ns) is dict, repr(ns)
-        p = eval(s, ns)
+        p = eval(s, ns) # argh, boo, lame!
         return p
+
+    def __call__(self, **kw):
+        #return self.substitute(kw)
+        ring = self.ring
+        #val = ring.zero
+        val = self
+        for (k, v) in kw.items():
+            p = Poly(k, ring)
+            val = (p-v).reduce(val)[1]
+        if val.is_const():
+            val = val.get_const()
+        return val
 
     @classmethod
     def random(cls, vars, ring, degree=3, terms=3):
@@ -640,7 +665,6 @@ def test():
     #print(basis)
 
 
-    print("OK")
 
 dim_sl3 = lambda a, b : (a+1)*(b+1)*(a+b+2)//2
 
@@ -753,10 +777,10 @@ def test_graded_sl3():
       print()
 
 
-    print("OK")
 
 
 def test_graded_sl4():
+    # See: Miller & Sturmfels, p276
 
     ring = Q
     zero = Poly({}, ring)
@@ -812,12 +836,15 @@ def test_graded_sl4():
                 div, m = rel.reduce(m)
             gens.append(m)
             
+        print(len(gens), end=':', flush=True)
         basis = grobner(gens)
         print(len(basis), end=' ', flush=True)
+        #basis.sort(key=str)
+        #for p in basis:
+        #    print(p)
       print()
      print()
 
-    print("OK")
 
 
 def test_plucker():
@@ -885,10 +912,30 @@ def test_plucker_flag():
             w[idxs] = a
         #print(idxs, a)
 
-    if n==4:
-        assert w[1,2]*w[0] - w[0,2]*w[1] + w[0,1]*w[2] == 0
-        assert w[0,1]*w[2,3]-w[0,2]*w[1,3]+w[0,3]*w[1,2] == 0
-        assert w[1,2,3]*w[0,3] - w[0,2,3]*w[1,3] + w[0,1,3]*w[2,3] == 0
+    assert n==4
+    p1 = w[0]
+    p2 = w[1]
+    p3 = w[2]
+    p4 = w[3]
+    p12 = w[0,1]
+    p13 = w[0,2]
+    p14 = w[0,3]
+    p23 = w[1,2]
+    p24 = w[1,3]
+    p34 = w[2,3]
+    p123 = w[0,1,2]
+    p124 = w[0,1,3]
+    p134 = w[0,2,3]
+    p234 = w[1,2,3]
+
+    for rel in [
+        p23*p1 - p13*p2 + p12*p3,       p24*p1 - p14*p2 + p12*p4,
+        p34*p1 - p14*p3 + p13*p4,       p34*p2 - p24*p3 + p23*p4,
+        p14*p23 - p13*p24 + p12*p34,    p234*p1 - p134*p2 + p124*p3 - p123*p4,
+        p134*p12 - p124*p13 + p123*p14, p234*p12 - p124*p23 + p123*p24,
+        p234*p13 - p134*p23 + p123*p34, p234*p14 - p134*p24 + p124*p34,
+    ]:
+        assert rel == 0
 
     return
 
@@ -1063,4 +1110,5 @@ if __name__ == "__main__":
         fn = eval(fn)
         fn()
 
+    print("OK")
 
