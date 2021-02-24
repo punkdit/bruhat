@@ -62,6 +62,12 @@ def tpl_union(left, right):
     result = tuple((k, max(l,r)) for (k, l, r) in tpl_zip(left, right))
     return result
 
+def tpl_disjoint(left, right):
+    for (k, l, r) in tpl_zip(left, right):
+        if l and r:
+            return False
+    return True
+
 def tpl_ge(left, right):
     for (k, l, r) in tpl_zip(left, right):
         if l<r:
@@ -288,6 +294,8 @@ class Poly(object):
     def __div__(self, other):
         other = self.promote(other, self.ring)
         R, S = other.reduce(self)
+        if S!=0:
+            raise Exception("%s not divisible by %s" % (self, other))
         return R
     __truediv__ = __div__
 
@@ -302,6 +310,8 @@ class Poly(object):
     def critical_pair(P, Q):
         P = P.normalized()
         Q = Q.normalized()
+        if tpl_disjoint(P.head, Q.head):
+            return P.ring.zero
         m = tpl_union(P.head, Q.head)
         mi = tpl_sub(m, P.head)
         mj = tpl_sub(m, Q.head)
@@ -522,55 +532,116 @@ def reduce_many(polys, P):
     return P
 
 
-def grobner(polys):
+def grobner(polys, reduce=True, verbose=False):
     "Build a grobner basis from polys."
 
     assert polys
     ring = polys[0].ring
-    polys = [p for p in polys if p]
+    polys = [p.normalized() for p in polys if p!=0]
+    if verbose:
+        print("grobner(%s)"%(polys,))
 
     basis = set(polys)
-    pairs = set()
+    pairs = []
     for i in range(len(polys)):
       for j in range(i+1, len(polys)):
-        pairs.add((polys[i], polys[j]))
+        pairs.append((polys[i], polys[j]))
 
+    seen = set()
     while pairs:
+        pairs.sort(key = lambda pair:len(str(pair)))
 #        print("grobner", len(pairs))
-        P, Q = pairs.pop() # XXX make this _deterministic...
-        S = P.critical_pair(Q)
-        if S==0:
+        P, Q = pairs.pop(0)
+        if (P, Q) in seen:
+            continue
+        seen.add((P, Q))
+        S1 = P.critical_pair(Q)
+        if S1==0:
             continue
 
-        S = reduce_many(basis, S)
+        S = reduce_many(basis, S1)
         if S==0:
             continue
 
         S = S.normalized()
+        if verbose:
+            print("grobner: P=%s, Q=%s, S(P,Q)=%s --> %s"%(P, Q, S1, S))
+
+        if S in basis:
+            continue
 
         for P in basis:
-            pairs.add((P, S))
+            if (P, S) not in seen:
+                pairs.append((P, S))
         basis.add(S)
 
-    #return basis
 
-    new = []
-    for p in basis:
-        if new:
-            p = reduce_many(new, p)
-        if p != 0:
-            new.append(p)
+    if reduce:
+        new = set()
+        for p in basis:
+            if new:
+                p = reduce_many(new, p)
+            if p != 0:
+                new.add(p)
+        basis = new
 
-    return new
+#        for p in basis:
+#          for q in basis:
+#            if q is p:
+#                continue
+#            r = p.reduce(q)
+#            if r==0:
+#                assert 0, (p, q, r)
+
+    basis = list(basis)
+    basis.sort(key = str)
+
+    return basis
 
 
 
+def test_sl2():
 
+    ring = Q
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+    a, b, c, d, e, f, g, h = [Poly(c, ring) for c in 'abcdefgh']
+
+    def repr_2d(a, b, c, d):
+        A = numpy.empty((2, 2), dtype=object)
+        A[:] = [[a, b], [c, d]]
+        #A = A.transpose()
+        return A
+
+    def repr_3d(a, b, c, d):
+        A = numpy.empty((3, 3), dtype=object)
+        A[:] = [[a*a, a*c, c*c], [2*a*b, a*d+b*c, 2*c*d], [b*b, b*d, d*d]]
+        A = A.transpose()
+        return A
+
+    #a, b, c, d, e, f, g, h = [1, 1, 1, 2, 1, 2, 0, 1]
+
+    dot = numpy.dot
+    A2 = repr_2d(a, b, c, d)
+    B2 = repr_2d(e, f, g, h)
+    #print(A2)
+    #print(B2)
+    AB2 = dot(A2, B2)
+    #print(AB2)
+    a0, b0, c0, d0 = AB2.flat
+
+    A3 = repr_3d(a, b, c, d)
+    B3 = repr_3d(e, f, g, h)
+    AB3 = dot(A3, B3)
+    #print(A3)
+    #print(B3)
+    #print(AB3)
+    #print(repr_3d(a0, b0, c0, d0))
+    assert numpy.alltrue(AB3 == repr_3d(a0, b0, c0, d0))
 
 
 def test():
 
-    #global ring
     ring = Q
     zero = Poly({}, ring)
     one = Poly({():1}, ring)
@@ -611,6 +682,9 @@ def test():
     _, R = p.reduce(q)
     assert R == 17*y - 3
 
+    div, rem = y.reduce(x*y+y)
+    assert rem == 0
+    assert div == x+1
     assert (x*y + y) / y == (x + 1)
     assert (x**2 - y**2) / (x+y) == (x-y)
 
@@ -646,17 +720,29 @@ def test():
     # -------------------------------------
     # 
 
+    x1 = Poly("x1", ring)
+    x2 = Poly("x2", ring)
+    p = x1**2*x2-x1**2
+    q = x1*x2**2-x2**2
+    polys = [p, q]
+    basis = grobner(polys, verbose=True)
+    print(basis)
+
+    # -------------------------------------
+    # 
+
     p = x**2*y-x**2
     q = x*y**2-y**2
     polys = [p, q]
     basis = grobner(polys)
-    #print basis
+    #print(basis)
 
     # yikes, easy for this to go off the rails!
-    for i in range(10):
-        polys = [Poly.random(list('xy'), ring) for _ in range(3)]
+    for i in range(12):
+        polys = [Poly.random(list('xyz'), ring) for _ in range(3)]
+        print(polys)
         basis = grobner(polys)
-        #print(len(basis))
+        print(len(basis))
 
     polys = [x+y+z, x*y+x*z+y*z, x*y*z]
     basis = grobner(polys)
@@ -809,6 +895,9 @@ def test_graded_sl4():
         p134*p12 - p124*p13 + p123*p14, p234*p12 - p124*p23 + p123*p24,
         p234*p13 - p134*p23 + p123*p34, p234*p14 - p134*p24 + p124*p34,
     ]
+    rels = grobner(rels, verbose=True)
+    print("rels:", rels)
+    print()
 
     grades = [
         [p1, p2, p3, p4],
@@ -822,7 +911,7 @@ def test_graded_sl4():
      for g1 in range(n):
       for g2 in range(n):
         if multi is not None and (g0, g1, g2)!=multi:
-            print(".  ", end='')
+            #print(".  ", end='')
             continue
         elif g0+g1+g2 > n-1:
             print(".  ", end='')
@@ -832,16 +921,27 @@ def test_graded_sl4():
          for m1 in all_monomials(grades[1], g1, ring):
           for m2 in all_monomials(grades[2], g2, ring):
             m = m0*m1*m2
-            for rel in rels:
-                div, m = rel.reduce(m)
-            gens.append(m)
+            #for rel in rels:
+            #    div, m = rel.reduce(m)
+            m = reduce_many(rels, m)
+            if m != 0:
+                gens.append(m)
             
         print(len(gens), end=':', flush=True)
         basis = grobner(gens)
+        lhs = len(basis)
+        rhs = (g0+1)*(g1+1)*(g2+1)*(g0+g1+2)*(g1+g2+2)*(g0+g1+g2+3)//12
+        assert lhs==rhs, ("%s != %s"%(lhs, rhs))
         print(len(basis), end=' ', flush=True)
-        #basis.sort(key=str)
-        #for p in basis:
-        #    print(p)
+
+#        basis.sort(key=str)
+#        heads = {}
+#        for p in basis:
+#            print(p.head, p)
+#            heads[p.head] = p
+#        print(len(heads))
+#        return
+
       print()
      print()
 
@@ -1103,9 +1203,16 @@ if __name__ == "__main__":
     if _seed is not None:
         seed(_seed)
 
+    profile = argv.profile
     fn = argv.next()
-    if fn is None:
+
+    if profile:
+        import cProfile as profile
+        profile.run("test()")
+
+    elif fn is None:
         test()
+
     else:
         fn = eval(fn)
         fn()
