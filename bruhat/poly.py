@@ -4,6 +4,7 @@
 Multivariate commutative polynomials.
 """
 
+import os
 from functools import reduce
 import operator
 from random import randint, shuffle, seed
@@ -1052,6 +1053,75 @@ def test_plucker_flag():
             rel += sign*w[ldxs]*w[rdxs]
             sign *= -1
         print(rel)
+
+
+def test_dimension():
+    name = argv.next() or "A2"
+    N = int(argv.next() or 4)
+    data = os.popen("./sl.sage %s %s"%(name, N)).read()
+    data = eval(data)
+    print(data)
+    data = numpy.array(data)
+
+    series = name[0]
+    n = int(name[1])
+
+    def Adim(*xs):
+        if len(xs)==1:
+            x = xs[0]
+            return x+1
+        #print("Adim", xs)
+        n = len(xs)
+        value = Adim(*xs[:-1])
+        #print("value =", value)
+        for i in range(n):
+            rhs = sum(xs[i:]) + n-i
+            #print("   *= sum(%s) + %s"%(xs[i:], n-i))
+            value *= rhs
+        div = factorial(n)
+        assert value%div == 0
+        value //= factorial(n)
+        #print("  =", value)
+        return value
+
+    def Cdim(*xs):
+        assert len(xs)>1
+        value = Adim(*xs)
+        if len(xs)==2:
+            return value * (xs[0] + 2*xs[1] + 3) // 3
+        if len(xs)==3:
+            a, b, c = xs
+            value *= (b+2*c+3)*(a+b+2*c+4)*(a+2*b+2*c+5)
+            div = 60
+            assert value%div == 0
+            value //= div
+            return value
+        if len(xs)==4:
+            a, b, c, d = xs
+            value *= (a+b+c+2*d+5)*(a+b+2*c+2*d+6)*(a+2*b+2*c+2*d+7)
+            value *= (b+c+2*d+4)*(b+2*c+2*d+5)*(c+2*d+3)
+            div = 5*6*7*4*5*3
+            assert value%div == 0
+            value //= div
+            return value
+
+    if name[0] == "A":
+        fn = Adim
+    elif name[0] == "B":
+        fn = Bdim
+    elif name[0] == "C":
+        fn = Cdim
+    else:
+        assert 0, name
+
+    idxs = tuple(range(N))
+    idxss = tuple(idxs for i in range(n))
+    result = numpy.zeros((N,)*n, dtype=int)
+    for idx in numpy.ndindex(result.shape):
+        value = fn(*idx)
+        result[idx] = value
+    print(result)
+    assert numpy.alltrue(data == result)
 
 
 class Formal(series.Series):
