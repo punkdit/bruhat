@@ -220,7 +220,7 @@ class Perm(object):
     __repr__ = __str__
 
     def __hash__(self):
-        return hash(self.perm.tostring())
+        return hash(self.perm.tobytes())
 
     def __eq__(self, other):
         return numpy.alltrue(self.perm == other.perm)
@@ -229,10 +229,10 @@ class Perm(object):
         return not numpy.alltrue(self.perm == other.perm)
 
     def __lt__(self, other):
-        return self.perm.tostring() < other.perm.tostring()
+        return self.perm.tobytes() < other.perm.tobytes()
 
     def __le__(self, other):
-        return self.perm.tostring() <= other.perm.tostring()
+        return self.perm.tobytes() <= other.perm.tobytes()
 
     def __mul__(self, other):
         if isinstance(other, Perm):
