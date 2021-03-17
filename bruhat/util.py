@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 import sys
+from math import ceil
+from operator import mul
+from functools import reduce
 
 
 def all_subsets(n):
@@ -245,6 +248,30 @@ def all_primes(n, ps=None):
     return ps
 
 
+def is_prime(n):
+    for p in all_primes(n+1):
+        if p==n:
+            return True
+        elif n%p == 0:
+            return False
+    assert n==1
+    return True
+
+
+def factorize(n):
+    factors = []
+    top = int(ceil(n**0.5))
+    if n==1:
+        return [1]
+    for p in all_primes(top+1):
+        while n%p == 0:
+            factors.append(p)
+            n //= p
+    if n>1:
+        factors.append(n)
+    return factors
+
+
 
 def all_binary_trees(els):
     if len(els)==0:
@@ -266,22 +293,36 @@ def all_binary_trees(els):
             for rtree in rtrees:
                 yield (ltree, rtree)
 
-# https://en.wikipedia.org/wiki/Catalan_number
-# https://oeis.org/A000108
-# https://en.wikipedia.org/wiki/Associahedron
-assert list(all_binary_trees([1])) == [1]
-assert list(all_binary_trees([1,2])) == [(1, 2),]
-assert list(all_binary_trees([1,2,3])) == [(1, (2, 3)), ((1, 2), 3)]
-assert list(all_binary_trees([1,2,3,4])) == [
-    (1, (2, (3, 4))), (1, ((2, 3), 4)), ((1, 2), (3, 4)), ((1, (2, 3)), 4), (((1, 2), 3), 4)]
-assert len(list(all_binary_trees([1,2,3,4,5]))) == 14
-
-
-
 
 def set_seed(i=0):
     import numpy
     from random import seed
     seed(i)
     numpy.random.seed(i)
+
+
+def test():
+    # https://en.wikipedia.org/wiki/Catalan_number
+    # https://oeis.org/A000108
+    # https://en.wikipedia.org/wiki/Associahedron
+    assert list(all_binary_trees([1])) == [1]
+    assert list(all_binary_trees([1,2])) == [(1, 2),]
+    assert list(all_binary_trees([1,2,3])) == [(1, (2, 3)), ((1, 2), 3)]
+    assert list(all_binary_trees([1,2,3,4])) == [
+        (1, (2, (3, 4))), (1, ((2, 3), 4)), ((1, 2), (3, 4)), ((1, (2, 3)), 4), (((1, 2), 3), 4)]
+    assert len(list(all_binary_trees([1,2,3,4,5]))) == 14
+    
+    for i in range(1, 100):
+        ps = factorize(i)
+        assert i==reduce(mul, ps)
+        for p in ps:
+            assert is_prime(p), (i, ps)
+        #print(i, factorize(i))
+
+
+
+
+if __name__ == "__main__":
+
+    test()
 

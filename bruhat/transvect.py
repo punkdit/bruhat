@@ -143,10 +143,12 @@ def main():
     print(shortstr(B))
 
     Vt = V.transpose()
-    F = identity(m) + numpy.dot(Vt, numpy.dot(B, V))
+    F = identity(m) + numpy.dot(O, numpy.dot(Vt, numpy.dot(B, V)))
 
     print("F=")
     print(shortstr(F))
+
+    #print(F==F0)
 
     assert numpy.all(F0==F)
 

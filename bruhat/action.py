@@ -2875,6 +2875,14 @@ def test_mul():
 
 #test_mul()
 
+def test_group():
+    items = list('abcdefgh')
+    mkperm = lambda seq : Perm([items.index(i) for i in seq], items)
+    f = mkperm('ghabcdef')
+    g = mkperm('dcbaefgh')
+
+    G = Group.generate([f, g])
+    print(G)
 
 
 if __name__ == "__main__":
@@ -2888,6 +2896,7 @@ if __name__ == "__main__":
     if argv.test:
         test_action()
         test()
+        test_group()
         print("OK")
 
 
