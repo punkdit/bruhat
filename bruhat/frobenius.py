@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
+import numpy
+
 from bruhat.element import FiniteField, PolynomialRing, GaloisField
+from bruhat.action import Perm, Group
 from bruhat.util import factorize, cross, all_primes
 from bruhat.argv import argv
 
@@ -30,17 +33,27 @@ def GF(q):
             poly += idx*(x**i)
         #print(poly)
         for i in range(p):
-            if poly(i) == 0:
+            if poly(i) == zero:
                 #print("i=", i)
                 break
         else:
             break
-        continue
     #print("poly:", poly)
+    #print([str(poly(i)) for i in range(p)])
 
     F = GaloisField(ring, poly)
-    F.frobenius = lambda a : a**p
+    def frobenius(a):
+        return a**p
+    def hermitian(a, b):
+        return (a**p)*b + a*(b**p)
+    F.frobenius = frobenius
+    F.hermitian = hermitian
     return F
+
+
+class Code(object):
+    def __init__(self, field, gen):
+        self.field = field
 
 
 def test():
@@ -119,14 +132,71 @@ def test():
 
     # --------------------------------------------------
 
-    p = argv.get("p", 3)
+    p = argv.get("p", 2)
     r = argv.get("r", 2)
 
     print("q =", p**r)
     F = GF(p**r)
+    print(F.mod)
     zero = 0
 
-    a = F.x
+    els = F.elements
+    assert len(els) == len(set(els)) == p**r
+
+    for a in els:
+      for b in els:
+        if b!=0:
+            c = a/b # XXX fails for p=3, r=4
+            assert c*b==a
+
+    # build the hexacode
+    w = F.x
+    w2 = w**2
+    words = []
+    for a in els:
+     for b in els:
+      for c in els:
+        f = lambda x : a*x**2 + b*x + c
+        v = [a, b, c, f(1), f(w), f(w2)]
+        words.append(v)
+    code = numpy.array(words)
+    for word in code:
+      print(' '.join("%4s"%(c) for c in word))
+
+    print(code.shape)
+    assert len(code)==4**3
+
+    def inner(w0, w1):
+        assert len(w0)==len(w1)
+        n = len(w0)
+        #r = sum([F.hermitian(a, b) for (a, b) in zip(w0, w1)])
+        r = sum([a*F.frobenius(b) for (a, b) in zip(w0, w1)])
+        return r
+
+    for w0 in code:
+      for w1 in code:
+        print(inner(w0, w1), end=" ")
+      print()
+
+
+def test_galois():
+    p = argv.get("p", 2)
+    r = argv.get("r", 2)
+
+    print("q =", p**r)
+    F = GF(p**r)
+    print(F.mod)
+    zero = 0
+
+    els = F.elements
+    assert len(els) == len(set(els)) == p**r
+
+    for a in els:
+      for b in els:
+        if b!=0:
+            c = a/b # XXX fails for p=3, r=4
+            assert c*b==a
+
     def orbit(a):
         items = set([a])
         while 1:
@@ -136,8 +206,25 @@ def test():
             items.add(a)
         return items
 
-    els = F.elements
-    assert len(els) == len(set(els)) == p**r
+    lookup = {e:i for (i,e) in enumerate(els)}
+    g = {lookup[e] : lookup[F.frobenius(e)] for e in els}
+    #print(["%s:%s"%(k,v) for (k,v) in g.items()])
+    values = set(g.values())
+    assert len(values)==len(g)
+    items = list(range(len(els)))
+    g = Perm(g, items)
+    I = Perm.identity(items)
+    G = [I]
+    h = g
+    print(g)
+    while h != I:
+        G.append(h)
+        h = g*h
+        #print(len(G))
+        assert len(G) <= p**r
+    print("|G| =", len(G))
+    G = Group.generate([g])
+    print("|G| =", len(G))
 
     for i in els:
         n = len(orbit(i))
