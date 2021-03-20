@@ -29,6 +29,7 @@ def astr(v):
     s = s.replace("'", "")
     return s
 
+
 def main():
 
     d = argv.get("d", 3)
@@ -103,6 +104,7 @@ def main():
 
     Y = w*X*Z # ?
 
+    print(S)
     assert S*Sdag == I
 
     assert Z*Zdag == I
