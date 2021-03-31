@@ -52,6 +52,8 @@ def GF(q):
     def frobenius(a):
         return a**p
     def hermitian(a, b):
+        return a*(b**p)
+    def trace_hermitian(a, b):
         return (a**p)*b + a*(b**p)
     F.frobenius = frobenius
     F.hermitian = hermitian
@@ -65,6 +67,7 @@ def GF(q):
         while v != one:
             v = u*v
             count += 1
+            assert count < 2*q
         return count
     for u in F.elements:
         if u==zero:
@@ -278,6 +281,25 @@ def test_galois():
         
 
     print("OK")
+
+
+def test_quadratic():
+    p = argv.get("p", 2)
+    r = argv.get("r", 2)
+
+    q = p**(2*r)
+    F = GF(q)
+    print("GF(%d) = GF(%d)[x]/(%s)" % (q, p, F.mod))
+    print("omega =", F.omega)
+    omega = F.omega
+    #assert omega**2 == omega + 1
+
+    frobenius = lambda a : a**(p**r)
+    print("frobenius = a**%d"%(p**r,))
+
+    print("|F| =", len(F.elements))
+    print("fixed:", len([a for a in F.elements if frobenius(a)==a]))
+
 
 
 class Matrix(object):

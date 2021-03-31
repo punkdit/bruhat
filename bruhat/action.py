@@ -159,7 +159,7 @@ class Perm(object):
         while not g.is_identity():
             g = self*g
             i += 1
-            assert i <= len(self.items)+1
+            #assert i <= len(self.items)+1 # how big can this get ??
         return i
 
     def restrict(self, items, *args, **kw):

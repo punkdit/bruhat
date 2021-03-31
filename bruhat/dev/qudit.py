@@ -104,7 +104,6 @@ def main():
 
     Y = w*X*Z # ?
 
-    print(S)
     assert S*Sdag == I
 
     assert Z*Zdag == I
