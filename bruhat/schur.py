@@ -16,8 +16,16 @@ from bruhat import element
 from bruhat import elim
 from bruhat.elim import (
     zeros, rand, dot, identity, eq, coequalizer, compose,
-    rank)
-from bruhat.solve import parse
+    rank, pseudo_inverse)
+#from bruhat.solve import parse
+from bruhat import solve
+
+def parse(ring, decl):
+    A = solve.parse(decl)
+    B = zeros(ring, *A.shape)
+    B = B+A
+    return B
+
 
 def shortstr(A):
     s = elim.shortstr(A)
@@ -93,11 +101,19 @@ def test():
 
     m = argv.get("m", 3)
     n = argv.get("n", 4)
-    A = rand(ring, m, n, 1, 1)
-    print("A:")
-    print(shortstr(A))
+    H = rand(ring, m, n, 1, 1)
+    #print("H:")
+    #print(shortstr(H))
 
-    hypergraph_product(ring, A, A)
+    if argv.toric:
+        H = zeros(ring, m, m)
+        for i in range(m):
+            H[i, i] = ring.one
+            H[i, (i+1)%m] = ring.one
+        print("H:")
+        print(shortstr(H))
+
+    hypergraph_product(ring, H, H)
 
 
 def schur(ring, m):
@@ -148,16 +164,30 @@ def hypergraph_product(ring, A, check=False):
 
     #print(shortstr(f1))
 
-    J1 = compose(ring, f2.transpose(), H1, f1)
-    J0 = compose(ring, f1.transpose(), H0, f0)
+    f1i = pseudo_inverse(ring, f1)
+    assert(eq(compose(ring, f1i, f1), identity(ring, f1i.shape[1])))
+    f2i = pseudo_inverse(ring, f2)
+    assert(eq(compose(ring, f2i, f2), identity(ring, f2i.shape[1])))
+
+    J1 = compose(ring, f2i, H1, f1)
+    J0 = compose(ring, f1i, H0, f0)
 
     #print(shortstr(compose(ring, J1, J0)))
     assert is_zero(ring, compose(ring, J1, J0))
 
-    print("J1:")
+    print("H1:", H1.shape)
+    print(shortstr(H1))
+    print("H0:", H0.shape)
+    print(shortstr(H0))
+
+    print("J1:", J1.shape)
     print(shortstr(J1))
-    print("J0:")
+    print("J0:", J0.shape)
     print(shortstr(J0))
+
+    assert eq(compose(ring, H1, f1), compose(ring, f2, J1))
+    assert eq(compose(ring, H0, f0), compose(ring, f1, J0))
+    
 
 
 if __name__ == "__main__":
