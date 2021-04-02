@@ -132,6 +132,7 @@ def dotx(ring, *items):
 
 
 def compose(ring, *items):
+    assert isinstance(ring, element.Ring)
     items = list(reversed(items))
     A = dotx(ring, *items)
     return A
@@ -613,7 +614,7 @@ def pushout(ring, J, K, J1=None, K1=None, check=False):
         return JJ, KK
 
 
-def cokernel(ring, J, check=False):
+def old_cokernel(ring, J, check=False):
     """  
     find f as a pushout of the following diagram:
 
@@ -630,8 +631,52 @@ def cokernel(ring, J, check=False):
     K = zeros(ring, 0, k)
 
     f, g = pushout(ring, J, K, check=check)
-
     return f
+
+
+def cokernel(ring, J, P1=None, check=False):
+    """
+           J
+        k ---> n
+        |      |
+        |      | P
+        v      v
+        0 ---> m
+    """
+
+    n, k = J.shape
+    L = zeros(ring, 0, k)
+    Q1 = None
+    if P1 is not None:
+        Q1 = zeros(ring, P1.shape[0], 0)
+        assert compose(ring, J, P1).sum() == 0
+
+    if P1 is None:
+        f, g = pushout(ring, J, L, check=check)
+        return f
+
+    else:
+        P, Q, R = pushout(ring, J, L, P1, Q1)
+        assert Q.shape[1] == 0
+    
+        return P, R
+
+
+
+
+def coequalizer(ring, J, K, J1=None, K1=None):
+    JK = J-K
+
+    if J1 is not None:
+        assert K1 is not None
+        JK1 = J1-K1
+        P, R = cokernel(ring, JK, JK1)
+        return P, R
+
+    else:
+        JK1 = None
+    P = cokernel(ring, JK, JK1)
+    return P
 
 
 
