@@ -109,7 +109,7 @@ def test():
         H = zeros(ring, m, m)
         for i in range(m):
             H[i, i] = ring.one
-            H[i, (i+1)%m] = ring.one
+            H[i, (i+1)%m] = -ring.one
         print("H:")
         print(shortstr(H))
 
@@ -126,6 +126,9 @@ def schur(ring, m):
 def is_zero(ring, A):
     return eq(A, zeros(ring, *A.shape))
 
+def is_identity(ring, A):
+    return eq(A, identity(ring, A.shape[0]))
+
 
 def hypergraph_product(ring, A, check=False):
     #print("hypergraph_product: A=%s, B=%s"%(A.shape, B.shape))
@@ -135,59 +138,58 @@ def hypergraph_product(ring, A, check=False):
     In = identity(ring, n)
     Im = identity(ring, m)
 
-    Hzs = kron(ring, Im, A), -kron(ring, A, Im)
-    Hz = numpy.concatenate(Hzs, axis=0) # horizontal concatenate
+    H1s = kron(ring, Im, A), -kron(ring, A, Im)
+    H1 = numpy.concatenate(H1s, axis=0) # horizontal concatenate
 
-    Hxs = kron(ring, A, In), kron(ring, In, A)
-    #print("Hxs:", Hxs[0].shape, Hxs[1].shape)
-    Hx = numpy.concatenate(Hxs, axis=1) # horizontal concatenate
+    H0s = kron(ring, A, In), kron(ring, In, A)
+    H0 = numpy.concatenate(H0s, axis=1) # horizontal concatenate
 
-    assert is_zero(ring, dot(ring, Hx, Hz))
+    assert is_zero(ring, dot(ring, H0, H1))
 
-    H1 = Hz
-    H0 = Hx
-    #print(shortstr(dot(ring, H0, H1)))
-    
     assert H1.shape == (n*m+m*n, m*m)
     assert H0.shape == (n*n, n*m+m*n)
 
-    f2 = schur(ring, m)
-    f0 = schur(ring, n)
-
+    f0 = -tensor_swap(ring, n, n)
     a = direct_sum(ring,
-        tensor_swap(ring, m, n),
-        tensor_swap(ring, n, m))
-    b = -sum_swap(ring, n*m, m*n)
+        -tensor_swap(ring, m, n),
+        -tensor_swap(ring, n, m))
+    b = sum_swap(ring, n*m, m*n)
+    assert is_identity(ring, compose(ring, b, b))
+    f1 = compose(ring, a, b)
+    assert is_identity(ring, compose(ring, f1, f1))
+    f2 = tensor_swap(ring, m, m)
 
-    I = identity(ring, m*n+n*m)
-    f1 = coequalizer(ring, I, compose(ring, a, b))
+    assert eq(compose(ring, f2, H1), compose(ring, H1, f1))
+    lhs, rhs = ( (compose(ring, f1, H0), compose(ring, H0, f0)) )
+    #print("lhs:")
+    #print(shortstr(lhs))
+    #print("rhs:")
+    #print(shortstr(rhs))
+    assert eq(compose(ring, f1, H0), compose(ring, H0, f0))
 
-    #print(shortstr(f1))
+    g0 = coequalizer(ring, 
+        f0, identity(ring, f0.shape[0]))
 
-    f1i = pseudo_inverse(ring, f1)
-    assert(eq(compose(ring, f1i, f1), identity(ring, f1i.shape[1])))
-    f2i = pseudo_inverse(ring, f2)
-    assert(eq(compose(ring, f2i, f2), identity(ring, f2i.shape[1])))
+    assert eq(compose(ring, H0, g0), compose(ring, f1, H0, g0))
 
-    J1 = compose(ring, f2i, H1, f1)
-    J0 = compose(ring, f1i, H0, f0)
+    e = compose(ring, H0, g0)
+    g1, J0 = coequalizer(ring, 
+        f1, identity(ring, f1.shape[0]), e)
 
-    #print(shortstr(compose(ring, J1, J0)))
+    #print(shortstr(J0))
+
+    assert eq(compose(ring, H0, g0), compose(ring, g1, J0))
+
+    e = compose(ring, H1, g1)
+    g2, J1 = coequalizer(ring, 
+        f2, identity(ring, f2.shape[0]), e)
+
+    #print(shortstr(J1))
+
+    assert eq(compose(ring, H1, g1), compose(ring, g2, J1))
+
     assert is_zero(ring, compose(ring, J1, J0))
 
-    print("H1:", H1.shape)
-    print(shortstr(H1))
-    print("H0:", H0.shape)
-    print(shortstr(H0))
-
-    print("J1:", J1.shape)
-    print(shortstr(J1))
-    print("J0:", J0.shape)
-    print(shortstr(J0))
-
-    assert eq(compose(ring, H1, f1), compose(ring, f2, J1))
-    assert eq(compose(ring, H0, f0), compose(ring, f1, J0))
-    
 
 
 if __name__ == "__main__":

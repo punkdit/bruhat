@@ -324,7 +324,7 @@ def plu_reduce(ring, A, truncate=False, check=False, verbose=False):
     if truncate:
         m = U.shape[0]-1
         #print("sum:", m, U[m, :], U[m, :].sum())
-        while m>=0 and U[m, :].sum()==0:
+        while m>=0 and (U[m, :]!=0).sum()==0:
             m -= 1
         U = U[:m+1, :]
 
@@ -649,7 +649,7 @@ def cokernel(ring, J, P1=None, check=False):
     Q1 = None
     if P1 is not None:
         Q1 = zeros(ring, P1.shape[0], 0)
-        assert compose(ring, J, P1).sum() == 0
+        assert eq(compose(ring, J, P1), 0)
 
     if P1 is None:
         f, g = pushout(ring, J, L, check=check)
@@ -664,17 +664,18 @@ def cokernel(ring, J, P1=None, check=False):
 
 
 
-def coequalizer(ring, J, K, J1=None, K1=None):
+#def coequalizer(ring, J, K, J1=None, K1=None):
+def coequalizer(ring, J, K, JK1=None):
     JK = J-K
 
-    if J1 is not None:
-        assert K1 is not None
-        JK1 = J1-K1
-        P, R = cokernel(ring, JK, JK1)
-        return P, R
+#    if J1 is not None:
+#        assert K1 is not None
+#        JK1 = J1-K1
+#        P, R = cokernel(ring, JK, JK1)
+#        return P, R
+#    else:
+#        JK1 = None
 
-    else:
-        JK1 = None
     P = cokernel(ring, JK, JK1)
     return P
 
@@ -785,7 +786,7 @@ def test():
         print(shortstr(B))
         print("kernel:")
         print(shortstr(kernel(ring, A)))
-        return
+        break
 
     A = zeros(ring, 3, 4)
     A[0, 0] = 1
@@ -798,7 +799,7 @@ def test():
     K = kernel(ring, A)
     #print("K:")
     #print(shortstr(K))
-    assert len(K) == 3
+    assert len(K) == 3, len(K)
 
     while 1:
         m, n = 3, 4
