@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 """
-Earlier version: qupy.ldpc.cell
-Used by: bruhat.morse
-See also: bruhat.vec 
+
+
+
 """
 
 from random import shuffle, seed
-from math import sin, cos, pi
+from functools import reduce
+from operator import mul
 
 import numpy
 
@@ -30,291 +31,281 @@ def shortstr(A):
 
 
 class Space(object):
-    def __init__(self, ring):
+    def __init__(self, ring, n=0):
+        assert isinstance(ring, element.Ring)
+        assert type(n) is int
+        assert 0<=n
         self.ring = ring
+        self.n = n
+
+    def __str__(self):
+        return "%s(%s)"%(self.__class__.__name__, self.n)
+    __repr__ = __str__
+
+    def __eq__(self, other):
+        return self.n == other.n
+
+    def __ne__(self, other):
+        return self.n != other.n
+
+    def __len__(self):
+        return self.n
+
+    def __getitem__(self, idx):
+        if idx<0 or idx >= self.n:
+            raise IndexError
+        return idx
+
+    # we should cache these ... ?
+
+    def __add__(self, other):
+        return AddSpace(self, other)
+
+    def __matmul__(self, other):
+        return MulSpace(self, other)
+
+    def __inv__(self):
+        return DualSpace(self)
 
     def parse(self, decl):
-        ring = self.ring
         A = solve.parse(decl)
-        B = self.zeros(*A.shape)
-        B = B+A
-        return B
+        decl = decl.replace('.', '0')
+        lines = decl.split()
+        lines = [l.strip() for l in lines if l.strip()]
+        promote = self.ring.promote
+        rows = [list(promote(int(c)) for c in l) for l in lines]
+        assert rows
+        n = len(rows[0])
+        for row in rows:
+            assert len(row)==n, "rows have varying lengths"
+        A = numpy.array(rows, dtype=object)
+        m, n = A.shape
+        src = Space(self.ring, n)
+        tgt = Space(self.ring, m)
+        return Lin(tgt, src, A)
 
-    def zeros(self, *args):
-        return elim.zeros(self.ring, *args)
-    
-    def rand(self, *args):
-        return elim.rand(self.ring, *args)
-    
-    def dot(self, *args):
-        return elim.dot(self.ring, *args)
-    
-    def identity(self, *args):
-        return elim.identity(self.ring, *args)
-    
-    def coequalizer(self, *args):
-        return elim.coequalizer(self.ring, *args)
-    
-    def compose(self, *args):
-        return elim.compose(self.ring, *args)
-    
-    def rank(self, *args):
-        return elim.rank(self.ring, *args)
-    
-    def pseudo_inverse(self, *args):
-        return elim.pseudo_inverse(self.ring, *args)
-    
-    def kron(self, A, B):
+    def identity(self):
+        A = elim.identity(self.ring, self.n)
+        return Lin(self, self, A)
+
+    def sym2(U):
+        UU = U@U
+        I = UU.identity()
+        s = UU.get_swap()
+        f = I.coequalizer(s)
+        return f
+
+
+class AddSpace(Space):
+    "direct sum of vector spaces"
+    def __init__(self, *_items):
+        items = []
+        for item in _items:
+            if type(item) is AddSpace:
+                items += item.items
+            else:
+                items.append(item)
+        ring = items[0].ring
+        n = sum(item.n for item in items)
+        Space.__init__(self, ring, n)
+        self.items = items
+
+    def get_swap(self):
+        assert len(self.items) == 2, "not implemented.."
+        U, V = self.items
+        other = V+U
+        f = Lin(other, self)
+        one = self.ring.one
+        a, b = len(U), len(V)
+        for i in range(b):
+            f.A[i, i+a] = one
+        for i in range(a):
+            f.A[i+b, i] = one
+        return f
+
+
+class MulSpace(Space):
+    "tensor product of vector spaces"
+    def __init__(self, *_items):
+        items = []
+        for item in _items:
+            if type(item) is AddSpace:
+                items += item.items
+            else:
+                items.append(item)
+        ring = items[0].ring
+        n = reduce(mul, [item.n for item in items])
+        Space.__init__(self, ring, n)
+        self.items = items
+
+    def get_swap(self):
+        assert len(self.items) == 2, "not implemented.."
+        U, V = self.items
+        other = V@U
+        f = Lin(other, self)
+        one = self.ring.one
+        a, b = len(U), len(V)
+        for i in range(a):
+          for j in range(b):
+            f.A[j*a + i, i*b + j] = one
+        return f
+
+
+class DualSpace(Space):
+    def __init__(self, item):
+        Space.__init__(self, item.ring, item.n)
+        self.item = item
+
+    def __inv__(self):
+        return self.item
+
+
+class Lin(object):
+    def __init__(self, tgt, src, A=None):
+        assert tgt.ring is src.ring
+        self.ring = tgt.ring
+        self.tgt = tgt
+        self.src = src
+        if A is None:
+            A = elim.zeros(self.ring, tgt.n, src.n)
+        assert A.shape == (tgt.n, src.n), "%s != %s" % ( A.shape , (tgt.n, src.n) )
+        self.shape = (tgt, src)
+        self.A = A.copy()
+
+    @classmethod
+    def zeros(cls, tgt, src):
+        assert tgt.ring is src.ring
+        ring = tgt.ring
+        A = elim.zeros(ring, tgt.n, src.n)
+        return Lin(tgt, src, A)
+
+    @classmethod
+    def rand(cls, tgt, src, a=1, b=1):
+        assert tgt.ring is src.ring
+        ring = tgt.ring
+        A = elim.rand(ring, tgt.n, src.n, a, b)
+        return Lin(tgt, src, A)
+
+    def is_zero(self):
+        B = Lin.zeros(self.tgt, self.src)
+        return eq(self.A, B)
+
+    def is_identity(self):
+        assert self.tgt == self.src, "wah?"
+        B = self.tgt.identity()
+        return eq(self.A, B)
+
+    def __str__(self):
+        return shortstr(self.A)
+
+    def __repr__(self):
+        return "Lin( %s <--- %s )"%(self.tgt, self.src)
+
+    def __eq__(self, other):
+        assert self.shape == other.shape
+        return eq(self.A, other.A)
+
+    def __ne__(self, other):
+        assert self.shape == other.shape
+        return not eq(self.A, other.A)
+
+    def __getitem__(self, idx):
+        return self.A[idx]
+
+    def __setitem__(self, idx, val):
+        self.A[idx] = val
+
+    def __add__(self, other):
+        assert self.shape == other.shape
+        A = self.A + other.A
+        return Lin(*self.shape, A)
+
+    def __sub__(self, other):
+        assert self.shape == other.shape
+        A = self.A - other.A
+        return Lin(*self.shape, A)
+
+    def __mul__(self, other):
+        assert other.tgt == self.src
+        A = numpy.dot(self.A, other.A)
+        return Lin(self.tgt, other.src, A)
+
+    def __rmul__(self, r):
+        r = self.ring.promote(r)
+        A = r*self.A
+        return Lin(self.tgt, self.src, A)
+
+    def __neg__(self):
+        A = -self.A
+        return Lin(self.tgt, self.src, A)
+
+    def __matmul__(self, other):
+        src = self.src @ other.src
+        tgt = self.tgt @ other.tgt
         ring = self.ring
+        A, B = self.A, other.A
         if 0 in A.shape or 0 in B.shape:
             C = self.zeros(A.shape[0]*B.shape[0], A.shape[1]*B.shape[1])
         else:
             #print("kron", A.shape, B.shape)
             C = numpy.kron(A, B)
             #print("\t", C.shape)
-        return C
-    
-    def sum_swap(self, a, b):
-        "swap isomorphism a+b -> b+a"
-        ring = self.ring
-        one = ring.one
-        g = self.zeros(a+b, a+b)
-        for i in range(a):
-            g[i, i+a] = one
-        for i in range(b):
-            g[i+b, i] = one
-        return g
-    
-    def direct_sum(self, f, g):
-        ring = self.ring
-        mf, nf = f.shape
-        mg, ng = g.shape
-        h = self.zeros(mf+mg, nf+ng)
-        h[:mf, :nf] = f
-        h[mf:, nf:] = g
-        return h
-    
-    def tensor_swap(self, m1, m2):
-        ring = self.ring
-        A = self.zeros(m2*m1, m1*m2)
-        one = ring.one
-        for i in range(m1):
-          for j in range(m2):
-            A[j*m1 + i , i*m2 + j] = one
-        return A
+        return Lin(tgt, src, C)
 
-    def schur(self, m):
-        I = self.identity(m*m)
-        s = self.tensor_swap(m, m)
-        f = self.coequalizer(I, s)
-        return f
-    
-    def is_zero(self, A):
-        return eq(A, self.zeros(*A.shape))
-    
-    def is_identity(self, A):
-        return eq(A, self.identity(A.shape[0]))
-
-
-class Chain(object):
-    def __init__(self, space, diffs={}):
-        # map domain grade to array
-        assert type(diffs) is dict
-        if not diffs:
-            diffs = { 0 : space.zeros(0, 0) } # ?
-        grades = list(diffs.keys())
-        grades.sort()
-        dims = {}
-        for grade in grades:
-            A = diffs[grade]
-            m, n = A.shape
-            dim = dims.setdefault(grade, n)
-            assert dim==n, "mismatch at grade %d"%(grade,)
-            dim = dims.setdefault(grade-1, m)
-            assert dim==m, "mismatch at grade %d"%(grade-1,)
-    
-        self.diffs = dict(diffs)
-        self.grades = grades
-        self.mingrade = min(grades)
-        self.maxgrade = max(grades) + 1
-        self.dims = dims
-
-    def __getitem__(self, grade):
-        dims = self.dims
-        space = self.space
-        A = self.diffs.get(grade)
-        if A is None:
-            n = dims.get(grade, 0)
-            m = dims.get(grade-1, 0)
-            A = space.zeros(m, n)
-            self.diffs[grade] = A
-        return A
-
-    #def __setitem__(self, grade, A):
-    #    self.diffs[grade] = A
-
-    def dual(self):
-        diffs = {}
-        for grade in self.grades:
-            A = self.diffs[grade]
-            A = A.transpose()
-            diffs[grade - 1] = A
-        return Chain(diffs)
+    def rank(self):
+        return elim.rank(self.ring, self.A)
 
     def direct_sum(self, other):
-        space = self.space
-        diffs = {}
-        grades = list(set(self.grades + other.grades))
-        grades.sort()
-        for grade in grades:
-            A, B = self[grade], other[grade]
-            diffs[grade] = space.direct_sum(A, B)
-        return Chain(diffs)
+        tgt = self.tgt + other.tgt
+        src = self.src + other.src
+        f = Lin.zeros(tgt, src)
+        m, n = self.A.shape
+        f.A[:m, :n] = self.A
+        f.A[m:, n:] = other.A
+        return f
 
-    def tensor(self, other):
-        space = self.space
-        tensor = space.tensor
-        diffs = {}
-        g0 = min(self.mingrade, other.mingrade)
-        g1 = max(self.maxgrade, other.maxgrade)
-        for grade in range(g0, g1+1):
-            # map grade -> grade-1
-            rows, cols = [], []
-            for a in range(g0, g1+1):
-                b = grade - a
-                A = self[a]
-                B = other[b]
-                 # ARGGHH
+    def coequalizer(self, other):
+        assert self.shape == other.shape
+        ring = self.ring
+        A = elim.coequalizer(ring, self.A, other.A)
+        src, _ = self.shape
+        tgt = Space(ring, len(A))
+        return Lin(tgt, src, A)
+
 
 
 def test():
 
-    p = argv.get("p", 2)
+    p = argv.get("p", 3)
     ring = element.FiniteField(p)
+
     space = Space(ring)
-    zeros = space.zeros
-    rand = space.rand
-    dot = space.dot
-    kron = space.kron
-    direct_sum = space.direct_sum
-    identity = space.identity
-    coequalizer = space.coequalizer
-    compose = space.compose
-    rank = space.rank
-    pseudo_inverse = space.pseudo_inverse
-    tensor_swap = space.tensor_swap
-    sum_swap = space.sum_swap
-    schur = space.schur
-    is_zero = space.is_zero
-    is_identity = space.is_identity
+    f = space.parse("11. .11")
+    print(f)
+    print(f+f)
+    print(f@f)
+    assert -f == -1*f
 
-    s = tensor_swap(3, 4)
-    si = tensor_swap(4, 3)
-    #print(shortstr(s))
-    assert eq(dot(si, s), identity(3*4))
-    assert eq(dot(s, si), identity(4*3))
+    assert f.coequalizer(f) == f.tgt.identity()
 
-    m, n = 2, 3
-    A1 = rand(m, n, 1, 1)
-    A2 = rand(m, n, 1, 1)
+    U, V = Space(ring, 3), Space(ring, 4)
 
-    B = kron(A1, A2)
+    sUV = (U+V).get_swap()
+    sVU = (V+U).get_swap()
+    assert sVU*sUV == (U+V).identity()
 
-    for m in range(1, 5):
-        I = identity(m*m)
-        s = tensor_swap(m, m)
-        f = coequalizer(I, s)
-    
-        assert eq(compose(s, f), f)
-        assert rank(f) == [1, 3, 6, 10][m-1]
+    sUV = (U@V).get_swap()
+    sVU = (V@U).get_swap()
+    assert sVU*sUV == (U@V).identity()
 
-    # ---------------------------------
+    A = Lin.rand(U, V, 1, 1)
+    B = Lin.rand(U, V, 1, 1)
+    assert A@B != B@A
 
-    m = argv.get("m", 3)
-    n = argv.get("n", 4)
+    sUU = (U@U).get_swap()
+    sVV = (V@V).get_swap()
 
-    if argv.toric:
-        A = zeros(m, m)
-        for i in range(m):
-            A[i, i] = ring.one
-            A[i, (i+1)%m] = -ring.one
-    elif argv.surface:
-        A = zeros(m-1, m)
-        for i in range(m-1):
-            A[i, i] = ring.one
-            A[i, (i+1)%m] = -ring.one
-    else:
-        A = rand(m, n, p-1, p-1)
-    if argv.transpose:
-        A = A.transpose()
-
-    print("A:")
-    print(shortstr(A))
-
-
-    n, m = A.shape
-
-    In = identity(n)
-    Im = identity(m)
-
-    H1s = kron(Im, A), -kron(A, Im)
-    H1 = numpy.concatenate(H1s, axis=0) # horizontal concatenate
-
-    H0s = kron(A, In), kron(In, A)
-    H0 = numpy.concatenate(H0s, axis=1) # horizontal concatenate
-
-    assert is_zero(dot(H0, H1))
-
-    assert H1.shape == (n*m+m*n, m*m)
-    assert H0.shape == (n*n, n*m+m*n)
-
-    f0 = -tensor_swap(n, n)
-    a = direct_sum( -tensor_swap(m, n), -tensor_swap(n, m))
-    b = sum_swap(n*m, m*n)
-    assert is_identity(compose(b, b))
-    f1 = compose(a, b)
-    assert is_identity(compose(f1, f1))
-    f2 = tensor_swap(m, m)
-
-    assert eq(compose(f2, H1), compose(H1, f1))
-    lhs, rhs = ( (compose(f1, H0), compose(H0, f0)) )
-    #print("lhs:")
-    #print(shortstr(lhs))
-    #print("rhs:")
-    #print(shortstr(rhs))
-    assert eq(compose(f1, H0), compose(H0, f0))
-
-    g0 = coequalizer(
-        f0, identity(f0.shape[0]))
-
-    assert eq(compose(H0, g0), compose(f1, H0, g0))
-
-    e = compose(H0, g0)
-    g1, J0 = coequalizer(f1, identity(f1.shape[0]), e)
-
-    assert eq(compose(H0, g0), compose(g1, J0))
-
-    e = compose(H1, g1)
-    g2, J1 = coequalizer(f2, identity(f2.shape[0]), e)
-
-    assert eq(compose(H1, g1), compose(g2, J1))
-
-    assert is_zero(compose(J1, J0))
-
-    n = J1.shape[0]
-    J1t = J1.transpose()
-    mz = rank(J1t)
-    mx = rank(J0)
-    print("J1t:", J1t.shape, rank(J1t))
-    print(shortstr(J1t))
-    print("J0:", J0.shape)
-    print(shortstr(J0))
-
-    print("n:", n)
-    print("mz:", mz)
-    print("mx:", mx)
-    print("k =", n-mx-mz)
-
+    assert sUU*(A@B)*sVV == B@A
 
 
 if __name__ == "__main__":
