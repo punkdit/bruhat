@@ -281,9 +281,6 @@ def test():
 
     space = Space(ring)
     f = space.parse("11. .11")
-    print(f)
-    print(f+f)
-    print(f@f)
     assert -f == -1*f
 
     assert f.coequalizer(f) == f.tgt.identity()
@@ -306,6 +303,15 @@ def test():
     sVV = (V@V).get_swap()
 
     assert sUU*(A@B)*sVV == B@A
+
+    for m in range(1, 5):
+        U = Space(ring, m)
+        UU = U@U
+        I = UU.identity()
+        s = UU.get_swap()
+        f = I.coequalizer(s)
+        assert eq(f, f*s)
+        assert f.rank() == [1, 3, 6, 10][m-1]
 
 
 if __name__ == "__main__":
