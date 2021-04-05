@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 """
-Earlier version: qupy.ldpc.cell
 Used by: bruhat.morse
+
+Earlier version: qupy.ldpc.cell
 See also: bruhat.vec 
 """
 
