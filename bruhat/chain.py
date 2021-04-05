@@ -42,11 +42,14 @@ class Space(object):
         return "%s(%s)"%(self.__class__.__name__, self.n)
     __repr__ = __str__
 
-    def __eq__(self, other):
-        return self.n == other.n
+#    def __eq__(self, other):
+#        return self.n == other.n
+#
+#    def __ne__(self, other):
+#        return self.n != other.n
 
-    def __ne__(self, other):
-        return self.n != other.n
+    def __hash__(self):
+        return id(self)
 
     def __len__(self):
         return self.n
@@ -98,7 +101,34 @@ class Space(object):
 
 class AddSpace(Space):
     "direct sum of vector spaces"
+
+    cache = {}
+    def __new__(cls, *_items):
+        assert _items
+        items = []
+        for item in _items:
+            if type(item) is AddSpace:
+                items += item.items
+            else:
+                items.append(item)
+        key = tuple(items)
+        if key in cls.cache:
+            #print("cache hit", key)
+            return cls.cache[key]
+        #print("cache miss", key)
+        space = object.__new__(cls)
+        ring = items[0].ring
+        n = sum(item.n for item in items)
+        space.n = n
+        space.ring = ring
+        space.items = items
+        cls.cache[key] = space
+        return space
+
     def __init__(self, *_items):
+        pass
+
+    def _old__init__(self, *_items):
         items = []
         for item in _items:
             if type(item) is AddSpace:
@@ -126,10 +156,37 @@ class AddSpace(Space):
 
 class MulSpace(Space):
     "tensor product of vector spaces"
-    def __init__(self, *_items):
+
+    cache = {}
+    def __new__(cls, *_items):
+        assert _items
         items = []
         for item in _items:
-            if type(item) is AddSpace:
+            if type(item) is MulSpace:
+                items += item.items
+            else:
+                items.append(item)
+        key = tuple(items)
+        if key in cls.cache:
+            #print("cache hit", key)
+            return cls.cache[key]
+        #print("cache miss", key)
+        space = object.__new__(cls)
+        ring = items[0].ring
+        n = reduce(mul, [item.n for item in items])
+        space.n = n
+        space.ring = ring
+        space.items = items
+        cls.cache[key] = space
+        return space
+
+    def __init__(self, *_items):
+        pass
+
+    def _old__init__(self, *_items):
+        items = []
+        for item in _items:
+            if type(item) is MulSpace:
                 items += item.items
             else:
                 items.append(item)
@@ -200,6 +257,10 @@ class Lin(object):
 
     def __repr__(self):
         return "Lin( %s <--- %s )"%(self.tgt, self.src)
+
+    def weak_eq(self, other):
+        assert self.A.shape == other.A.shape
+        return eq(self.A, other.A)
 
     def __eq__(self, other):
         assert self.shape == other.shape
@@ -283,9 +344,15 @@ def test():
     f = space.parse("11. .11")
     assert -f == -1*f
 
-    assert f.coequalizer(f) == f.tgt.identity()
+    assert f.coequalizer(f).weak_eq(f.tgt.identity())
 
-    U, V = Space(ring, 3), Space(ring, 4)
+    U, V, W = Space(ring, 3), Space(ring, 4), Space(ring, 7)
+
+    assert hash(U) is not None
+    assert U+V == U+V
+    assert U+V is U+V
+    assert U+V+W is U+V+W
+    assert len((U+V+W).items) == 3
 
     sUV = (U+V).get_swap()
     sVU = (V+U).get_swap()
