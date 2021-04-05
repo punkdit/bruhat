@@ -101,17 +101,24 @@ def test():
 
     m = argv.get("m", 3)
     n = argv.get("n", 4)
-    H = rand(ring, m, n, 1, 1)
-    #print("H:")
-    #print(shortstr(H))
 
     if argv.toric:
         H = zeros(ring, m, m)
         for i in range(m):
             H[i, i] = ring.one
             H[i, (i+1)%m] = -ring.one
-        print("H:")
-        print(shortstr(H))
+    elif argv.surface:
+        H = zeros(ring, m-1, m)
+        for i in range(m-1):
+            H[i, i] = ring.one
+            H[i, (i+1)%m] = -ring.one
+    else:
+        H = rand(ring, m, n, p-1, p-1)
+    if argv.transpose:
+        H = H.transpose()
+
+    print("H:")
+    print(shortstr(H))
 
     hypergraph_product(ring, H, H)
 
@@ -176,19 +183,29 @@ def hypergraph_product(ring, A, check=False):
     g1, J0 = coequalizer(ring, 
         f1, identity(ring, f1.shape[0]), e)
 
-    #print(shortstr(J0))
-
     assert eq(compose(ring, H0, g0), compose(ring, g1, J0))
 
     e = compose(ring, H1, g1)
     g2, J1 = coequalizer(ring, 
         f2, identity(ring, f2.shape[0]), e)
 
-    #print(shortstr(J1))
-
     assert eq(compose(ring, H1, g1), compose(ring, g2, J1))
 
     assert is_zero(ring, compose(ring, J1, J0))
+
+    n = J1.shape[0]
+    J1t = J1.transpose()
+    mz = rank(ring, J1t)
+    mx = rank(ring, J0)
+    print("J1t:", J1t.shape, rank(ring, J1t))
+    print(shortstr(J1t))
+    print("J0:", J0.shape)
+    print(shortstr(J0))
+
+    print("n:", n)
+    print("mz:", mz)
+    print("mx:", mx)
+    print("k =", n-mx-mz)
 
 
 
