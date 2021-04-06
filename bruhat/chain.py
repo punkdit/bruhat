@@ -8,7 +8,7 @@
 
 from random import shuffle, seed
 from functools import reduce
-from operator import mul
+from operator import mul, add
 
 import numpy
 
@@ -40,7 +40,7 @@ class Space(object):
         self.grade = grade
 
     def __str__(self):
-        return "%s(%s, %s)"%(self.__class__.__name__, self.n, self.grade)
+        return "%s(%s, grade=%s)"%(self.__class__.__name__, self.n, self.grade)
     __repr__ = __str__
 
 #    def __eq__(self, other):
@@ -59,8 +59,6 @@ class Space(object):
         if idx<0 or idx >= self.n:
             raise IndexError
         return idx
-
-    # we should cache these ... ?
 
     def __add__(self, other):
         assert self.grade == other.grade
@@ -104,7 +102,7 @@ class Space(object):
 class AddSpace(Space):
     "direct sum of vector spaces"
 
-    cache = {}
+    cache = {} # XXX use https://docs.python.org/3/library/weakref.html
     def __new__(cls, *_items):
         assert _items
         items = []
@@ -155,7 +153,7 @@ class AddSpace(Space):
             f.A[i+b, i] = one
         return f
 
-    def send_outof(self, *lins):
+    def send_outof(self, lins):
         assert lins
         tgt = None
         As = []
@@ -168,7 +166,7 @@ class AddSpace(Space):
         lin = Lin(tgt, self, A)
         return lin
 
-    def send_into(self, *lins):
+    def send_into(self, lins):
         assert lins
         src = None
         As = []
@@ -181,11 +179,19 @@ class AddSpace(Space):
         lin = Lin(self, src, A)
         return lin
 
+    def get_slice(self, space):
+        i = 0
+        for idx, item in enumerate(self.items):
+            if item == space:
+                return slice(i, i+item.n)
+            i += item.n
+        assert 0, "space %s not found in %s"%(space, self)
+
 
 class MulSpace(Space):
     "tensor product of vector spaces"
 
-    cache = {}
+    cache = {} # XXX use https://docs.python.org/3/library/weakref.html
     def __new__(cls, *_items):
         assert _items
         items = []
@@ -257,7 +263,8 @@ class Lin(object):
         if A is None:
             A = elim.zeros(self.ring, tgt.n, src.n)
         assert A.shape == (tgt.n, src.n), "%s != %s" % ( A.shape , (tgt.n, src.n) )
-        self.shape = (tgt, src)
+        self.shape = (tgt, src) # XXX too confusing
+        self.hom = (tgt, src) # yes it's backwards, just like shape is.
         self.A = A.copy()
 
     @classmethod
@@ -367,6 +374,92 @@ class Lin(object):
 
 
 
+class Seq(object):
+    def __init__(self, lins):
+        assert lins
+        self.ring = lins[0].ring
+        self.lins = list(lins)
+        prev = None
+        for lin in lins:
+            tgt, src = lin.shape
+            assert prev is None or prev == src
+            prev = tgt
+
+    def __str__(self):
+        spaces = [lin.src for lin in self.lins] + [self.lins[-1].tgt]
+        return "%s(%s)"%(self.__class__.__name__,
+            "-->".join(str(space) for space in spaces))
+
+    def __matmul__(self, other):
+        assert isinstance(other, Seq)
+        return MulSeq(self, other)
+
+
+class MulSeq(Seq):
+    def _init(self):
+        self.spaces = set()  # found spaces
+        self.srcs = {}       # Space -> [Lin]
+        self.tgts = {}       # Space -> [Lin]
+        self.grades = {}     # int -> [Space]
+
+    def _addspace(self, space):
+        spaces = self.spaces
+        grades = self.grades
+        if space not in spaces:
+            spaces.add(space)
+            grades.setdefault(space.grade, []).append(space)
+
+    def _addlin(self, lin):
+        tgt, src = lin.hom
+        self._addspace(src)
+        self.srcs.setdefault(lin.src, []).append(lin)
+        self._addspace(tgt)
+        self.tgts.setdefault(lin.tgt, []).append(lin)
+
+    def __init__(self, lhs, rhs):
+        assert lhs.lins
+        assert rhs.lins
+        assert lhs.ring is rhs.ring
+        ring = lhs.ring
+        self._init()
+        for g in rhs.lins: # cols
+            for f in lhs.lins: # rows
+                self._addlin( f @ g.src.identity() ) # vertical arrow
+                self._addlin( f.src.identity() @ g ) # horizontal arrow
+            self._addlin( f.tgt.identity() @ g ) # horizontal arrow
+  
+        for f in lhs.lins: # rows
+            self._addlin( f @ g.tgt.identity() ) # vertical arrow
+
+        keys = list(self.grades.keys())
+        keys.sort(reverse=True)
+        #print(keys)
+
+        N = len(keys)
+        lins = []
+        for idx in range(N-1):
+            i = keys[idx]
+            assert keys[idx+1] == i-1, keys
+            tgt = AddSpace(*self.grades[i-1])
+            src = AddSpace(*self.grades[i])
+            #print(tgt)
+            #print(src)
+            A = elim.zeros(ring, tgt.n, src.n)
+            #print(shortstr(A))
+            for s in src.items:
+                for lin in self.srcs[s]:
+                    assert lin.src is s
+                    cols = src.get_slice(lin.src)
+                    rows = tgt.get_slice(lin.tgt)
+                    A[rows, cols] = lin.A
+            #print(shortstr(A))
+            lin = Lin(tgt, src, A)
+            #print(repr(lin))
+            lins.append(lin)
+            #print()
+        Seq.__init__(self, lins)
+
+
 def test():
 
     p = argv.get("p", 3)
@@ -420,19 +513,6 @@ def test():
         assert f.rank() == [1, 3, 6, 10][m-1]
 
 
-class Sequence(object):
-    def __init__(self, lins):
-        self.lins = lins
-        prev = None
-        for lin in lins:
-            tgt, src = lin.shape
-            assert prev is None or prev == src
-            prev = src
-
-    #def tensor(self, other):
-
-
-
 def test_chain():
     p = argv.get("p", 3)
     ring = element.FiniteField(p)
@@ -465,7 +545,13 @@ def test_chain():
 
         A = Lin.rand(U, V)
 
-    homological_product(A, A)
+    #homological_product(A, A)
+    c = Seq([A])
+    print(c)
+    cc = c @ c
+    print(cc)
+    ccc = c@cc
+    print(ccc)
 
 
 def homological_product(f, g):
@@ -497,8 +583,8 @@ def homological_product(f, g):
         f.tgt @ g.tgt]
 
     lins = [
-        spaces[1].send_into(fgs, fsg),
-        spaces[1].send_outof(ftg, fgt),
+        spaces[1].send_into([fgs, fsg]),
+        spaces[1].send_outof([ftg, fgt]),
     ]
 
     print(lins[0])
