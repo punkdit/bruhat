@@ -31,15 +31,16 @@ def shortstr(A):
 
 
 class Space(object):
-    def __init__(self, ring, n=0):
+    def __init__(self, ring, n=0, grade=0):
         assert isinstance(ring, element.Ring)
         assert type(n) is int
         assert 0<=n
         self.ring = ring
         self.n = n
+        self.grade = grade
 
     def __str__(self):
-        return "%s(%s)"%(self.__class__.__name__, self.n)
+        return "%s(%s, %s)"%(self.__class__.__name__, self.n, self.grade)
     __repr__ = __str__
 
 #    def __eq__(self, other):
@@ -62,6 +63,7 @@ class Space(object):
     # we should cache these ... ?
 
     def __add__(self, other):
+        assert self.grade == other.grade
         return AddSpace(self, other)
 
     def __matmul__(self, other):
@@ -73,10 +75,10 @@ class Space(object):
     def parse(self, decl):
         A = solve.parse(decl)
         decl = decl.replace('.', '0')
-        lines = decl.split()
-        lines = [l.strip() for l in lines if l.strip()]
+        rows = decl.split()
+        rows = [l.strip() for l in rows if l.strip()]
         promote = self.ring.promote
-        rows = [list(promote(int(c)) for c in l) for l in lines]
+        rows = [list(promote(int(c)) for c in l) for l in rows]
         assert rows
         n = len(rows[0])
         for row in rows:
@@ -118,9 +120,9 @@ class AddSpace(Space):
         #print("cache miss", key)
         space = object.__new__(cls)
         ring = items[0].ring
+        grade = items[0].grade
         n = sum(item.n for item in items)
-        space.n = n
-        space.ring = ring
+        Space.__init__(space, ring, n, grade)
         space.items = items
         cls.cache[key] = space
         return space
@@ -153,6 +155,32 @@ class AddSpace(Space):
             f.A[i+b, i] = one
         return f
 
+    def send_outof(self, *lins):
+        assert lins
+        tgt = None
+        As = []
+        for idx, lin in enumerate(lins):
+            assert lin.src == self.items[idx]
+            assert tgt is None or tgt == lin.tgt
+            tgt = lin.tgt
+            As.append(lin.A)
+        A = numpy.concatenate(As, axis=1)
+        lin = Lin(tgt, self, A)
+        return lin
+
+    def send_into(self, *lins):
+        assert lins
+        src = None
+        As = []
+        for idx, lin in enumerate(lins):
+            assert lin.tgt == self.items[idx]
+            assert src is None or src == lin.src
+            src = lin.src
+            As.append(lin.A)
+        A = numpy.concatenate(As, axis=0)
+        lin = Lin(self, src, A)
+        return lin
+
 
 class MulSpace(Space):
     "tensor product of vector spaces"
@@ -173,9 +201,9 @@ class MulSpace(Space):
         #print("cache miss", key)
         space = object.__new__(cls)
         ring = items[0].ring
+        grade = sum(item.grade for item in items)
         n = reduce(mul, [item.n for item in items])
-        space.n = n
-        space.ring = ring
+        Space.__init__(space, ring, n, grade)
         space.items = items
         cls.cache[key] = space
         return space
@@ -201,6 +229,8 @@ class MulSpace(Space):
         other = V@U
         f = Lin(other, self)
         one = self.ring.one
+        if (U.grade * V.grade) % 2:
+            one = -one
         a, b = len(U), len(V)
         for i in range(a):
           for j in range(b):
@@ -210,7 +240,7 @@ class MulSpace(Space):
 
 class DualSpace(Space):
     def __init__(self, item):
-        Space.__init__(self, item.ring, item.n)
+        Space.__init__(self, item.ring, item.n, -item.grade)
         self.item = item
 
     def __inv__(self):
@@ -223,6 +253,7 @@ class Lin(object):
         self.ring = tgt.ring
         self.tgt = tgt
         self.src = src
+        self.grade = tgt.grade - src.grade
         if A is None:
             A = elim.zeros(self.ring, tgt.n, src.n)
         assert A.shape == (tgt.n, src.n), "%s != %s" % ( A.shape , (tgt.n, src.n) )
@@ -245,12 +276,12 @@ class Lin(object):
 
     def is_zero(self):
         B = Lin.zeros(self.tgt, self.src)
-        return eq(self.A, B)
+        return eq(self.A, B.A)
 
     def is_identity(self):
         assert self.tgt == self.src, "wah?"
         B = self.tgt.identity()
-        return eq(self.A, B)
+        return eq(self.A, B.A)
 
     def __str__(self):
         return shortstr(self.A)
@@ -335,6 +366,7 @@ class Lin(object):
 
 
 
+
 def test():
 
     p = argv.get("p", 3)
@@ -347,6 +379,7 @@ def test():
     assert f.coequalizer(f).weak_eq(f.tgt.identity())
 
     U, V, W = Space(ring, 3), Space(ring, 4), Space(ring, 7)
+    F = Space(ring, 2, 1) # fermionic space
 
     assert hash(U) is not None
     assert U+V == U+V
@@ -361,6 +394,12 @@ def test():
     sUV = (U@V).get_swap()
     sVU = (V@U).get_swap()
     assert sVU*sUV == (U@V).identity()
+
+    sUU = (U@U).get_swap()
+    assert sUU*sUU == (U@U).identity()
+
+    sFF = (F@F).get_swap()
+    assert sFF*sFF == (F@F).identity()
 
     A = Lin.rand(U, V, 1, 1)
     B = Lin.rand(U, V, 1, 1)
@@ -379,6 +418,95 @@ def test():
         f = I.coequalizer(s)
         assert eq(f, f*s)
         assert f.rank() == [1, 3, 6, 10][m-1]
+
+
+class Sequence(object):
+    def __init__(self, lins):
+        self.lins = lins
+        prev = None
+        for lin in lins:
+            tgt, src = lin.shape
+            assert prev is None or prev == src
+            prev = src
+
+    #def tensor(self, other):
+
+
+
+def test_chain():
+    p = argv.get("p", 3)
+    ring = element.FiniteField(p)
+
+    space = Space(ring)
+
+    m = argv.get("m", 3)
+    n = argv.get("n", 4)
+
+    one = ring.one
+    if argv.toric:
+        V = Space(ring, n, 1)
+        U = Space(ring, m, 0)
+
+        A = Lin(U, V)
+        for i in range(m):
+            A[i, i] = one
+            A[i, (i+1)%m] = -one
+    elif argv.surface:
+        V = Space(ring, m, 1)
+        U = Space(ring, m-1, 0)
+
+        A = Lin(U, V)
+        for i in range(m-1):
+            A[i, i] = one
+            A[i, (i+1)%m] = -one
+    else:
+        V = Space(ring, n, 1)
+        U = Space(ring, m, 0)
+
+        A = Lin.rand(U, V)
+
+    homological_product(A, A)
+
+
+def homological_product(f, g):
+
+    print("f:")
+    print(f)
+
+    """
+                    g
+      x     g.src ----> g.tgt
+                                    
+    f.src                                
+     |                             
+     | f                             
+     |                             
+     v                             
+    f.tgt                             
+
+    """
+
+    fgs = f @ g.src.identity() # vertical arrow
+    fgt = f @ g.tgt.identity() # vertical arrow
+    fsg = -f.src.identity() @ g # horizontal arrow
+    ftg = f.tgt.identity() @ g # horizontal arrow
+
+    spaces = [
+        f.src @ g.src, 
+        f.tgt @ g.src + f.src @ g.tgt, 
+        f.tgt @ g.tgt]
+
+    lins = [
+        spaces[1].send_into(fgs, fsg),
+        spaces[1].send_outof(ftg, fgt),
+    ]
+
+    print(lins[0])
+    print(lins[1])
+
+    assert (lins[1]*lins[0]).is_zero()
+
+
 
 
 if __name__ == "__main__":
