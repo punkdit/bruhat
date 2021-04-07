@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 """
+This is being translated into chain.py
+
+
 Earlier version: qupy.ldpc.cell
 Used by: bruhat.morse
 See also: bruhat.vec 
@@ -250,7 +253,6 @@ def test():
 
     print("A:")
     print(shortstr(A))
-
 
     n, m = A.shape
 

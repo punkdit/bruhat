@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 """
+previous version: schur.py
 
 
 
@@ -8,7 +9,7 @@
 
 from random import shuffle, seed
 from functools import reduce
-from operator import mul, add
+from operator import mul, add, matmul
 
 import numpy
 
@@ -140,18 +141,26 @@ class AddSpace(Space):
         Space.__init__(self, ring, n)
         self.items = items
 
-    def get_swap(self):
-        assert len(self.items) == 2, "not implemented.."
-        U, V = self.items
-        other = V+U
-        f = Lin(other, self)
-        one = self.ring.one
-        a, b = len(U), len(V)
-        for i in range(b):
-            f.A[i, i+a] = one
-        for i in range(a):
-            f.A[i+b, i] = one
-        return f
+    def get_swap(self, perm=(1, 0)):
+        perm = tuple(perm)
+        items = self.items
+        assert len(perm) == len(items)
+        assert set(perm) == set(range(len(items)))
+        tgt = reduce(add, [items[i] for i in perm])
+        N = len(items)
+        rows = []
+        for i in perm:
+          row = []
+          for j in range(N):
+            if i==j:
+                A = elim.identity(self.ring, items[i].n)
+            else:
+                A = elim.zeros(self.ring, items[i].n, items[j].n)
+            row.append(A)
+          rows.append(row)
+        rows = [numpy.concatenate(row, axis=1) for row in rows]
+        A = numpy.concatenate(rows)
+        return Lin(tgt, self, A)
 
     def send_outof(self, lins):
         assert lins
@@ -229,19 +238,21 @@ class MulSpace(Space):
         Space.__init__(self, ring, n)
         self.items = items
 
-    def get_swap(self):
-        assert len(self.items) == 2, "not implemented.."
-        U, V = self.items
-        other = V@U
-        f = Lin(other, self)
-        one = self.ring.one
-        if (U.grade * V.grade) % 2:
-            one = -one
-        a, b = len(U), len(V)
-        for i in range(a):
-          for j in range(b):
-            f.A[j*a + i, i*b + j] = one
-        return f
+    def get_swap(self, perm=(1, 0)):
+        perm = tuple(perm)
+        items = self.items
+        assert len(perm) == len(items)
+        assert set(perm) == set(range(len(items)))
+        A = elim.identity(self.ring, self.n)
+        shape = tuple(item.n for item in items)
+        A.shape = shape + shape
+        axes = list(perm)
+        for i in range(len(items)):
+            axes.append(i+len(perm))
+        A = A.transpose(axes)
+        tgt = reduce(matmul, [self.items[i] for i in perm])
+        A = A.reshape((tgt.n, self.n)) # its a square matrix
+        return Lin(tgt, self, A)
 
 
 class DualSpace(Space):
@@ -263,8 +274,8 @@ class Lin(object):
         if A is None:
             A = elim.zeros(self.ring, tgt.n, src.n)
         assert A.shape == (tgt.n, src.n), "%s != %s" % ( A.shape , (tgt.n, src.n) )
-        self.shape = (tgt, src) # XXX too confusing
         self.hom = (tgt, src) # yes it's backwards, just like shape is.
+        self.shape = A.shape
         self.A = A.copy()
 
     @classmethod
@@ -301,11 +312,11 @@ class Lin(object):
         return eq(self.A, other.A)
 
     def __eq__(self, other):
-        assert self.shape == other.shape
+        assert self.hom == other.hom
         return eq(self.A, other.A)
 
     def __ne__(self, other):
-        assert self.shape == other.shape
+        assert self.hom == other.hom
         return not eq(self.A, other.A)
 
     def __getitem__(self, idx):
@@ -315,14 +326,14 @@ class Lin(object):
         self.A[idx] = val
 
     def __add__(self, other):
-        assert self.shape == other.shape
+        assert self.hom == other.hom
         A = self.A + other.A
-        return Lin(*self.shape, A)
+        return Lin(*self.hom, A)
 
     def __sub__(self, other):
-        assert self.shape == other.shape
+        assert self.hom == other.hom
         A = self.A - other.A
-        return Lin(*self.shape, A)
+        return Lin(*self.hom, A)
 
     def __mul__(self, other):
         assert other.tgt == self.src
@@ -364,10 +375,10 @@ class Lin(object):
         return f
 
     def coequalizer(self, other):
-        assert self.shape == other.shape
+        assert self.hom == other.hom
         ring = self.ring
         A = elim.coequalizer(ring, self.A, other.A)
-        src, _ = self.shape
+        src = self.tgt
         tgt = Space(ring, len(A))
         return Lin(tgt, src, A)
 
@@ -390,7 +401,7 @@ class Chain(Seq):
         Seq.__init__(self, lins)
         prev = None
         for lin in lins:
-            tgt, src = lin.shape
+            tgt, src = lin.hom
             if prev is not None:
                 assert prev.tgt == src
                 assert (lin*prev).is_zero()
@@ -489,7 +500,7 @@ def test():
 
     assert f.coequalizer(f).weak_eq(f.tgt.identity())
 
-    U, V, W = Space(ring, 3), Space(ring, 4), Space(ring, 7)
+    U, V, W = Space(ring, 2), Space(ring, 3), Space(ring, 5)
     F = Space(ring, 2, 1) # fermionic space
 
     assert hash(U) is not None
@@ -502,9 +513,32 @@ def test():
     sVU = (V+U).get_swap()
     assert sVU*sUV == (U+V).identity()
 
+    a = (U+U+U).get_swap([1,0,2])
+    b = (U+U+U).get_swap([0,2,1])
+    assert a*b*a == b*a*b
+
+    # tensor --------------------
+
     sUV = (U@V).get_swap()
     sVU = (V@U).get_swap()
     assert sVU*sUV == (U@V).identity()
+
+    s1 = (U@V@W).get_swap([1,0,2]) # V U W
+    s2 = (V@U@W).get_swap([1,0,2]) # V U W
+    assert s2*s1 == (U@V@W).identity()
+
+    a = (U@U@U).get_swap([1,0,2])
+    b = (U@U@U).get_swap([0,2,1])
+    assert a*b*a == b*a*b
+
+    s = (U@U@U).get_swap([1,2,0])
+    assert s*s != s.src.identity()
+    assert s*s*s == s.src.identity()
+
+    s1 = (U@V@W).get_swap([1,2,0])
+    s2 = s1.tgt.get_swap([1,2,0])
+    s3 = s2.tgt.get_swap([1,2,0])
+    assert s3*s2*s1 == s1.src.identity()
 
     sUU = (U@U).get_swap()
     assert sUU*sUU == (U@U).identity()
@@ -517,7 +551,6 @@ def test():
     assert A@B != B@A
 
     sUU = (U@U).get_swap()
-    print(sUU.shape)
     sVV = (V@V).get_swap()
 
     assert sUU*(A@B)*sVV == B@A
@@ -577,7 +610,6 @@ def test_chain():
 
         A = Lin.rand(U, V)
 
-    #homological_product(A, A)
     c = Chain([A])
     print(c)
     cc = c @ c
@@ -585,44 +617,6 @@ def test_chain():
     ccc = c@cc
     print(ccc)
 
-
-def homological_product(f, g):
-
-    print("f:")
-    print(f)
-
-    """
-                    g
-      x     g.src ----> g.tgt
-                                    
-    f.src                                
-     |                             
-     | f                             
-     |                             
-     v                             
-    f.tgt                             
-
-    """
-
-    fgs = f @ g.src.identity() # vertical arrow
-    fgt = f @ g.tgt.identity() # vertical arrow
-    fsg = -f.src.identity() @ g # horizontal arrow
-    ftg = f.tgt.identity() @ g # horizontal arrow
-
-    spaces = [
-        f.src @ g.src, 
-        f.tgt @ g.src + f.src @ g.tgt, 
-        f.tgt @ g.tgt]
-
-    lins = [
-        spaces[1].send_into([fgs, fsg]),
-        spaces[1].send_outof([ftg, fgt]),
-    ]
-
-    print(lins[0])
-    print(lins[1])
-
-    assert (lins[1]*lins[0]).is_zero()
 
 
 def test_all():
