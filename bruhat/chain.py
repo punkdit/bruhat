@@ -372,6 +372,9 @@ class Lin(object):
         return Lin(tgt, src, A)
 
 
+# ------------------------------------------------------------
+
+# ------------------------ graded stuff ----------------------
 
 
 class Seq(object):
@@ -379,11 +382,19 @@ class Seq(object):
         assert lins
         self.ring = lins[0].ring
         self.lins = list(lins)
+
+
+
+class Chain(Seq):
+    def __init__(self, lins):
+        Seq.__init__(self, lins)
         prev = None
         for lin in lins:
             tgt, src = lin.shape
-            assert prev is None or prev == src
-            prev = tgt
+            if prev is not None:
+                assert prev.tgt == src
+                assert (lin*prev).is_zero()
+            prev = lin
 
     def __str__(self):
         spaces = [lin.src for lin in self.lins] + [self.lins[-1].tgt]
@@ -391,11 +402,12 @@ class Seq(object):
             "-->".join(str(space) for space in spaces))
 
     def __matmul__(self, other):
-        assert isinstance(other, Seq)
-        return MulSeq(self, other)
+        assert isinstance(other, Chain)
+        return MulChain(self, other)
 
 
-class MulSeq(Seq):
+class MulChain(Chain):
+    "tensor product of Chain complexes"
     def _init(self):
         self.spaces = set()  # found spaces
         self.srcs = {}       # Space -> [Lin]
@@ -425,8 +437,10 @@ class MulSeq(Seq):
         for g in rhs.lins: # cols
             for f in lhs.lins: # rows
                 self._addlin( f @ g.src.identity() ) # vertical arrow
-                self._addlin( f.src.identity() @ g ) # horizontal arrow
-            self._addlin( f.tgt.identity() @ g ) # horizontal arrow
+                sign = -1 if f.src.grade % 2 else 1
+                self._addlin( sign * f.src.identity() @ g ) # horizontal arrow
+            sign = -1 if f.tgt.grade % 2 else 1
+            self._addlin( sign * f.tgt.identity() @ g ) # horizontal arrow
   
         for f in lhs.lins: # rows
             self._addlin( f @ g.tgt.identity() ) # vertical arrow
@@ -457,8 +471,12 @@ class MulSeq(Seq):
             #print(repr(lin))
             lins.append(lin)
             #print()
-        Seq.__init__(self, lins)
+        Chain.__init__(self, lins)
 
+
+# ------------------------------------------------------------
+
+# ------------------------ testing      ----------------------
 
 def test():
 
@@ -499,18 +517,32 @@ def test():
     assert A@B != B@A
 
     sUU = (U@U).get_swap()
+    print(sUU.shape)
     sVV = (V@V).get_swap()
 
     assert sUU*(A@B)*sVV == B@A
 
+    # symmetric square
     for m in range(1, 5):
         U = Space(ring, m)
         UU = U@U
         I = UU.identity()
         s = UU.get_swap()
         f = I.coequalizer(s)
-        assert eq(f, f*s)
+        assert f == f*s
         assert f.rank() == [1, 3, 6, 10][m-1]
+
+    # alternating squares 
+    for m in range(1, 5):
+        #U = Space(ring, m, grade=1) # fermionic Space
+        U = Space(ring, m)
+        UU = U@U
+        I = UU.identity()
+        s = -UU.get_swap()
+        f = I.coequalizer(s)
+        assert f == f*s
+        assert f.rank() == [0, 1, 3, 6][m-1]
+
 
 
 def test_chain():
@@ -546,7 +578,7 @@ def test_chain():
         A = Lin.rand(U, V)
 
     #homological_product(A, A)
-    c = Seq([A])
+    c = Chain([A])
     print(c)
     cc = c @ c
     print(cc)
@@ -593,12 +625,16 @@ def homological_product(f, g):
     assert (lins[1]*lins[0]).is_zero()
 
 
+def test_all():
+    test()
+    test_chain()
+
 
 
 if __name__ == "__main__":
 
 
-    fn = argv.next() or "test"
+    fn = argv.next() or "test_all"
     fn = eval(fn)
     fn()
 
