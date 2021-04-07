@@ -7,7 +7,7 @@ previous version: schur.py
 
 """
 
-from random import shuffle, seed
+from random import shuffle, seed, choice
 from functools import reduce
 from operator import mul, add, matmul
 
@@ -22,6 +22,7 @@ from bruhat.elim import eq
 #    rank, pseudo_inverse)
 #from bruhat.solve import parse
 from bruhat import solve
+from bruhat.frobenius import GF
 
 
 def shortstr(A):
@@ -238,7 +239,7 @@ class MulSpace(Space):
         Space.__init__(self, ring, n)
         self.items = items
 
-    def get_swap(self, perm=(1, 0)):
+    def get_swap(self, perm=(1, 0)): # XX todo: grading 
         perm = tuple(perm)
         items = self.items
         assert len(perm) == len(items)
@@ -576,6 +577,28 @@ def test():
         assert f == f*s
         assert f.rank() == [0, 1, 3, 6][m-1]
 
+
+def test_gf():
+    ring = GF(4)
+    x = ring.x
+    space = Space(ring)
+
+    m = argv.get("m", 3)
+    n = argv.get("n", 4)
+
+    one = ring.one
+    A = elim.zeros(ring, m, n)
+    for i in range(m):
+      for j in range(n):
+        A[i, j] = choice(ring.elements)
+
+    H = Lin(Space(ring, m, 0), Space(ring, n, 1), A)
+    #print(H)
+
+    c = Chain([H])
+    cc = c@c
+    #for f in cc.lins:
+    #    print(f)
 
 
 def test_chain():
