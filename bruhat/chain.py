@@ -23,6 +23,9 @@ from bruhat.elim import eq
 #from bruhat.solve import parse
 from bruhat import solve
 from bruhat.frobenius import GF
+from bruhat.action import Perm, Group, mulclose, mulclose_hom
+from bruhat.rep import Young
+from bruhat.util import partitions
 
 
 def shortstr(A):
@@ -31,6 +34,15 @@ def shortstr(A):
     s = s.replace(" 0 ", " . ")
     return s
 
+
+def none_uniq(grades):
+    if len(set(grades))==1:
+        return grades[0]
+
+
+none_add = lambda g0, g1 : g0+g1 if g0 is not None and g1 is not None else None
+none_sub = lambda g0, g1 : g0-g1 if g0 is not None and g1 is not None else None
+    
 
 class Space(object):
     def __init__(self, ring, n=0, grade=0):
@@ -63,7 +75,7 @@ class Space(object):
         return idx
 
     def __add__(self, other):
-        assert self.grade == other.grade
+        #assert self.grade == other.grade
         return AddSpace(self, other)
 
     def __matmul__(self, other):
@@ -120,7 +132,8 @@ class AddSpace(Space):
         #print("cache miss", key)
         space = object.__new__(cls)
         ring = items[0].ring
-        grade = items[0].grade
+        #grade = items[0].grade
+        grade = none_uniq([item.grade for item in items])
         n = sum(item.n for item in items)
         Space.__init__(space, ring, n, grade)
         space.items = items
@@ -217,7 +230,8 @@ class MulSpace(Space):
         #print("cache miss", key)
         space = object.__new__(cls)
         ring = items[0].ring
-        grade = sum(item.grade for item in items)
+        #grade = sum(item.grade for item in items)
+        grade = reduce(none_add, [item.grade for item in items])
         n = reduce(mul, [item.n for item in items])
         Space.__init__(space, ring, n, grade)
         space.items = items
@@ -239,16 +253,23 @@ class MulSpace(Space):
         Space.__init__(self, ring, n)
         self.items = items
 
-    def get_swap(self, perm=(1, 0)): # XX todo: grading 
+    def get_swap(self, perm=(1, 0)):
         perm = tuple(perm)
         items = self.items
+        assert self.grade is not None
         assert len(perm) == len(items)
         assert set(perm) == set(range(len(items)))
-        A = elim.identity(self.ring, self.n)
+        sign = self.ring.one
+        N = len(items)
+        for i in range(N):
+          for j in range(i+1, N):
+            if perm[i] > perm[j] and (items[i].grade * items[j].grade) % 2:
+                sign *= -1
+        A = sign*elim.identity(self.ring, self.n)
         shape = tuple(item.n for item in items)
         A.shape = shape + shape
         axes = list(perm)
-        for i in range(len(items)):
+        for i in range(N):
             axes.append(i+len(perm))
         A = A.transpose(axes)
         tgt = reduce(matmul, [self.items[i] for i in perm])
@@ -271,7 +292,7 @@ class Lin(object):
         self.ring = tgt.ring
         self.tgt = tgt
         self.src = src
-        self.grade = tgt.grade - src.grade
+        self.grade = none_sub(tgt.grade, src.grade)
         if A is None:
             A = elim.zeros(self.ring, tgt.n, src.n)
         assert A.shape == (tgt.n, src.n), "%s != %s" % ( A.shape , (tgt.n, src.n) )
@@ -488,6 +509,93 @@ class MulChain(Chain):
 
 # ------------------------------------------------------------
 
+# ------------------------ Young symmetrizers ----------------
+
+# code ripped from qu.py
+
+def test_young():
+
+    d = argv.get("d", 2)
+    n = argv.get("n", 3)
+    p = argv.get("p")
+
+    if p is None:
+        ring = element.Q
+    else:
+        ring = element.FiniteField(p)
+    print("ring:", ring)
+
+    space = Space(ring, d)
+
+    # tensor power of the space
+    tspace = reduce(matmul, [space]*n)
+
+    # build action of symmetric group on the tensor power
+    items = list(range(n))
+    gen1 = []
+    gen2 = []
+    for i in range(n-1):
+        perm = dict((item, item) for item in items)
+        perm[items[i]] = items[i+1]
+        perm[items[i+1]] = items[i]
+        g = Perm(perm, items)
+        gen1.append(g)
+        lin = tspace.get_swap([g[i] for i in items])
+        #print(lin.hom)
+        gen2.append(lin)
+
+    perms = mulclose(gen1)
+    G = Group(perms, items)
+
+    #print(G)
+
+    action = mulclose_hom(gen1, gen2)
+    for g in G:
+      for h in G:
+        assert action[g*h] == action[g]*action[h] # check it's a group hom
+
+    # Build the young symmetrizers
+    projs = []
+    parts = []
+    for part in partitions(n):
+        #if len(part) > d:
+        #    continue
+
+        parts.append(part)
+        t = Young(G, part)
+
+        rowG = t.get_rowperms()
+        colG = t.get_colperms()
+        horiz = None
+        for g in rowG:
+            P = action[g]
+            horiz = P if horiz is None else (horiz + P)
+
+        vert = None
+        for g in colG:
+            P = action[g]
+            s = g.sign()
+            P = ring.promote(s)*P
+            vert = P if vert is None else (vert + P)
+        A = horiz * vert
+
+        assert vert*vert == len(colG) * vert
+        assert horiz*horiz == len(rowG) * horiz
+        #A = A.transpose()
+        projs.append(A)
+
+        print("part:", part)
+        print(t)
+        print("is_zero:", A.is_zero())
+        if not A.is_zero():
+            print(A)
+
+        print()
+
+
+
+# ------------------------------------------------------------
+
 # ------------------------ testing      ----------------------
 
 def test():
@@ -576,6 +684,51 @@ def test():
         f = I.coequalizer(s)
         assert f == f*s
         assert f.rank() == [0, 1, 3, 6][m-1]
+
+
+def test_super():
+    ring = element.Q
+
+    U = Space(ring, 2, grade=0) # bosonic
+    V = Space(ring, 2, grade=1) # fermionic
+
+    lhs = (U@U@U).get_swap([0,2,1]).A
+    rhs = (U@U@V).get_swap([0,2,1]).A
+    assert eq(lhs, rhs)
+
+    lhs = (U@V@V).get_swap([0,2,1]).A
+    rhs = (U@U@U).get_swap([0,2,1]).A
+    assert eq(lhs, -rhs)
+
+    lhs = (V@V@V).get_swap([1,2,0]).A
+    rhs = (U@U@U).get_swap([1,2,0]).A
+    assert eq(lhs, rhs)
+
+    return
+
+    dsum = lambda a, b : a.direct_sum(b)
+
+    for a in range(4):
+      for b in range(4):
+        U = Space(ring, a, grade=0) # bosonic 
+        V = Space(ring, b, grade=1) # fermionic
+
+        UU, UV, VU, VV = U@U, U@V, V@U, V@V
+
+        src = UU + UV + VU + VV
+        
+        lhs = [
+            UU.get_swap(), 
+            (VU+UV).get_swap() * dsum(UV.get_swap(), VU.get_swap()),
+            VV.get_swap()]
+        lhs = reduce(dsum, lhs)
+
+        rhs = src.identity()
+
+        f = lhs.coequalizer(rhs)
+        print("%3d"%f.rank(), end=" ")
+      print()
+
 
 
 def test_gf():
