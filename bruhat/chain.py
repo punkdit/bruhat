@@ -405,7 +405,8 @@ class Lin(object):
         return f
 
     def _coequalizer(self, other):
-        assert self.hom == other.hom
+        assert self.src == other.src
+        assert self.tgt == other.tgt
         ring = self.ring
         A = elim.coequalizer(ring, self.A, other.A)
         src = self.tgt
@@ -416,17 +417,23 @@ class Lin(object):
         if len(others)==1:
             return self._coequalizer(*others)
         colim = self.tgt.identity()
-        prev = self
-        result = []
+        prev = colim
+#        result = []
+        #print("coequalizer")
+        #print(self.hom)
         for other in others:
+            #print(other.hom)
+            assert prev.src == self.tgt
             assert self.hom == other.hom
-            other = colim * other
-            colim = colim._coequalizer(other)
-            if result:
-                assert colim.src == result[-1].tgt 
-            result.append(colim)
-        assert result[0].src == self.tgt
-        colim = reduce(mul, reversed(result))
+            other = prev * other
+            colim = (prev*self)._coequalizer(other)
+#            if result:
+#                assert colim.src == result[-1].tgt 
+#            result.append(colim)
+            prev = colim * prev
+#        assert result[0].src == self.tgt
+        #colim = reduce(mul, reversed(result))
+        colim = prev
         assert colim.src == self.tgt
         return colim
 
@@ -497,9 +504,9 @@ class MulChain(Chain):
             for f in lhs.lins: # rows
                 self._addlin( f @ g.src.identity() ) # vertical arrow
                 sign = -1 if f.src.grade % 2 else 1
-                self._addlin( sign * f.src.identity() @ g ) # horizontal arrow
+                self._addlin( sign * f.src.identity() @ g ) # _horizontal arrow
             sign = -1 if f.tgt.grade % 2 else 1
-            self._addlin( sign * f.tgt.identity() @ g ) # horizontal arrow
+            self._addlin( sign * f.tgt.identity() @ g ) # _horizontal arrow
   
         for f in lhs.lins: # rows
             self._addlin( f @ g.tgt.identity() ) # vertical arrow
@@ -582,12 +589,11 @@ def test_young():
 
     # Build the young symmetrizers
     projs = []
-    parts = []
-    for part in partitions(n):
-        #if len(part) > d:
-        #    continue
+    part = argv.get("part")
+    parts = list(partitions(n)) if part is None else [part]
+    for part in parts:
+        assert sum(part) == n
 
-        parts.append(part)
         t = Young(G, part)
 
         rowG = t.get_rowperms()
@@ -612,9 +618,10 @@ def test_young():
 
         print("part:", part)
         print(t)
+        print("rank:", A.rank())
         print("is_zero:", A.is_zero())
-        if not A.is_zero():
-            print(A)
+        #if not A.is_zero():
+        #    print(A)
 
         print()
 
@@ -712,9 +719,9 @@ def test():
         assert f.rank() == [0, 1, 3, 6][m-1]
 
 
-def super_young(U, V):
+def super_young(U, V, part):
+    ring = U.ring
 
-    part = argv.get("part", (3,))
     n = sum(part)
 
     lookup = {}
@@ -736,8 +743,8 @@ def super_young(U, V):
 
     colim = src.identity()
     diagram = []
-    for perm in G:
-        perm = tuple(perm[i] for i in range(n))
+    for action in G:
+        perm = tuple(action[i] for i in range(n))
         print(perm)
         sumswap = [None] * len(summands)
         fs = []
@@ -755,18 +762,66 @@ def super_young(U, V):
         print(g.src.name, "-->", g.tgt.name)
         assert f.tgt == g.src
         assert g.tgt == src
-        gf = g*f
-        diagram.append(gf)
+        #gf = g*f
+        #diagram.append(gf)
         #colim = colim.coequalizer(gf)
-    
+        hom[action] = (g,f)
         print()
 
-    colim = src.identity().coequalizer(*diagram)
-    assert colim.src == src
-    print(colim.shape)
-    print(colim)
-    print(colim.rank())
-    #for f in diagram:
+    #colim = src.identity().coequalizer(*diagram)
+    young = Young(G, part)
+    print(young)
+#
+#        horiz = None
+#        for g in rowG:
+#            P = action[g]
+#            horiz = P if horiz is None else (horiz + P)
+#
+#        vert = None
+#        for g in colG:
+#            P = action[g]
+#            s = g.sign()
+#            P = ring.promote(s)*P
+#            vert = P if vert is None else (vert + P)
+#        A = horiz * vert
+
+
+    rowG = young.get_rowperms()
+    colG = young.get_colperms()
+    print("rowG", len(rowG))
+    print("colG", len(colG))
+
+    horiz = None
+    for action in rowG:
+        (g,f) = hom[action]
+        gf = g*f
+        horiz = gf if horiz is None else (horiz + gf)
+    assert horiz is not None
+
+    vert = None
+    for action in colG:
+        sign = action.sign()*ring.one
+        print(action, sign)
+        g,f = hom[action]
+        g = sign*g
+        gf = g*f
+        vert = gf if vert is None else (vert + gf)
+    assert vert is not None
+    P = horiz*vert
+
+    print(P.rank())
+
+#    print("diagram:", len(diagram))
+#    colim = diagram[0].coequalizer(*diagram[1:])
+#
+#    assert colim.src == src
+#    print(colim.shape)
+#    print(colim)
+#    print(colim.rank())
+#
+#    lhs = colim * diagram[0]
+#    for f in diagram:
+#        assert lhs == colim * f
 
 
 def test_super():
@@ -789,9 +844,13 @@ def test_super():
 
     dsum = lambda U, V : U.direct_sum(V)
 
-    U = Space(ring, 2, grade=0, name="U") # bosonic 
-    V = Space(ring, 2, grade=1, name="V") # fermionic
-    super_young(U, V)
+    a = argv.get("a", 2)
+    b = argv.get("b", 2)
+    part = argv.get("part", (3,))
+
+    U = Space(ring, a, grade=0, name="U") # bosonic 
+    V = Space(ring, b, grade=1, name="V") # fermionic
+    super_young(U, V, part)
 
     return
 
