@@ -25,7 +25,7 @@ from bruhat import solve
 from bruhat.frobenius import GF
 from bruhat.action import Perm, Group, mulclose, mulclose_hom
 from bruhat.rep import Young
-from bruhat.util import partitions
+from bruhat.util import partitions, cross
 
 
 def shortstr(A):
@@ -45,17 +45,23 @@ none_sub = lambda g0, g1 : g0-g1 if g0 is not None and g1 is not None else None
     
 
 class Space(object):
-    def __init__(self, ring, n=0, grade=0):
+    def __init__(self, ring, n=0, grade=0, name="?"):
         assert isinstance(ring, element.Ring)
         assert type(n) is int
         assert 0<=n
         self.ring = ring
         self.n = n
         self.grade = grade
+        self.name = name
 
     def __str__(self):
-        return "%s(%s, grade=%s)"%(self.__class__.__name__, self.n, self.grade)
+        return "%s(%s, grade=%s, name=%r)"%(
+            self.__class__.__name__, self.n, self.grade, self.name)
     __repr__ = __str__
+
+    # Note:
+    # __eq__ is object identity ! Yes.
+    # This is a tricky business, see __new__'s below
 
 #    def __eq__(self, other):
 #        return self.n == other.n
@@ -135,7 +141,8 @@ class AddSpace(Space):
         #grade = items[0].grade
         grade = none_uniq([item.grade for item in items])
         n = sum(item.n for item in items)
-        Space.__init__(space, ring, n, grade)
+        name = "("+"+".join(item.name for item in items)+")"
+        Space.__init__(space, ring, n, grade, name)
         space.items = items
         cls.cache[key] = space
         return space
@@ -233,7 +240,8 @@ class MulSpace(Space):
         #grade = sum(item.grade for item in items)
         grade = reduce(none_add, [item.grade for item in items])
         n = reduce(mul, [item.n for item in items])
-        Space.__init__(space, ring, n, grade)
+        name = "".join(item.name for item in items)
+        Space.__init__(space, ring, n, grade, name=name)
         space.items = items
         cls.cache[key] = space
         return space
@@ -396,13 +404,31 @@ class Lin(object):
         f.A[m:, n:] = other.A
         return f
 
-    def coequalizer(self, other):
+    def _coequalizer(self, other):
         assert self.hom == other.hom
         ring = self.ring
         A = elim.coequalizer(ring, self.A, other.A)
         src = self.tgt
         tgt = Space(ring, len(A))
         return Lin(tgt, src, A)
+
+    def coequalizer(self, *others):
+        if len(others)==1:
+            return self._coequalizer(*others)
+        colim = self.tgt.identity()
+        prev = self
+        result = []
+        for other in others:
+            assert self.hom == other.hom
+            other = colim * other
+            colim = colim._coequalizer(other)
+            if result:
+                assert colim.src == result[-1].tgt 
+            result.append(colim)
+        assert result[0].src == self.tgt
+        colim = reduce(mul, reversed(result))
+        assert colim.src == self.tgt
+        return colim
 
 
 # ------------------------------------------------------------
@@ -686,6 +712,63 @@ def test():
         assert f.rank() == [0, 1, 3, 6][m-1]
 
 
+def super_young(U, V):
+
+    part = argv.get("part", (3,))
+    n = sum(part)
+
+    lookup = {}
+    summands = []
+    for idxs in cross([(0, 1)]*n):
+        spaces = [[U, V][idx] for idx in idxs]
+        space = reduce(matmul, spaces)
+        lookup[idxs] = len(summands)
+        summands.append(space)
+        print(idxs, end=" ")
+        print(space.n)
+
+    src = reduce(add, summands)
+
+    dsum = lambda U, V : U.direct_sum(V)
+
+    G = Group.symmetric(n)
+    hom = {}
+
+    colim = src.identity()
+    diagram = []
+    for perm in G:
+        perm = tuple(perm[i] for i in range(n))
+        print(perm)
+        sumswap = [None] * len(summands)
+        fs = []
+        for i, idxs in enumerate(cross([(0, 1)]*n)):
+            jdxs = tuple(idxs[i] for i in perm)
+            print(idxs, "-->", jdxs)
+            sumswap[lookup[jdxs]] = i
+            space = src.items[i]
+            f = space.get_swap(perm)
+            fs.append(f)
+        print(sumswap)
+        f = reduce(dsum, fs)
+        print(f.src.name, "-->", f.tgt.name)
+        g = f.tgt.get_swap(sumswap)
+        print(g.src.name, "-->", g.tgt.name)
+        assert f.tgt == g.src
+        assert g.tgt == src
+        gf = g*f
+        diagram.append(gf)
+        #colim = colim.coequalizer(gf)
+    
+        print()
+
+    colim = src.identity().coequalizer(*diagram)
+    assert colim.src == src
+    print(colim.shape)
+    print(colim)
+    print(colim.rank())
+    #for f in diagram:
+
+
 def test_super():
     ring = element.Q
 
@@ -704,9 +787,14 @@ def test_super():
     rhs = (U@U@U).get_swap([1,2,0]).A
     assert eq(lhs, rhs)
 
+    dsum = lambda U, V : U.direct_sum(V)
+
+    U = Space(ring, 2, grade=0, name="U") # bosonic 
+    V = Space(ring, 2, grade=1, name="V") # fermionic
+    super_young(U, V)
+
     return
 
-    dsum = lambda a, b : a.direct_sum(b)
 
     for a in range(4):
       for b in range(4):
