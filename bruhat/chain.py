@@ -67,12 +67,6 @@ class Space(object):
     # __eq__ is object identity ! Yes.
     # This is a tricky business, see __new__'s below
 
-#    def __eq__(self, other):
-#        return self.n == other.n
-#
-#    def __ne__(self, other):
-#        return self.n != other.n
-
     def __hash__(self):
         return id(self)
 
@@ -565,11 +559,11 @@ class MulChain(Chain):
 
 # ------------------------------------------------------------
 
-# ------------------------ Young symmetrizers ----------------
+# ------------------------ testing      ----------------------
 
-# code ripped from qu.py
 
 def test_young():
+    # code ripped from qu.py
 
     d = argv.get("d", 2)
     n = argv.get("n", 3)
@@ -649,10 +643,6 @@ def test_young():
         print()
 
 
-
-# ------------------------------------------------------------
-
-# ------------------------ testing      ----------------------
 
 def test():
 
@@ -742,6 +732,8 @@ def test():
         assert f.rank() == [0, 1, 3, 6][m-1]
 
 
+dsum = lambda U, V : U.direct_sum(V)
+
 def super_young(U, V, part):
     ring = U.ring
 
@@ -758,8 +750,6 @@ def super_young(U, V, part):
         #print(space.n)
 
     src = reduce(add, summands)
-
-    dsum = lambda U, V : U.direct_sum(V)
 
     G = Group.symmetric(n)
     hom = {}
@@ -788,14 +778,13 @@ def super_young(U, V, part):
         #print()
 
     young = Young(G, part)
-    print("Young:")
-    print(young)
-
+    #print("Young:")
+    #print(young)
 
     rowperms = young.get_rowperms()
     colperms = young.get_colperms()
-    print("rowperms", len(rowperms))
-    print("colperms", len(colperms))
+    #print("rowperms", len(rowperms))
+    #print("colperms", len(colperms))
 
     horiz = None
     for action in rowperms:
@@ -815,11 +804,11 @@ def super_young(U, V, part):
     P = horiz*vert
 
     P = P.row_reduce()
-    print(P.rank())
-    print(P)
+    #print(P.rank())
+    #print(P)
 
-    for a in src.items:
-        print(a)
+    #for a in src.items:
+    #    print(a)
 
     even = src.identity()
     odd = src.identity()
@@ -833,7 +822,8 @@ def super_young(U, V, part):
             else:
                 even[i, i] = ring.zero
             i += 1
-    print((P*even).rank(), (P*odd).rank())
+
+    return (P*even).rank(), (P*odd).rank()
 
 
 
@@ -856,18 +846,28 @@ def test_super():
     rhs = (U@U@U).get_swap([1,2,0]).A
     assert eq(lhs, rhs)
 
-    dsum = lambda U, V : U.direct_sum(V)
-
     a = argv.get("a", 2)
     b = argv.get("b", 2)
-    part = argv.get("part", (3,))
+    part = argv.get("part", (2,))
 
-    U = Space(ring, a, grade=0, name="U") # bosonic 
-    V = Space(ring, b, grade=1, name="V") # fermionic
-    super_young(U, V, part)
+    for a in range(4):
+      for b in range(4):
+        U = Space(ring, a, grade=0, name="U") # bosonic 
+        V = Space(ring, b, grade=1, name="V") # fermionic
+        evn, odd = super_young(U, V, part)
+        print((evn, odd), end=" ", flush=True)
+      print()
 
-    return
 
+def test_symmetric_square():
+
+    ring = element.Q
+
+    result = [
+        [0,  0,  1,  3 ],
+        [1,  2,  4,  7 ],
+        [3,  5,  8, 12 ],
+        [6,  9, 13, 18 ]]
 
     for a in range(4):
       for b in range(4):
@@ -887,9 +887,9 @@ def test_super():
         rhs = src.identity()
 
         f = lhs.coequalizer(rhs)
-        print("%3d"%f.rank(), end=" ")
-      print()
-
+        assert f.rank() == result[a][b]
+        #print("%3d"%f.rank(), end=" ")
+      #print()
 
 
 def test_gf():
