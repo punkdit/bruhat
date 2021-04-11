@@ -1,0 +1,178 @@
+
+cdef int gcd(int a, int b):
+    cdef int c
+    while b != 0:
+        c = b
+        b = a%b
+        a = c
+    return a
+
+
+cdef class Fraction:
+
+    cdef readonly int top
+    cdef readonly int bot
+
+    def __init__(self, int top, int bot):
+        cdef int factor
+        assert bot != 0
+        factor = gcd(top, bot)
+        top //= factor
+        bot //= factor
+        self.top = top
+        self.bot = bot
+        assert bot != 0
+
+    @staticmethod
+    cdef Fraction promote(object other):
+        if type(other) is Fraction:
+            return other
+        if type(other) is long:
+            return Fraction(other, 1)
+        return None
+
+    def __eq__(self, object _other):
+        cdef Fraction other
+        other = Fraction.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.top * other.bot == other.top * self.bot
+
+    def __ne__(self, object _other):
+        cdef Fraction other
+        other = Fraction.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.top * other.bot != other.top * self.bot
+
+    def __lt__(self, object _other):
+        cdef Fraction other
+        other = Fraction.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.top * other.bot < other.top * self.bot
+
+    def __gt__(self, object _other):
+        cdef Fraction other
+        other = Fraction.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.top * other.bot > other.top * self.bot
+
+    def __le__(self, object _other):
+        cdef Fraction other
+        other = Fraction.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.top * other.bot <= other.top * self.bot
+
+    def __ge__(self, object _other):
+        cdef Fraction other
+        other = Fraction.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.top * other.bot >= other.top * self.bot
+
+
+    def __str__(self):
+        return "%s/%s"%(self.top, self.bot)
+
+    def __repr__(self):
+        return "%s/%s"%(self.top, self.bot)
+
+    def __add__(_self, _other):
+        cdef Fraction self, other
+        cdef int top, bot
+        self = Fraction.promote(_self)
+        if self is None:
+            return NotImplemented
+        other = Fraction.promote(_other)
+        if other is None:
+            return NotImplemented
+        top = self.top * other.bot + other.top * self.bot
+        bot = self.bot * other.bot
+        return Fraction(top, bot)
+
+    def __sub__(_self, _other):
+        cdef Fraction self, other
+        cdef int top, bot
+        self = Fraction.promote(_self)
+        if self is None:
+            return NotImplemented
+        other = Fraction.promote(_other)
+        if other is None:
+            return NotImplemented
+        top = self.top * other.bot - other.top * self.bot
+        bot = self.bot * other.bot
+        return Fraction(top, bot)
+
+    def __pos__(self):
+        return self
+
+    def __neg__(self):
+        return Fraction(-self.top, self.bot)
+
+    def __mul__(_self, _other):
+        cdef Fraction self, other
+        cdef int top, bot
+        self = Fraction.promote(_self)
+        if self is None:
+            return NotImplemented
+        other = Fraction.promote(_other)
+        if other is None:
+            return NotImplemented
+        top = self.top * other.top
+        bot = self.bot * other.bot
+        assert self.bot != 0, self
+        assert other.bot != 0, other
+        assert bot != 0
+        return Fraction(top, bot)
+
+    def __pow__(self, n, modulo):
+        cdef int top, bot
+        if modulo is not None:
+            return NotImplemented
+        top = self.top ** n
+        bot = self.bot ** n
+        return Fraction(top, bot)
+
+    def __floordiv__(_self, _other):
+        cdef Fraction self, other
+        cdef int top, bot
+        self = Fraction.promote(_self)
+        if self is None:
+            return NotImplemented
+        other = Fraction.promote(_other)
+        if other is None:
+            return NotImplemented
+        top = self.top * other.bot
+        bot = self.bot * other.top
+        return Fraction(top, bot)
+
+    def __truediv__(_self, _other):
+        cdef Fraction self, other
+        cdef int top, bot
+        self = Fraction.promote(_self)
+        if self is None:
+            return NotImplemented
+        other = Fraction.promote(_other)
+        if other is None:
+            return NotImplemented
+        top = self.top * other.bot
+        bot = self.bot * other.top
+        return Fraction(top, bot)
+
+
+class Ring(object):
+    def __init__(self):
+        self.one = Fraction(1, 1)
+        self.zero = Fraction(0, 1)
+
+    def promote(self, value):
+        return Fraction.promote(value)
+
+
+Q = Ring()
+        
+
+

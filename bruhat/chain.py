@@ -15,6 +15,8 @@ import numpy
 
 from bruhat.argv import argv
 from bruhat import element
+#from bruhat import _element as element
+
 from bruhat import elim
 from bruhat.elim import eq
 #from bruhat.elim import (
@@ -200,7 +202,9 @@ class AddSpace(Space):
         assert lins
         src = None
         As = []
+        #print("send_into", self)
         for idx, lin in enumerate(lins):
+            #print(lin)
             assert lin.tgt == self.items[idx]
             assert src is None or src == lin.src
             src = lin.src
@@ -395,6 +399,11 @@ class Lin(object):
     def rank(self):
         return elim.rank(self.ring, self.A)
 
+    def row_reduce(self):
+        A = elim.row_reduce(self.ring, self.A, True)
+        tgt = Space(self.ring, len(A))
+        return Lin(tgt, self.src, A)
+
     def direct_sum(self, other):
         tgt = self.tgt + other.tgt
         src = self.src + other.src
@@ -436,6 +445,18 @@ class Lin(object):
         colim = prev
         assert colim.src == self.tgt
         return colim
+
+
+# ------------------------------------------------------------
+
+# ------------------------              ----------------------
+
+# 2-rig of matrices of Lin's ?
+
+class Matrix(object):
+    def __init__(self, tgts, srcs):
+        self.tgts = list(tgts)
+        self.srcs = list(srcs)
 
 
 # ------------------------------------------------------------
@@ -731,8 +752,8 @@ def super_young(U, V, part):
         space = reduce(matmul, spaces)
         lookup[idxs] = len(summands)
         summands.append(space)
-        print(idxs, end=" ")
-        print(space.n)
+        #print(idxs, end=" ")
+        #print(space.n)
 
     src = reduce(add, summands)
 
@@ -742,66 +763,48 @@ def super_young(U, V, part):
     hom = {}
 
     colim = src.identity()
-    diagram = []
     for action in G:
         perm = tuple(action[i] for i in range(n))
-        print(perm)
+        #print(perm)
         sumswap = [None] * len(summands)
         fs = []
         for i, idxs in enumerate(cross([(0, 1)]*n)):
             jdxs = tuple(idxs[i] for i in perm)
-            print(idxs, "-->", jdxs)
+            #print(idxs, "-->", jdxs)
             sumswap[lookup[jdxs]] = i
             space = src.items[i]
             f = space.get_swap(perm)
             fs.append(f)
-        print(sumswap)
+        #print(sumswap)
         f = reduce(dsum, fs)
-        print(f.src.name, "-->", f.tgt.name)
+        #print(f.src.name, "-->", f.tgt.name)
         g = f.tgt.get_swap(sumswap)
-        print(g.src.name, "-->", g.tgt.name)
+        #print(g.src.name, "-->", g.tgt.name)
         assert f.tgt == g.src
         assert g.tgt == src
-        #gf = g*f
-        #diagram.append(gf)
-        #colim = colim.coequalizer(gf)
         hom[action] = (g,f)
-        print()
+        #print()
 
-    #colim = src.identity().coequalizer(*diagram)
     young = Young(G, part)
+    print("Young:")
     print(young)
-#
-#        horiz = None
-#        for g in rowG:
-#            P = action[g]
-#            horiz = P if horiz is None else (horiz + P)
-#
-#        vert = None
-#        for g in colG:
-#            P = action[g]
-#            s = g.sign()
-#            P = ring.promote(s)*P
-#            vert = P if vert is None else (vert + P)
-#        A = horiz * vert
 
 
-    rowG = young.get_rowperms()
-    colG = young.get_colperms()
-    print("rowG", len(rowG))
-    print("colG", len(colG))
+    rowperms = young.get_rowperms()
+    colperms = young.get_colperms()
+    print("rowperms", len(rowperms))
+    print("colperms", len(colperms))
 
     horiz = None
-    for action in rowG:
+    for action in rowperms:
         (g,f) = hom[action]
         gf = g*f
         horiz = gf if horiz is None else (horiz + gf)
     assert horiz is not None
 
     vert = None
-    for action in colG:
+    for action in colperms:
         sign = action.sign()*ring.one
-        print(action, sign)
         g,f = hom[action]
         g = sign*g
         gf = g*f
@@ -809,19 +812,28 @@ def super_young(U, V, part):
     assert vert is not None
     P = horiz*vert
 
+    P = P.row_reduce()
     print(P.rank())
+    print(P)
 
-#    print("diagram:", len(diagram))
-#    colim = diagram[0].coequalizer(*diagram[1:])
-#
-#    assert colim.src == src
-#    print(colim.shape)
-#    print(colim)
-#    print(colim.rank())
-#
-#    lhs = colim * diagram[0]
-#    for f in diagram:
-#        assert lhs == colim * f
+    for a in src.items:
+        print(a)
+
+    even = src.identity()
+    odd = src.identity()
+    i = 0
+    j = 0
+    for space in src.items:
+        j += space.n
+        while i < j:
+            if space.grade%2==0:
+                odd[i, i] = ring.zero
+            else:
+                even[i, i] = ring.zero
+            i += 1
+    print((P*even).rank(), (P*odd).rank())
+
+
 
 
 def test_super():
@@ -952,8 +964,14 @@ if __name__ == "__main__":
 
 
     fn = argv.next() or "test_all"
-    fn = eval(fn)
-    fn()
+
+    if argv.profile:
+        import cProfile as profile
+        profile.run("%s()"%fn)
+
+    else:
+        fn = eval(fn)
+        fn()
 
     print("OK")
 

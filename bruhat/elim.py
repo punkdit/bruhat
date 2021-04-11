@@ -11,7 +11,6 @@ from random import randint, seed
 
 import numpy
 
-from bruhat import element
 from bruhat.smap import SMap
 from bruhat.argv import argv
 
@@ -132,7 +131,7 @@ def dotx(ring, *items):
 
 
 def compose(ring, *items):
-    assert isinstance(ring, element.Ring)
+    #assert isinstance(ring, element.Ring)
     items = list(reversed(items))
     A = dotx(ring, *items)
     return A
@@ -195,7 +194,7 @@ def row_reduce(ring, A, truncate=False, inplace=False, check=False, verbose=Fals
                 print("swap", i, i1)
             swap_row(A, i, i1)
 
-        assert A[i, j] != zero
+        assert A[i, j] != zero, "FAIL: %s != %s"%(A[i,j], zero)
         for i1 in range(i+1, m):
             if A[i1, j]:
                 if verbose:
@@ -742,6 +741,8 @@ def test():
     _seed = argv.get("seed")
     if _seed is not None:
         seed(_seed)
+
+    from bruhat import element
 
     ring = element.Q # field of rationals # XXX global
     zero = ring.zero
