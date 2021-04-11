@@ -689,7 +689,7 @@ def rank(ring, A, **kw):
 
 def nullity(ring, A, **kw):
     K = kernel(ring, A, **kw)
-    return len(K)
+    return len(K[0])
 
 
 class Subspace(object):
@@ -726,9 +726,11 @@ class Subspace(object):
         W2 = other.W
         W = numpy.concatenate((W1, W2))
         #print("intersect")
+        #print(shortstr(self.W))
+        #print(shortstr(other.W))
         #print(shortstr(W))
         #print()
-        K = kernel(self.ring, W.transpose())#.transpose()
+        K = kernel(self.ring, W.transpose()).transpose()
         #print("K:")
         #print(shortstr(K))
         W = dot(self.ring, K[:, :len(W1)], W1)
@@ -744,7 +746,7 @@ def test():
 
     from bruhat import element
 
-    ring = element.Q # field of rationals # XXX global
+    ring = element.Q # field of rationals
     zero = ring.zero
     one = ring.one
 
@@ -770,11 +772,8 @@ def test():
     A = rand(ring, m, n)
     P, L, U = plu_reduce(ring, A, check=True, verbose=False)
 
-    #m, n = 2, 3
-    #while 1:
     for i in range(100):
         A = rand(ring, m, n)
-        #A = row_reduce(ring, A, check=True)
         if rank(ring, A, check=True) + nullity(ring, A, check=True) == n:
             #write('.')
             continue
@@ -782,12 +781,15 @@ def test():
         print("FAIL")
         print("A:")
         print(shortstr(A))
+        print("rank=%s, nullity=%s, n=%d"%(
+            rank(ring, A, check=True) ,
+            nullity(ring, A, check=True) , n))
         print("row_reduce:")
         B = row_reduce(ring, A, verbose=True)
         print(shortstr(B))
         print("kernel:")
         print(shortstr(kernel(ring, A)))
-        break
+        return
 
     A = zeros(ring, 3, 4)
     A[0, 0] = 1
@@ -800,7 +802,7 @@ def test():
     K = kernel(ring, A)
     #print("K:")
     #print(shortstr(K))
-    assert len(K) == 3, len(K)
+    assert len(K[0]) == 3, len(K)
 
     while 1:
         m, n = 3, 4
@@ -813,7 +815,7 @@ def test():
         K = kernel(ring, A, check=True)
         #print("kernel: A, K, A*K")
         #print(shortstr(A, K, dot(ring, A, K)))
-        B = dot(ring, A, K.transpose())
+        B = dot(ring, A, K)
         assert numpy.alltrue(B==zero)
 
         if K.shape[1]>1:
