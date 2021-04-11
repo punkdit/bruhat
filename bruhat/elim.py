@@ -353,8 +353,6 @@ def u_inverse(ring, U, check=False, verbose=False):
 
     U1 = zeros(ring, n, m)
 
-    #print(shortstr(U))
-
     # Work backwards
     i = len(leading)-1 # <= m
     while i>=0:
@@ -744,7 +742,10 @@ def test():
     if _seed is not None:
         seed(_seed)
 
-    from bruhat import element
+    if argv.fast:
+        from bruhat import _element as element
+    else:
+        from bruhat import element
 
     ring = element.Q # field of rationals
     zero = ring.zero

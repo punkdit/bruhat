@@ -31,6 +31,12 @@ cdef class Fraction:
             return Fraction(other, 1)
         return None
 
+    def __hash__(self):
+        return hash((self.top, self.bot))
+
+    def __nonzero__(self):
+        return self.top != 0
+
     def __eq__(self, object _other):
         cdef Fraction other
         other = Fraction.promote(_other)
@@ -75,10 +81,14 @@ cdef class Fraction:
 
 
     def __str__(self):
-        return "%s/%s"%(self.top, self.bot)
+        top = str(self.top)
+        if self.bot == 1:
+            return top
+        bot = str(self.bot)
+        return "%s/%s"%(top, bot)
 
     def __repr__(self):
-        return "%s/%s"%(self.top, self.bot)
+        return "Fraction(%s, %s)"%(self.top, self.bot)
 
     def __add__(_self, _other):
         cdef Fraction self, other

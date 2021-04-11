@@ -14,8 +14,10 @@ from operator import mul, add, matmul
 import numpy
 
 from bruhat.argv import argv
-from bruhat import element
-#from bruhat import _element as element
+if argv.fast:
+    from bruhat import _element as element
+else:
+    from bruhat import element
 
 from bruhat import elim
 from bruhat.elim import eq
