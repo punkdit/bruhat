@@ -626,6 +626,8 @@ class Group(object):
             perm[items[i]] = items[i+1]
             perm[items[i+1]] = items[i]
             perms.append(perm)
+        if not perms:
+            perms.append({items[0]:items[0]}) # trivial perm
         perms = [Perm(perm, items) for perm in perms]
         G = Group.generate(perms, check=check)
         assert len(G) == factorial(n)

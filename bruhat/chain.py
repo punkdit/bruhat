@@ -846,12 +846,11 @@ def test_super():
     rhs = (U@U@U).get_swap([1,2,0]).A
     assert eq(lhs, rhs)
 
-    a = argv.get("a", 2)
-    b = argv.get("b", 2)
+    n = argv.get("n", 4)
     part = argv.get("part", (2,))
 
-    for a in range(4):
-      for b in range(4):
+    for a in range(n):
+      for b in range(n):
         U = Space(ring, a, grade=0, name="U") # bosonic 
         V = Space(ring, b, grade=1, name="V") # fermionic
         evn, odd = super_young(U, V, part)
