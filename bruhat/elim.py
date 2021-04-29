@@ -611,6 +611,23 @@ def pushout(ring, J, K, J1=None, K1=None, check=False):
         return JJ, KK
 
 
+def pullback(ring, J, K, J1=None, K1=None, check=False):
+    assert J.shape[0] == K.shape[0]
+    Jt = J.transpose()
+    Kt = K.transpose()
+    if J1 is not None:
+        assert K1 is not None
+        assert J1.shape[1] == K1.shape[1]
+        J1t = J1.transpose()
+        K1t = K1.transpose()
+        JJt, KKt, Ft = pushout(ring, Jt, Kt, J1t, K1t, check)
+        return JJt.transpose(), KKt.transpose(), Ft.transpose()
+
+    JJt, KKt = pushout(ring, Jt, Kt, None, None, check)
+    return JJt.transpose(), KKt.transpose()
+
+
+
 def old_cokernel(ring, J, check=False):
     """  
     find f as a pushout of the following diagram:

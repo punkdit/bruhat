@@ -448,6 +448,25 @@ class Lin(object):
         assert colim.src == self.tgt
         return colim
 
+    def pushout(self, other):
+        assert self.src == other.src
+        J, K = elim.pushout(self.ring, self.A, other.A)
+        assert len(J) == len(K)
+        tgt = Space(self.ring, len(J))
+        J = Lin(tgt, self.tgt, J)
+        K = Lin(tgt, other.tgt, K)
+        return J, K
+
+    def pullback(self, other):
+        assert self.tgt == other.tgt
+        J, K = elim.pullback(self.ring, self.A, other.A)
+        n = J.shape[1]
+        assert K.shape[1] == n
+        src = Space(self.ring, n)
+        J = Lin(self.src, src, J)
+        K = Lin(other.src, src, K)
+        return J, K
+
 
 # ------------------------------------------------------------
 
@@ -1047,7 +1066,6 @@ def test_chain():
     else:
         V = Space(ring, n, 1, "V")
         U = Space(ring, m, 0, "U")
-
         A = Lin.rand(U, V)
 
     c = Chain([A])
@@ -1060,9 +1078,11 @@ def test_chain():
 
 
 def test_chainmap():
-    #p = argv.get("p", 3)
-    #ring = element.FiniteField(p)
-    ring = element.Q
+
+    p = argv.get("p", 2)
+    ring = element.FiniteField(p)
+    #ring = element.Q
+
     one = ring.one
 
     space = Space(ring)
@@ -1079,7 +1099,6 @@ def test_chainmap():
         return A
 
     A = mk_ising(3, 4)
-    print(A)
     c = Chain([A])
 
     f = c.identity()
@@ -1092,21 +1111,59 @@ def test_chainmap():
 
     B = mk_ising(2, 2)
     d = Chain([B])
-    print(B)
 
     fn = Lin(A.src, B.src)
     for i in range(len(B.src)):
         fn[i, i] = one
-    print(fn)
 
     fm = Lin(A.tgt, B.tgt)
     for i in range(len(B.tgt)):
         fm[i, i] = one
-    print(fm)
 
     f = ChainMap(c, d, [fn, fm])
 
-    print(f)
+    # -----------------------------------
+
+    m, n = 8, 10
+    V1 = Space(ring, n, 1, "V1")
+    V0 = Space(ring, m, 0, "V0")
+    A = Lin.rand(V0, V1) # V0 <--- V1
+
+    c = Chain([A])
+
+    U0 = Space(ring, m, 0, "U0")
+    f0 = Lin.rand(V0, U0)
+
+    f1, B = A.pullback(f0)
+    d = Chain([B])
+    f = ChainMap(c, d, [f1, f0])
+    print(B.shape)
+    
+    # -----------------------------------
+
+    m, n, p = 7, 10, 2
+    V1 = Space(ring, n, 1, "V1")
+    V0 = Space(ring, m, 0, "V0")
+    A = Lin.rand(V0, V1) # V0 <--- V1
+
+    c = Chain([A])
+    print(A)
+
+    U0 = Space(ring, p, 0, "U0")
+    f0 = Lin(V0, U0)
+    for i in range(p):
+        f0[i,i] = one
+    print(f0)
+
+    f1, B = A.pullback(f0)
+    d = Chain([B])
+    f = ChainMap(c, d, [f1, f0])
+
+    print(f1)
+    print(B)
+    
+    # -----------------------------------
+
 
 
 
