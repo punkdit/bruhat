@@ -472,6 +472,12 @@ class Seq(object):
         self.ring = lins[0].ring
         self.lins = list(lins)
 
+    def __len__(self):
+        return len(self.lins)
+
+    def __getitem__(self, idx):
+        return self.lins[idx]
+
 
 
 class Chain(Seq):
@@ -485,6 +491,26 @@ class Chain(Seq):
                 assert (lin*prev).is_zero()
             prev = lin
 
+    def get(self, idx):
+        lins = self.lins
+        n = len(lins)
+        if idx < n:
+            return lins[idx].src
+        elif idx == n:
+            return lins[n-1].tgt
+        raise IndexError
+
+    def get_grades(self):
+        lins = self.lins
+        if not lins:
+            return [] # ?
+        return [lin.src for lin in lins] + [lins[-1].tgt]
+
+    def identity(chain):
+        n = len(chain)
+        lins = [chain.get(i).identity() for i in range(n+1)]
+        return ChainMap(chain, chain, lins)
+
     def __str__(self):
         spaces = [lin.src for lin in self.lins] + [self.lins[-1].tgt]
         return "%s(%s)"%(self.__class__.__name__,
@@ -493,6 +519,79 @@ class Chain(Seq):
     def __matmul__(self, other):
         assert isinstance(other, Chain)
         return MulChain(self, other)
+
+
+class ChainMap(object):
+    def __init__(self, tgt, src, lins=None, check=True):
+        assert isinstance(tgt, Chain)
+        assert isinstance(src, Chain)
+        n = len(src)
+        assert len(tgt) == n
+        if lins is None:
+            # zero map
+            lins = [Lin(tgt.get(i), src.get(i)) for i in range(n+1)]
+        assert len(lins) == n+1
+        for i in range(n):
+            assert src[i].src == lins[i].src
+            assert tgt[i].src == lins[i].tgt
+        if n:
+            assert src[n-1].tgt == lins[n].src
+            assert tgt[n-1].tgt == lins[n].tgt
+        self.ring = tgt.ring
+        self.tgt = tgt
+        self.src = src
+        self.hom = (tgt, src) # yes it's backwards, just like shape is.
+        self.lins = list(lins)
+        if check:
+            self._check()
+
+    def _check(self):
+        tgt, src = self.hom
+        lins = self.lins
+        n = len(src)
+        for i in range(n):
+            assert tgt[i]*lins[i] == lins[i+1]*src[i], "not a chain map"
+
+    def __str__(self):
+        return "ChainMap(%s<---%s)"%(self.tgt, self.src)
+    __repr__ = __str__
+
+    def __len__(self):
+        return len(self.lins)
+
+    def __getitem__(self, idx):
+        return self.lins[idx]
+
+    def __eq__(self, other):
+        assert self.hom == other.hom
+        n = len(self)
+        for i in range(n):
+            if self[i] != other[i]:
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __add__(self, other):
+        assert self.hom == other.hom
+        n = len(self)
+        lins = [self[i]+other[i] for i in range(n)]
+        chain = ChainMap(self.tgt, self.src, lins)
+        return chain
+
+    def __sub__(self, other):
+        assert self.hom == other.hom
+        n = len(self)
+        lins = [self[i]-other[i] for i in range(n)]
+        chain = ChainMap(self.tgt, self.src, lins)
+        return chain
+
+    def __rmul__(self, r):
+        r = self.ring.promote(r)
+        lins = [r*lin for lin in self.lins]
+        return ChainMap(self.tgt, self.src, lins)
+
 
 
 class MulChain(Chain):
@@ -561,6 +660,7 @@ class MulChain(Chain):
             lins.append(lin)
             #print()
         Chain.__init__(self, lins)
+
 
 
 # ------------------------------------------------------------
@@ -918,8 +1018,9 @@ def test_gf():
 
 
 def test_chain():
-    p = argv.get("p", 3)
-    ring = element.FiniteField(p)
+    #p = argv.get("p", 3)
+    #ring = element.FiniteField(p)
+    ring = element.Q
 
     space = Space(ring)
 
@@ -951,10 +1052,62 @@ def test_chain():
 
     c = Chain([A])
     print(c)
+
     cc = c @ c
     print(cc)
     #ccc = c@cc
     #print(ccc)
+
+
+def test_chainmap():
+    #p = argv.get("p", 3)
+    #ring = element.FiniteField(p)
+    ring = element.Q
+    one = ring.one
+
+    space = Space(ring)
+
+    def mk_ising(m, n):
+        U = Space(ring, m, 0, "U")
+        V = Space(ring, n, 1, "V")
+    
+        A = Lin(U, V) # U <--- V
+        for i in range(m):
+            A[i, i] = one
+            if i+1<n:
+                A[i, i+1] = -one
+        return A
+
+    A = mk_ising(3, 4)
+    print(A)
+    c = Chain([A])
+
+    f = c.identity()
+    zero = ChainMap(c, c)
+    assert f != zero
+    assert f == f
+    assert f != 2*f
+    assert f+f == 2*f
+    assert f-f == zero
+
+    B = mk_ising(2, 2)
+    d = Chain([B])
+    print(B)
+
+    fn = Lin(A.src, B.src)
+    for i in range(len(B.src)):
+        fn[i, i] = one
+    print(fn)
+
+    fm = Lin(A.tgt, B.tgt)
+    for i in range(len(B.tgt)):
+        fm[i, i] = one
+    print(fm)
+
+    f = ChainMap(c, d, [fn, fm])
+
+    print(f)
+
 
 
 
