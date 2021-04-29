@@ -21,10 +21,6 @@ else:
 
 from bruhat import elim
 from bruhat.elim import eq
-#from bruhat.elim import (
-#    zeros, rand, dot, identity, coequalizer, compose,
-#    rank, pseudo_inverse)
-#from bruhat.solve import parse
 from bruhat import solve
 from bruhat.frobenius import GF
 from bruhat.action import Perm, Group, mulclose, mulclose_hom
@@ -49,6 +45,10 @@ none_sub = lambda g0, g1 : g0-g1 if g0 is not None and g1 is not None else None
     
 
 class Space(object):
+    """
+    vector Space over a field (aka a ring).
+    These have a dimenion 'n', a 'grade', and a 'name' (for debugging).
+    """
     def __init__(self, ring, n=0, grade=0, name="?"):
         assert isinstance(ring, element.Ring)
         assert type(n) is int
@@ -123,6 +123,8 @@ class AddSpace(Space):
     cache = {} # XXX use https://docs.python.org/3/library/weakref.html
     def __new__(cls, *_items):
         assert _items
+        #if len(_items)==1:
+        #    return _items[0]
         items = []
         for item in _items:
             if type(item) is AddSpace:
@@ -240,7 +242,7 @@ class MulSpace(Space):
         #grade = sum(item.grade for item in items)
         grade = reduce(none_add, [item.grade for item in items])
         n = reduce(mul, [item.n for item in items])
-        name = "".join(item.name for item in items)
+        name = "@".join(item.name for item in items)
         Space.__init__(space, ring, n, grade, name=name)
         space.items = items
         cls.cache[key] = space
@@ -295,6 +297,10 @@ class DualSpace(Space):
 
 
 class Lin(object):
+    """
+    A _linear map between Space's,
+    implemented using a 2d numpy array with object entries.
+    """
     def __init__(self, tgt, src, A=None):
         assert tgt.ring is src.ring
         self.ring = tgt.ring
@@ -644,10 +650,7 @@ def test_young():
 
 
 
-def test():
-
-    p = argv.get("p", 3)
-    ring = element.FiniteField(p)
+def test(ring):
 
     space = Space(ring)
     f = space.parse("11. .11")
@@ -925,24 +928,24 @@ def test_chain():
 
     one = ring.one
     if argv.toric:
-        V = Space(ring, n, 1)
-        U = Space(ring, m, 0)
+        V = Space(ring, n, 1, "V")
+        U = Space(ring, m, 0, "U")
 
         A = Lin(U, V)
         for i in range(m):
             A[i, i] = one
             A[i, (i+1)%m] = -one
     elif argv.surface:
-        V = Space(ring, m, 1)
-        U = Space(ring, m-1, 0)
+        V = Space(ring, m, 1, "V")
+        U = Space(ring, m-1, 0, "U")
 
         A = Lin(U, V)
         for i in range(m-1):
             A[i, i] = one
             A[i, (i+1)%m] = -one
     else:
-        V = Space(ring, n, 1)
-        U = Space(ring, m, 0)
+        V = Space(ring, n, 1, "V")
+        U = Space(ring, m, 0, "U")
 
         A = Lin.rand(U, V)
 
@@ -950,14 +953,23 @@ def test_chain():
     print(c)
     cc = c @ c
     print(cc)
-    ccc = c@cc
-    print(ccc)
+    #ccc = c@cc
+    #print(ccc)
 
 
 
 def test_all():
-    test()
-    test_chain()
+    test(element.Q)
+
+    test_super()
+    test_symmetric_square()
+
+    if not argv.fast:
+        p = argv.get("p", 3)
+        ring = element.FiniteField(p)
+        test(ring)
+        test_gf()
+        test_chain()
 
 
 
