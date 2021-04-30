@@ -415,35 +415,35 @@ class Lin(object):
         f.A[m:, n:] = other.A
         return f
 
-    def _coequalizer(self, other):
+    def _coequalizer(self, other, ref=None):
         assert self.src == other.src
         assert self.tgt == other.tgt
         ring = self.ring
-        A = elim.coequalizer(ring, self.A, other.A)
-        src = self.tgt
-        tgt = Space(ring, len(A))
-        return Lin(tgt, src, A)
+        if ref is not None:
+            A, B = elim.coequalizer(ring, self.A, other.A, ref.A)
+            src = self.tgt
+            tgt = Space(ring, len(A))
+            a = Lin(tgt, src, A)
+            b = Lin(ref.tgt, tgt, B)
+            return a, b
+        else:
+            A = elim.coequalizer(ring, self.A, other.A)
+            src = self.tgt
+            tgt = Space(ring, len(A))
+            return Lin(tgt, src, A)
 
-    def coequalizer(self, *others):
+    def coequalizer(self, *others, ref=None):
         if len(others)==1:
-            return self._coequalizer(*others)
+            return self._coequalizer(*others, ref=ref)
+        assert ref is None, "not implemented..."
         colim = self.tgt.identity()
         prev = colim
-#        result = []
-        #print("coequalizer")
-        #print(self.hom)
         for other in others:
-            #print(other.hom)
             assert prev.src == self.tgt
             assert self.hom == other.hom
             other = prev * other
             colim = (prev*self)._coequalizer(other)
-#            if result:
-#                assert colim.src == result[-1].tgt 
-#            result.append(colim)
             prev = colim * prev
-#        assert result[0].src == self.tgt
-        #colim = reduce(mul, reversed(result))
         colim = prev
         assert colim.src == self.tgt
         return colim
@@ -611,6 +611,30 @@ class ChainMap(object):
         lins = [r*lin for lin in self.lins]
         return ChainMap(self.tgt, self.src, lins)
 
+    def coequalizer(self, other):
+        assert self.hom == other.hom
+        n = len(self)
+        tgt = [] # construct new chain
+        lins = [] # construct chain map
+        idx = n-1 # working backwards down to idx=0
+        while idx >= 0:
+            if not lins:
+                lin = self[idx].coequalizer(other[idx])
+                lins.insert(0, lin)
+            else:
+                ref = lins[0] * self.tgt[idx]
+                lin, f = self[idx].coequalizer(other[idx], ref=ref)
+                lins.insert(0, lin)
+                tgt.insert(0, f)
+            idx -= 1
+        tgt = Chain(tgt)
+        cmap = ChainMap(tgt, self.tgt, lins)
+        return cmap
+
+    def cokernel(self):
+        zero = ChainMap(self.tgt, self.src)
+        return self.coequalizer(zero)
+
 
 
 class MulChain(Chain):
@@ -769,7 +793,7 @@ def test_young():
 
 
 
-def test(ring):
+def test(ring=element.Q):
 
     space = Space(ring)
     f = space.parse("11. .11")
@@ -1137,32 +1161,121 @@ def test_chainmap():
     f1, B = A.pullback(f0)
     d = Chain([B])
     f = ChainMap(c, d, [f1, f0])
-    print(B.shape)
     
     # -----------------------------------
+    # construct a chain map (and a chain) from a 
+    # pullback of a grade zero map.
 
-    m, n, p = 7, 10, 2
+    m, n, p = 5, 6, 1
     V1 = Space(ring, n, 1, "V1")
     V0 = Space(ring, m, 0, "V0")
-    A = Lin.rand(V0, V1) # V0 <--- V1
+    #A = Lin.rand(V0, V1) # V0 <--- V1
+    A = Lin(V0, V1)
+    for i in range(m):
+        A[i, i] = one
+        A[i, (i+1)] = one
 
-    c = Chain([A])
-    print(A)
+    a = Chain([A])
+    #print("A:")
+    #print(A)
 
     U0 = Space(ring, p, 0, "U0")
     f0 = Lin(V0, U0)
     for i in range(p):
         f0[i,i] = one
-    print(f0)
 
     f1, B = A.pullback(f0)
-    d = Chain([B])
-    f = ChainMap(c, d, [f1, f0])
+    b = Chain([B])
+    #print("B:")
+    #print(B)
+    f = ChainMap(a, b, [f1, f0])
+    #print(f0)
+    #print(f1)
 
-    print(f1)
-    print(B)
+    g = ChainMap(a, b)
+    h = f.coequalizer(g)
+    #print(h)
+    #print(h[0])
+    #print(h[1])
+    c = h.tgt
+    C = c[0]
+    #print(C.shape, C.rank())
+    #print(C)
     
     # -----------------------------------
+    # construct a 'puncture' of a repitition code 
+    # as a cokernel 
+
+    m, n, p = 5, 6, 1
+    V1 = Space(ring, n, 1, "V1")
+    V0 = Space(ring, m, 0, "V0")
+    #A = Lin.rand(V0, V1) # V0 <--- V1
+    A = Lin(V0, V1)
+    for i in range(m):
+        A[i, i] = one
+        A[i, (i+1)] = one
+
+    a = Chain([A])
+
+    U1 = Space(ring, 1, 1, "U1")
+    U0 = Space(ring, 2, 0, "U0")
+    B = Lin(U0, U1)
+    B[0, 0] = one
+    B[1, 0] = one
+    b = Chain([B])
+
+    offset = 2 # where to puncture
+
+    f0 = Lin(V0, U0)
+    f0[0+offset,0] = one
+    f0[1+offset,1] = one
+
+    f1 = Lin(V1, U1)
+    f1[offset+1,0] = one
+
+    f = ChainMap(a, b, [f1, f0])
+    h = f.cokernel()
+    c = h.tgt
+
+    # -----------------------------------
+    # Here we puncture a bit from a parity check matrix
+    # by using a cokernel. This deletes that column,
+    # as well as all the rows with support therein.
+
+    m, n, p = 5, 6, 1
+    V1 = Space(ring, n, 1, "V1")
+    V0 = Space(ring, m, 0, "V0")
+    A = Lin.rand(V0, V1) # V0 <--- V1
+
+    a = Chain([A])
+    #print(A)
+    col = 0
+    rows = []
+    for i in range(V0.n):
+        if A[i, col]:
+            rows.append(i)
+
+    U1 = Space(ring, 1, 1, "U1") 
+    U0 = Space(ring, len(rows), 0, "U0")
+    B = Lin(U0, U1)
+    for i in range(U0.n):
+        B[i, 0] = one
+    b = Chain([B])
+    #print(B)
+
+    f0 = Lin(V0, U0)
+    for i, row in enumerate(rows):
+        f0[row, i] = one
+    #print(f0)
+
+    f1 = Lin(V1, U1)
+    f1[col,0] = one
+
+    f = ChainMap(a, b, [f1, f0])
+    h = f.cokernel()
+    c = h.tgt
+
+    #print(c[0])
 
 
 

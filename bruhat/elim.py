@@ -627,7 +627,6 @@ def pullback(ring, J, K, J1=None, K1=None, check=False):
     return JJt.transpose(), KKt.transpose()
 
 
-
 def old_cokernel(ring, J, check=False):
     """  
     find f as a pushout of the following diagram:
@@ -670,31 +669,15 @@ def cokernel(ring, J, P1=None, check=False):
         return f
 
     else:
-        P, Q, R = pushout(ring, J, L, P1, Q1)
+        P, Q, R = pushout(ring, J, L, P1, Q1, check=check)
         assert Q.shape[1] == 0
-    
         return P, R
 
 
-
-
-#def coequalizer(ring, J, K, J1=None, K1=None):
 def coequalizer(ring, J, K, JK1=None):
     JK = J-K
-
-#    if J1 is not None:
-#        assert K1 is not None
-#        JK1 = J1-K1
-#        P, R = cokernel(ring, JK, JK1)
-#        return P, R
-#    else:
-#        JK1 = None
-
-    P = cokernel(ring, JK, JK1)
-    return P
-
-
-
+    result = cokernel(ring, JK, JK1)
+    return result
 
 
 def rank(ring, A, **kw):
