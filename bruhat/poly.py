@@ -14,8 +14,9 @@ import numpy
 from bruhat.argv import argv
 from bruhat.util import cross, factorial, choose, determinant
 from bruhat.theta import divisors
-from bruhat.element import Fraction, Q
+from bruhat.element import Fraction, Q, Ring
 from bruhat import series
+from bruhat.chain import Space, Lin
 
 
 #def is_scalar(x):
@@ -1124,9 +1125,125 @@ def test_dimension():
     assert numpy.alltrue(data == result)
 
 
+#class ARing(Ring):
+#    pass
+
+def test_quaternion():
+
+    ring = Q
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+    a = Poly("a", ring)
+    b = Poly("b", ring)
+    c = Poly("c", ring)
+    d = Poly("d", ring)
+    u = Poly("u", ring)
+    v = Poly("v", ring)
+    x = Poly("x", ring)
+    y = Poly("y", ring)
+    z = Poly("z", ring)
+
+    if 0:
+        ARing = type("ARing", (Ring,), {})
+        ring = ARing()
+        assert isinstance(ring, Ring)
+        ring.zero = zero
+        ring.one = one
+    
+        space = Space(ring, 4, name="U")
+    
+        def quaternion(a, b, c, d):
+            # build matrix representation of quaternion
+            A = numpy.empty((4, 4), dtype=object)
+            A[:] = [
+                [a, -b, -c, -d],
+                [b, a, -d, c],
+                [c, d, a, -b],
+                [d, -c, b, a]]
+            return Lin(space, space, A)
+        
+        e = quaternion(1, 0, 0, 0)
+        i = quaternion(0, 1, 0, 0)
+        j = quaternion(0, 0, 1, 0)
+        k = quaternion(0, 0, 0, 1)
+    
+        q = quaternion(a, b, c, d)
+        s = quaternion(zero, x, y, z)
+        t = quaternion(zero, u, v, zero)
+    
+        lhs = t*q
+        rhs = q*s
+    
+        for i in range(4):
+          for j in range(4):
+            print(lhs[i, j], "=", rhs[i, j])
+    
+        result = """
+        a*u + d*v = a*x + c*z - d*y
+        a*v - d*u = a*y - b*z + d*x
+        -b*u - c*v = -b*x - c*y - d*z
+        b*v - c*u = -a*z - b*y + c*x
+        """
+        return
+
+
+    rels = [
+        u**2+v**2-x**2-y**2-z**2,
+        a*u + d*v -(a*x + c*z - d*y),
+        a*v - d*u -(a*y - b*z + d*x),
+        -b*u - c*v -(-b*x - c*y - d*z),
+        b*v - c*u -(-a*z - b*y + c*x),
+    ]
+    rels = grobner(rels)
+
+    for idx in range(6):
+      for jdx in range(6):
+        gens = []
+        for p in all_monomials([a, b, c, d], idx, ring):
+          for q in all_monomials([u, v, x, y, z], jdx, ring):
+            rem = p*q
+            #for count in range(3):
+            while 1:
+                rem0 = rem
+                for rel in rels:
+                    div, rem = rel.reduce(rem)
+                if rem == rem0:
+                    break
+            gens.append(rem)
+    
+        #print("gens:", len(gens))
+        n = sage_grobner(gens)
+        #basis = grobner(gens)
+        print("%3d"%n, end=' ', flush=True)
+      print()
+
+
+def sage_grobner(gens):
+    from sage.all_cmdline import PolynomialRing, QQ, ideal
+    R = PolynomialRing(QQ, order='lex', 
+        names=('a', 'b', 'c', 'd', 'u', 'v', 'x', 'y', 'z',))
+    (a, b, c, d, u, v, x, y, z,) = R._first_ngens(9)
+
+    ns = locals()
+    ps = [eval(str(p).replace("^", "**"), {}, ns) for p in gens]
+    if ps == [1]:
+        return 1
+
+    basis = ideal(ps)
+    return len(basis.groebner_basis())
+
+
+
+
+# ----------------------------------------------------------------------
+#
+#
+
+
 class Formal(series.Series):
     """
-        Formal power series with coefficients in a polynomial ring with infinitely many variables.
+        Formal power series with coefficients in a polynomial ring 
+        with infinitely many variables.
     """
     def __init__(self, name, ring, subs={}):
         series.Series.__init__(self, ring)

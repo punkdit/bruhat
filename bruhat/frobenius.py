@@ -280,7 +280,7 @@ def test_galois():
       print()
         
 
-    print("OK")
+    print("test_galois: OK")
 
 
 def test_quadratic():

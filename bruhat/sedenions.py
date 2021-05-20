@@ -26,8 +26,8 @@ class Number(object):
         return hash(str(self))
 
     def promote(self, a):
-        if isinstance(a, int):
-            a = Number(a)
+        if not isinstance(a, Number):
+            a = Number(a) # wrap it up
         return a
 
     def __add__(self, other):
@@ -68,9 +68,9 @@ class Number(object):
 
 class Double(Number):
     def __init__(self, a, b):
-        if isinstance(a, int):
+        if not isinstance(a, Number):
             a = Number(a)
-        if isinstance(b, int):
+        if not isinstance(b, Number):
             b = Number(b)
         assert a.shape == b.shape
         self.shape = (a.shape, b.shape)
@@ -82,9 +82,8 @@ class Double(Number):
         return Double(self.a.get_zero(), self.b.get_zero())
 
     def promote(self, a):
-        if isinstance(a, int):
+        if not isinstance(a, Number):
             a = Number(a)
-        assert isinstance(a, Number)
         if a.shape == self.shape:
             return a
         assert str(a.shape) in str(self.shape)
@@ -362,10 +361,72 @@ def test():
 
 
     
+def test_quaternion():
+
+    x = Number(2)
+    y = Double(2, 0)
+    assert x==y
+
+    # ----------- double: complex --------------------
+
+    one = Double(1, 0)
+    i = Double(0, 1)
+    assert i*i == -1
+
+    cplex = [one, i]
+    assert is_commutative(cplex)
+    assert is_associative(cplex)
+
+    # ----------- double: quaternions --------------------
+
+    zero = Double(Double(0, 0), Double(0, 0))
+    one = Double(Double(1, 0), Double(0, 0))
+    i = Double(Double(0, 1), Double(0, 0))
+    j = Double(Double(0, 0), Double(1, 0))
+    k = Double(Double(0, 0), Double(0, 1))
+
+    for x in [i, j, k]:
+        assert x*x == -1
+        for y in [i, j, k]:
+            if x==y:
+                continue
+            assert x*y == -y*x
+    assert i*j == -j*i
+    assert i*j*k == -1
+
+    quaternions = [one, i, j, k]
+    assert not is_commutative(quaternions)
+    assert is_anticommutative(quaternions[1:])
+    assert is_associative(quaternions)
+
+    count, total = test_structure(quaternions[1:])
+    assert count==3
+    assert total==6 # GL(2, 2) = S_3
+
+#    from element import Q
+#    from poly import Poly
+#
+#    ring = Q
+#    r_zero = Poly({}, ring)
+#    r_one = Poly({():1}, ring)
+#    x = Poly("x", ring)
+#    y = Poly("y", ring)
+#    z = Poly("z", ring)
+#    u = Poly("u", ring)
+#    v = Poly("v", ring)
+#    w = Poly("w", ring)
+#
+#    print(x*i) # argh, this is just not going to work...
+#
+
+    
+
+
 
 
 if __name__ == "__main__":
     test()
+    #test_quaternion()
 
 
 

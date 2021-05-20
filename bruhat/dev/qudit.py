@@ -144,7 +144,7 @@ def main():
     rhs = Z@Z
     assert lhs * rhs == rhs * lhs
 
-    if 0:
+    if 1:
         n = 5
         ops = [X, Xdag]
         lhs = []

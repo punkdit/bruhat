@@ -50,8 +50,10 @@ class Space(object):
     These have a dimenion 'n', a 'grade', and a 'name' (for debugging).
     """
     def __init__(self, ring, n=0, grade=0, name="?"):
-        assert isinstance(ring, element.Ring)
+        assert isinstance(ring, element.Ring), ring.__class__
         assert type(n) is int
+        assert type(grade) is int
+        assert type(name) is str
         assert 0<=n
         self.ring = ring
         self.n = n
