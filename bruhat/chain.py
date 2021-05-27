@@ -795,6 +795,75 @@ def test_young():
 
 
 
+def test_young0():
+    ring = element.Q
+
+    n = argv.get("n", 3)
+    part = argv.get("part", (1,1,1))
+    assert sum(part) == n
+
+    V = Space(ring, n)
+
+    # build action of symmetric group on the space V
+    items = list(range(n))
+    gen1 = []
+    gen2 = []
+    for i in range(n-1):
+        perm = dict((item, item) for item in items)
+        perm[items[i]] = items[i+1]
+        perm[items[i+1]] = items[i]
+        g = Perm(perm, items)
+        gen1.append(g)
+        A = elim.zeros(ring, n, n)
+        for k,v in perm.items():
+            A[v,k] = ring.one
+        lin = Lin(V, V, A)
+        gen2.append(lin)
+
+    perms = mulclose(gen1)
+    G = Group(perms, items)
+
+    #print(G)
+
+    action = mulclose_hom(gen1, gen2)
+    for g in G:
+      for h in G:
+        assert action[g*h] == action[g]*action[h] # check it's a group hom
+
+    young = Young(G, part)
+    rowG = young.get_rowperms()
+    print("rowG", len(rowG))
+    colG = young.get_colperms()
+    print("colG", len(colG))
+
+    horiz = None
+    for g in rowG:
+        P = action[g]
+        horiz = P if horiz is None else (horiz + P)
+
+    vert = None
+    for g in colG:
+        P = action[g]
+        s = g.sign()
+        P = ring.promote(s)*P
+        vert = P if vert is None else (vert + P)
+    A = horiz * vert
+
+    assert vert*vert == len(colG) * vert
+    assert horiz*horiz == len(rowG) * horiz
+
+    print("part:", part)
+    print(young)
+    print("rank:", A.rank())
+    print("is_zero:", A.is_zero())
+    print(A)
+    #if not A.is_zero():
+    #    print(A)
+
+    print()
+
+
+
 def test(ring=element.Q):
 
     space = Space(ring)

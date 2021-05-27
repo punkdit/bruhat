@@ -173,7 +173,7 @@ elif 1:
     vals = eval(data)
 
     vals = numpy.array(vals)
-    vals = vals[:,0,:,0]
+    #vals = vals[:,0,:,0]
     vals = vals.copy()
     print(vals)
 

@@ -220,6 +220,10 @@ class Poly(object):
             cs[key] = cs.get(key, 0) - value
         return Poly(cs, ring)
 
+    def __rsub__(self, other):
+        "other - self"
+        return other + self.__neg__()
+
     def __neg__(self):
         cs = {}
         ring = self.ring
@@ -323,8 +327,17 @@ class Poly(object):
         S = mi * P - mj * Q
         return S
 
-    def diff(self, var):
+    def diff(self, var, count=1):
         "_differentiate wrt var"
+        assert count>=0
+        if count == 0:
+            return self
+        if count > 1:
+            p = self
+            while count:
+                p = p.diff(var) # recurse
+                count -= 1
+            return p
         if isinstance(var, Poly):
             v = str(var)
             assert var == Poly(v, self.ring)
@@ -690,6 +703,13 @@ def test():
     assert (x*y + y) / y == (x + 1)
     assert (x**2 - y**2) / (x+y) == (x-y)
 
+    p = (1-x)**5
+    assert p.diff(x, 0) == 1 - 5*x + 10*x**2 - 10*x**3 + 5*x**4 - x**5 == p
+    assert p.diff(x, 1) == -5 + 20*x - 30*x**2 + 20*x**3 - 5*x**4
+    assert p.diff(x, 2) == 20 - 60*x + 60*x**2 - 20*x**3
+    assert p.diff(x, 3) == -60 + 120*x - 60*x**2
+
+
     # -------------------------------------
     # 
 
@@ -727,8 +747,10 @@ def test():
     p = x1**2*x2-x1**2
     q = x1*x2**2-x2**2
     polys = [p, q]
-    basis = grobner(polys, verbose=True)
-    print(basis)
+    basis = grobner(polys, verbose=False)
+    #print(basis)
+
+    return # <----------- return
 
     # -------------------------------------
     # 
@@ -1129,6 +1151,7 @@ def test_dimension():
 #    pass
 
 def test_quaternion():
+    # Plucker embedding for SO(5) ~= SO(2,3)
 
     ring = Q
     zero = Poly({}, ring)
@@ -1306,6 +1329,8 @@ def solve(f, g, fg, ring):
 
 
 def main():
+
+    # https://golem.ph.utexas.edu/category/2018/01/more_secrets_of_the_associahed.html
 
     zero = Poly({}, Q)
     one = Poly({():Q.one}, Q)
