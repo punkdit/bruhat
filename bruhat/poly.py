@@ -364,6 +364,12 @@ class Poly(object):
             cs[rest] = coeff
         return Poly(cs, self.ring)
 
+    def partial(self, **kw):
+        p = self
+        for k, v in kw.items():
+            p = p.diff(k, v)
+        return p
+
     def __pow__(self, n):
         ring = self.ring
         if n==0:

@@ -31,9 +31,6 @@ from bruhat.argv import argv
 from bruhat.util import cross, factorial
 
 
-def choose(m, n):
-    return factorial(m) // factorial(n)
-
 
 def rdot(a, b):
     assert len(a)==len(b)
