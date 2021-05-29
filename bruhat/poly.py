@@ -14,7 +14,10 @@ import numpy
 from bruhat.argv import argv
 from bruhat.util import cross, factorial, choose, determinant
 from bruhat.theta import divisors
-from bruhat.element import Fraction, Q, Ring
+if argv.fast:
+    from bruhat._element import Fraction, Q, Ring
+else:
+    from bruhat.element import Fraction, Q, Ring
 from bruhat import series
 from bruhat.chain import Space, Lin
 
@@ -500,20 +503,23 @@ class Poly(object):
             s = "".join([str(i) for i in items])
         return s
 
-    def substitute(self, ns): # try not to use this :P
-        s = self.python_str()
+    def substitute(self, ns):
         assert type(ns) is dict, repr(ns)
-        p = eval(s, ns) # argh, boo, lame!
-        return p
+        vs = self.get_vars()
+        for v in vs:
+            if v not in ns:
+                ns[v] = Poly(v, self.ring)
+        pystr = self.python_str()
+        val = eval(pystr, ns)
+        return val
 
     def __call__(self, **kw):
-        #return self.substitute(kw)
+        return self.substitute(kw) # <--- return 
         ring = self.ring
-        #val = ring.zero
         val = self
         for (k, v) in kw.items():
             p = Poly(k, ring)
-            val = (p-v).reduce(val)[1]
+            val = (p-v).reduce(val)[1] # slow !!!!!
         if val.is_const():
             val = val.get_const()
         return val

@@ -5,7 +5,11 @@ Find power series of rational functions
 """
 
 from bruhat.util import factorial, cross
-from bruhat.element import Q
+from bruhat.argv import argv
+if argv.fast:
+    from bruhat._element import Q
+else:
+    from bruhat.element import Q
 from bruhat.poly import Poly
 
 
@@ -65,6 +69,7 @@ assert list(tpl_range((1,2,1))) == [
 
 
 class Rational(object):
+    "Rational function p/q where p and q are Poly's over a base ring."
     def __init__(self, base, p, q, vs=None):
         # f(x) == p(x) / q(x)
         # q(x)*f(x) == p(x)
@@ -99,8 +104,28 @@ class Rational(object):
         self.vzero = vzero
         self.vs = vs
         self.bot = bot
+
+    def promote(self, other):
+        if isinstance(other, Rational):
+            return other
+        if isinstance(other, Poly):
+            return other
+        other = Rational(self.base, other, self.base.one)
+        return other
+
+    def __eq__(lhs, rhs):
+        return lhs.p*rhs.q == rhs.p*lhs.q
     
-    def pump(self):
+    def __ne__(lhs, rhs):
+        return lhs.p*rhs.q != rhs.p*lhs.q
+
+    def __call__(self, **kw):
+        p, q = self.p, self.q
+        p = p(**kw)
+        q = q(**kw)
+        return Rational(self.base, p, q)
+    
+    def _pump(self):
         base = self.base
         p = self.p
         q = self.q
@@ -145,7 +170,7 @@ class Rational(object):
             assert 0<=i
         #print("__getitem__", idx)
         while fs.get(idx) is None:
-            self.pump()
+            self._pump()
         #coeffs = {idx : fs[idx] // tpl_factorial(idx) for idx in fs.keys()}
         #return coeffs
         val = fs[idx] // tpl_factorial(idx)
@@ -166,6 +191,7 @@ def test():
     xx = Poly({(("x", 2),) : 1}, ring)
     xy = Poly({(("x", 1), ("y", 1)) : 1}, ring)
 
+    # course generating function for SL(2) irreps
     f = Rational(ring, one, (1-x)**2)
     cs = [f[i] for i in range(5)]
     assert cs == [1, 2, 3, 4, 5]
@@ -174,26 +200,53 @@ def test():
     cs = [f[i] for i in range(5)]
     assert cs == [1, 6, 20, 50, 105]
 
+    # course generating function for SL(3) irreps
     f = Rational(ring, 1-x*y, (1-x)**3 * (1-y)**3)
     cs = [[f[i,j] for i in range(4)] for j in range(4)]
     assert cs == [[1, 3, 6, 10], [3, 8, 15, 24], [6, 15, 27, 42], [10, 24, 42, 64]]
 
-
+    # fine generating function for SL(2) irreps
     J = Poly("J", ring)
     L = Poly("L", ring)
     Li = Poly("Li", ring)
     vs = [J, L, Li]
     f = Rational(ring, one, (1-J*L)*(1-J*Li), "J L Li".split())
+    assert f(L=one, Li=one) == Rational(ring, one, (1-J)**2)
+
     for i in range(4):
       for j in range(4):
         for k in range(4):
-            print(f[i, j, k], end=' ')
+            print(f[i, j, k], end=' ', flush=True)
         print()
       print()
 
+    # fine generating function for SL(3) irreps
+    J = Poly("J", ring)
+    K = Poly("K", ring)
+    L = Poly("L", ring)
+    Li = Poly("Li", ring)
+    M = Poly("M", ring)
+    Mi = Poly("Mi", ring)
+    vs = [J, K, L, Li, M, Mi]
+    f = Rational(ring, 
+        1-J*K, 
+        (1-J*L)*(1-J*M*Li)*(1-J*Mi)*(1-K*Li)*(1-K*L*Mi)*(1-K*M), 
+        "J K L Li M Mi".split())
+    assert f(L=one, Li=one, M=one, Mi=one) \
+        == Rational(ring, 1-J*K, (1-J)**3 * (1-K)**3)
+
+    idxs = tuple(range(2))
+    for idx in cross((idxs,)*6):
+        print(f[idx], end=" ", flush=True)
+    print()
 
 
 if __name__ == "__main__":
 
-    test()
+    if argv.profile:
+        import cProfile as profile
+        profile.run("test()")
+    else:
+        test()
+
 
