@@ -147,7 +147,8 @@ class Poly(object):
         self.degree = degree
         self.head = head
         self.ring = ring
-        self._cache = {} # for diff
+        self._diff_cache = {}
+        self._subs_cache = {}
 
     def __len__(self):
         return len(self.keys)
@@ -346,9 +347,9 @@ class Poly(object):
             v = str(var)
             assert var == Poly(v, self.ring)
             var = v
-        _cache = self._cache
-        if var in _cache:
-            return _cache[var]
+        _diff_cache = self._diff_cache
+        if var in _diff_cache:
+            return _diff_cache[var]
         #print("diff", self, ",", var)
         cs = {}
         for k, coeff in self.cs.items():
@@ -370,7 +371,7 @@ class Poly(object):
             rest = tuple(rest)
             cs[rest] = coeff
         result = Poly(cs, self.ring)
-        _cache[var] = result
+        _diff_cache[var] = result
         return result
 
     def partial(self, **kw):
@@ -509,20 +510,28 @@ class Poly(object):
             s = "".join([str(i) for i in items])
         return s
 
-    def py_substitute(self, ns):
+    def py_substitute(self, ns): # about 4 times slower than substitute()
         assert type(ns) is dict, repr(ns)
         vs = self.get_vars()
         for v in vs:
             if v not in ns:
-                ns[v] = Poly(v, self.ring)
-        pystr = self.python_str() # too slow
-        val = eval(pystr, ns)     # too slow
+                ns[v] = Poly(v, self.ring)      # cumtime from profile:
+        pystr = self.python_str()               # <-- 11 seconds
+        co = compile(pystr, "<string>", 'eval') # <-- 10 seconds
+        val = eval(co, ns)                      # <--  3 seconds
         return val
 
-    def substitute(self, ns):
+    def substitute(self, items):
+        "items: tuple of (str, val)"
+        assert type(items) is tuple
+        _subs_cache = self._subs_cache
+        result = _subs_cache.get(items)
+        if result is not None:
+            return result
+        ns = dict(items)
         cs = self.cs
         ring = self.ring
-        value = ring.zero
+        result = ring.zero
         for (k,term) in cs.items():
             for (ps,exp) in k:
                 p = ns.get(ps)
@@ -532,10 +541,13 @@ class Poly(object):
                 if exp != 1:
                     p = p**exp
                 term *= p
-            value += term
-        return value
+            result += term
+        _subs_cache[items] = result
+        return result
 
     def __call__(self, **kw):
+        #return self.py_substitute(kw)
+        kw = tuple(kw.items())
         return self.substitute(kw)
 
     def __slow_call__(self, **kw):

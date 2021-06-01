@@ -4,6 +4,8 @@
 Find power series of rational functions
 """
 
+from functools import lru_cache
+
 from bruhat.util import factorial, cross
 from bruhat.argv import argv
 if argv.fast:
@@ -13,6 +15,7 @@ else:
 from bruhat.poly import Poly
 
 
+@lru_cache(maxsize=None)
 def choose(m, n):
     assert m>=n>=0
     value = factorial(m) // (factorial(n) * factorial(m-n))
@@ -88,10 +91,10 @@ class Rational(object):
         #print("divpoly(%s, %s, %s)" % (p, q, vs))
     
         fs = {}
-        vzero = {v:zero for v in vs}
+        vzero = tuple((v,zero) for v in vs)
     
-        top = p(**vzero)
-        bot = q(**vzero)
+        top = p.substitute(vzero)
+        bot = q.substitute(vzero)
         #print("top=%s, bot=%s" % (top, bot))
         f0 = top/bot
         #print("f0:", lstr(f0))
@@ -121,8 +124,9 @@ class Rational(object):
 
     def __call__(self, **kw):
         p, q = self.p, self.q
-        p = p(**kw)
-        q = q(**kw)
+        kw = tuple(kw.items())
+        p = p.substitute(kw)
+        q = q.substitute(kw)
         return Rational(self.base, p, q)
     
     def _pump(self):
@@ -145,13 +149,15 @@ class Rational(object):
                 continue
             idxs += (deg-total,)
             #print(idxs)
-            top = p.partial(**{vs[i]:idxs[i] for i in range(n)})(**vzero) # eye's hurting?
+            top = p.partial(**{vs[i]:idxs[i] for i in range(n)})
+            top = top.substitute(vzero)
             #print(top)
             for jdxs in tpl_range(idxs):
                 if jdxs == idxs:
                     continue
                 kdxs = tpl_sub(idxs, jdxs)
-                q0 = q.partial(**{vs[i]:kdxs[i] for i in range(n)})(**vzero)
+                q0 = q.partial(**{vs[i]:kdxs[i] for i in range(n)})
+                q0 = q0.substitute(vzero)
                 top -= tpl_choose(idxs, jdxs) * fs[jdxs] * q0
             #assert top.is_const()
             f0 = top / bot
@@ -235,7 +241,7 @@ def test():
     assert f(L=one, Li=one, M=one, Mi=one) \
         == Rational(ring, 1-J*K, (1-J)**3 * (1-K)**3)
 
-    for i in range(3):
+    for i in range(4):
       for j in range(4):
         print(f[0,0,i,i,j,j], end=" ", flush=True)
     print()

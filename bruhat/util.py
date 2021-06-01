@@ -26,6 +26,7 @@ assert len(list(all_subsets(5))) == 2**5
 
 
 
+# tried caching this, not any faster
 def factorial(n):
     r = 1
     for i in range(1, n+1):
