@@ -147,6 +147,7 @@ class Poly(object):
         self.degree = degree
         self.head = head
         self.ring = ring
+        self._cache = {} # for diff
 
     def __len__(self):
         return len(self.keys)
@@ -345,6 +346,9 @@ class Poly(object):
             v = str(var)
             assert var == Poly(v, self.ring)
             var = v
+        _cache = self._cache
+        if var in _cache:
+            return _cache[var]
         #print("diff", self, ",", var)
         cs = {}
         for k, coeff in self.cs.items():
@@ -365,7 +369,9 @@ class Poly(object):
                 coeff *= deg
             rest = tuple(rest)
             cs[rest] = coeff
-        return Poly(cs, self.ring)
+        result = Poly(cs, self.ring)
+        _cache[var] = result
+        return result
 
     def partial(self, **kw):
         p = self
@@ -503,18 +509,36 @@ class Poly(object):
             s = "".join([str(i) for i in items])
         return s
 
-    def substitute(self, ns):
+    def py_substitute(self, ns):
         assert type(ns) is dict, repr(ns)
         vs = self.get_vars()
         for v in vs:
             if v not in ns:
                 ns[v] = Poly(v, self.ring)
-        pystr = self.python_str()
-        val = eval(pystr, ns)
+        pystr = self.python_str() # too slow
+        val = eval(pystr, ns)     # too slow
         return val
 
+    def substitute(self, ns):
+        cs = self.cs
+        ring = self.ring
+        value = ring.zero
+        for (k,term) in cs.items():
+            for (ps,exp) in k:
+                p = ns.get(ps)
+                if p is None:
+                    p = Poly({((ps,1),):ring.one}, ring)
+                    ns[ps] = p
+                if exp != 1:
+                    p = p**exp
+                term *= p
+            value += term
+        return value
+
     def __call__(self, **kw):
-        return self.substitute(kw) # <--- return 
+        return self.substitute(kw)
+
+    def __slow_call__(self, **kw):
         ring = self.ring
         val = self
         for (k, v) in kw.items():
@@ -762,29 +786,44 @@ def test():
     basis = grobner(polys, verbose=False)
     #print(basis)
 
-    return # <----------- return
-
     # -------------------------------------
     # 
 
-    p = x**2*y-x**2
-    q = x*y**2-y**2
-    polys = [p, q]
-    basis = grobner(polys)
-    #print(basis)
+    a = (x+1)*(y-1)*z
+    assert a() == a
+    assert a(z=1) == (x+1)*(y-1)
+    assert a(y=1) == 0
 
-    # yikes, easy for this to go off the rails!
-    for i in range(12):
-        polys = [Poly.random(list('xyz'), ring) for _ in range(3)]
-        print(polys)
-        basis = grobner(polys)
-        print(len(basis))
+    a = (x+1)*(y-1)*z
+    values = [a(x=i, y=2, z=k) 
+        for i in [-2, 5]
+        for k in [3, 4]]
+    assert values == [-3, -4, 18, 24]
 
-    polys = [x+y+z, x*y+x*z+y*z, x*y*z]
-    basis = grobner(polys)
-    #for p in basis:
-    #    print(p)
-    #print(basis)
+
+    return # <----------- return
+
+#    # -------------------------------------
+#    # 
+#
+#    p = x**2*y-x**2
+#    q = x*y**2-y**2
+#    polys = [p, q]
+#    basis = grobner(polys)
+#    #print(basis)
+#
+#    # yikes, easy for this to go off the rails!
+#    for i in range(12):
+#        polys = [Poly.random(list('xyz'), ring) for _ in range(3)]
+#        print(polys)
+#        basis = grobner(polys)
+#        print(len(basis))
+#
+#    polys = [x+y+z, x*y+x*z+y*z, x*y*z]
+#    basis = grobner(polys)
+#    #for p in basis:
+#    #    print(p)
+#    #print(basis)
 
 
 

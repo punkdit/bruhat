@@ -235,12 +235,13 @@ def test():
     assert f(L=one, Li=one, M=one, Mi=one) \
         == Rational(ring, 1-J*K, (1-J)**3 * (1-K)**3)
 
-    idxs = tuple(range(3))
-    for i in range(4):
+    for i in range(3):
       for j in range(4):
         print(f[0,0,i,i,j,j], end=" ", flush=True)
     print()
     return
+
+    idxs = tuple(range(3))
     for idx in cross((idxs,)*4):
         jdx = (1,1)+idx
         print(f[jdx], end=" ", flush=True)
