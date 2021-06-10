@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
 """
-
+Construct algebraic representations of Lie algebras.
 """
 
 import os
 from functools import reduce
 import operator
 from random import randint, shuffle, seed
+from math import sin, cos, pi
 
 import numpy
+from scipy.spatial import ConvexHull
 
 from bruhat.argv import argv
 from bruhat.util import cross, factorial, choose, determinant
@@ -226,6 +228,7 @@ def test_weighted_sl3():
     #print()
 
     basis = grobner(gens)
+
     weights = {}
     print("basis:")
     for p in basis:
@@ -239,16 +242,119 @@ def test_weighted_sl3():
     print(size)
     assert size == len(basis)
 
-    plot_weights(weights)
+    weights = dict((k, str(v)) for (k,v) in weights.items())
 
-def show_weights():
+    if argv.plot:
+        #plot_weights(weights)
+        diagram = WeightDiagram.make_A2(weights)
+        diagram.plot()
+
+
+
+def show_weights_62():
     weights = {(-4, -4): 3, (5, 2): 2, (2, 2): 3, (0, 1): 3, (1, 0): 3, (1, 3): 3, (-1, 5): 2, (0, 4): 3, (3, 1): 3, (-3, -2): 3, (5, -1): 2, (3, -2): 2, (1, -3): 2, (-1, -4): 2, (-3, -5): 2, (-5, -6): 2, (7, 0): 1, (-7, -7): 1, (4, -3): 1, (2, -4): 1, (0, -5): 1, (-2, -6): 1, (-4, -7): 1, (-6, -8): 1, (6, -2): 1, (-1, -1): 3, (-5, -3): 2, (-2, 0): 3, (-4, -1): 2, (4, 3): 2, (-1, 2): 3, (-3, 1): 2, (3, 4): 2, (-2, 3): 2, (2, 5): 2, (1, 6): 2, (0, 7): 1, (4, 0): 3, (2, -1): 3, (0, -2): 3, (-2, -3): 3, (-6, -5): 2, (6, 1): 2, (7, 3): 1, (6, 4): 1, (5, 5): 1, (4, 6): 1, (3, 7): 1, (2, 8): 1, (8, 2): 1, (-7, -4): 1, (-6, -2): 1, (-5, 0): 1, (-4, 2): 1, (-3, 4): 1, (-2, 6): 1, (-8, -6): 1}
 
     plot_weights(weights)
 
+
+try:
+    from huygens import config
+    config(text="pdflatex")
+    from huygens.front import Canvas, path, color, text
+except ImportError:
+    pass
+
+class WeightDiagram(object):
+    def __init__(self, basis, weights):
+        self.basis = basis
+        self.weights = dict(weights)
+        pts = []
+        for (i,j) in weights.keys():
+            x, y = self.coord(i, j)
+            pts.append((x, y))
+        self.pts = pts
+        self.hull = ConvexHull(pts)
+
+    def coord(self, i, j):
+        u, v = self.basis
+        x, y = i*u[0] + j*v[0], i*u[1] + j*v[1]
+        return x, y
+
+    def in_hull(self, i, j):
+        #print("in_hull", i, j)
+        hull = self.hull
+        x, y = self.coord(i, j)
+        #found = True
+        #print(hull.equations)
+        #for row in hull.equations:
+            #x0, y0, a = row
+            #self.cvs.fill(path.circle(-x0*a, -y0*a, 0.1), [color.rgb(1,0,0)])
+        for row in hull.equations:
+            x0, y0, a = row
+            #print(x0**2+y0**2)
+            val = x*x0 + y*y0
+            if val >= -a + 0.01:
+                #print(x0, y0, a, val-a)
+                return False
+        return True
+
+    def mark_weight(self, cvs, i, j, value):
+        st_center = [text.halign.boxcenter, text.valign.middle]
+        x, y = self.coord(i, j)
+        if type(value) is int:
+            radius = 0.3
+            for count in range(value):
+                pth = path.circle(x, y, 0.2*radius)
+                if count==0:
+                    cvs.fill(pth)
+                else:
+                    cvs.stroke(pth)
+                radius += 0.3
+        elif type(value) is str:
+            cvs.fill(path.circle(x, y, 0.22), [color.rgb(0.8, 0.8, 0.8)])
+            if value:
+                cvs.text(x, y, value, st_center)
+        else:
+            assert 0, repr(value)
+
+    def plot(self, filename="output.pdf"):
+        self.cvs = cvs = Canvas()
+        self.in_hull(0, 0)
+
+        pts = self.pts
+        weights = self.weights
+        for simplex in self.hull.simplices:
+            cvs.stroke(path.line(
+                pts[simplex[0]][0], pts[simplex[0]][1],
+                pts[simplex[1]][0], pts[simplex[1]][1]))
+
+        imin, imax = 0, 0
+        for (i, j) in weights.keys():
+            imin = min(imin, min(i, j))
+            imax = max(imax, max(i, j))
+
+        for i in range(imin, imax+1):
+          for j in range(imin, imax+1):
+            if self.in_hull(i, j):
+                self.mark_weight(cvs, i, j, "")
+    
+        for (key, value) in weights.items():
+            i, j = key
+            self.mark_weight(cvs, i, j, value)
+        cvs.writePDFfile("output.pdf")
+
+    @classmethod
+    def make_A2(cls, weights, scale=0.8):
+        basis = [
+            (1.*scale, 0*scale),
+            (cos(4/3*pi)*scale, sin(4/3*pi)*scale)]
+        return WeightDiagram(basis, weights)
+
+
+
 def plot_weights(weights):
-    from math import sin, cos, pi
     from huygens.front import Canvas, path, color
+
     cvs = Canvas()
     r = 1.
 
@@ -268,6 +374,17 @@ def plot_weights(weights):
     for i in range(6):
         x, y = R*sin(i*pi/3+pi/6), R*cos(i*pi/3+pi/6)
         cvs.stroke(path.line(0, 0, x, y), [color.rgb(1., 0.4, 0.)])
+
+    pts = []
+    for (i,j) in weights.keys():
+        x, y = coord(i, j)
+        pts.append((x, y))
+    hull = ConvexHull(pts)
+    for simplex in hull.simplices:
+        print(simplex)
+        cvs.stroke(path.line(
+            pts[simplex[0]][0], pts[simplex[0]][1],
+            pts[simplex[1]][0], pts[simplex[1]][1]))
 
     for (k, v) in weights.items():
         i, j = k
