@@ -896,12 +896,12 @@ def test_surface():
     Sz[C0[0], C1[0]] = one
     Sz[C0[1], C1[4]] = one
     src = Chain({0:C0,1:C1,2:C2}, {1:Sz,2:Sx}, ring, check=True)
-    #src.dump()
+    src.dump()
 
     chain = src
     for i, j in [(2, 0), (1, 4), (2, 4), (3, 0), (3, 2), (1, 2)]:
         chain, hom = chain.transvect(i, j)
-    #chain.dump()
+    chain.dump()
     
 
 

@@ -129,7 +129,7 @@ class Rational(object):
         q = q.substitute(kw)
         return Rational(self.base, p, q)
     
-    def _pump(self):
+    def _pump(self, verbose=False):
         base = self.base
         p = self.p
         q = self.q
@@ -150,18 +150,24 @@ class Rational(object):
             idxs += (deg-total,)
             #print(idxs)
             top = p.partial(**{vs[i]:idxs[i] for i in range(n)})
+            if verbose:
+                print("_pump: idxs=%s"%(idxs,), end=" ")
             top = top.substitute(vzero)
-            #print(top)
             for jdxs in tpl_range(idxs):
-                if jdxs == idxs:
+                if jdxs == idxs or fs[jdxs]==0:
                     continue
+                if verbose:
+                    print("*", end=" ")
                 kdxs = tpl_sub(idxs, jdxs)
                 q0 = q.partial(**{vs[i]:kdxs[i] for i in range(n)})
+                #print("\t", fs[jdxs])
                 q0 = q0.substitute(vzero)
                 top -= tpl_choose(idxs, jdxs) * fs[jdxs] * q0
+            if verbose:
+                print()
             #assert top.is_const()
             f0 = top / bot
-            assert fs.get(idxs) is None or fs.get(idxs) == f0
+            assert fs.get(idxs) is None # or fs.get(idxs) == f0
             fs[idxs] = f0
             #print(idxs, f0)
             #print("\t", idxs)
@@ -241,17 +247,43 @@ def test():
     assert f(L=one, Li=one, M=one, Mi=one) \
         == Rational(ring, 1-J*K, (1-J)**3 * (1-K)**3)
 
-    for i in range(4):
-      for j in range(4):
-        print(f[0,0,i,i,j,j], end=" ", flush=True)
-    print()
-    return
+    if 0:
+        f._pump(verbose=True)
+        f._pump(verbose=True)
+        f._pump(verbose=True)
+    
+        return
 
-    idxs = tuple(range(3))
-    for idx in cross((idxs,)*4):
-        jdx = (1,1)+idx
-        print(f[jdx], end=" ", flush=True)
-    print()
+    def sample(ji, ki, li, mi):
+        N = 3
+        if li>=0 and mi>=0:
+            val = sum(f[ji, ki, l+li, l,    m+mi, m   ] for l in range(N) for m in range(N))
+        elif li>=0 and mi<0:
+            val = sum(f[ji, ki, l+li, l,    m,    m-mi] for l in range(N) for m in range(N))
+        elif li<0 and mi<0:
+            val = sum(f[ji, ki, l,    l-li, m,    m-mi] for l in range(N) for m in range(N))
+        elif li<0 and mi>=0:
+            val = sum(f[ji, ki, l,    l-li, m+mi, m   ] for l in range(N) for m in range(N))
+        return val
+
+    assert sample(0, 0, 0, 0) == 1
+    for (li, mi) in [
+        (-1, -1), (-1, 0), (-1, 1),
+        (0, -1), (0, 0), (0, 1),
+        (1, -1), (1, 0), (1, 1),
+    ]:
+        print(sample(1, 0, li, mi))
+
+    for li in range(-2, 3):
+      for mi in range(-2, 3):
+        print(sample(1, 0, li, mi), end=" ", flush=True)
+      print()
+
+    #assert sum(f[1, 1, i, i, j, j] for i in range(4) for j in range(4)) == 2
+    #assert sum(f[1, 1, i+1, i, j+1, j] for i in range(4) for j in range(4)) == 1
+    #assert sum(f[1, 1, i+1, i, j, j] for i in range(4) for j in range(4)) == 0
+
+
 
 
 if __name__ == "__main__":
