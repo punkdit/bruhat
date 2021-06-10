@@ -170,8 +170,39 @@ def test_graded_sl3():
       print()
 
 
-def test_weighted_sl3():
+def plot_sl3():
+    a = argv.get("a", 2)
+    b = argv.get("b", 6)
+    weights = get_weights_sl3(a, b)
 
+    weights = dict((k, str(v)) for (k,v) in weights.items())
+
+    name = argv.get("name", "output.pdf")
+
+    #plot_weights(weights)
+    diagram = WeightDiagram.make_A2(weights)
+    diagram.plot(name)
+
+
+def plot_all_sl3():
+
+    for a in range(4):
+      for b in range(4):
+        if a==b==0:
+            continue
+        weights = get_weights_sl3(a, b)
+    
+        weights = dict((k, str(v)) for (k,v) in weights.items())
+    
+        name = "sl3_weights_%d%d.pdf"%(a, b)
+        print(name)
+        #plot_weights(weights)
+        diagram = WeightDiagram.make_A2(weights)
+        diagram.plot(name)
+
+
+
+def get_weights_sl3(a, b):
     ring = Q
     zero = Poly({}, ring)
     one = Poly({():1}, ring)
@@ -207,11 +238,6 @@ def test_weighted_sl3():
     rel = x*u + y*v + z*w
     rels = [rel]
     rels = grobner(rels)
-    for rel in rels:
-        print("rel:", rel)
-
-    a = argv.get("a", 2)
-    b = argv.get("b", 6)
 
     gens = []
     for p in all_monomials([x, y, z], a, ring):
@@ -221,46 +247,42 @@ def test_weighted_sl3():
             div, rem = rel.reduce(rem)
         gens.append(rem)
 
-    for p in gens:
-        if find_grade(p) == (-2, 3):
-            print(p)
-    #    print(p, end=", ")
-    #print()
-
     basis = grobner(gens)
 
+    size = sage_grobner(gens)
+    assert size == len(basis)
+
     weights = {}
-    print("basis:")
     for p in basis:
         g = find_grade(p)
         weights[g] = weights.get(g, 0) + 1
-        print(p, g)
-
-    print(weights)
-
-    size = sage_grobner(gens)
-    print(size)
-    assert size == len(basis)
-
-    weights = dict((k, str(v)) for (k,v) in weights.items())
-
-    if argv.plot:
-        #plot_weights(weights)
-        diagram = WeightDiagram.make_A2(weights)
-        diagram.plot()
-
+    return weights
 
 
 def show_weights_62():
-    weights = {(-4, -4): 3, (5, 2): 2, (2, 2): 3, (0, 1): 3, (1, 0): 3, (1, 3): 3, (-1, 5): 2, (0, 4): 3, (3, 1): 3, (-3, -2): 3, (5, -1): 2, (3, -2): 2, (1, -3): 2, (-1, -4): 2, (-3, -5): 2, (-5, -6): 2, (7, 0): 1, (-7, -7): 1, (4, -3): 1, (2, -4): 1, (0, -5): 1, (-2, -6): 1, (-4, -7): 1, (-6, -8): 1, (6, -2): 1, (-1, -1): 3, (-5, -3): 2, (-2, 0): 3, (-4, -1): 2, (4, 3): 2, (-1, 2): 3, (-3, 1): 2, (3, 4): 2, (-2, 3): 2, (2, 5): 2, (1, 6): 2, (0, 7): 1, (4, 0): 3, (2, -1): 3, (0, -2): 3, (-2, -3): 3, (-6, -5): 2, (6, 1): 2, (7, 3): 1, (6, 4): 1, (5, 5): 1, (4, 6): 1, (3, 7): 1, (2, 8): 1, (8, 2): 1, (-7, -4): 1, (-6, -2): 1, (-5, 0): 1, (-4, 2): 1, (-3, 4): 1, (-2, 6): 1, (-8, -6): 1}
+    weights = {(-4, -4): 3, (5, 2): 2, (2, 2): 3, (0, 1):
+    3, (1, 0): 3, (1, 3): 3, (-1, 5): 2, (0, 4): 3, (3, 1):
+    3, (-3, -2): 3, (5, -1): 2, (3, -2): 2, (1, -3): 2, (-1,
+    -4): 2, (-3, -5): 2, (-5, -6): 2, (7, 0): 1, (-7, -7):
+    1, (4, -3): 1, (2, -4): 1, (0, -5): 1, (-2, -6): 1, (-4,
+    -7): 1, (-6, -8): 1, (6, -2): 1, (-1, -1): 3, (-5, -3):
+    2, (-2, 0): 3, (-4, -1): 2, (4, 3): 2, (-1, 2): 3, (-3,
+    1): 2, (3, 4): 2, (-2, 3): 2, (2, 5): 2, (1, 6): 2, (0,
+    7): 1, (4, 0): 3, (2, -1): 3, (0, -2): 3, (-2, -3): 3,
+    (-6, -5): 2, (6, 1): 2, (7, 3): 1, (6, 4): 1, (5, 5):
+    1, (4, 6): 1, (3, 7): 1, (2, 8): 1, (8, 2): 1, (-7, -4):
+    1, (-6, -2): 1, (-5, 0): 1, (-4, 2): 1, (-3, 4): 1, (-2,
+    6): 1, (-8, -6): 1}
 
-    plot_weights(weights)
+    weights = dict((k, str(v)) for (k,v) in weights.items())
+    diagram = WeightDiagram.make_A2(weights)
+    diagram.plot()
 
 
 try:
     from huygens import config
     config(text="pdflatex")
-    from huygens.front import Canvas, path, color, text
+    from huygens.front import Canvas, path, color, text, style
 except ImportError:
     pass
 
@@ -273,7 +295,10 @@ class WeightDiagram(object):
             x, y = self.coord(i, j)
             pts.append((x, y))
         self.pts = pts
-        self.hull = ConvexHull(pts)
+        if len(pts)>=3:
+            self.hull = ConvexHull(pts)
+        else:
+            self.hull = None
 
     def coord(self, i, j):
         u, v = self.basis
@@ -281,20 +306,14 @@ class WeightDiagram(object):
         return x, y
 
     def in_hull(self, i, j):
-        #print("in_hull", i, j)
         hull = self.hull
+        if not hull:
+            return i==0 and j==0
         x, y = self.coord(i, j)
-        #found = True
-        #print(hull.equations)
-        #for row in hull.equations:
-            #x0, y0, a = row
-            #self.cvs.fill(path.circle(-x0*a, -y0*a, 0.1), [color.rgb(1,0,0)])
         for row in hull.equations:
             x0, y0, a = row
-            #print(x0**2+y0**2)
             val = x*x0 + y*y0
             if val >= -a + 0.01:
-                #print(x0, y0, a, val-a)
                 return False
         return True
 
@@ -311,22 +330,47 @@ class WeightDiagram(object):
                     cvs.stroke(pth)
                 radius += 0.3
         elif type(value) is str:
-            cvs.fill(path.circle(x, y, 0.22), [color.rgb(0.8, 0.8, 0.8)])
             if value:
+                cvs.fill(path.circle(x, y, 0.20), [color.rgb(0.8, 0.8, 0.8, 1.0)])
                 cvs.text(x, y, value, st_center)
+            else:
+                cvs.fill(path.circle(x, y, 0.20), [color.rgb(0.8, 0.8, 0.8, 0.5)])
         else:
             assert 0, repr(value)
 
-    def plot(self, filename="output.pdf"):
-        self.cvs = cvs = Canvas()
-        self.in_hull(0, 0)
-
+    def mark_hull(self, cvs):
+        hull = self.hull
         pts = self.pts
         weights = self.weights
-        for simplex in self.hull.simplices:
-            cvs.stroke(path.line(
-                pts[simplex[0]][0], pts[simplex[0]][1],
-                pts[simplex[1]][0], pts[simplex[1]][1]))
+        lred = color.rgb(1.0, 0.3, 0.2, 0.7)
+
+        fg = Canvas()
+
+        # construct the boundary of the hull
+        pairs = [(i,j) for (i, j) in hull.simplices]
+        bdy = []
+        i,j = pairs.pop()
+        bdy.append(i)
+        while pairs:
+            for pair in pairs:
+                if j in pair:
+                    break
+            else:
+                assert 0
+            pairs.remove(pair)
+            bdy.append(j)
+            if pair[0]==j:
+                j = pair[1]
+            else:
+                j = pair[0]
+        items = [path.moveto(pts[bdy[0]][0], pts[bdy[0]][1])]
+        for i in bdy[1:]:
+            items.append(path.lineto(pts[i][0], pts[i][1]))
+        items.append(path.closepath())
+        p = path.path(items)
+        fg.stroke(p, [style.linewidth.Thick])
+
+        fg.clip(p)
 
         imin, imax = 0, 0
         for (i, j) in weights.keys():
@@ -335,13 +379,39 @@ class WeightDiagram(object):
 
         for i in range(imin, imax+1):
           for j in range(imin, imax+1):
-            if self.in_hull(i, j):
-                self.mark_weight(cvs, i, j, "")
+            if not self.in_hull(i, j):
+                continue
+            x, y = self.coord(i, j)
+            for row in hull.equations:
+                x0, y0, a = row
+                dx, dy = 2*a*x0, 2*a*y0
+                fg.stroke(path.line(x-dx, y-dy, x+dx, y+dy))
+            #for (dx, dy) in self.basis:
+            #    fg.stroke(path.line(x-dx, y-dy, x+dx, y+dy))
+
+        #for (dx, dy) in self.basis:
+        for row in hull.equations:
+            x0, y0, a = row
+            dx, dy = 2*a*x0, 2*a*y0
+            fg.stroke(path.line(-dx, -dy, +dx, +dy), [lred, style.linewidth.Thick])
+
+        #for i in range(imin, imax+1):
+        #  for j in range(imin, imax+1):
+        #    if self.in_hull(i, j):
+        #        self.mark_weight(fg, i, j, "")
+        cvs.append(fg)
     
+    def plot(self, filename="output.pdf"):
+        self.cvs = cvs = Canvas()
+
+        if self.hull is not None:
+            self.mark_hull(cvs)
+
+        weights = self.weights
         for (key, value) in weights.items():
             i, j = key
             self.mark_weight(cvs, i, j, value)
-        cvs.writePDFfile("output.pdf")
+        cvs.writePDFfile(filename)
 
     @classmethod
     def make_A2(cls, weights, scale=0.8):
@@ -352,53 +422,53 @@ class WeightDiagram(object):
 
 
 
-def plot_weights(weights):
-    from huygens.front import Canvas, path, color
-
-    cvs = Canvas()
-    r = 1.
-
-    def coord(i, j):
-        x, y = r*i + r*j*cos(4/3*pi), r*j*sin(4/3*pi)
-        return x, y
-
-    xmin, xmax = 0., 0.
-    ymin, ymax = 0., 0.
-    for (i,j) in weights.keys():
-        x, y = coord(i, j)
-        xmin, xmax = min(x, xmin), max(x, xmax)
-        ymin, ymax = min(y, ymin), max(y, ymax)
-
-    R = max([-xmin, xmax, -ymin, ymax, r])
-
-    for i in range(6):
-        x, y = R*sin(i*pi/3+pi/6), R*cos(i*pi/3+pi/6)
-        cvs.stroke(path.line(0, 0, x, y), [color.rgb(1., 0.4, 0.)])
-
-    pts = []
-    for (i,j) in weights.keys():
-        x, y = coord(i, j)
-        pts.append((x, y))
-    hull = ConvexHull(pts)
-    for simplex in hull.simplices:
-        print(simplex)
-        cvs.stroke(path.line(
-            pts[simplex[0]][0], pts[simplex[0]][1],
-            pts[simplex[1]][0], pts[simplex[1]][1]))
-
-    for (k, v) in weights.items():
-        i, j = k
-        x, y = coord(i, j)
-        radius = 0.3
-        for count in range(v):
-            pth = path.circle(x, y, 0.2*radius)
-            if count==0:
-                cvs.fill(pth)
-            else:
-                cvs.stroke(pth)
-            radius += 0.3
-
-    cvs.writePDFfile("output.pdf")
+#def plot_weights(weights):
+#    from huygens.front import Canvas, path, color
+#
+#    cvs = Canvas()
+#    r = 1.
+#
+#    def coord(i, j):
+#        x, y = r*i + r*j*cos(4/3*pi), r*j*sin(4/3*pi)
+#        return x, y
+#
+#    xmin, xmax = 0., 0.
+#    ymin, ymax = 0., 0.
+#    for (i,j) in weights.keys():
+#        x, y = coord(i, j)
+#        xmin, xmax = min(x, xmin), max(x, xmax)
+#        ymin, ymax = min(y, ymin), max(y, ymax)
+#
+#    R = max([-xmin, xmax, -ymin, ymax, r])
+#
+#    for i in range(6):
+#        x, y = R*sin(i*pi/3+pi/6), R*cos(i*pi/3+pi/6)
+#        cvs.stroke(path.line(0, 0, x, y), [color.rgb(1., 0.4, 0.)])
+#
+#    pts = []
+#    for (i,j) in weights.keys():
+#        x, y = coord(i, j)
+#        pts.append((x, y))
+#    hull = ConvexHull(pts)
+#    for simplex in hull.simplices:
+#        print(simplex)
+#        cvs.stroke(path.line(
+#            pts[simplex[0]][0], pts[simplex[0]][1],
+#            pts[simplex[1]][0], pts[simplex[1]][1]))
+#
+#    for (k, v) in weights.items():
+#        i, j = k
+#        x, y = coord(i, j)
+#        radius = 0.3
+#        for count in range(v):
+#            pth = path.circle(x, y, 0.2*radius)
+#            if count==0:
+#                cvs.fill(pth)
+#            else:
+#                cvs.stroke(pth)
+#            radius += 0.3
+#
+#    cvs.writePDFfile("output.pdf")
 
 
 
@@ -660,69 +730,72 @@ def test_dimension():
     assert numpy.alltrue(data == result)
 
 
+def test_quaternion():
+    ARing = type("ARing", (Ring,), {})
+    ring = ARing()
+    assert isinstance(ring, Ring)
+    ring.zero = zero
+    ring.one = one
+
+    space = Space(ring, 4, name="U")
+
+    def quaternion(a, b, c, d):
+        # build matrix representation of quaternion
+        A = numpy.empty((4, 4), dtype=object)
+        A[:] = [
+            [a, -b, -c, -d],
+            [b, a, -d, c],
+            [c, d, a, -b],
+            [d, -c, b, a]]
+        return Lin(space, space, A)
+    
+    e = quaternion(1, 0, 0, 0)
+    i = quaternion(0, 1, 0, 0)
+    j = quaternion(0, 0, 1, 0)
+    k = quaternion(0, 0, 0, 1)
+
+    q = quaternion(a, b, c, d)
+    s = quaternion(zero, x, y, z)
+    t = quaternion(zero, u, v, zero)
+
+    lhs = t*q
+    rhs = q*s
+
+    for i in range(4):
+      for j in range(4):
+        print(lhs[i, j], "=", rhs[i, j])
+
+    result = """
+    a*u + d*v = a*x + c*z - d*y
+    a*v - d*u = a*y - b*z + d*x
+    -b*u - c*v = -b*x - c*y - d*z
+    b*v - c*u = -a*z - b*y + c*x
+    """
+    return
+
+
 #class ARing(Ring):
 #    pass
 
-def test_quaternion():
+def test_so5():
     # Plucker embedding for SO(5) ~= SO(2,3)
 
     ring = Q
     zero = Poly({}, ring)
     one = Poly({():1}, ring)
+
     a = Poly("a", ring)
     b = Poly("b", ring)
     c = Poly("c", ring)
     d = Poly("d", ring)
+
     u = Poly("u", ring)
     v = Poly("v", ring)
     x = Poly("x", ring)
     y = Poly("y", ring)
     z = Poly("z", ring)
 
-    if 0:
-        ARing = type("ARing", (Ring,), {})
-        ring = ARing()
-        assert isinstance(ring, Ring)
-        ring.zero = zero
-        ring.one = one
-    
-        space = Space(ring, 4, name="U")
-    
-        def quaternion(a, b, c, d):
-            # build matrix representation of quaternion
-            A = numpy.empty((4, 4), dtype=object)
-            A[:] = [
-                [a, -b, -c, -d],
-                [b, a, -d, c],
-                [c, d, a, -b],
-                [d, -c, b, a]]
-            return Lin(space, space, A)
-        
-        e = quaternion(1, 0, 0, 0)
-        i = quaternion(0, 1, 0, 0)
-        j = quaternion(0, 0, 1, 0)
-        k = quaternion(0, 0, 0, 1)
-    
-        q = quaternion(a, b, c, d)
-        s = quaternion(zero, x, y, z)
-        t = quaternion(zero, u, v, zero)
-    
-        lhs = t*q
-        rhs = q*s
-    
-        for i in range(4):
-          for j in range(4):
-            print(lhs[i, j], "=", rhs[i, j])
-    
-        result = """
-        a*u + d*v = a*x + c*z - d*y
-        a*v - d*u = a*y - b*z + d*x
-        -b*u - c*v = -b*x - c*y - d*z
-        b*v - c*u = -a*z - b*y + c*x
-        """
-        return
-
-
+    # got from test_quaternion :
     rels = [
         u**2+v**2-x**2-y**2-z**2,
         a*u + d*v -(a*x + c*z - d*y),
@@ -752,6 +825,59 @@ def test_quaternion():
         #basis = grobner(gens)
         print("%3d"%n, end=' ', flush=True)
       print()
+
+
+def weights_so5():
+    # Plucker embedding for SO(5) ~= SO(2,3)
+
+    ring = Q
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+
+    a = Poly("a", ring)
+    b = Poly("b", ring)
+    c = Poly("c", ring)
+    d = Poly("d", ring)
+
+    u = Poly("u", ring)
+    v = Poly("v", ring)
+    x = Poly("x", ring)
+    y = Poly("y", ring)
+    z = Poly("z", ring)
+
+    # got from test_quaternion :
+    rels = [
+        u**2+v**2-x**2-y**2-z**2,
+        a*u + d*v -(a*x + c*z - d*y),
+        a*v - d*u -(a*y - b*z + d*x),
+        -b*u - c*v -(-b*x - c*y - d*z),
+        b*v - c*u -(-a*z - b*y + c*x),
+    ]
+    rels = grobner(rels)
+
+    idx = argv.get("a", 0)
+    jdx = argv.get("b", 0)
+
+    gens = []
+    for p in all_monomials([a, b, c, d], idx, ring):
+      for q in all_monomials([u, v, x, y, z], jdx, ring):
+        rem = p*q
+        #for count in range(3):
+        while 1:
+            rem0 = rem
+            for rel in rels:
+                div, rem = rel.reduce(rem)
+            if rem == rem0:
+                break
+        gens.append(rem)
+
+    #print("gens:", len(gens))
+    basis = grobner(gens)
+    for p in basis:
+        print(p)
+    n = sage_grobner(gens)
+    assert n == len(basis)
+    print("%3d"%n)
 
 
 def sage_grobner(gens):
