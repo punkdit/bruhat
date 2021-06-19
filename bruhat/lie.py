@@ -754,12 +754,14 @@ def test_quaternion():
     j = quaternion(0, 0, 1, 0)
     k = quaternion(0, 0, 0, 1)
 
-    q = quaternion(a, b, c, d)
-    s = quaternion(zero, x, y, z)
-    t = quaternion(zero, u, v, zero)
+    l = quaternion(a, b, c, d)       # light quaternion
+    s = quaternion(zero, x, y, z)    # space quaternion
+    t = quaternion(zero, u, v, zero) # time quaternion
 
-    lhs = t*q
-    rhs = q*s
+    # action of light quaternion by conjugation gives the 
+    # isometry from time (2dim) to space (3dim):
+    lhs = t*l
+    rhs = l*s
 
     for i in range(4):
       for j in range(4):
@@ -789,11 +791,12 @@ def test_so5():
     c = Poly("c", ring)
     d = Poly("d", ring)
 
-    u = Poly("u", ring)
-    v = Poly("v", ring)
-    x = Poly("x", ring)
-    y = Poly("y", ring)
-    z = Poly("z", ring)
+    # (2,3) space-time
+    u = Poly("u", ring) # time coord
+    v = Poly("v", ring) # time coord
+    x = Poly("x", ring) # space coord
+    y = Poly("y", ring) # space coord
+    z = Poly("z", ring) # space coord
 
     # got from test_quaternion :
     rels = [
@@ -839,20 +842,41 @@ def weights_so5():
     c = Poly("c", ring)
     d = Poly("d", ring)
 
-    u = Poly("u", ring)
-    v = Poly("v", ring)
-    x = Poly("x", ring)
-    y = Poly("y", ring)
+    #u = Poly("u", ring)
+    #v = Poly("v", ring)
+    #x = Poly("x", ring)
+    #y = Poly("y", ring)
     z = Poly("z", ring)
+
+    e = Poly("e", ring)
+    f = Poly("f", ring)
+    g = Poly("g", ring)
+    h = Poly("h", ring)
+
+    half = one/2
+    u = half*(e+g)
+    v = half*(f+h)
+    x = half*(e-g)
+    y = half*(h-f)
+
+    #print( u**2+v**2-x**2-y**2-z**2 )
+    assert u**2+v**2-x**2-y**2-z**2 == e*g + f*h - z**2
+
+    #return
 
     # got from test_quaternion :
     rels = [
-        u**2+v**2-x**2-y**2-z**2,
+        #u**2+v**2-x**2-y**2-z**2,
+        e*g + f*h - z**2,
         a*u + d*v -(a*x + c*z - d*y),
         a*v - d*u -(a*y - b*z + d*x),
         -b*u - c*v -(-b*x - c*y - d*z),
         b*v - c*u -(-a*z - b*y + c*x),
     ]
+    print("rels:")
+    for rel in rels:
+        print(rel)
+    print()
     rels = grobner(rels)
 
     idx = argv.get("a", 0)
@@ -860,7 +884,8 @@ def weights_so5():
 
     gens = []
     for p in all_monomials([a, b, c, d], idx, ring):
-      for q in all_monomials([u, v, x, y, z], jdx, ring):
+      #for q in all_monomials([u, v, x, y, z], jdx, ring):
+      for q in all_monomials([e, f, g, h, z], jdx, ring):
         rem = p*q
         #for count in range(3):
         while 1:
@@ -882,11 +907,12 @@ def weights_so5():
 
 def sage_grobner(gens):
     from sage.all_cmdline import PolynomialRing, QQ, ideal
-    R = PolynomialRing(QQ, order='lex', 
-        names=('a', 'b', 'c', 'd', 'u', 'v', 'w', 'x', 'y', 'z',))
-    (a, b, c, d, u, v, w, x, y, z,) = R._first_ngens(10)
-
-    ns = locals()
+    names = tuple('abcdefghuvwxyz')
+    R = PolynomialRing(QQ, order='lex', names=names)
+    #(a, b, c, d, u, v, w, x, y, z,) = R._first_ngens(10)
+    vs = R._first_ngens(len(names))
+    #ns = locals()
+    ns = dict(zip(names, vs))
     ps = [eval(str(p).replace("^", "**"), {}, ns) for p in gens]
     if ps == [1]:
         return 1
