@@ -236,8 +236,8 @@ class Weyl(object):
                 continue
             a = dot(root, V)
             #print "root:", shortstr(root, a)
-            pos = (a>=0).astype(numpy.int)
-            neg = (a<=0).astype(numpy.int)
+            pos = (a>=0).astype(int)
+            neg = (a<=0).astype(int)
             #assert pos.sum() == n or neg.sum() == n
             if pos.sum() != n and neg.sum() != n:
                 assert 0, "FAIL"

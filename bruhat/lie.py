@@ -19,6 +19,45 @@ from bruhat.poly import Fraction, Q, Ring, Poly, grobner
 
 
 
+def sage_grobner(gens):
+    from sage.all_cmdline import PolynomialRing, QQ, ideal
+    names = tuple('abcdefghuvwxyz')
+    R = PolynomialRing(QQ, order='lex', names=names)
+    #(a, b, c, d, u, v, w, x, y, z,) = R._first_ngens(10)
+    vs = R._first_ngens(len(names))
+    #ns = locals()
+    ns = dict(zip(names, vs))
+    ps = [eval(str(p).replace("^", "**"), {}, ns) for p in gens]
+    if ps == [1]:
+        return 1
+
+    basis = ideal(ps)
+    return len(basis.groebner_basis())
+
+
+def all_monomials(vs, deg, ring):
+    n = len(vs)
+    assert n>0
+    if n==1:
+        v = vs[0]
+        yield v**deg
+        return
+
+    items = list(range(deg+1))
+    for idxs in cross((items,)*(n-1)):
+        idxs = list(idxs)
+        remain = deg - sum(idxs)
+        if remain < 0:
+            continue
+        idxs.append(remain)
+        p = Poly({():1}, ring)
+        assert p==1
+        for idx, v in zip(idxs, vs):
+            p = p * v**idx
+        yield p
+            
+
+
 def test_sl2():
 
     ring = Q
@@ -112,28 +151,6 @@ def test_hilbert_sl3():
       print()
 
 
-def all_monomials(vs, deg, ring):
-    n = len(vs)
-    assert n>0
-    if n==1:
-        v = vs[0]
-        yield v**deg
-        return
-
-    items = list(range(deg+1))
-    for idxs in cross((items,)*(n-1)):
-        idxs = list(idxs)
-        remain = deg - sum(idxs)
-        if remain < 0:
-            continue
-        idxs.append(remain)
-        p = Poly({():1}, ring)
-        assert p==1
-        for idx, v in zip(idxs, vs):
-            p = p * v**idx
-        yield p
-            
-
 def test_graded_sl3():
     # ---------------------------------------------------------------
     # slightly more explicit calculation than test_hilbert above
@@ -188,18 +205,28 @@ def plot_all_sl3():
 
     for a in range(4):
       for b in range(4):
-        if a==b==0:
-            continue
         weights = get_weights_sl3(a, b)
     
         weights = dict((k, str(v)) for (k,v) in weights.items())
     
-        name = "sl3_weights_%d%d.pdf"%(a, b)
+        name = "sl3_weights_%d%d"%(a, b)
         print(name)
         #plot_weights(weights)
         diagram = WeightDiagram.make_A2(weights)
         diagram.plot(name)
 
+
+def find_grade(grades, p):
+    grade = None
+    for m in p.keys:
+        g = (0, 0)
+        for v, e in m:
+            i, j = grades[v]
+            g = g[0]+e*i, g[1]+e*j
+        assert grade is None or grade==g,\
+            "%s is non-homogeneous: %s != %s" % (p, grade, g)
+        grade = g
+    return grade
 
 
 def get_weights_sl3(a, b):
@@ -223,18 +250,6 @@ def get_weights_sl3(a, b):
         'v' : ( 1,   1),
         'w' : (-1,   0),
     }
-    def find_grade(p):
-        grade = None
-        for m in p.keys:
-            g = (0, 0)
-            for v, e in m:
-                i, j = grades[v]
-                g = g[0]+e*i, g[1]+e*j
-            assert grade is None or grade==g,\
-                "%s is non-homogeneous: %s != %s" % (p, grade, g)
-            grade = g
-        return grade
-
     rel = x*u + y*v + z*w
     rels = [rel]
     rels = grobner(rels)
@@ -254,7 +269,7 @@ def get_weights_sl3(a, b):
 
     weights = {}
     for p in basis:
-        g = find_grade(p)
+        g = find_grade(grades, p)
         weights[g] = weights.get(g, 0) + 1
     return weights
 
@@ -276,7 +291,7 @@ def show_weights_62():
 
     weights = dict((k, str(v)) for (k,v) in weights.items())
     diagram = WeightDiagram.make_A2(weights)
-    diagram.plot()
+    diagram.plot("sl3_weights_62")
 
 
 try:
@@ -395,13 +410,16 @@ class WeightDiagram(object):
             dx, dy = 2*a*x0, 2*a*y0
             fg.stroke(path.line(-dx, -dy, +dx, +dy), [lred, style.linewidth.Thick])
 
-        #for i in range(imin, imax+1):
-        #  for j in range(imin, imax+1):
-        #    if self.in_hull(i, j):
-        #        self.mark_weight(fg, i, j, "")
+        for i in range(imin, imax+1):
+          for j in range(imin, imax+1):
+            if not self.in_hull(i, j):
+                continue
+            x, y = self.coord(i, j)
+            #self.mark_weight(fg, i, j, "")
+            fg.fill(path.circle(x, y, 0.05))
         cvs.append(fg)
     
-    def plot(self, filename="output.pdf"):
+    def plot(self, filename="output"):
         self.cvs = cvs = Canvas()
 
         if self.hull is not None:
@@ -411,7 +429,9 @@ class WeightDiagram(object):
         for (key, value) in weights.items():
             i, j = key
             self.mark_weight(cvs, i, j, value)
-        cvs.writePDFfile(filename)
+        assert ".pdf" not in filename
+        cvs.writePDFfile(filename+".pdf")
+        cvs.writeSVGfile(filename+".svg")
 
     @classmethod
     def make_A2(cls, weights, scale=0.8):
@@ -420,55 +440,11 @@ class WeightDiagram(object):
             (cos(4/3*pi)*scale, sin(4/3*pi)*scale)]
         return WeightDiagram(basis, weights)
 
+    @classmethod
+    def make_B2(cls, weights, scale=0.8):
+        basis = [(-1.*scale/2, 1*scale/2), (0*scale, 1*scale)]
+        return WeightDiagram(basis, weights)
 
-
-#def plot_weights(weights):
-#    from huygens.front import Canvas, path, color
-#
-#    cvs = Canvas()
-#    r = 1.
-#
-#    def coord(i, j):
-#        x, y = r*i + r*j*cos(4/3*pi), r*j*sin(4/3*pi)
-#        return x, y
-#
-#    xmin, xmax = 0., 0.
-#    ymin, ymax = 0., 0.
-#    for (i,j) in weights.keys():
-#        x, y = coord(i, j)
-#        xmin, xmax = min(x, xmin), max(x, xmax)
-#        ymin, ymax = min(y, ymin), max(y, ymax)
-#
-#    R = max([-xmin, xmax, -ymin, ymax, r])
-#
-#    for i in range(6):
-#        x, y = R*sin(i*pi/3+pi/6), R*cos(i*pi/3+pi/6)
-#        cvs.stroke(path.line(0, 0, x, y), [color.rgb(1., 0.4, 0.)])
-#
-#    pts = []
-#    for (i,j) in weights.keys():
-#        x, y = coord(i, j)
-#        pts.append((x, y))
-#    hull = ConvexHull(pts)
-#    for simplex in hull.simplices:
-#        print(simplex)
-#        cvs.stroke(path.line(
-#            pts[simplex[0]][0], pts[simplex[0]][1],
-#            pts[simplex[1]][0], pts[simplex[1]][1]))
-#
-#    for (k, v) in weights.items():
-#        i, j = k
-#        x, y = coord(i, j)
-#        radius = 0.3
-#        for count in range(v):
-#            pth = path.circle(x, y, 0.2*radius)
-#            if count==0:
-#                cvs.fill(pth)
-#            else:
-#                cvs.stroke(pth)
-#            radius += 0.3
-#
-#    cvs.writePDFfile("output.pdf")
 
 
 
@@ -830,8 +806,8 @@ def test_so5():
       print()
 
 
-def weights_so5():
-    # Plucker embedding for SO(5) ~= SO(2,3)
+def get_weights_so5(idx=0, jdx=0):
+    # Plucker embedding for SO(5) ~= SO(2+3)
 
     ring = Q
     zero = Poly({}, ring)
@@ -842,10 +818,6 @@ def weights_so5():
     c = Poly("c", ring)
     d = Poly("d", ring)
 
-    #u = Poly("u", ring)
-    #v = Poly("v", ring)
-    #x = Poly("x", ring)
-    #y = Poly("y", ring)
     z = Poly("z", ring)
 
     e = Poly("e", ring)
@@ -859,14 +831,11 @@ def weights_so5():
     x = half*(e-g)
     y = half*(h-f)
 
-    #print( u**2+v**2-x**2-y**2-z**2 )
     assert u**2+v**2-x**2-y**2-z**2 == e*g + f*h - z**2
 
-    #return
 
     # got from test_quaternion :
     rels = [
-        #u**2+v**2-x**2-y**2-z**2,
         e*g + f*h - z**2,
         a*u + d*v -(a*x + c*z - d*y),
         a*v - d*u -(a*y - b*z + d*x),
@@ -879,12 +848,8 @@ def weights_so5():
     print()
     rels = grobner(rels)
 
-    idx = argv.get("a", 0)
-    jdx = argv.get("b", 0)
-
     gens = []
     for p in all_monomials([a, b, c, d], idx, ring):
-      #for q in all_monomials([u, v, x, y, z], jdx, ring):
       for q in all_monomials([e, f, g, h, z], jdx, ring):
         rem = p*q
         #for count in range(3):
@@ -904,22 +869,49 @@ def weights_so5():
     assert n == len(basis)
     print("%3d"%n)
 
+    grades = {
+        #       s    q
+        'e' : ( 0,   1),
+        'b' : (-1,   1),
+        'f' : (-2,   1),
+        'a' : ( 1,   0),
+        'z' : ( 0,   0),
+        'd' : (-1,   0),
+        'h' : ( 2,  -1),
+        'c' : ( 1,  -1),
+        'g' : ( 0,  -1),
+    }
 
-def sage_grobner(gens):
-    from sage.all_cmdline import PolynomialRing, QQ, ideal
-    names = tuple('abcdefghuvwxyz')
-    R = PolynomialRing(QQ, order='lex', names=names)
-    #(a, b, c, d, u, v, w, x, y, z,) = R._first_ngens(10)
-    vs = R._first_ngens(len(names))
-    #ns = locals()
-    ns = dict(zip(names, vs))
-    ps = [eval(str(p).replace("^", "**"), {}, ns) for p in gens]
-    if ps == [1]:
-        return 1
+    weights = {}
+    for p in basis:
+        g = find_grade(grades, p)
+        weights[g] = weights.get(g, 0) + 1
+    return weights
 
-    basis = ideal(ps)
-    return len(basis.groebner_basis())
 
+def plot_weights_so5():
+    idx = argv.get("s", 0)
+    jdx = argv.get("q", 0)
+    weights = get_weights_so5(idx, jdx)
+    name = argv.get("name", "weights_so5")
+    weights = dict((k, str(v)) for (k,v) in weights.items())
+    diagram = WeightDiagram.make_B2(weights)
+    diagram.plot(name)
+
+
+def plot_all_so5():
+    for idx in range(3):
+      for jdx in range(3):
+        weights = get_weights_so5(idx, jdx)
+        weights = dict((k, str(v)) for (k,v) in weights.items())
+        name = "so5_weights_%d%d"%(idx, jdx)
+        print(name)
+        #plot_weights(weights)
+        diagram = WeightDiagram.make_B2(weights)
+        diagram.plot(name)
+
+
+    
 
 
 if __name__ == "__main__":
