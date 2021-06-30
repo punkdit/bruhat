@@ -12,8 +12,7 @@ from bruhat.action import Group, Perm, conjugacy_subgroups, mulclose, mulclose_h
 from bruhat.element import Type, Keyed, Element
 from bruhat import element
 from bruhat.vec import Space, Hom, Map
-
-from argv import argv
+from bruhat.argv import argv
 
 
 class Cat(Keyed, Type):
