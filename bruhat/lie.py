@@ -911,7 +911,62 @@ def plot_all_so5():
         diagram.plot(name)
 
 
+def test_genfunc():
+
+    N = 6
+
+    B2 = lambda a, b : (a+1)*(2*b+1)*(2*a+2*b+3)*(2*a+4*b+4)//12
+    C2 = lambda a, b : (a+1)*(b+1)*(a+b+2)*(a+2*b+3)//6
+    for a in range(N):
+      for b in range(N):
+        print("%5s"%C2(a,b), end=" ")
+      print()
     
+    print()
+
+    from bruhat.rational import Rational
+
+    ring = Q
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+    x = Poly("x", ring)
+    y = Poly("y", ring)
+    z = Poly("z", ring)
+    xx = Poly({(("x", 2),) : 1}, ring)
+    xy = Poly({(("x", 1), ("y", 1)) : 1}, ring)
+
+    fx = Rational(ring, one, (1-x)**4)
+    print( ' '.join([str(fx[i]) for i in range(N)] ))
+
+    fy = Rational(ring, 1-y**2, (1-y)**5)
+    print( ' '.join([str(fy[i]) for i in range(N)] ))
+
+    f = fx*fy*Rational(ring, (1-x*y)**4, one)
+    
+    print()
+    for a in range(N):
+      for b in range(N):
+        print("%5s"%f[a, b], end=" ")
+      print()
+
+    return # <------------- return
+
+
+    fx = Rational(ring, one, (1-x)**2)
+    cs = [fx[i] for i in range(5)]
+    assert cs == [1, 2, 3, 4, 5]
+
+    fy = Rational(ring, 1-y**2, (1-y)**6)
+    cs = [fy[i] for i in range(5)]
+    assert cs == [1, 6, 20, 50, 105]
+
+
+    # course generating function for SL(3) irreps
+    f = Rational(ring, 1-x*y, (1-x)**3 * (1-y)**3)
+    cs = [[f[i,j] for i in range(4)] for j in range(4)]
+    assert cs == [[1, 3, 6, 10], [3, 8, 15, 24], [6, 15, 27, 42], [10, 24, 42, 64]]
+
+
 
 
 if __name__ == "__main__":
