@@ -86,19 +86,22 @@ class Rational(object):
             vs = list(set(vs))
             vs.sort()
         n = len(vs)
-        assert n>0
+        #assert n>0
     
-        #print("divpoly(%s, %s, %s)" % (p, q, vs))
+        #print("Rational(%s, %s, %s)" % (p, q, vs))
     
         fs = {}
         vzero = tuple((v,zero) for v in vs)
     
         top = p.substitute(vzero)
         bot = q.substitute(vzero)
-        #print("top=%s, bot=%s" % (top, bot))
-        f0 = top/bot
-        #print("f0:", lstr(f0))
-        fs[(0,)*n] = f0
+        if bot == 0:
+            fs = None
+        else:
+            #print("top=%s, bot=%s" % (top, bot))
+            f0 = top/bot
+            #print("f0:", lstr(f0))
+            fs[(0,)*n] = f0
 
         self.base = base
         self.p = p
@@ -111,8 +114,9 @@ class Rational(object):
     def promote(self, other):
         if isinstance(other, Rational):
             return other
-        if isinstance(other, Poly):
-            return other
+        #if isinstance(other, Poly):
+        #    return other
+        other = Poly.promote(other, self.base)
         other = Rational(self.base, other, self.base.one)
         return other
 
@@ -121,6 +125,56 @@ class Rational(object):
     
     def __ne__(lhs, rhs):
         return lhs.p*rhs.q != rhs.p*lhs.q
+
+    def __str__(self):
+        return "(%s)/(%s)" % (self.p, self.q)
+    __repr__ = __str__
+
+    def __add__(self, other):
+        other = self.promote(other)
+        assert self.base == other.base
+        atop, abot = self.p, self.q
+        btop, bbot = other.p, other.q
+        top = atop * bbot + btop * abot
+        bot = abot * bbot
+        return Rational(self.base, top, bot)
+
+    __radd__ = __add__ # commutative
+
+    def __sub__(self, other):
+        other = self.promote(other)
+        assert self.base == other.base
+        atop, abot = self.p, self.q
+        btop, bbot = other.p, other.q
+        top = atop * bbot - btop * abot
+        bot = abot * bbot
+        return Rational(self.base, top, bot)
+
+    def __rsub__(self, other):
+        # other - self
+        other = self.promote(other)
+        return self.__neg__().__add__(other)
+
+    def __neg__(self):
+        return Rational(self.base, -self.p, self.q)
+
+    def __mul__(self, other):
+        other = self.promote(other)
+        assert self.base == other.base
+        return Rational(self.base, self.p*other.p, self.q*other.q)
+
+    __rmul__ = __mul__ # commutative
+
+    def __truediv__(self, other):
+        other = self.promote(other)
+        assert self.base == other.base
+        return Rational(self.base, self.p*other.q, self.q*other.p)
+
+    def __rtruediv__(self, other):
+        # other / self
+        other = self.promote(other)
+        assert self.base == other.base
+        return Rational(self.base, other.p*self.q, other.q*self.p)
 
     def __call__(self, **kw):
         p, q = self.p, self.q
@@ -174,6 +228,8 @@ class Rational(object):
     
     def __getitem__(self, idx):
         fs = self.fs
+        if fs is None:
+            raise Exception("rational expression %s has no derivatives at zero."%self)
         vs = self.vs
         if type(idx) is int:
             idx = idx,
@@ -224,6 +280,22 @@ def test():
     vs = [J, L, Li]
     f = Rational(ring, one, (1-J*L)*(1-J*Li), "J L Li".split())
     assert f(L=one, Li=one) == Rational(ring, one, (1-J)**2)
+
+    if 1:
+        promote = lambda p : Rational(ring, p, one)
+    
+        r_one = Rational(ring, one, one)
+        r_J = promote(J)
+        r_L = promote(L)
+        r_Li = r_one / r_L
+        f = r_one / (1-r_J*r_L)*(1-r_J*r_Li)
+        print(f)
+        for i in range(4):
+          for j in range(4):
+            print(f[i, j], end=' ')
+          print()
+    
+        return
 
     for i in range(4):
       for j in range(4):
