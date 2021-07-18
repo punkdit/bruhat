@@ -173,7 +173,8 @@ class Function(object):
         cone = Cone(src, [cone[0].compose(f), cone[1].compose(g)])
         cone, univ = category.mul(f.tgt, g.tgt, cone)
         return univ
-    __mul__ = mul
+    __mul__ = mul # XXX change to __matmul__, right ??? XXX
+    __matmul__ = mul
 
 Set.hom = Function
 
@@ -473,6 +474,7 @@ class Group(object):
         #assert send_perms == [tgt.lookup[perm] for perm in perms]
         X = GSet(self, tgt)
         return X
+
 
     @property
     def i(self):
@@ -1260,6 +1262,37 @@ def test_subgroups():
     print("OK")
 
 
+
+def test_left_right():
+
+    n = argv.get("n", 3)
+
+    G = Group.symmetric(n)
+
+    print(G)
+
+    act = G.regular_action()
+    print(act)
+
+    act.do_check()
+
+
+    lookup = G.lookup
+    perms = []
+    for idx, p in enumerate(G):
+        perm = []
+        for jdx, q in enumerate(G):
+            #r = p*q # left action on G
+            r = q*p.inverse()
+            kdx = lookup[r]
+            perm.append(kdx)
+        perm = Perm(perm)
+        perms.append(perm)
+    tgt = Group(perms)
+    #send_perms = list(range(G.n))
+    #assert send_perms == [tgt.lookup[perm] for perm in perms]
+    X = GSet(G, tgt)
+    X.do_check()
 
 
 def test_homology():
