@@ -78,6 +78,13 @@ def is_torsor(mul, act):
       for x in range(m):
         found.add((act[g, x], x))
     return len(found) == m*m
+
+#def is_trans(mul, act):
+#    n = mul.shape[0]
+#    m = act.shape[1]
+#    for x in range(m):
+        
+
     
 
 def is_self_torsor(mul):
@@ -91,8 +98,8 @@ def is_self_torsor(mul):
 
 def main():
 
-    n = argv.get("n", 3)
-    m = argv.get("m", n)
+    n = argv.get("n", 3) # size of monoid
+    m = argv.get("m", n) # size of set to act on
 
     monoids, groups = 0, 0
     for mul in all_mul(n):
@@ -102,19 +109,25 @@ def main():
         lhs = is_group(mul)
         rhs = is_self_torsor(mul)
         assert lhs == rhs
-        if lhs:
-            print("*", end="")
-        #print()
         monoids += 1
         groups += int(lhs)
+        if lhs:
+            print("*", end="")
+        else:
+            continue
+
+        print()
         count = 0
         for act in all_act(n, m):
             if not is_action(mul, act):
                 continue
-            if is_torsor(mul, act):
-                print("T", end="")
+            torse = is_torsor(mul, act)
+            trans = is_trans(mul, act)
+            free = is_free(mul, act)
+            print(torse, trans, free)
             count += 1
         print(count)
+    print()
     print("monoids:", monoids)
     print("groups:", groups)
 

@@ -522,10 +522,10 @@ class HBox(Box):
         self.items = list(items)
         self.align = align
 
-    def render(self, x=0., y=0., can=None, name=None, **kw):
+    def render(self, x=0., y=0., cvs=None, name=None, **kw):
         "(x, y) is top center of this box"
-        if can is None:
-            can = pyx.canvas.canvas()
+        if cvs is None:
+            cvs = pyx.canvas.canvas()
         items = self.items
         boxs = [item.get_bbox(**kw) for item in items]
         w = sum(b[0] for b in boxs) # sum widths
@@ -537,11 +537,11 @@ class HBox(Box):
         for i, item in enumerate(self.items):
             b = boxs[i]
             if align == "center":
-                item.render(x0 + 0.5*b[0], y0+0.5*b[1], can=can, **kw)
+                item.render(x0 + 0.5*b[0], y0+0.5*b[1], cvs=cvs, **kw)
             x0 += b[0]
 
         if name is not None:
-            can.writePDFfile(name)
+            cvs.writePDFfile(name)
 
 
 class TextBox(Box):
@@ -553,12 +553,13 @@ class TextBox(Box):
     def get_bbox(self):
         return self.w, self.h
 
-    def render(self, x=0., y=0., can=None, name=None, **kw):
-        can.text(x, y-self.h, self.s, south)
+    def render(self, x=0., y=0., cvs=None, name=None, **kw):
+        cvs.text(x, y-self.h, self.s, south)
 
 
 def render():
-    head = "transversal2018/"
+#    head = "transversal2018/"
+    head = "tmp/"
     seed(0)
 
     a = Multiset({"a" : 1})
