@@ -27,7 +27,12 @@ def sage_grobner(gens):
     vs = R._first_ngens(len(names))
     #ns = locals()
     ns = dict(zip(names, vs))
-    ps = [eval(str(p).replace("^", "**"), {}, ns) for p in gens]
+    def convert(p):
+        s = str(p).replace("^", "**")
+        s = s.replace("{", "")
+        s = s.replace("}", "")
+        return s
+    ps = [eval(convert(p), {}, ns) for p in gens]
     if ps == [1]:
         return 1
 
@@ -909,6 +914,58 @@ def plot_all_so5():
         #plot_weights(weights)
         diagram = WeightDiagram.make_B2(weights)
         diagram.plot(name)
+
+
+def test_zgraded():
+
+
+    ring = Q
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+
+    h = Poly("h", ring) # grade 1
+    x = Poly("x", ring) # grade 3
+    y = Poly("y", ring) # grade 5
+    lookup = {h:1, x:3, y:5}
+
+    rels = [
+        x**5 - y**3 - h**15, # grade == 15
+    ]
+    print("rels:")
+    for rel in rels:
+        print(rel)
+    print()
+    rels = grobner(rels)
+
+    n = argv.get("n", 10)
+    grades = dict((i, []) for i in range(n))
+    for i in range(n):
+      for j in range(n):
+       for k in range(n):
+        g = 1*i + 3*j + 5*k
+        if g >= n:
+            continue
+        for mh in all_monomials([h], i, ring):
+         for mx in all_monomials([x], j, ring):
+          for my in all_monomials([y], k, ring):
+            rem = mh*mx*my
+            while 1:
+                rem0 = rem
+                for rel in rels:
+                    div, rem = rel.reduce(rem)
+                if rem == rem0:
+                    break
+            grades[g].append(rem)
+    
+    for i in range(n):
+        gens = grades[i]
+        #basis = grobner(gens) if gens else []
+        #count = len(basis)
+        count = sage_grobner(gens)
+        print(count, end=",", flush=True)
+    print()
+
+
 
 
 def test_genfunc():
