@@ -19,7 +19,7 @@ if argv.fast:
 else:
     from bruhat.element import Fraction, Q, Ring
 from bruhat import series
-from bruhat.chain import Space, Lin
+#from bruhat.chain import Space, Lin
 
 
 #def is_scalar(x):

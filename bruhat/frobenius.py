@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+investigate frobenius automorphism of finite field
+"""
 
 from functools import reduce
 from operator import matmul

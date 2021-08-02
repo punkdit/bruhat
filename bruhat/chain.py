@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 """
+Graded vector spaces and linear maps over a ring, schur functors, ...
+Use numpy object array's .
+The space objects enforce type checking among the linear maps.
+
 previous version: schur.py
-
-
-
 """
 
 from random import shuffle, seed, choice
@@ -52,7 +53,7 @@ class Space(object):
     def __init__(self, ring, n=0, grade=0, name="?"):
         assert isinstance(ring, element.Ring), ring.__class__
         assert type(n) is int
-        assert type(grade) is int
+        assert grade is None or type(grade) is int, repr(grade)
         assert type(name) is str
         assert 0<=n
         self.ring = ring
@@ -350,7 +351,7 @@ class Lin(object):
         return eq(self.A, other.A)
 
     def __eq__(self, other):
-        assert self.hom == other.hom
+        assert self.hom == other.hom, "%s != %s" % (self.hom, other.hom)
         return eq(self.A, other.A)
 
     def __ne__(self, other):
@@ -377,6 +378,9 @@ class Lin(object):
         assert other.tgt == self.src
         A = numpy.dot(self.A, other.A)
         return Lin(self.tgt, other.src, A)
+
+    def __rshift__(self, other):
+        return other * self
 
     def __rmul__(self, r):
         r = self.ring.promote(r)
@@ -1355,7 +1359,7 @@ def test_chainmap():
 def test_all():
     test(element.Q)
 
-    test_super()
+    test_super() # XXX broken
     test_symmetric_square()
 
     if not argv.fast:

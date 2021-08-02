@@ -15,7 +15,8 @@ from scipy.spatial import ConvexHull
 
 from bruhat.argv import argv
 from bruhat.util import cross, factorial, choose, determinant
-from bruhat.poly import Fraction, Q, Ring, Poly, grobner
+from bruhat.element import Fraction, Q, Ring, FiniteField
+from bruhat.poly import Poly, grobner
 
 
 
@@ -916,7 +917,7 @@ def plot_all_so5():
         diagram.plot(name)
 
 
-def test_zgraded():
+def test_graded_1():
 
 
     ring = Q
@@ -964,6 +965,77 @@ def test_zgraded():
         count = sage_grobner(gens)
         print(count, end=",", flush=True)
     print()
+
+
+def test_graded_2():
+
+    if argv.rational:
+        ring = Q
+    elif argv.gf2:
+        ring = FiniteField(2)
+    else:
+        return
+
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+
+    h = Poly("h", ring)
+    x = Poly("x", ring)
+    y = Poly("y", ring)
+    z = Poly("z", ring)
+    lookup = {h:1, x:3, y:4, z:5}
+    vs = list(lookup.keys())
+    vs.sort(key = str)
+    print("vs", vs)
+
+    rels = [
+        #z*x + y*y,
+        #x**3 + z*y,
+        #z*z + y*x*h*h*h,
+        y*x*h,
+        #z*x*h, # grade 9
+        #z*z, # grade 10
+        #z*y*h,
+    ]
+    print("rels:")
+    for rel in rels:
+        print(rel)
+    print()
+    rels = grobner(rels)
+
+    n = argv.get("n", 10)
+    grades = dict((i, []) for i in range(n))
+    for i in range(n):
+     for j in range(n):
+      for k in range(n):
+       #for l in range(n):
+        g = 1*i + 2*j + 3*k # + 5*l
+        if g >= n:
+            continue
+        for mh in all_monomials([h], i, ring):
+         for mx in all_monomials([x], j, ring):
+          for my in all_monomials([y], k, ring):
+           #for mz in all_monomials([z], l, ring):
+            rem = mh*mx*my #*mz
+            while 1:
+                rem0 = rem
+                for rel in rels:
+                    div, rem = rel.reduce(rem)
+                if rem == rem0:
+                    break
+            grades[g].append(rem)
+    
+    for i in range(n):
+        gens = grades[i]
+        #print(gens)
+        if argv.sage:
+            count = sage_grobner(gens)
+        else:
+            basis = grobner(gens) if gens else []
+            count = len(basis)
+        print(count, end=",", flush=True)
+    print()
+
 
 
 
