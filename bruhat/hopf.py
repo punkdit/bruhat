@@ -53,7 +53,10 @@ def main():
     one = ring.one
 
     n = argv.get("n", 3)
-    G = Group.symmetric(n)
+    if argv.cyclic:
+        G = Group.cyclic(n)
+    else:
+        G = Group.symmetric(n)
 
     print(G)
 
@@ -65,6 +68,15 @@ def main():
     scalar = K.identity()
     I = V.identity()
     swap = VV.get_swap()
+
+    lunit = Lin(V, K@V, elim.identity(ring, d))
+    runit = Lin(V, V@K, elim.identity(ring, d))
+
+    cap = Lin(K, V@V) # tgt, src
+    cup = Lin(V@V, K) # tgt, src
+    for i in range(d):
+        cup[i + d*i, 0] = one
+        cap[0, i + d*i] = one
     
     # green spiders
     g_ = Lin(K, V) # uniform discard
@@ -92,6 +104,9 @@ def main():
     assert eq((g_gg @ I) >> (I @ gg_g), gg_g >> g_gg) # extended frobenius
 
     assert eq(_g >> g_, d*scalar)
+
+    assert eq(gg_g >> g_, cap)
+    assert eq(_g >> g_gg, cup)
 
     # red spiders
     r_ = Lin(K, V)    # discard unit
@@ -134,7 +149,10 @@ def main():
     assert eq( rr_r >> g_, g_ @ g_)
     assert eq( _r >> g_gg, _r @ _r )
     assert eq( _r >> g_, scalar )
-    assert eq( rr_r >> g_gg , (g_gg @ g_gg) >> (I @ swap @ I) >> (rr_r @ rr_r) )
+    if not argv.skip:
+        assert eq( rr_r >> g_gg , (g_gg @ g_gg) >> (I @ swap @ I) >> (rr_r @ rr_r) )
+    print("K[G] is comm  ", eq(swap >> rr_r, rr_r))
+    print("K[G] is cocomm", eq(g_gg >> swap, g_gg))
 
     # K[G] is hopf
     rhs = g_ >> _r
@@ -145,14 +163,48 @@ def main():
     assert eq( gg_g >> r_, r_ @ r_)
     assert eq( _g >> r_rr, _g @ _g )
     assert eq( _g >> r_, scalar )
-    assert eq( gg_g >> r_rr , (r_rr @ r_rr) >> (I @ swap @ I) >> (gg_g @ gg_g) )
+    if not argv.skip:
+        assert eq( gg_g >> r_rr , (r_rr @ r_rr) >> (I @ swap @ I) >> (gg_g @ gg_g) )
 
     # k^G is hopf
     rhs = r_ >> _g
     assert eq( r_rr >> (I @ inv) >> gg_g, rhs)
     assert eq( r_rr >> (inv @ I) >> gg_g, rhs)
+    print("k^G is comm   ", eq(swap >> gg_g , gg_g))
+    print("k^G is cocomm ", eq(r_rr >> swap, r_rr))
 
-    
+    #print(rr_r)
+    #print(r_rr)
+
+    assert eq(r_rr >> rr_r, d*I)
+    assert eq(g_gg >> gg_g, I) # special
+
+    # complementary frobenius structures ?
+    # Heunen & Vicary eq (6.4)
+    lhs = (_r @ I) >> (r_rr @ g_gg) >> (I @ gg_g @ I) >> (I @ g_ @ I) >> (I @ lunit) >> rr_r
+    rhs = g_ >> _r
+    assert eq(lhs, rhs)
+
+    lhs = (I @ _r) >> (r_rr @ g_gg) >> (I @ gg_g @ I) >> (I @ g_ @ I) >> (I @ lunit) >> rr_r
+    #assert eq(lhs, rhs) # FAIL
+
+    lhs = (_g @ I) >> (g_gg @ r_rr) >> (I @ rr_r @ I) >> (I @ r_ @ I) >> (I @ lunit) >> gg_g
+    rhs = r_ >> _g
+    assert eq(lhs, rhs)
+
+    lhs = (I @ _g) >> (g_gg @ r_rr) >> (I @ rr_r @ I) >> (I @ r_ @ I) >> (I @ lunit) >> gg_g
+    #assert eq(lhs, rhs) # FAIL
+
+    # Heunen & Vicary eq (6.5)
+    lhs = (_r @ I) >> (r_rr @ I) >> (I @ gg_g) >> (I @ g_)
+    rhs = (I @ _r) >> (I @ r_rr) >> (gg_g @ I) >> (g_ @ I)
+    assert eq(lhs, rhs)
+
+    #print(r_rr >> gg_g)
+    #print(r_ >> _g)
+    #print(g_gg >> rr_r)
+    #print(rr_r >> r_)
+    #print(_r >> r_rr)
 
 
 if __name__ == "__main__":

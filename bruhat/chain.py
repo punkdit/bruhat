@@ -375,7 +375,7 @@ class Lin(object):
         return Lin(*self.hom, A)
 
     def __mul__(self, other):
-        assert other.tgt == self.src
+        assert other.tgt == self.src, "%s != %s" % (other.tgt, self.src)
         A = numpy.dot(self.A, other.A)
         return Lin(self.tgt, other.src, A)
 
