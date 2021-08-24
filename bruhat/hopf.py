@@ -58,6 +58,8 @@ def main():
     else:
         G = Group.symmetric(n)
 
+    comm = G.is_abelian()
+
     print(G)
 
     d = len(G)
@@ -145,6 +147,9 @@ def main():
 
     assert eq((_r >> r_) , scalar )
 
+    assert not eq(rr_r >> r_, cap)
+    assert not eq(_r >> r_rr, cup)
+
     # K[G] is a bialgebra
     assert eq( rr_r >> g_, g_ @ g_)
     assert eq( _r >> g_gg, _r @ _r )
@@ -199,6 +204,17 @@ def main():
     lhs = (_r @ I) >> (r_rr @ I) >> (I @ gg_g) >> (I @ g_)
     rhs = (I @ _r) >> (I @ r_rr) >> (gg_g @ I) >> (g_ @ I)
     assert eq(lhs, rhs)
+
+    lhs = (_g @ I) >> (g_gg @ I) >> (I @ rr_r) >> (I @ r_)
+    rhs = (I @ _g) >> (I @ g_gg) >> (rr_r @ I) >> (r_ @ I)
+    assert eq(lhs, rhs)
+
+    assert eq( r_rr, r_rr >> swap ) == G.is_abelian()
+    assert eq( rr_r, swap >> rr_r ) == G.is_abelian()
+
+    assert eq( _r >> r_rr, _r >> r_rr >> swap )
+    assert eq( rr_r >> r_, swap >> rr_r >> r_ )
+
 
     #print(r_rr >> gg_g)
     #print(r_ >> _g)
