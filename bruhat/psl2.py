@@ -56,10 +56,36 @@ class Mat(object):
         assert x == ring.one
         return cls(ring, a, b, c, d)
 
+    @property
+    def a(self):
+        return self.pos[0]
+
+    @property
+    def b(self):
+        return self.pos[1]
+
+    @property
+    def c(self):
+        return self.pos[2]
+
+    @property
+    def d(self):
+        return self.pos[3]
+
+
     def check(self):
         a, b, c, d = self.pos
         x = a*d - b*c
         assert x==self.ring.one
+
+# um... need complex numbers here...
+#    def send(self, z):
+#        "Apply mobius transform"
+#        z = self.ring.promote(z)
+#        a, b, c, d = self.pos
+#        z = (a*z + b) / (c*z + d)
+#        return z
+#    __call__ = send
 
     @classmethod
     def rand(cls, ring, n=5):
@@ -87,6 +113,19 @@ class Mat(object):
         m = Mat(self.ring, a*e + b*g, a*f+b*h, c*e+d*g, c*f+d*h)
         return m
 
+    def __pow__(self, i):
+        assert i>=0
+        assert int(i)==i
+        if i==0:
+            return self.construct(1, 0, 0, 1)
+        if i==1:
+            return self
+        A = self
+        while i>1:
+            A = A*self
+            i -= 1
+        return A
+
     def __eq__(self, other):
         assert isinstance(other, Mat)
         assert self.ring is other.ring
@@ -99,8 +138,61 @@ class Mat(object):
         return "Mat(%s, %s, %s, %s)"%(self.pos)
     __repr__ = __str__
 
+    def is_modular(self, n):
+        a, b, c, d = self.pos
+        result = (a.top%n==a.bot%n)
+        result = result and (d.top%n==d.bot%n)
+        result = result and (d.top%n==d.bot%n)
+
+    is_modular = lambda m : m.a%n==1 and m.d%n==1 and m.b%n==0 and m.c%n==0
+
+def mulclose_fast(gen, verbose=False, maxsize=None):
+    els = set(gen)
+    bdy = list(els)
+    changed = True
+    while bdy:
+        if verbose:
+            print(len(els), end=" ", flush=True)
+        _bdy = []
+        for A in gen:
+            for B in bdy:
+                C = A*B
+                if C not in els:
+                    els.add(C)
+                    _bdy.append(C)
+                    if maxsize and len(els)>=maxsize:
+                        return list(els)
+        bdy = _bdy
+    return els
+
+
+def mulclose_subgroup(gen, test, verbose=False, maxsize=None):
+    "test is a callback: is the element in the subgroup ?"
+    els = set(g for g in gen if not test(g))
+    bdy = list(els)
+    changed = True
+    while bdy:
+        if verbose:
+            print(len(els), end=" ", flush=True)
+        _bdy = []
+        for A in gen:
+            for B in bdy:
+                C = A*B
+                if C not in els and not test(C):
+                    els.add(C)
+                    _bdy.append(C)
+                    if maxsize and len(els)>=maxsize:
+                        return list(els)
+        bdy = _bdy
+    return els
+
+
+
 
 def test():
+
+    # --------------------------------------------------------------
+    # PSL(2, Q)
 
     ring = element.Q
     construct = lambda *args : Mat.construct(ring, *args)
@@ -125,6 +217,32 @@ def test():
         lhs = (A==B) 
         rhs = (hash(A) == hash(B))
         assert not lhs or rhs
+
+    # --------------------------------------------------------------
+    # PSL(2, Z)
+
+    # https://en.wikipedia.org/wiki/Modular_group
+    # G = <S, T | S*S==I, (S*T)**3 == I>
+
+    ring = element.Z
+    construct = lambda *args : Mat.construct(ring, *args)
+
+    I = construct(1, 0, 0, 1)
+    S = construct(0, -1, 1, 0)
+    T = construct(1, 1, 0, 1)
+    assert S*S == I
+    assert (S*T)**3 == I
+
+    G = mulclose_fast([S, T], maxsize=10000)
+    print(len(G))
+    assert len(G) >= 10000
+
+    n = 3
+    is_modular = lambda m : m.a%n==1 and m.d%n==1 and m.b%n==0 and m.c%n==0
+
+#    # wah XXX
+#    J = mulclose_subgroup([S, T], is_modular, verbose=True)
+#    print(len(J))
 
 
 if __name__ == "__main__":

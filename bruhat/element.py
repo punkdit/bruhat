@@ -1710,6 +1710,28 @@ def test():
 #    print(orders)
 
 
+    i_actually_know_what_im_doing = False
+
+    if i_actually_know_what_im_doing:
+
+        # -------------------------
+        # Q[i]
+    
+        ring = PolynomialRing(Q)
+        x = ring.x
+        gints = ring / (x**2 + 1)
+    
+        one = gints.one
+        i = gints.x
+    
+        assert i*i == -one
+        assert i**3 == -i
+    
+        assert (1+i)**2/i == 2
+        assert (2+i)*(2-i)/5 == 1
+        assert (3+2*i)*(3-2*i)/13 == 1
+
+
 
 if __name__ == "__main__":
 
