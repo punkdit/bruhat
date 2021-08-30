@@ -14,6 +14,7 @@ if argv.fast:
     from bruhat import _element as element
 else:
     from bruhat import element
+from bruhat import elim
 
 #from bruhat.chain import Space, Lin
 
@@ -77,6 +78,13 @@ class Mat(object):
         a, b, c, d = self.pos
         x = a*d - b*c
         assert x==self.ring.one
+
+    def inv(self):
+        ring = self.ring
+        a, b, c, d = self.pos
+        m = Mat(ring, d, -b, -c, a)
+        m.check()
+        return m
 
 # um... need complex numbers here...
 #    def send(self, z):
@@ -166,7 +174,7 @@ def mulclose_fast(gen, verbose=False, maxsize=None):
     return els
 
 
-def mulclose_subgroup(gen, test, verbose=False, maxsize=None):
+def mulclose_subgroup(ring, gen, test, verbose=False, maxsize=None):
     "test is a callback: is the element in the subgroup ?"
     els = set(g for g in gen if not test(g))
     bdy = list(els)
@@ -174,22 +182,35 @@ def mulclose_subgroup(gen, test, verbose=False, maxsize=None):
     while bdy:
         if verbose:
             print(len(els), end=" ", flush=True)
+        # check loop invariant
+        for a in els:
+          for b in els:
+            if a is b:
+                continue
+            assert not test(a.inv()*b)
         _bdy = []
         for A in gen:
             for B in bdy:
                 C = A*B
-                if C not in els and not test(C):
+                if C in els or test(C):
+                    continue
+                Ci = C.inv()
+                for D in els:
+                    if test(Ci*D): # represents same coset
+                        break
+                else:
                     els.add(C)
                     _bdy.append(C)
                     if maxsize and len(els)>=maxsize:
                         return list(els)
         bdy = _bdy
+    els.add(Mat.construct(ring, 1, 0, 0, 1))
     return els
 
 
 
 
-def test():
+def test_2q():
 
     # --------------------------------------------------------------
     # PSL(2, Q)
@@ -214,9 +235,15 @@ def test():
         A = Mat.rand(ring, 3)
         B = Mat.rand(ring, 3)
         C = A*B
+
         lhs = (A==B) 
         rhs = (hash(A) == hash(B))
         assert not lhs or rhs
+
+        assert A.inv()*A == I
+
+
+def test_psl2z():
 
     # --------------------------------------------------------------
     # PSL(2, Z)
@@ -233,20 +260,157 @@ def test():
     assert S*S == I
     assert (S*T)**3 == I
 
-    G = mulclose_fast([S, T], maxsize=10000)
+    N = 100
+    G = mulclose_fast([S, T], maxsize=N)
     print(len(G))
-    assert len(G) >= 10000
+    assert len(G) >= N
 
-    n = 3
-    is_modular = lambda m : m.a%n==1 and m.d%n==1 and m.b%n==0 and m.c%n==0
+    n = argv.get("n", 3)
+    is_modular = lambda m : (
+        (m.a%n==1 and m.d%n==1 or (-m.a)%n==1 and (-m.d)%n==1)
+        and m.b%n==0 and m.c%n==0
+    )
 
-#    # wah XXX
-#    J = mulclose_subgroup([S, T], is_modular, verbose=True)
-#    print(len(J))
+    for g in G:
+      assert is_modular(g) == is_modular(g.inv())
+      for h in G:
+        if is_modular(g) and is_modular(h):
+            #print()
+            #print(g)
+            #print(h)
+            #print(g*h)
+            assert is_modular(g*h)
+            assert is_modular(h*g)
+
+    J = mulclose_subgroup(ring, [S, T], is_modular, verbose=True)
+    print(len(J))
+
+    #for m in J:
+    #    print(m)
+
+def astr(A):
+    s = str(A)
+    s = s.replace(" 0", " .")
+    return s
+
+def test_bring():
+    "Bring's curve"
+
+    faces = list(range(1,13))
+    pairs = (
+        "1,2 1,3  1,4  1,5  1,6 "
+        "2,4 2,11 2,1  2,10 2,5 "
+        "3,7 3,6  3,5  3,8  3,1 "
+        "4,9 4,2  4,6  4,10 4,1 "
+        "5,7 5,1  5,11 5,3  5,2 "
+        "6,8 6,4  6,3  6,9  6,1 "
+        "7,8 7,5  7,12 7,3  7,11 "
+        "8,9 8,3  8,12 8,6  8,7 "
+        "9,10 9,6  9,12 9,4 9,8 "
+        "10,11 10,4 10,12 10,2 10,9 "
+        "11,12 11,5 11,10 11,7 11,2 "
+        "12,11 12,9 12,7 12,10 12,8 "
+    ).split()
+    pairs = [eval(item) for item in pairs]
+    assert len(pairs) == len(set(pairs))
+
+    edges = set()
+    for (a,b) in pairs:
+        if a > b:
+            a, b = b, a
+        if (a,b) in edges:
+            continue
+        edges.add((a,b))
+    #print("edges:", len(edges))
+    edges = list(edges)
+    edges.sort()
+    #print(edges)
+    elookup = dict((e, i) for (i, e) in enumerate(edges))
+
+    n = len(edges)
+    mz = len(faces)
+    Hz = numpy.zeros((n, mz), dtype=int)
+    for (a,b) in pairs:
+        j = a-1
+        sign = 1
+        if a > b:
+            sign = -1
+            a, b = b, a
+        i = elookup[(a, b)]
+        assert Hz[i, j] == 0
+        Hz[i, j] = sign
+
+    #print(astr(Hz))
+
+    for i in range(n):
+        assert Hz[i].sum() == 0, ("lost edge: %s" % edges[i])
+
+    #print("bdy:")
+    bdy = dict((i,[]) for i in faces)
+    for (a,b) in pairs:
+        bdy[a].append(b)
+    #print(bdy)
+
+    def clockwise(face, other):
+        "move clockwise around face starting at other face"
+        assert face in faces
+        assert other in faces
+        (a, b) = face, other
+        if a>b:
+            a, b = b, a
+        assert (a,b) in edges
+        others = bdy[face]
+        i = others.index(other)
+        nxt = others[(i-1)%len(others)]
+        return nxt
+
+    assert clockwise(1, 2) == 6
+    assert clockwise(12, 8) == 10
+    
+    # each vert will be a tuple of face's
+    VERT = 5
+    verts = []
+    for face in faces:
+        for other in bdy[face]:
+            vert = [face]
+            while other != face:
+                vert.append(other)
+                other = clockwise(vert[-1], vert[-2])
+            assert len(vert) == VERT
+            i = vert.index(min(vert))
+            vert = tuple(vert[(i+j)%VERT] for j in range(VERT))
+            verts.append(vert)
+    verts = set(verts)
+
+    mx = len(verts)
+    Hx = numpy.zeros((n, mx), dtype=int)
+    for row, vert in enumerate(verts):
+        for i in range(VERT):
+            a, b = vert[i], vert[(i+1)%VERT]
+            sign = 1
+            if a > b:
+                sign = -1
+                a, b = b, a
+            col = elookup[a, b]
+            Hx[col, row] = sign
+
+    #print(astr(Hx))
+
+    A = numpy.dot(Hx.transpose(), Hz)
+    assert numpy.alltrue(A==0)
+
+
+#
+#
+#    F2 = element.FiniteField(2)
+
+    
+    
+    
 
 
 if __name__ == "__main__":
-    test()
+    test_bring()
 
 
 
