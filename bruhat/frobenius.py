@@ -274,6 +274,19 @@ def test_galois():
         r = u*F.frobenius(v) - F.frobenius(u)*v
         return r
 
+    print("els:", end=" ")
+    for u in els:
+        print(u, end=" ")
+    print()
+    print("inner:", end=" ")
+    for u in els:
+        print(inner(u,u), end=" ")
+    print()
+    for u in els:
+      for v in els:
+        print(inner(u,v), end=" ")
+      print()
+
     print()
     for u in els:
       #print([int(inner(u,v)==0) for v in els])

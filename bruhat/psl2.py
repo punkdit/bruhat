@@ -3,6 +3,8 @@
 """
 PSL(2,Q)
 
+see also: modular.py
+
 """
 
 from random import randint
@@ -29,6 +31,9 @@ z |->  az + b
 """
 
 class Mat(object):
+    """
+    Element of PSL(2) over some ring.
+    """
     def __init__(self, ring, a, b, c, d):
         self.ring = ring
         pos = (a, b, c, d)
@@ -72,7 +77,6 @@ class Mat(object):
     @property
     def d(self):
         return self.pos[3]
-
 
     def check(self):
         a, b, c, d = self.pos
@@ -143,7 +147,9 @@ class Mat(object):
         return hash(self.pos)
 
     def __str__(self):
-        return "Mat(%s, %s, %s, %s)"%(self.pos)
+        #return "Mat(%s, %s, %s, %s)"%(self.pos)
+        s = "[[%2s, %2s],\n [%2s, %2s]]" % (self.pos)
+        return s
     __repr__ = __str__
 
     def is_modular(self, n):
@@ -153,6 +159,7 @@ class Mat(object):
         result = result and (d.top%n==d.bot%n)
 
     is_modular = lambda m : m.a%n==1 and m.d%n==1 and m.b%n==0 and m.c%n==0
+
 
 def mulclose_fast(gen, verbose=False, maxsize=None):
     els = set(gen)
@@ -174,6 +181,130 @@ def mulclose_fast(gen, verbose=False, maxsize=None):
     return els
 
 
+class Curve(object):
+    """
+    A two-dimensional surface described by a cellulation.
+    """
+    def __init__(self, faces, pairs):
+        faces = list(faces)
+        pairs = list(pairs)
+        edges = set()
+        for (a,b) in pairs:
+            if a > b:
+                a, b = b, a
+            if (a,b) in edges:
+                continue
+            edges.add((a,b))
+        print("edges:", len(edges))
+        edges = list(edges)
+        edges.sort()
+        print(edges)
+        elookup = dict((e, i) for (i, e) in enumerate(edges))
+    
+        n = len(edges)
+        mz = len(faces)
+        Hz = numpy.zeros((n, mz), dtype=int)
+        for (a,b) in pairs:
+            j = a-1
+            sign = 1
+            if a > b:
+                sign = -1
+                a, b = b, a
+            i = elookup[(a, b)]
+            assert Hz[i, j] == 0
+            Hz[i, j] = sign
+    
+        #print(astr(Hz))
+    
+        for i in range(n):
+            assert Hz[i].sum() == 0, ("lost edge: %s" % edges[i])
+    
+        #print("bdy:")
+        bdy = dict((i,[]) for i in faces)
+        for (a,b) in pairs:
+            bdy[a].append(b)
+        #print(bdy)
+        self.faces = faces
+        self.edges = edges
+        self.bdy = bdy
+
+        # each vert will be a tuple of face's
+        verts = []
+        for face in faces:
+            for other in bdy[face]:
+                vert = [face]
+                while other != face:
+                    vert.append(other)
+                    other = self.clockwise(vert[-1], vert[-2])
+                VERT = len(vert)
+                i = vert.index(min(vert))
+                vert = tuple(vert[(i+j)%VERT] for j in range(VERT))
+                verts.append(vert)
+        verts = set(verts)
+    
+        mx = len(verts)
+        Hx = numpy.zeros((n, mx), dtype=int)
+        for row, vert in enumerate(verts):
+            VERT = len(vert)
+            for i in range(VERT):
+                a, b = vert[i], vert[(i+1)%VERT]
+                sign = 1
+                if a > b:
+                    sign = -1
+                    a, b = b, a
+                col = elookup[a, b]
+                Hx[col, row] = sign
+    
+        A = numpy.dot(Hx.transpose(), Hz)
+        assert numpy.alltrue(A==0)
+
+        self.verts = verts
+        self.Hx = Hx
+        self.Hz = Hz
+        self.n = n
+        self.mx = mx
+        self.mz = mz
+
+    def __str__(self):
+        V = len(self.verts)
+        E = len(self.edges)
+        F = len(self.faces)
+        euler = V - E + F
+        genus = (2-euler)//2
+        return "Curve(verts=%d, edges=%d, faces=%d, genus=%d)"%(V, E, F, genus)
+
+    def clockwise(self, face, other):
+        "move clockwise around face starting at other face"
+        faces = self.faces
+        edges = self.edges
+        bdy = self.bdy
+        assert face in faces
+        assert other in faces
+        (a, b) = face, other
+        if a>b:
+            a, b = b, a
+        assert (a,b) in edges
+        others = bdy[face]
+        i = others.index(other)
+        nxt = others[(i-1)%len(others)]
+        return nxt
+    
+    def get_autos(self):
+    
+        Hz, Hx = self.Hz, self.Hx
+    
+        from bruhat.isomorph import Tanner, search
+        Hx, Hz = Hx.transpose(), Hz.transpose()
+        src = Tanner.build2(Hx, Hz)
+        tgt = Tanner.build2(Hx, Hz)
+        fns = []
+        for fn in search(src, tgt):
+            fns.append(dict(fn))
+            print(".", end="", flush=True)
+        print()
+        return fns
+
+
 def mulclose_subgroup(ring, gen, test, verbose=False, maxsize=None):
     "test is a callback: is the element in the subgroup ?"
     els = set(g for g in gen if not test(g))
@@ -182,7 +313,7 @@ def mulclose_subgroup(ring, gen, test, verbose=False, maxsize=None):
     while bdy:
         if verbose:
             print(len(els), end=" ", flush=True)
-        # check loop invariant
+        # check _loop invariant
         for a in els:
           for b in els:
             if a is b:
@@ -205,12 +336,45 @@ def mulclose_subgroup(ring, gen, test, verbose=False, maxsize=None):
                         return list(els)
         bdy = _bdy
     els.add(Mat.construct(ring, 1, 0, 0, 1))
-    return els
+    els = list(els)
+    lookup = dict((e, i) for (i, e) in enumerate(els))
+
+    if verbose:
+        print()
+
+    pairs = []
+    deltas = gen
+#    for g in gen:
+#        gi = g.inv()
+#        for h in deltas:
+#            assert gi != h
+#            if test(g*h):
+#                break
+#        else:
+#            deltas.append(gi)
+    for g in gen:
+        gi = g.inv()
+        if gi not in deltas:
+            deltas.append(gi)
+
+    for e in els:
+      i = lookup[e]
+      for delta in deltas:
+        f = delta * e # left action of the gens
+        fi = f.inv()
+        for h in els:
+            if test(fi*h):
+                k = lookup[h]
+                pairs.append((i, k))
+    #print(pairs)
+    faces = list(range(len(els)))
+    curve = Curve(faces, pairs)
+    return curve
 
 
 
 
-def test_2q():
+def test_psl2q():
 
     # --------------------------------------------------------------
     # PSL(2, Q)
@@ -251,7 +415,14 @@ def test_psl2z():
     # https://en.wikipedia.org/wiki/Modular_group
     # G = <S, T | S*S==I, (S*T)**3 == I>
 
-    ring = element.Z
+    #ring = element.Z
+    class Z(object):
+        one = 1
+        zero = 0
+        def promote(self, item):
+            return int(item)
+    ring = Z()
+
     construct = lambda *args : Mat.construct(ring, *args)
 
     I = construct(1, 0, 0, 1)
@@ -282,16 +453,25 @@ def test_psl2z():
             assert is_modular(g*h)
             assert is_modular(h*g)
 
-    J = mulclose_subgroup(ring, [S, T], is_modular, verbose=True)
-    print(len(J))
+    curve = mulclose_subgroup(ring, [S, T], is_modular, verbose=True)
 
-    #for m in J:
-    #    print(m)
+    print(curve)
+
+    #print(astr(curve.Hz))
+    #print(astr(curve.Hx))
+
+    fns = curve.get_autos()
+    print(len(fns))
+    
+
 
 def astr(A):
-    s = str(A)
-    s = s.replace(" 0", " .")
+    rows = ["[%s]"%''.join("%2s"%a for a in row) for row in A]
+    s = '\n '.join(rows)
+    s = "["+s+"]"
+    s = s.replace("0", ".")
     return s
+
 
 def test_bring():
     "Bring's curve"
@@ -314,103 +494,36 @@ def test_bring():
     pairs = [eval(item) for item in pairs]
     assert len(pairs) == len(set(pairs))
 
-    edges = set()
-    for (a,b) in pairs:
-        if a > b:
-            a, b = b, a
-        if (a,b) in edges:
-            continue
-        edges.add((a,b))
-    #print("edges:", len(edges))
-    edges = list(edges)
-    edges.sort()
-    #print(edges)
-    elookup = dict((e, i) for (i, e) in enumerate(edges))
+    curve = Curve(faces, pairs)
+    print(curve)
 
-    n = len(edges)
-    mz = len(faces)
-    Hz = numpy.zeros((n, mz), dtype=int)
-    for (a,b) in pairs:
-        j = a-1
-        sign = 1
-        if a > b:
-            sign = -1
-            a, b = b, a
-        i = elookup[(a, b)]
-        assert Hz[i, j] == 0
-        Hz[i, j] = sign
+    Hx, Hz = curve.Hx, curve.Hz
+    Hx, Hz = numpy.abs(Hx), numpy.abs(Hz)
+    Hx, Hz = Hx.transpose(), Hz.transpose()
+    Hx, Hz = astr(Hx), astr(Hz)
+    for c in " []":
+        Hx = Hx.replace(c, "")
+        Hz = Hz.replace(c, "")
+    print("Hz:")
+    print(Hz)
+    print("Hx:")
+    print(Hx)
 
-    #print(astr(Hz))
-
-    for i in range(n):
-        assert Hz[i].sum() == 0, ("lost edge: %s" % edges[i])
-
-    #print("bdy:")
-    bdy = dict((i,[]) for i in faces)
-    for (a,b) in pairs:
-        bdy[a].append(b)
-    #print(bdy)
-
-    def clockwise(face, other):
-        "move clockwise around face starting at other face"
-        assert face in faces
-        assert other in faces
-        (a, b) = face, other
-        if a>b:
-            a, b = b, a
-        assert (a,b) in edges
-        others = bdy[face]
-        i = others.index(other)
-        nxt = others[(i-1)%len(others)]
-        return nxt
-
-    assert clockwise(1, 2) == 6
-    assert clockwise(12, 8) == 10
-    
-    # each vert will be a tuple of face's
-    VERT = 5
-    verts = []
-    for face in faces:
-        for other in bdy[face]:
-            vert = [face]
-            while other != face:
-                vert.append(other)
-                other = clockwise(vert[-1], vert[-2])
-            assert len(vert) == VERT
-            i = vert.index(min(vert))
-            vert = tuple(vert[(i+j)%VERT] for j in range(VERT))
-            verts.append(vert)
-    verts = set(verts)
-
-    mx = len(verts)
-    Hx = numpy.zeros((n, mx), dtype=int)
-    for row, vert in enumerate(verts):
-        for i in range(VERT):
-            a, b = vert[i], vert[(i+1)%VERT]
-            sign = 1
-            if a > b:
-                sign = -1
-                a, b = b, a
-            col = elookup[a, b]
-            Hx[col, row] = sign
-
-    #print(astr(Hx))
-
-    A = numpy.dot(Hx.transpose(), Hz)
-    assert numpy.alltrue(A==0)
-
-
-#
-#
-#    F2 = element.FiniteField(2)
-
-    
+    assert curve.clockwise(1, 2) == 6
+    assert curve.clockwise(12, 8) == 10
+        
+    fns = curve.get_autos()
+    print(len(fns))
     
     
 
 
 if __name__ == "__main__":
-    test_bring()
+    name = argv.next() or "test"
+
+    fn = eval(name)
+    fn()
+
 
 
 

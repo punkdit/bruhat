@@ -2,6 +2,9 @@
 
 """
 Calculate the genus of hecke modular curves.
+
+See also: psl2.py
+
 """
 
 import sys, os
@@ -28,7 +31,7 @@ class Field(object):
                 return j
         assert 0
     
-    def negr(self, i):
+    def negrecip(self, i):
         return self.neg(self.recip(i))
 
 
@@ -123,10 +126,10 @@ class Curve(object):
 
 def test():
     f = Field(5)
-    assert f.negr(1)==4
-    assert f.negr(2)==2
-    assert f.negr(3)==3
-    assert f.negr(4)==1
+    assert f.negrecip(1)==4
+    assert f.negrecip(2)==2
+    assert f.negrecip(3)==3
+    assert f.negrecip(4)==1
 
 
 def get_genus(p, verbose=False):
@@ -136,7 +139,7 @@ def get_genus(p, verbose=False):
     
     pairs = []
     for i in range(1, p):
-        pair = [i, f.negr(i)]
+        pair = [i, f.negrecip(i)]
         pair.sort()
         if pair in pairs:
             continue
