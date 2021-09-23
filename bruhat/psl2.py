@@ -152,13 +152,13 @@ class Mat(object):
         return s
     __repr__ = __str__
 
-    def is_modular(self, n):
-        a, b, c, d = self.pos
-        result = (a.top%n==a.bot%n)
-        result = result and (d.top%n==d.bot%n)
-        result = result and (d.top%n==d.bot%n)
-
-    is_modular = lambda m : m.a%n==1 and m.d%n==1 and m.b%n==0 and m.c%n==0
+#    def is_modular(self, n):
+#        a, b, c, d = self.pos
+#        result = (a.top%n==a.bot%n)
+#        result = result and (d.top%n==d.bot%n)
+#        result = result and (d.top%n==d.bot%n)
+#
+#    is_modular = lambda m : m.a%n==1 and m.d%n==1 and m.b%n==0 and m.c%n==0
 
 
 def mulclose_fast(gen, verbose=False, maxsize=None):
@@ -433,27 +433,38 @@ def test_psl2z():
 
     N = 100
     G = mulclose_fast([S, T], maxsize=N)
-    print(len(G))
+    #print(len(G))
     assert len(G) >= N
 
-    n = argv.get("n", 3)
-    is_modular = lambda m : (
-        (m.a%n==1 and m.d%n==1 or (-m.a)%n==1 and (-m.d)%n==1)
-        and m.b%n==0 and m.c%n==0
+    N = argv.get("N", 3)
+
+    # Gamma_0(N)
+    gamma_0 = lambda m : ( m.c%N==0)
+
+    # Gamma_1(N)
+    gamma_1 = lambda m : (
+        (m.a%N==1 and m.d%N==1 or (-m.a)%N==1 and (-m.d)%N==1)
+        and m.c%N==0
+    )
+
+    # Gamma(N)
+    gamma = lambda m : (
+        (m.a%N==1 and m.d%N==1 or (-m.a)%N==1 and (-m.d)%N==1)
+        and m.b%N==0 and m.c%N==0
     )
 
     for g in G:
-      assert is_modular(g) == is_modular(g.inv())
+      assert gamma(g) == gamma(g.inv())
       for h in G:
-        if is_modular(g) and is_modular(h):
+        if gamma(g) and gamma(h):
             #print()
             #print(g)
             #print(h)
             #print(g*h)
-            assert is_modular(g*h)
-            assert is_modular(h*g)
+            assert gamma(g*h)
+            assert gamma(h*g)
 
-    curve = mulclose_subgroup(ring, [S, T], is_modular, verbose=True)
+    curve = mulclose_subgroup(ring, [S, T], gamma_1, verbose=True)
 
     print(curve)
 

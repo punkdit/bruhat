@@ -278,10 +278,11 @@ def test_galois():
     for u in els:
         print(u, end=" ")
     print()
-    print("inner:", end=" ")
+    print("inner(u,u):", end=" ")
     for u in els:
         print(inner(u,u), end=" ")
     print()
+    print("inner(u,v):")
     for u in els:
       for v in els:
         print(inner(u,v), end=" ")
@@ -416,6 +417,7 @@ class Matrix(object):
 
 
 def test_hw():
+    # Heisenberg-Weyl group
 
     # copied from dev/qudit.py
     
