@@ -211,13 +211,14 @@ class Curve(object):
                 sign = -1
                 a, b = b, a
             i = elookup[(a, b)]
-            assert Hz[i, j] == 0
+            assert Hz[i, j] == 0, (i,j)
             Hz[i, j] = sign
     
+        print("Hz:", Hz.shape)
         #print(astr(Hz))
     
         for i in range(n):
-            assert Hz[i].sum() == 0, ("lost edge: %s" % edges[i])
+            assert Hz[i].sum() == 0, ("lost edge: %s" % (edges[i],))
     
         #print("bdy:")
         bdy = dict((i,[]) for i in faces)
@@ -307,7 +308,20 @@ class Curve(object):
 
 def mulclose_subgroup(ring, gen, test, verbose=False, maxsize=None):
     "test is a callback: is the element in the subgroup ?"
-    els = set(g for g in gen if not test(g))
+    els = [g for g in gen if not test(g)]
+    i = 0
+    while i+1 < len(els):
+        a = els[i]
+        ai = a.inv()
+        j = len(els)-1
+        while j > i:
+            if test(ai*els[j]):
+                els.pop(j)
+            j -= 1
+        i += 1
+    els = set(els)
+    print("els:",len(els))
+    #return
     bdy = list(els)
     changed = True
     while bdy:
@@ -366,8 +380,11 @@ def mulclose_subgroup(ring, gen, test, verbose=False, maxsize=None):
             if test(fi*h):
                 k = lookup[h]
                 pairs.append((i, k))
-    #print(pairs)
+    #pairs = list(set(pairs)) # uniq
+    assert len(pairs) == len(set(pairs)) # uniq
     faces = list(range(len(els)))
+    print("faces:", faces)
+    print("pairs:", pairs)
     curve = Curve(faces, pairs)
     return curve
 
@@ -407,6 +424,38 @@ def test_psl2q():
         assert A.inv()*A == I
 
 
+def generate():
+    # failed experiment... no clue how to generate these
+    # subgroups..
+
+    # https://www.gap-system.org/Packages/congruence.html
+    # https://github.com/AG-Weitze-Schmithusen/ModularGroup
+    # https://arxiv.org/pdf/1709.00510.pdf
+
+    N = 3
+    items = [1]
+
+    # for Bring's curve:
+    N = 50
+    items = [1, 9, 11, 19, 21]
+
+    items = items + [N-i for i in items]
+    items.sort()
+    print("items:", items)
+
+    lines = []
+    for c in [-N, 0, N]:
+     for b in range(-N, N+1):
+      for a in items+[i+N for i in items]+[i-N for i in items]:
+        top = 1+b*c
+        if top % a == 0:
+            d = top // a
+            assert a*d - b*c == 1
+            lines.append("[[%d,%d],[%d,%d]]" % (a, b, c, d))
+    print("found %d gens"%len(lines))
+    print("G := ModularSubgroup([", ', '.join(lines), "]);")
+
+
 def test_psl2z():
 
     # --------------------------------------------------------------
@@ -432,9 +481,9 @@ def test_psl2z():
     assert (S*T)**3 == I
 
     N = 100
-    G = mulclose_fast([S, T], maxsize=N)
-    #print(len(G))
-    assert len(G) >= N
+    G0 = mulclose_fast([S, T], maxsize=N)
+    #print(len(G0))
+    assert len(G0) >= N
 
     N = argv.get("N", 3)
 
@@ -453,18 +502,27 @@ def test_psl2z():
         and m.b%N==0 and m.c%N==0
     )
 
-    for g in G:
-      assert gamma(g) == gamma(g.inv())
-      for h in G:
-        if gamma(g) and gamma(h):
-            #print()
-            #print(g)
-            #print(h)
-            #print(g*h)
-            assert gamma(g*h)
-            assert gamma(h*g)
+    for fn in [gamma_0, gamma_1, gamma]:
+        for g in G0:
+          assert fn(g) == fn(g.inv())
+          for h in G0:
+            if fn(g) and fn(h):
+                #print()
+                #print(g)
+                #print(h)
+                #print(g*h)
+                assert fn(g*h)
+                assert fn(h*g)
 
-    curve = mulclose_subgroup(ring, [S, T], gamma_1, verbose=True)
+    fn = gamma_0
+    assert not fn(S)
+    assert not fn(S*T)
+    assert not fn(S*T*S)
+    gen = [S, S*T*S]
+
+    curve = mulclose_subgroup(ring, [S, T], gamma, verbose=True)
+    #curve = mulclose_subgroup(ring, gen, gamma_0, verbose=True)
+    #curve = mulclose_subgroup(ring, G0, gamma, verbose=True)
 
     print(curve)
 
