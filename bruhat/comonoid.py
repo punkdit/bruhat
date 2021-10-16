@@ -12,7 +12,7 @@ tensor = numpy.kron
 dot = numpy.dot
 array = numpy.array
 
-
+# https://docs.sympy.org/latest/modules/solvers/solvers.html
 from sympy.solvers import solve
 from sympy import Symbol
 
@@ -27,7 +27,7 @@ SWAP = array([
 #x = Symbol('x')
 syms = [Symbol(ch) for ch in 'abcdefghij']
 a, b, c, d, e, f, g, h, i, j = syms
-i = j = 1
+i = j = 1 # specialize ...
 D = array([
     [a, b],
     [c, d],
