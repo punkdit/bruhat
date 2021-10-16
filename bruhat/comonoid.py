@@ -14,6 +14,7 @@ array = numpy.array
 
 # https://docs.sympy.org/latest/modules/solvers/solvers.html
 from sympy.solvers import solve
+from sympy.solvers import nonlinsolve
 from sympy import Symbol
 
 I = array([[1, 0], [0, 1]], dtype=object)
@@ -41,36 +42,112 @@ EI = tensor(E, I)
 
 eqs = []
 def make_eqs(lhs, rhs):
+    print("make_eqs:")
     m, n = lhs.shape
     assert rhs.shape == (m, n), rhs.shape
     for i in range(m):
       for j in range(n):
         eq = lhs[i,j] - rhs[i,j]
-        print(eq)
+        #print(eq)
         if eq != 0:
+            print("\t", eq)
             eqs.append(eq)
+    print(len(eqs), "eqs")
 
+def test_eq(lhs, rhs):
+    m, n = lhs.shape
+    assert rhs.shape == (m, n), rhs.shape
+    for i in range(m):
+      for j in range(n):
+        eq = lhs[i,j] - rhs[i,j]
+        eq = eq.simplify()
+        if eq != 0:
+            return False
+    return True
 
 # unit 
 make_eqs(compose(D, IE), I)
 make_eqs(compose(D, EI), I)
 
-# assoc
+# _assoc
 make_eqs(compose(D, tensor(D, I)), compose(D, tensor(I, D)))
 
 # cocommutative
 make_eqs(D, compose(D, SWAP))
 
-print(len(eqs))
-print(len(set(eqs)))
 
-result = solve(eqs, syms, dict=True)
+result = solve(eqs, a, b, c, d, e, f, g, h, dict=True)
+
+assert len(result) == 1
+result = result[0]
 
 print(result)
-for row in result:
-    print(row)
-    keys = list(row.keys())
+keys = list(result.keys())
+keys.sort(key=str)
+for k in keys:
+    print("\t", k, "=", result[k])
+
+for eq in eqs:
+    val = eq.subs(result)
+    val = val.simplify()
+    assert val == 0
+
+# -------------------------------------------------------------------------------
+
+if 1:
+    D0 = array([
+        [1, 0],
+        [0, 0],
+        [0, 0],
+        [0, 1],
+    ])
+
+    D = array([
+        [g+1, h-1],
+        [-g, 1-h],
+        [-g, 1-h],
+        [g, h],
+    ])
+    
+    # unit 
+    assert numpy.alltrue(compose(D, IE) == I)
+    assert numpy.alltrue(compose(D, EI) == I)
+    
+    # _assoc
+    assert test_eq(compose(D, tensor(D, I)), compose(D, tensor(I, D)))
+    
+    # cocommutative
+    assert numpy.alltrue(compose(D, SWAP) == D)
+    
+    eqs = []
+    
+    A = numpy.array([[a, b], [c, d]])
+    
+    ai, bi, ci, di = [Symbol(ch) for ch in 'ai bi ci di'.split()]
+    Ai = numpy.array([[ai, bi], [ci, di]])
+
+    AA = tensor(A, A)
+
+    lhs = compose(D, AA)
+    rhs = compose(Ai, D0)
+
+    make_eqs(compose(A, Ai), I)
+    make_eqs(lhs, rhs)
+
+    result = solve(eqs, dict=True)
+    
+    assert len(result) == 1
+    result = result[0]
+    
+    print(result)
+    keys = list(result.keys())
     keys.sort(key=str)
     for k in keys:
-        print("\t", k, "=", row[k])
+        print("\t", k, "=", result[k])
+    
+    for eq in eqs:
+        val = eq.subs(result)
+        val = val.simplify()
+        assert val == 0
+
 
