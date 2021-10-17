@@ -60,7 +60,8 @@ def test_eq(lhs, rhs):
     for i in range(m):
       for j in range(n):
         eq = lhs[i,j] - rhs[i,j]
-        eq = eq.simplify()
+        if hasattr(eq, "simplify"):
+            eq = eq.simplify()
         if eq != 0:
             return False
     return True
@@ -95,13 +96,12 @@ for eq in eqs:
 # -------------------------------------------------------------------------------
 
 if 1:
-    D0 = array([
-        [1, 0],
-        [0, 0],
-        [0, 0],
-        [0, 1],
-    ])
 
+    # choose something generic 
+    g = 7
+    h = 22
+
+    # is this equivalent to the standard D0 under basis change? (answer: no)
     D = array([
         [g+1, h-1],
         [-g, 1-h],
@@ -109,6 +109,13 @@ if 1:
         [g, h],
     ])
     
+    D0 = array([
+        [1, 0],
+        [0, 0],
+        [0, 0],
+        [0, 1],
+    ])
+
     # unit 
     assert numpy.alltrue(compose(D, IE) == I)
     assert numpy.alltrue(compose(D, EI) == I)
@@ -128,15 +135,18 @@ if 1:
 
     AA = tensor(A, A)
 
-    lhs = compose(D, AA)
-    rhs = compose(Ai, D0)
+    lhs = compose(D0, AA)
+    rhs = compose(Ai, D)
 
     make_eqs(compose(A, Ai), I)
     make_eqs(lhs, rhs)
 
     result = solve(eqs, dict=True)
     
-    assert len(result) == 1
+    if len(result) == 0:
+        print("no solution")
+
+    assert len(result) == 1, result
     result = result[0]
     
     print(result)
