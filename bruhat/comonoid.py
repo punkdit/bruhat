@@ -398,5 +398,3 @@ if argv.frobenius:
 
     print(len(soln))
 
-
-
