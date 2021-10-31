@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
 """
-The Heisenberg-Weyl group & clifford hierarchy for qudits.
+The Heisenberg-Weyl group & diagonal clifford hierarchy for qudits.
+
+No Hadamard's here because we don't have the algebraic ring's for sqrt(d) and
+cyclotomics... XXX
 
 """
 
@@ -11,7 +14,7 @@ from functools import reduce
 import numpy
 
 from bruhat import element
-from bruhat.action import mulclose
+from bruhat.action import mulclose, mulclose_names
 from bruhat.util import cross
 from bruhat.element import CyclotomicRing, test, FiniteField, PolynomialRing
 from bruhat.vec import Space, Hom, Map
@@ -35,20 +38,20 @@ def main():
     d = argv.get("d", 3)
     assert d>=2
 
+    double = argv.double
+
     if d==2:
         ring = CyclotomicRing(4)
         #ring = element.Z
         gamma = ring.x
         w = gamma**2
         assert w == -1
-        argv.double = True
-    elif 1:
+        double = True
+
+    else:
         ring = CyclotomicRing(d**2)
         gamma = ring.x
         w = gamma**d
-    else:
-        ring = CyclotomicRing(d)
-        w = ring.x
 
     I = numpy.zeros((d, d), dtype=object)
     wI = numpy.zeros((d, d), dtype=object)
@@ -102,7 +105,10 @@ def main():
     T = Map.from_array(T, hom)
     Tdag = Map.from_array(Tdag, hom)
 
-    Y = w*X*Z # ?
+    if d==2:
+        Y = gamma*X*Z # ?
+    else:
+        Y = w*X*Z # ?
 
     assert S*Sdag == I
 
@@ -121,10 +127,14 @@ def main():
 
     assert Z*X == (w**(d-1))*X*Z
 
-    if argv.double:
+    if double:
         pauli = mulclose([X, Z, gamma*I])
+        names = mulclose_names([X, Z, gamma*I], "X Z i".split())
+
     else:
         pauli = mulclose([X, Z])
+        names = mulclose_names([X, Z, Xdag, Zdag, -I], "X Z Xi Zi -I".split())
+
     pauli = set(pauli)
     print("pauli:", len(pauli))
     assert Zdag in pauli
@@ -144,7 +154,7 @@ def main():
     rhs = Z@Z
     assert lhs * rhs == rhs * lhs
 
-    if 1:
+    if 0:
         n = 5
         ops = [X, Xdag]
         lhs = []
@@ -166,14 +176,46 @@ def main():
                 print(".", end=" ", flush=True)
         print()
 
-    #print(Z@Z@Z)
+    print("S =")
+    print(S)
     
+    #print("Y =")
     #print(Y)
+    #print("S*X*Sdag =")
     #print(S*X*Sdag)
-    #print(Y == S*X*Sdag)
-    if d==3:
-        assert (Y == S*X*Sdag)
-    
+    assert Y == S*X*Sdag
+
+    def get_orbit(g, gi, v):
+        orbit = [v]
+        while 1:
+            u = g*orbit[-1]*gi
+            if u == orbit[0]:
+                break
+            orbit.append(u)
+        return orbit
+
+    print("S orbit:")
+    for A in [X, Z]:
+        print('\t', [''.join(names[op]) for op in get_orbit(S, Sdag, A)])
+
+    U = X*S
+    Ui = Sdag * Xdag
+    assert U*Ui == I
+
+    print("XS orbit:")
+    for A in [X, Z]:
+        print('\t', [''.join(names[op]) for op in get_orbit(U, Ui, A)])
+
+    U = X*X*S
+    Ui = Sdag * Xdag * Xdag
+    assert U*Ui == I
+
+    print("XXS orbit:")
+    for A in [X, Z]:
+        print('\t', [''.join(names[op]) for op in get_orbit(U, Ui, A)])
+
+    return
+
     inverse = {}
     for g in pauli:
       for h in pauli:
@@ -188,7 +230,11 @@ def main():
             if h not in pauli:
                 return False
         return True
+    print("S =")
     print(S)
+    print("S**2 =")
+    print(S**2)
+    print("Sdag =")
     print(Sdag)
     assert is_cliff(S, Sdag)
 
