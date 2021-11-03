@@ -290,8 +290,8 @@ class IntegerRing(Ring):
         return None
 
     def add(self, a, b):
-        assert a.tp is self # do we need this here?
-        assert b.tp is self # do we need this here?
+        assert a.tp is self, repr(a) # do we need this here?
+        assert b.tp is self, repr(b) # do we need this here?
         return Integer(a.value + b.value, self)
     
     def sub(self, a, b):
@@ -350,6 +350,69 @@ class Integer(GenericElement):
         return a.value < b.value
 
 
+class IntegerModRing(Ring):
+
+    """
+        The ring of integers modulo an integer.
+    """
+
+    def __init__(self, mod):
+        Ring.__init__(self)
+        self.mod = mod = int(mod)
+        self.one = one = IntegerMod(1, self)
+        self.zero = IntegerMod(0, self)
+        els = [IntegerMod(i, self) for i in range(mod)]
+        div = {}
+        for i in range(1, mod):
+          for j in range(1, mod):
+            k = (i*j)%mod
+            if k == 0:
+                continue
+            div[k, j] = els[i]
+            div[k, i] = els[j]
+        self.div = div
+    
+    def promote(self, value):
+        if isinstance(value, IntegerMod):
+            assert value.tp == self
+            return value
+        if isinstance(value, int):
+            return IntegerMod(value, self)
+        try:
+            value = int(value)
+            return IntegerMod(value, self)
+        except ValueError:
+            pass
+        except TypeError:
+            pass
+        return None
+
+    def add(self, a, b):
+        assert a.tp is self, repr(a) # do we need this here?
+        assert b.tp is self, repr(b) # do we need this here?
+        return IntegerMod(a.value + b.value, self)
+    
+    def sub(self, a, b):
+        return IntegerMod(a.value - b.value, self)
+    
+    def mul(self, a, b):
+        return IntegerMod(a.value * b.value, self)
+    
+    def neg(self, a):
+        return IntegerMod(-a.value, self)
+
+    def truediv(self, a, b):
+        c = self.div.get((a.value, b.value))
+        if c is None:
+            raise Exception("cannot divide %r by %r" % (a, b))
+        return c
+
+
+class IntegerMod(GenericElement):
+
+    def __init__(self, value, tp):
+        value = int(value) % tp.mod
+        GenericElement.__init__(self, value, tp)
 
 
 class FiniteField(Ring):

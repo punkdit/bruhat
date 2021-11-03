@@ -178,6 +178,10 @@ def main():
 
     print("S =")
     print(S)
+    print("XSX =")
+    print(X*S*X)
+    print("XSXX =")
+    print(X*S*X*S)
     
     #print("Y =")
     #print(Y)
