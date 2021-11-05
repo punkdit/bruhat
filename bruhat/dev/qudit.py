@@ -180,7 +180,7 @@ def main():
     print(S)
     print("XSX =")
     print(X*S*X)
-    print("XSXX =")
+    print("XSXS =")
     print(X*S*X*S)
     
     #print("Y =")
