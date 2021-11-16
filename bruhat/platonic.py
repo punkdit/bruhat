@@ -9,7 +9,6 @@ import sys, os
 
 from bruhat.argv import argv
 from bruhat.util import write, uniqtuples
-from bruhat.geometry import Geometry
 from bruhat import isomorph
 from bruhat.action import Group, Perm
 
@@ -350,6 +349,7 @@ def make_geometry(name):
                 incidence.append((item, jtem))
     for item in items:
         incidence.append((item, item))
+    from bruhat.geometry import Geometry
     geometry = Geometry(incidence, tpmap)
 
     return geometry
