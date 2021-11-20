@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+from random import shuffle
 from math import pi, hypot, cos, sin, tan, acosh, atan
 import cmath
 
@@ -97,7 +98,7 @@ class Mobius(object):
         assert isinstance(r, float)
         return r
 
-    REAL_DIMS = 8
+    REAL_DIMS = 4
     def __len__(self):
         return self.REAL_DIMS # used by kdtree
 
@@ -330,15 +331,92 @@ class Generator(object):
         ops = [node.data for node in self.tree.inorder()]
         return ops
 
+    def get(self, op):
+        near, dist = self.tree.search_nn(op)
+        if dist < EPSILON:
+            assert near.data == op
+            return near.data
+        return None
+
     def __contains__(self, op):
         near, dist = self.tree.search_nn(op)
-        return dist < EPSILON
+        if dist < EPSILON:
+            assert near.data == op
+            return True
+        return False
 
     def __iter__(self):
         for node in self.tree.inorder():
             yield node.data
 
 
+class Cayley(object):
+    def __init__(self, table):
+        self.table = dict(table)
+
+    def __len__(self):
+        return len(self.table)
+
+    def dump(self):
+        table = self.table
+        vals = list(set(table.values()))
+        vals.sort()
+        print('     '+''.join("%3d"%i for i in vals))
+        print('     '+'-'*3*len(vals))
+        for i in vals:
+          print("%3d |"%i, end="")
+          for j in vals:
+            k = table.get((i, j))
+            if k is None:
+                s = "   "
+            else:
+                s = "%3d"%k
+            print(s, end="")
+          print()
+
+    def _deduce(self):
+        table = self.table
+        vals = list(set(table.values()))
+        vals.sort()
+        for i in vals:
+            found = {}
+            for j in vals:
+                k = table.get((i, j))
+                if k is None:
+                    continue
+                if k not in found:
+                    found[k] = j
+                    continue
+                j1 = found[k]
+                # i*j == i*j1 == k => j==j1
+                self.rewrite(j1, j)
+                return True
+        return False
+
+    def deduce(self):
+        while self._deduce():
+            pass
+
+    def rewrite(self, i, j):
+        # send j to i
+        table = self.table
+        keys = list(table.keys())
+        for ii, jj in keys:
+            kk = table[ii, jj]
+            changed = False
+            if ii == j or jj == j:
+                del table[ii, jj]
+                if ii == j:
+                    ii = i
+                if jj == j:
+                    jj = i
+                changed = True
+            if kk == j:
+                kk = i
+                changed = True
+            if changed:
+                table[ii, jj] = kk
+    
 
 
 
@@ -374,39 +452,96 @@ def test():
     gens = [Mobius(1, 1, 0, 1), Mobius(0, 1, -1, 0)]
     G = Generator(gens, verbose=False, maxsize=N)
 
-    gens = [Mobius(1, 2, 0, 1), Mobius(1, 0, -2, 1)]
-    G = Generator(gens, verbose=False, maxsize=N)
+    #gens = [Mobius(1, 2, 0, 1), Mobius(1, 0, -2, 1)]
+    #H = Generator(gens, verbose=False, maxsize=N)
 
-    # ------------ {5,5} ------------------------
+    ops = []
+    for g in G:
+        if g.a.real%3 == 1 and g.c.real%3 == 0 and g.d.real%3 == 1:
+            ops.append(g)
+    print(len(ops))
+    H = Generator(ops, maxsize=N)
 
-    N = argv.get("N", 100)
-    gens = mktriangle(5, 2, 5)
-    G = Generator(gens, verbose=True, maxsize=N)
+    if 0:
+        # ------------ {5,5} ------------------------
+    
+        N = argv.get("N", 100)
+        gens = mktriangle(5, 2, 5)
+        G = Generator(gens, verbose=True, maxsize=N)
+    
+        a, b = gens
+        assert a.order() == 10
+        assert b.order() == 4
+        assert (a*b).order() == 5
+    
+        h = a*a*b
+        h = h*h
+        assert h.order() == None
+    
+        H = Generator([h])
+        while len(H) < N:
+            for g in G:
+                h1 = g * h * (~g)
+                H.add(h1)
+            ops = list(H)
+            for h0 in ops:
+              for h1 in ops:
+                H.add(h0*h1)
+            print("|H| =", len(H))
 
-    a, b = gens
-    assert a.order() == 10
-    assert b.order() == 4
-    assert (a*b).order() == 5
-
-    h = a*a*b
-    assert h.order() == None
-
-    H = Generator([h])
-    while len(H) < N:
-        for g in G:
-            h1 = g * h * (~g)
-            H.add(h1)
-        ops = list(H)
-        for h0 in ops:
-          for h1 in ops:
-            H.add(h0*h1)
-        print("|H| =", len(H))
 
     ops = list(G)
-    #relation = lambda g,h : (~g)*(h) in H
-    def relation(g, h):
-        assert (g*~h in H) == ((~g)*h in H)
-        return g*~h in H
+    for idx, op in enumerate(ops):
+        op.idx = idx
+    table = {}
+    for g in ops:
+      for h in ops:
+        k = g*h
+        if k not in G:
+            continue
+        k = G.get(k)
+        table[g.idx, h.idx] = k.idx
+
+    table = Cayley(table)
+    i = 0
+    while i < len(ops):
+        g = ops[i]
+        j = i+1
+        while j < len(ops):
+            h = ops[j]
+            if (~g)*h in H:
+                table.rewrite(g.idx, h.idx)
+                ops.pop(j)
+            else:
+                j += 1
+        i += 1
+        print(len(table), len(ops))
+
+    table.dump()
+    table.deduce()
+    print()
+    table.dump()
+
+    return
+
+    done = False
+    while not done:
+        done = True
+        i = 0
+        while i < len(ops):
+            g = ops[i]
+            j = i+1
+            while j < len(ops):
+                h = ops[j]
+                if (~g)*h in H:
+                    ops.pop(j)
+                    done = False
+                else:
+                    j += 1
+            i += 1
+        print(done)
+    print(len(ops))
+    return
 
     #for g in ops:
     #  for h in ops:
