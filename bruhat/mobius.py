@@ -206,7 +206,7 @@ class Mobius(object):
             op = g*op
         return op
 
-    def order(g):
+    def order(g, maxorder=999):
         I = Mobius()
         h = g
         count = 1
@@ -214,7 +214,9 @@ class Mobius(object):
             h = g*h
             assert h != g
             count += 1
-            assert count < 20
+            if count >= maxorder:
+                #assert 0, "infinite order?"
+                return None
         return count
 
     def dist(g, h):
@@ -273,37 +275,70 @@ def mktriangle(a, b, c):
     return [ga, gb]
 
 
-# does not need hashable operators
-def mulclose(gen, verbose=False, maxsize=None):
-    ops = list(gen)
-    tree = kdtree.create(dimensions=Mobius.REAL_DIMS)
-    for op in ops:
-        tree.add(op)
-    bdy = gen
-    while bdy:
-        _bdy = []
-        for g in bdy:
-            for h in gen:
-                k = g*h
-                near, dist = tree.search_nn(k)
-                #print(near.data)
-                #if k not in ops:
-                if dist > EPSILON:
-                    ops.append(k)
-                    _bdy.append(k)
-                    tree.add(k)
-            if maxsize and len(ops) >= maxsize:
-                break
-        if maxsize and len(ops) >= maxsize:
-            break
-        #tree = tree.rebalance()
-        bdy = _bdy
-        if verbose:
-            print("[%s]" % len(ops), end="", flush=True)
-    if verbose:
-        print("[%s]" % len(ops))
+class Generator(object):
+    def __init__(self, gen, verbose=False, maxsize=None):
+        tree = kdtree.create(dimensions=Mobius.REAL_DIMS)
+        self.tree = tree
+        self.size = 0
+        for op in gen:
+            tree.add(op)
+            self.size += 1
+        if I not in gen:
+            tree.add(I)
+            self.size += 1
+        self.gen = list(gen)
+        if maxsize is not None:
+            self.generate(verbose, maxsize)
 
-    return ops
+    def __len__(self):
+        return self.size
+
+    def add(self, op):
+        if op not in self:
+            self.tree.add(op)
+            self.size += 1
+
+    def generate(self, verbose=False, maxsize=None):
+        tree, size = self.tree, self.size
+        bdy = gen = self.gen
+        while bdy:
+            _bdy = []
+            for g in bdy:
+                for h in gen:
+                    k = g*h
+                    near, dist = tree.search_nn(k)
+                    #print(near.data)
+                    if dist > EPSILON:
+                        _bdy.append(k)
+                        tree.add(k)
+                        size += 1
+                if maxsize and size >= maxsize:
+                    break
+            if maxsize and size >= maxsize:
+                break
+            bdy = _bdy
+            if verbose:
+                print("[%s]" % size, end="", flush=True)
+        if verbose:
+            print("[%s]" % size)
+        tree = tree.rebalance()
+        self.tree = tree
+        self.size = size
+    
+    def getops(self):
+        ops = [node.data for node in self.tree.inorder()]
+        return ops
+
+    def __contains__(self, op):
+        near, dist = self.tree.search_nn(op)
+        return dist < EPSILON
+
+    def __iter__(self):
+        for node in self.tree.inorder():
+            yield node.data
+
+
+
 
 
 def test():
@@ -334,20 +369,58 @@ def test():
     assert abs(g(q0) - q1) < EPSILON
 
 
-    N = argv.get("N", 1000)
+    N = argv.get("N", 100)
     gens = [Mobius(1, 1, 0, 1), Mobius(0, 1, -1, 0)]
-    G = mulclose(gens, verbose=True, maxsize=N)
+    G = Generator(gens, verbose=False, maxsize=N)
 
     gens = [Mobius(1, 2, 0, 1), Mobius(1, 0, -2, 1)]
-    G = mulclose(gens, verbose=True, maxsize=N)
+    G = Generator(gens, verbose=False, maxsize=N)
 
+    # ------------ {5,5} ------------------------
+
+    N = argv.get("N", 100)
     gens = mktriangle(5, 2, 5)
-    G = mulclose(gens, verbose=True, maxsize=N)
+    G = Generator(gens, verbose=True, maxsize=N)
 
     a, b = gens
-    z1 = (a*b).inner_fixed() # pentagon center
-    gens = [g.todisc() for g in gens] # --------------- todisc --------------
+    assert a.order() == 10
+    assert b.order() == 4
+    assert (a*b).order() == 5
 
+    h = a*a*b
+    assert h.order() == None
+
+    H = Generator([h])
+    while len(H) < N:
+        for g in G:
+            h1 = g * h * (~g)
+            H.add(h1)
+        ops = list(H)
+        for h0 in ops:
+          for h1 in ops:
+            H.add(h0*h1)
+        print("|H| =", len(H))
+
+    K = Generator([I])
+    for g in G:
+      for h in H:
+        gh = g*h
+        if gh in K:
+            break
+      else:
+        K.add(g)
+    print(len(K))
+
+    return
+
+    # ------------ todisc ------------------------
+
+    gens = [g.todisc() for g in gens]
+    a, b = gens
+    print(a.inner_fixed())
+    print(b.inner_fixed())
+    print((a*b).inner_fixed())
+    #z1 = (a*b).inner_fixed() # pentagon center
 
 
 
