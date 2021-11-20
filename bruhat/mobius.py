@@ -6,6 +6,7 @@ import cmath
 
 import kdtree
 
+from bruhat import equ
 from bruhat.argv import argv
 
 EPSILON = 1e-6
@@ -400,6 +401,35 @@ def test():
           for h1 in ops:
             H.add(h0*h1)
         print("|H| =", len(H))
+
+    ops = list(G)
+    #relation = lambda g,h : (~g)*(h) in H
+    def relation(g, h):
+        assert (g*~h in H) == ((~g)*h in H)
+        return g*~h in H
+
+    #for g in ops:
+    #  for h in ops:
+    #    if g==h:
+    #        continue
+    #    print(int(relation(g, h)), end="")
+    #  print()
+
+    equs = [equ.Equ(op) for op in ops]
+    n = len(ops)
+    for i in range(n):
+        print(len(set(e.top for e in equs)), end=" ", flush=True)
+        ei = equs[i]
+        for j in range(i+1, n):
+            ej = equs[j]
+            if ei.eq(ej):
+                continue
+            if relation(ops[i], ops[j]):
+                ei.merge(ej)
+    #print(len([e for e in equs if e.top is e]))
+    print(len(set(e.top for e in equs)))
+    
+    return
 
     K = Generator([I])
     for g in G:
