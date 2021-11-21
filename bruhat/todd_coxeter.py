@@ -21,6 +21,8 @@ def cycle(perm):
     
 
 class Schreier(object):
+    DEBUG = False
+
     def __init__(self, ngens, rels, hgens):
         self.labels = []
         self.neighbors = []
@@ -50,13 +52,13 @@ class Schreier(object):
         #For simplicity of the core algorithm, we introduce a−1a
         #and b−1b as explicit relations.
 
-    def find(self, c):
+    def find_label(self, c):
         labels = self.labels
         c2 = labels[c]
         if c == c2:
             return c
         else:
-            c2 = self.find(c2) # recurse
+            c2 = self.find_label(c2) # recurse
             labels[c] = c2
             return c2
     
@@ -66,11 +68,13 @@ class Schreier(object):
         labels = self.labels
         neighbors = self.neighbors
         ngens = self.ngens
-        c1 = self.find(c1)
-        c2 = self.find(c2)
+        c1 = self.find_label(c1)
+        c2 = self.find_label(c2)
         if c1 == c2:
             return
         c1, c2 = min(c1, c2), max(c1, c2)
+        if self.DEBUG:
+            print("unify:", c2, "-->", c1)
         labels[c2] = c1
         for d in range(2*ngens):
             n1 = neighbors[c1][d]
@@ -90,31 +94,7 @@ class Schreier(object):
     #    of the edge because the other end is referring to c2,
     #    which is now c1.
     
-    # For following paths, we have the following two functions: 
-    
-    def follow(self, c, d):
-        labels = self.labels
-        neighbors = self.neighbors
-        ngens = self.ngens
-        c = self.find(c)
-        ns = neighbors[c]
-        if ns[d] == None:
-            ns[d] = self.new()
-        return self.find(ns[d])
-    
-    def followp(self, c, ds):
-        c = self.find(c)
-        for d in reversed(ds):
-            c = self.follow(c, d)
-        return c
-    
-    #    The first takes a vertex and finds the neighbor in the
-    #    d direction, creating a new vertex in that direction
-    #    if needed, and the second follows a list of directions
-    #    to find the end of a path. The follow function creates
-    #    new neighbors with the new() function:
-    
-    def new(self):
+    def add_vertex(self):
         labels = self.labels
         neighbors = self.neighbors
         ngens = self.ngens
@@ -122,6 +102,44 @@ class Schreier(object):
         labels.append(c)
         neighbors.append((2*ngens)*[None])
         return c
+
+    # For following paths, we have the following two functions: 
+    
+    def follow_step(self, c, d):
+        labels = self.labels
+        neighbors = self.neighbors
+        ngens = self.ngens
+        c = self.find_label(c)
+        ns = neighbors[c]
+        if ns[d] == None:
+            ns[d] = self.add_vertex()
+        return self.find_label(ns[d])
+    
+    def follow_path(self, c, ds):
+        c = self.find_label(c)
+        for d in reversed(ds):
+            c = self.follow_step(c, d)
+        return c
+    
+    #    The first takes a vertex and finds the neighbor in the
+    #    d direction, creating a new vertex in that direction
+    #    if needed, and the second follows a list of directions
+    #    to find the end of a path. The follow function creates
+    #    new neighbors with the add_vertex() function.
+    
+    def dump(self):
+        labels = self.labels
+        neighbors = self.neighbors
+        ngens = self.ngens
+        print(labels)
+        for idx, row in enumerate(neighbors):
+            jdx = self.find_label(idx)
+            if idx == jdx:
+                print('\t', idx, row)
+        print("-"*70)
+
+    def __len__(self):
+        return len([k for k in enumerate(self.labels) if k[0]==k[1]])
     
     #    Finally, there is the core algorithm: 
     def build(self):
@@ -131,35 +149,44 @@ class Schreier(object):
         rels = self.rels
         hgens = self.hgens
 
-        start = self.new()
+        start = self.add_vertex()
+    
+        if self.DEBUG:
+            self.dump()
         
         for hgen in hgens:
-            self.unify(self.followp(start, hgen), start)
+            self.unify(self.follow_path(start, hgen), start)
         
+        if self.DEBUG:
+            self.dump()
+
         to_visit = 0
         while to_visit < len(labels):
-            c = self.find(to_visit)
+            if self.DEBUG:
+                print("to_visit =", to_visit)
+            c = self.find_label(to_visit)
             if c == to_visit:
-                for rel in rels:
-                    self.unify(self.followp(c, rel), c)
+                for rel in rels + hgens:
+                    self.unify(self.follow_path(c, rel), c)
+                if self.DEBUG:
+                    self.dump()
             to_visit += 1
+            #assert len(neighbors)  < 60
         
-        print("done")
-
     #    It creates the start vertex, adds all of the relations
     #    for H as relators at this basepoint, and then for each
     #    unmarked vertex, adds all of the relations from rels.
     #    Notice how unify is being used to turn paths into relators.
     #    
     
-    def dump(self):
+    def show(self):
         #    After this, the data structures contain the Schreier
         #    graph for G/H .  This can be interpreted as a permutation
         #    representation, for instance using
         
         cosets = [c for i, c in enumerate(self.labels) if i == c]
         
-        perms = [[cosets.index(self.follow(c, 2*d)) for i, c in enumerate(cosets)]
+        perms = [[cosets.index(self.follow_step(c, 2*d)) for i, c in enumerate(cosets)]
                  for d in range(self.ngens)]
         
         #    to enumerate the cosets (which are vertices which have
@@ -182,17 +209,45 @@ def test():
         (0, 2, 0, 2) # abab
     ]
     hgens = [
-        (2,), # b
+        #(2,), # b
     ]
-    
     graph = Schreier(ngens, rels, hgens)
     graph.build()
-    graph.dump()
+    #print(len(graph))
+    #graph.show()
+    assert len(graph) == 6 # S_3
+
+    ngens = 2
+    a, ai, b, bi = range(2*ngens)
+    rels = [ (ai, a), (bi, b), ]
+    hgens = [ (a,a), (b,b), (a,b)*3 ]
+    graph = Schreier(ngens, rels, hgens)
+    graph.build()
+    assert len(graph) == 6 # S_3
+    
+    ngens = 3
+    a, ai, b, bi, c, ci = range(2*ngens)
+    rels = [ (ai, a), (bi, b), (c,ci)]
+    hgens = [ (a,a), (b,b), (c,c), (a,c)*2, (a,b)*3, (b,c)*3 ]
+    graph = Schreier(ngens, rels, hgens)
+    graph.build()
+    assert len(graph) == 24 # S_4
+    
+    # Bring's curve
+    ngens = 2
+    a, ai, b, bi = range(2*ngens)
+    rels = [ (ai, a), (bi, b), (a,)*5, (b,b), (b,a)*5]
+    hgens = [ (a,a,a,b)*3 ]
+    graph = Schreier(ngens, rels, hgens)
+    #graph.DEBUG = True
+    graph.build()
+    assert len(graph) == 60
 
 
 if __name__ == "__main__":
 
     test()
 
+    print("OK\n")
 
         
