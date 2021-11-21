@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
+# Todd-Coxeter algorithm: compute finite group from generators and relations.
 # From: https://math.berkeley.edu/~kmill/notes/todd_coxeter.html
-# Example of Todd-Coxeter to compute S_3/<b>=<a,b|a^3,b^2,abab> from relations
 
-# The permutations can be written in cycle notation fairly
-# easily. One way is with
     
 def cycle(perm):
+    # The permutations can be written in cycle notation fairly
+    # easily. One way is with
     parts = []
     for i in range(len(perm)):
         part = [str(i+1)]
@@ -23,12 +23,12 @@ def cycle(perm):
 class Schreier(object):
     DEBUG = False
 
-    def __init__(self, ngens, rels, hgens):
+    def __init__(self, ngens, rels, hgens=[]):
         self.labels = []
         self.neighbors = []
         self.ngens = ngens
-        self.rels = rels
-        self.hgens = hgens
+        self.rels = list(rels)
+        self.hgens = list(hgens)
 
         #The labels variable is a list of numbers, with the property
         #that labels[i] <= i. This is a union-find data structure
@@ -233,7 +233,7 @@ def test():
     graph.build()
     assert len(graph) == 24 # S_4
     
-    # Bring's curve
+    # Bring's curve rotation group
     ngens = 2
     a, ai, b, bi = range(2*ngens)
     rels = [ (ai, a), (bi, b), (a,)*5, (b,b), (b,a)*5]
@@ -242,6 +242,30 @@ def test():
     #graph.DEBUG = True
     graph.build()
     assert len(graph) == 60
+
+    ngens = 2
+    a, ai, b, bi = range(2*ngens)
+    rels = [ (ai, a), (bi, b), (a,)*5, (b,b), (b,a)*5]
+    hgens = [ (a,a,a,b)*4 ]
+    graph = Schreier(ngens, rels, hgens)
+    #graph.DEBUG = True
+    graph.build()
+    assert len(graph) == 360
+
+    # Bring's curve reflection group
+    ngens = 3
+    a, ai, b, bi, c, ci = range(2*ngens)
+    rels = [
+        (ai, a), (bi, b), (ci, c), 
+        (a,)*2, (b,)*2, (c,)*2,
+        (a,b)*5, (b,c)*5, (a,c)*2,
+    ]
+    a1 = (b,a)
+    b1 = (a,c)
+    hgens = [ (3*a1+b1)*3 ]
+    graph = Schreier(ngens, rels, hgens)
+    graph.build()
+    assert len(graph) == 120
 
 
 if __name__ == "__main__":
