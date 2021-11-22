@@ -561,17 +561,19 @@ class Group(object):
 #        return id(self) < id(other)
 
     @classmethod
-    def generate(cls, perms, *args, **kw):
+    def generate(cls, gens, *args, **kw):
         items = kw.get("items")
         if items is not None:
             del kw["items"]
         else:
-            assert perms
-            items = perms[0].items
-        if not perms:
-            perms = [Perm.identity(items)]
-        perms = list(mulclose(perms, *args))
-        return cls(perms, items, **kw)
+            assert gens
+            items = gens[0].items
+        if not gens:
+            gens = [Perm.identity(items)]
+        perms = list(mulclose(gens, *args))
+        G = cls(perms, items, **kw)
+        G.gens = gens
+        return G
 
     def is_cyclic(self):
         n = len(self)

@@ -216,6 +216,12 @@ class Perm(object):
     def identity(self):
         return Perm(list(range(self.rank)))
 
+    def is_identity(self):
+        for i, ii in enumerate(self.perm):
+            if i != ii:
+                return False
+        return True
+
     def __str__(self):
         return "Perm(%s)"%(self.perm,)
     __repr__ = __str__
@@ -263,6 +269,16 @@ class Perm(object):
         perm = self.perm
         return [i for i in range(len(perm)) if perm[i]==i]
 
+    def order(self):
+        i = 1
+        g = self
+        while not g.is_identity():
+            g = self*g
+            i += 1
+            #assert i <= len(self.items)+1 # how big can this get ??
+        return i
+
+
     #def orbits(self):
 
 def compose(f, g):
@@ -273,16 +289,15 @@ class Coset(object):
     def __init__(self, perms):
         perms = list(perms)
         perms.sort()
-        assert perms
         #gen = list(gen)
         #self.gen = gen
         self.perms = perms
         self.n = len(self.perms)
-        self.rank = perms[0].rank
+        self.rank = perms[0].rank if perms else 0
         #self.lookup = dict((perm, idx) for (idx, perm) in enumerate(self.perms))
         #self.identity = Perm(list(range(self.rank)))
-        self._str = str(self.perms)
-        self._hash = hash(self._str)
+        #self._str = str(self.perms)
+        self._hash = hash(tuple(self.perms))
         #assert len(self.lookup) == self.n
 
     def __str__(self):
@@ -317,6 +332,10 @@ class Coset(object):
         perms = [h*g for h in self]
         return Coset(perms)
 
+    def intersect(self, other):
+        perms = set(self.perms).intersection(set(other.perms))
+        return Coset(perms)
+
 
 class Group(object):
     """
@@ -337,7 +356,7 @@ class Group(object):
         canonical.sort()
         self.canonical = canonical
         #gen = list(gen)
-        #self.gen = gen
+        self.gens = list(gen or perms)
         self.perms = perms
         self.n = len(self.perms)
         self.rank = perms[0].rank
@@ -358,6 +377,10 @@ class Group(object):
                 assert g*h in lookup
             assert g.inverse() in lookup
             assert g.inverse() * g == self.identity
+
+    @classmethod
+    def generate(cls, gens):
+        return cls(None, gens)
 
 #    @property
 #    def identity(self):
@@ -620,6 +643,15 @@ class Group(object):
         H = Group(perms)
         send_perms = [H.lookup[perm] for perm in all_perms]
         return GSet(G, H, send_perms)
+
+    def left_cosets(G, H):
+        assert isinstance(H, Group)
+        H = Coset(H)
+        cosets = set([H])
+        for g in G:
+            gH = H.left_mul(g)
+            cosets.add(gH)
+        return cosets
 
 
 class GSet(object):
