@@ -611,12 +611,14 @@ def make_bring():
 
 def make_codes():
     # start with hyperbolic Coxeter reflection group: a--5--b--5--c
-    ngens = 6
-    a, ai, b, bi, c, ci = range(ngens)
+    ngens = 8
+    a, ai, b, bi, c, ci, d, di = range(ngens)
     rels_552 = [
-        (ai, a), (bi, b), (ci, c), 
-        (a,)*2, (b,)*2, (c,)*2,
+        (ai, a), (bi, b), (ci, c), (di, d),
+        (a,)*2, (b,)*2, (c,)*2, (d,)*2,
         (a,b)*5, (b,c)*5, (a,c)*2,
+        (ci,d,a,d),
+        (a,d)*4, (b,d)*2, (d,c)*4,
     ]
 
     for rel in [
@@ -631,7 +633,10 @@ def make_codes():
         graph = Schreier(ngens, rels_552 + [rel])
         graph.build()
         G = graph.get_group()
+        print("|G| =", G)
         make_surface(G)
+
+        #break
 
 
 
@@ -646,7 +651,10 @@ def make_surface(G):
 
     print()
 
-    a, ai, b, bi, c, ci = G.gens
+    a, ai, b, bi, c, ci, d, di = G.gens
+    G0 = G
+    G = Group.generate([a, b, c])
+
     a1 = b*a
     b1 = a*c
 
@@ -658,7 +666,7 @@ def make_surface(G):
     #assert len(L) == 60, len(L)
     print("L:", len(L))
     orients = G.left_cosets(L)
-    assert len(orients) == 2
+    #assert len(orients) == 2
     #L, gL = orients
     orients = list(orients)
 
@@ -677,15 +685,13 @@ def make_surface(G):
     o_vertices = [vertex.intersect(orients[0]) for vertex in vertices] # oriented vertices
     print("o_vertices:", len(o_vertices))
 
-    J = Group.generate([a, c])
-    u_edges = G.left_cosets(J)
-    #assert len(u_edges) == 30 # unoriented edges
+    J0 = Group.generate([a, d, c])
 
-    assert G.is_subgroup(J)
-    gset = G.action_subgroup(J)
+    assert G0.is_subgroup(J0)
+    gset = G0.action_subgroup(J0)
     #print("stab:", len(gset.get_stabilizer()))
-    print("|G| =", len(G))
-    print("edges:", len(G) // len(J))
+    print("|G0| =", len(G0))
+    print("edges:", len(G0) // len(J0))
     for i, g in enumerate(gset.src):
         #if g in L:
         #    continue
@@ -694,6 +700,10 @@ def make_surface(G):
         n = len(h.fixed())
         print(n or '.', end=" ")
     print()
+
+    J = Group.generate([a, c])
+    u_edges = G.left_cosets(J)
+    #assert len(u_edges) == 30 # unoriented edges
 
     J = Group.generate([c])
     edges = G.left_cosets(J)
