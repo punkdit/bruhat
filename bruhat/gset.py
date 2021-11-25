@@ -598,13 +598,15 @@ class Group(object):
                         _bdy.add(K)
                         items.add(K)
                         if verbose:
-                            write('.')
+                            print('.', flush=True, end="")
                     #else:
-                    #    write('/')
+                    #    print('/')
             bdy = _bdy
             #if verbose:
             #    print "items:", len(items)
             #    print "bdy:", len(bdy)
+        if verbose:
+            print()
         items = list(items)
         items.sort(key = len)
         self._subgroups = items
@@ -616,12 +618,18 @@ class Group(object):
         GH = G.intersection(H)
         return Group(GH)
 
+    def is_subgroup(G, H):
+        assert isinstance(H, Group)
+        for h in H:
+            if h not in G:
+                return False
+        return True
+
     def action_subgroup(G, H):
         assert isinstance(H, Group)
         assert H.rank == G.rank
         if debug:
-            for h in H:
-                assert h in G
+            assert G.is_subgroup(H)
         H = Coset(H)
         cosets = set([H])
         remain = set(G)

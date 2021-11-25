@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
-from bruhat.gset import Perm, Group
+import sys
+from random import randint, seed, choice
+
+
+from bruhat.gset import Perm, Group, mulclose
 from bruhat.argv import argv
 
 # Todd-Coxeter algorithm: compute finite group from generators and relations.
@@ -30,16 +34,19 @@ def cycle(perm):
 class Schreier(object):
     """ 
     A Schreier coset graph coming from a group acting on the cosets
-    of a normal subgroup.
+    of a subgroup.
     """
     DEBUG = False
 
-    def __init__(self, ngens, rels, hgens=[]):
+    def __init__(self, ngens, rels):
         self.labels = []
         self.neighbors = []
         self.ngens = ngens
         self.rels = list(rels)
-        self.hgens = list(hgens)
+
+        for rel in rels:
+            for gen in rel:
+                assert 0 <= gen < ngens, repr(rel)
 
         #The labels variable is a list of _numbers, with the property
         #that labels[i] <= i. This is a union-find data structure
@@ -65,6 +72,7 @@ class Schreier(object):
 
     def get_label(self, c):
         labels = self.labels
+        assert c is not None
         c2 = labels[c]
         if c == c2:
             return c
@@ -148,52 +156,6 @@ class Schreier(object):
     #    to find the end of a path. The follow function creates
     #    new neighbors with the add_vertex() function.
 
-#    # Uses bruhat.action version of Group's and Perm's:
-#    def get_group(self):
-#        labels = self.labels
-#        neighbors = self.neighbors
-#        ngens = self.ngens
-#        items = [] # act on these
-#        for idx, row in enumerate(neighbors):
-#            jdx = self.get_label(idx)
-#            if idx == jdx:
-#                items.append(idx)
-#        gens = []
-#        for i in range(ngens):
-#            perm = {}
-#            for idx in items:
-#                nbd = neighbors[idx]
-#                perm[idx] = self.get_label(nbd[i])
-#            perm = Perm(perm, items)
-#            gens.append(perm)
-#        G = Group.generate(gens)
-#        return G
-    
-    def get_group(self):
-        labels = self.labels
-        neighbors = self.neighbors
-        ngens = self.ngens
-        items = [] # act on these
-        for idx, row in enumerate(neighbors):
-            jdx = self.get_label(idx)
-            if idx == jdx:
-                items.append(idx)
-        n = len(items)
-        lookup = dict((v,k) for (k,v) in enumerate(items))
-        gens = []
-        for i in range(ngens):
-            perm = [None]*n
-            for idx in items:
-                nbd = neighbors[idx]
-                src, tgt = lookup[idx], lookup[self.get_label(nbd[i])]
-                assert perm[src] is None
-                perm[src] = tgt
-            assert None not in perm
-            perm = Perm(perm)
-            gens.append(perm)
-        G = Group(None, gens)
-        return G
-    
     def dump(self):
         labels = self.labels
         neighbors = self.neighbors
@@ -208,11 +170,14 @@ class Schreier(object):
         return len([k for k in enumerate(self.labels) if k[0]==k[1]])
     
     #    Finally, there is the core algorithm: 
-    def build(self):
+    def build(self, hgens=[], maxsize=None):
         labels = self.labels
         neighbors = self.neighbors
         rels = self.rels
-        hgens = self.hgens
+
+        for rel in hgens:
+            for gen in rel:
+                assert 0 <= gen < self.ngens, repr(rel)
 
         start = self.add_vertex()
     
@@ -231,18 +196,51 @@ class Schreier(object):
                 print("to_visit =", to_visit)
             c = self.get_label(to_visit)
             if c == to_visit:
-                for rel in rels + hgens:
+                for rel in rels:
                     self.unify(self.follow_path(c, rel), c)
                 if self.DEBUG:
                     self.dump()
             to_visit += 1
             #assert len(neighbors)  < 60
+            if maxsize and len(neighbors) > maxsize:
+                return False
+        return True
         
     #    It creates the start vertex, adds all of the relations
     #    for H as relators at this basepoint, and then for each
     #    unmarked vertex, adds all of the relations from rels.
     #    Notice how unify is being used to turn paths into relators.
-    #    
+    
+    def get_gens(self):
+        labels = self.labels
+        neighbors = self.neighbors
+        ngens = self.ngens
+        cosets = [] # act on these
+        for idx, row in enumerate(neighbors):
+            jdx = self.get_label(idx)
+            if idx == jdx:
+                cosets.append(idx)
+        n = len(cosets)
+        #print("cosets:", n)
+        lookup = dict((v,k) for (k,v) in enumerate(cosets))
+        gens = []
+        for i in range(ngens):
+            perm = [None]*n
+            for idx in cosets:
+                nbd = neighbors[idx]
+                assert nbd[i] is not None, nbd
+                src, tgt = lookup[idx], lookup[self.get_label(nbd[i])]
+                assert perm[src] is None
+                perm[src] = tgt
+            assert None not in perm
+            perm = Perm(perm)
+            gens.append(perm)
+        return gens
+
+    def get_group(self):
+        gens = self.get_gens()
+        G = Group(None, gens)
+        return G
     
     def show(self):
         #    After this, the data structures contain the Schreier
@@ -260,8 +258,8 @@ class Schreier(object):
         #    to construct a permutation.
         #    
     
-        for d in range(self.ngens):
-            print("g%d ="%d, cycle(perms[d]))
+        #for d in range(self.ngens):
+        #    print("g%d ="%d, cycle(perms[d]))
 
     
 def test():
@@ -273,10 +271,7 @@ def test():
         (2, 2), # b^2
         (0, 2, 0, 2) # abab
     ]
-    hgens = [
-        #(2,), # b
-    ]
-    graph = Schreier(ngens, rels, hgens)
+    graph = Schreier(ngens, rels)
     graph.build()
     #print(len(graph))
     #graph.show()
@@ -285,24 +280,24 @@ def test():
     ngens = 2
     a, ai, b, bi = range(2*ngens)
     rels = [ (ai, a), (bi, b), ]
-    hgens = [ (a,a), (b,b), (a,b)*3 ]
-    graph = Schreier(2*ngens, rels, hgens)
+    rels += [ (a,a), (b,b), (a,b)*3 ]
+    graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 6 # S_3
     
     ngens = 3
     a, ai, b, bi, c, ci = range(2*ngens)
     rels = [ (ai, a), (bi, b), (c,ci)]
-    hgens = [ (a,a), (b,b), (c,c), (a,c)*2, (a,b)*3, (b,c)*3 ]
-    graph = Schreier(2*ngens, rels, hgens)
+    rels += [ (a,a), (b,b), (c,c), (a,c)*2, (a,b)*3, (b,c)*3 ]
+    graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 24 # S_4
     
     ngens = 4
     a, ai, b, bi, c, ci, d, di = range(2*ngens)
     rels = [ (ai, a), (bi, b), (c,ci), (d,di)]
-    hgens = [ (a,a), (b,b), (c,c), (d,d), (a,c)*2, (a,d)*2, (b,d)*2, (a,b)*3, (b,c)*4, (c,d)*3 ]
-    graph = Schreier(2*ngens, rels, hgens)
+    rels += [ (a,a), (b,b), (c,c), (d,d), (a,c)*2, (a,d)*2, (b,d)*2, (a,b)*3, (b,c)*4, (c,d)*3 ]
+    graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 1152 # F_4
     
@@ -310,25 +305,25 @@ def test():
         ngens = 4
         a, ai, b, bi, c, ci, d, di = range(2*ngens)
         rels = [ (ai, a), (bi, b), (c,ci), (d,di)]
-        hgens = [ (a,a), (b,b), (c,c), (d,d), (a,c)*2, (a,d)*2, (b,d)*2, (a,b)*5, (b,c)*3, (c,d)*3 ]
-        graph = Schreier(2*ngens, rels, hgens)
+        rels += [ (a,a), (b,b), (c,c), (d,d), (a,c)*2, (a,d)*2, (b,d)*2, (a,b)*5, (b,c)*3, (c,d)*3 ]
+        graph = Schreier(2*ngens, rels)
         graph.build()
         assert len(graph) == 14400 # H_4
     
 
     # Klein Quartic
     rels = [ (ai, a), (bi, b), (a,)*3, (b,)*7, (a,b)*2 ]
-    hgens = [ (a,bi,bi)*4 ]
-    graph = Schreier(2*ngens, rels, hgens)
+    rels += [ (a,bi,bi)*4 ]
+    graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 168, len(graph)
 
     ngens = 2
     a, ai, b, bi = range(2*ngens)
     rels = [ (ai, a), (bi, b), (a,)*5, (b,b), (b,a)*5]
-    #hgens = [ (a,a,a,b)*4 ] # 360
-    hgens = [ (a,a,a,b,a,b,a)*2 ]
-    graph = Schreier(2*ngens, rels, hgens)
+    #rels += [ (a,a,a,b)*4 ] # 360
+    rels += [ (a,a,a,b,a,b,a)*2 ]
+    graph = Schreier(2*ngens, rels)
     graph.build()
     #print(len(graph))
     assert len(graph) == 80
@@ -343,24 +338,123 @@ def test():
     ]
     a1 = (b,a)
     b1 = (a,c)
-    hgens = [ (3*a1+b1)*3 ]
-    graph = Schreier(2*ngens, rels, hgens)
+    rels += [ (3*a1+b1)*3 ]
+    graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 120 # == 12 * 10
     G = graph.get_group()
     assert len(G) == 120
 
+    #graph = Schreier(6, [
+    #    (ai, a), (bi, b), (ci, c), 
+    #    (a,a), (b,)*5, (c,)*3, (a,b)*3, (a,c)*3, (b,b,c)*2])
+    #graph.build()
+    #print(len(graph))
+
+
+    
+def make_random_modular():
+    ngens = 4
+    a, ai, b, bi = range(ngens)
+    rels = [ (ai, a), (bi, b), (a,)*2, (a,b,)*3, ] # modular group 
+    rels += [ (b,)*7, ] # 2,3,7 triangle group
+
+    for _ in range(10000):
+        graph = Schreier(ngens, rels)
+        hgens = []
+        for i in range(2):
+            gen = tuple(randint(0, ngens-1) for k in range(20))
+            hgens.append(gen)
+        if graph.build(hgens, maxsize=2000):
+            if len(graph) < 3:
+                continue
+            #print("hgens:", hgens)
+            gens = graph.get_gens()
+            G = mulclose(gens, maxsize=10000)
+            if len(G) < 10000:
+                print(len(graph), end=" ", flush=True)
+                print(len(G))
+
+
+def make_random_55():
+
+    seed(2)
+    sys.setrecursionlimit(4000)
+
+    ngens = 6
+    a, ai, b, bi, c, ci = range(ngens)
+    i_rels = [
+        (ai, a), (bi, b), (ci, c), 
+        (a,)*2, (b,)*2, (c,)*2,
+        (a,b)*5, (b,c)*5, (a,c)*2,
+    ]
+    a1 = (b,a)
+    b1 = (a,c)
+    rel1 = (3*a1+b1)*3 # Bring's curve
+
+    for _ in range(10000):
+        rels = list(i_rels)
+        for i in range(1):
+            #gen = tuple([a, b, c][randint(0, 2)] for k in range(30))
+            gen = ()
+            for k in range(30):
+                gen += choice([(a,b), (a,c), (b,c)])
+            #gen = rel1
+            rels.append(gen)
+        graph = Schreier(ngens, rels)
+        if graph.build(maxsize=40000):
+            n = len(graph)
+            if n < 120:
+                continue
+            #print("rels:", rels)
+            #graph.show()
+            print(len(graph.neighbors))
+            try:
+                gens = graph.get_gens()
+            except AssertionError:
+                print("XXX")
+                continue
+            G = mulclose(gens, maxsize=10000)
+            if len(G) < 10000:
+                print(gen)
+                print(len(graph), end=" ", flush=True)
+                print(len(G))
+            print()
+
+
 
 def make_bring():
+
+#    # ------------ _oriented version ---------------
+#    
+#    # Bring's curve reflection group
+#    ngens = 3
+#    a, ai, b, bi, c, ci = range(2*ngens)
+#    rels = [
+#        (ai, a), (bi, b), (ci, c), 
+#        (a,)*2, (b,)*2, (c,)*2,
+#        (a,b)*5, (b,c)*5, (a,c)*2,
+#    ]
+#    a1 = (b,a)
+#    b1 = (a,c)
+#    hgens = [ (3*a1+b1)*3 ]
+#    graph = Schreier(2*ngens, rels)
+#    graph.build()
+#    assert len(graph) == 120, len(graph)
+
+    # ------------------------------------------------
+
     # Bring's curve rotation group
     ngens = 2
     a, ai, b, bi = range(2*ngens)
-    rels = [ (ai, a), (bi, b), (a,)*5, (b,b), (b,a)*5]
-    hgens = [ (a,a,a,b)*3 ]
-    graph = Schreier(2*ngens, rels, hgens)
+    rels = [ (ai, a), (bi, b), (a,)*5, (b,)*2]
+    rels += [ (a,a,a,b)*3 ]
+    graph = Schreier(2*ngens, rels)
     #graph.DEBUG = True
     graph.build()
     assert len(graph) == 60 # == 12 * 5
+
+    # --------------- Group ------------------
     G = graph.get_group()
     #burnside(G)
     assert len(G.gens) == 4
@@ -398,10 +492,10 @@ def make_bring():
 
     Hz = get_adj(faces, edges)
     Hxt = get_adj(edges, vertices)
-    print(shortstr(Hz))
-    print()
-    print(shortstr(Hxt))
-    print()
+    #print(shortstr(Hz))
+    #print()
+    #print(shortstr(Hxt))
+    #print()
 
     assert alltrue(dot2(Hz, Hxt)==0)
 
@@ -417,8 +511,8 @@ def make_bring():
     ]
     a1 = (b,a)
     b1 = (a,c)
-    hgens = [ (3*a1+b1)*3 ]
-    graph = Schreier(2*ngens, rels, hgens)
+    rels += [ (3*a1+b1)*3 ]
+    graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 120 # == 12 * 10
 
@@ -465,6 +559,7 @@ def make_bring():
     edges = G.left_cosets(J)
     assert len(edges) == 60, len(edges) # oriented edges ?
 
+    # Here we choose an orientation on each edge:
     pairs = {}
     for e in u_edges:
         pairs[e] = []
@@ -506,21 +601,176 @@ def make_bring():
         else:
             assert 0
 
-    print(shortstr(Hz))
-    print()
-    print(shortstr(Hxt))
-    print()
+    #print(shortstr(Hz))
+    #print()
+    #print(shortstr(Hxt))
+    #print()
 
     assert alltrue(dot(Hz, Hxt)==0)
+
+
+def make_codes():
+    # start with hyperbolic Coxeter reflection group: a--5--b--5--c
+    ngens = 6
+    a, ai, b, bi, c, ci = range(ngens)
+    rels_552 = [
+        (ai, a), (bi, b), (ci, c), 
+        (a,)*2, (b,)*2, (c,)*2,
+        (a,b)*5, (b,c)*5, (a,c)*2,
+    ]
+
+    for rel in [
+        (3*(b,a)+(a,c))*3, # relator for Bring's curve
+        (0, 2, 0, 2, 2, 4, 2, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 4,
+            0, 4, 0, 2, 2, 4, 0, 2, 0, 4, 0, 4, 0, 2, 0, 4, 0, 2, 0, 4, 0, 2),
+        (2, 4, 0, 2, 0, 2, 0, 2, 0, 2, 2, 4, 0, 2, 0, 4,
+            0, 2, 2, 4, 2, 4, 2, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 4,
+            0, 4, 0, 2, 0, 4, 0, 2, 2, 4, 0, 2, 0, 2, 0, 4, 0, 2,
+            0, 4, 0, 4, 2, 4, 0, 4),
+    ]:
+        graph = Schreier(ngens, rels_552 + [rel])
+        graph.build()
+        G = graph.get_group()
+        make_surface(G)
+
+
+
+class Surface(object):
+    def __init__(self, G):
+        pass
+
+
+def make_surface(G):
+    from bruhat.solve import shortstr, zeros2, dot2
+    from numpy import alltrue, zeros, dot
+
+    print()
+
+    a, ai, b, bi, c, ci = G.gens
+    a1 = b*a
+    b1 = a*c
+
+    bc = b*c
+    ba = b*a
+    #assert bc.order() == 5
+    #assert ba.order() == 5
+    L = Group.generate([a1, b1])
+    #assert len(L) == 60, len(L)
+    print("L:", len(L))
+    orients = G.left_cosets(L)
+    assert len(orients) == 2
+    #L, gL = orients
+    orients = list(orients)
+
+    H = Group.generate([a, b])
+    #assert len([g for g in H if g in L]) == 5
+    faces = G.left_cosets(H)
+    #assert len(faces) == 12 # unoriented faces
+    print("faces:", len(faces))
+    #hom = G.left_action(faces)
+    o_faces = [face.intersect(orients[0]) for face in faces] # oriented faces
+    r_faces = [face.intersect(orients[1]) for face in faces] # reverse oriented faces
+
+    K = Group.generate([b, c])
+    vertices = G.left_cosets(K)
+    #assert len(vertices) == 12 # unoriented vertices
+    o_vertices = [vertex.intersect(orients[0]) for vertex in vertices] # oriented vertices
+    print("o_vertices:", len(o_vertices))
+
+    J = Group.generate([a, c])
+    u_edges = G.left_cosets(J)
+    #assert len(u_edges) == 30 # unoriented edges
+
+    assert G.is_subgroup(J)
+    gset = G.action_subgroup(J)
+    #print("stab:", len(gset.get_stabilizer()))
+    print("|G| =", len(G))
+    print("edges:", len(G) // len(J))
+    for i, g in enumerate(gset.src):
+        #if g in L:
+        #    continue
+        j = gset.send_perms[i]
+        h = gset.tgt[j]
+        n = len(h.fixed())
+        print(n or '.', end=" ")
+    print()
+
+    J = Group.generate([c])
+    edges = G.left_cosets(J)
+    #assert len(edges) == 60, len(edges) # oriented edges ?
+
+    # Here we choose an orientation on each edge:
+    pairs = {}
+    for e in u_edges:
+        pairs[e] = []
+        for e1 in edges:
+            if e.intersect(e1):
+                pairs[e].append(e1)
+        assert len(pairs[e]) == 2
+
+    def shortstr(A):
+        s = str(A)
+        s = s.replace("0", '.')
+        return s
+
+    Hz = zeros((len(o_faces), len(u_edges)), dtype=int)
+    for i, l in enumerate(o_faces):
+      for j, e in enumerate(u_edges):
+        le = l.intersect(e)
+        if not le:
+            continue
+        e1, e2 = pairs[e]
+        if e1.intersect(le):
+            Hz[i, j] = 1
+        elif e2.intersect(le):
+            Hz[i, j] = -1
+        else:
+            assert 0
+
+    Hxt = zeros((len(u_edges), len(o_vertices)), dtype=int)
+    for i, e in enumerate(u_edges):
+      for j, v in enumerate(o_vertices):
+        ev = e.intersect(v)
+        if not ev:
+            continue
+        e1, e2 = pairs[e]
+        if e1.intersect(ev):
+            Hxt[i, j] = 1
+        elif e2.intersect(ev):
+            Hxt[i, j] = -1
+        else:
+            assert 0
+
+    #print(shortstr(Hz))
+    #print()
+    #print(shortstr(Hxt))
+    #print()
+
+    assert alltrue(dot(Hz, Hxt)==0)
+
+    import qupy.ldpc.solve
+    import bruhat.solve
+    qupy.ldpc.solve.int_scalar = bruhat.solve.int_scalar
+    from qupy.ldpc.css import CSSCode
+    Hz = Hz % 2
+    Hx = Hxt.transpose() % 2
+    code = CSSCode(Hz=Hz, Hx=Hx)
+    print(code)
 
 
 
 if __name__ == "__main__":
 
+    profile = argv.profile
+    name = argv.next()
 
-    if argv.profile:
+    if profile:
         import cProfile as profile
         profile.run("make_bring()")
+
+    elif name is not None:
+        fn = eval(name)
+        fn()
 
     else:
         test()
