@@ -378,8 +378,8 @@ def make_random_modular():
 
 def make_random_55():
 
-    seed(2)
-    sys.setrecursionlimit(4000)
+    seed(4)
+    sys.setrecursionlimit(8000)
 
     ngens = 6
     a, ai, b, bi, c, ci = range(ngens)
@@ -402,9 +402,10 @@ def make_random_55():
             #gen = rel1
             rels.append(gen)
         graph = Schreier(ngens, rels)
-        if graph.build(maxsize=40000):
+        if graph.build(maxsize=120000):
+            print(".", flush=True, end="")
             n = len(graph)
-            if n < 120:
+            if n < 320:
                 continue
             #print("rels:", rels)
             #graph.show()
@@ -424,23 +425,6 @@ def make_random_55():
 
 
 def make_bring():
-
-#    # ------------ _oriented version ---------------
-#    
-#    # Bring's curve reflection group
-#    ngens = 3
-#    a, ai, b, bi, c, ci = range(2*ngens)
-#    rels = [
-#        (ai, a), (bi, b), (ci, c), 
-#        (a,)*2, (b,)*2, (c,)*2,
-#        (a,b)*5, (b,c)*5, (a,c)*2,
-#    ]
-#    a1 = (b,a)
-#    b1 = (a,c)
-#    hgens = [ (3*a1+b1)*3 ]
-#    graph = Schreier(2*ngens, rels)
-#    graph.build()
-#    assert len(graph) == 120, len(graph)
 
     # ------------------------------------------------
 
@@ -611,6 +595,7 @@ def make_bring():
 
 def make_codes():
     # start with hyperbolic Coxeter reflection group: a--5--b--5--c
+    # Then we add another generator "d" that halves these triangles.
     ngens = 8
     a, ai, b, bi, c, ci, d, di = range(ngens)
     rels_552 = [
@@ -622,13 +607,18 @@ def make_codes():
     ]
 
     for rel in [
-        (3*(b,a)+(a,c))*3, # relator for Bring's curve
+        (3*(b,a)+(a,c))*3,           # 120  [[30,8,3]]
         (0, 2, 0, 2, 2, 4, 2, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 4,
-            0, 4, 0, 2, 2, 4, 0, 2, 0, 4, 0, 4, 0, 2, 0, 4, 0, 2, 0, 4, 0, 2),
+            0, 4, 0, 2, 2, 4, 0, 2, 0, 4, 0, 4, 0, 2, 0, 4, 0, 2,
+            0, 4, 0, 2),             # 160  [[40,10,?]]
         (2, 4, 0, 2, 0, 2, 0, 2, 0, 2, 2, 4, 0, 2, 0, 4,
             0, 2, 2, 4, 2, 4, 2, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 4,
             0, 4, 0, 2, 0, 4, 0, 2, 2, 4, 0, 2, 0, 2, 0, 4, 0, 2,
-            0, 4, 0, 4, 2, 4, 0, 4),
+            0, 4, 0, 4, 2, 4, 0, 4), # 320  [[80,18,?]]
+        (0, 2, 0, 4, 0, 2, 0, 2, 0, 4, 0, 2, 2, 4, 0, 2, 2, 4,
+            0, 2, 2, 4, 0, 4, 0, 2, 0, 2, 0, 4, 0, 2, 0, 2, 0, 2,
+            2, 4, 0, 4, 2, 4, 0, 4, 2, 4, 0, 4, 0, 2, 0, 2, 2, 4,
+            2, 4, 2, 4, 2, 4),       # 720  [[180,38,?]]
     ]:
         graph = Schreier(ngens, rels_552 + [rel])
         graph.build()
@@ -660,8 +650,6 @@ def make_surface(G):
 
     bc = b*c
     ba = b*a
-    #assert bc.order() == 5
-    #assert ba.order() == 5
     L = Group.generate([a1, b1])
     #assert len(L) == 60, len(L)
     print("L:", len(L))
@@ -703,11 +691,9 @@ def make_surface(G):
 
     J = Group.generate([a, c])
     u_edges = G.left_cosets(J)
-    #assert len(u_edges) == 30 # unoriented edges
 
     J = Group.generate([c])
     edges = G.left_cosets(J)
-    #assert len(edges) == 60, len(edges) # oriented edges ?
 
     # Here we choose an orientation on each edge:
     pairs = {}
