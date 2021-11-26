@@ -327,6 +327,12 @@ class Coset(object):
         perms = [g*h for h in self]
         return Coset(perms)
 
+    def left_mul_perm(self, g):
+        assert g.rank == self.rank
+        perms = [g*h for h in self]
+        idxs = Perm([self.perms.index(perm) for perm in perms])
+        return idxs
+
     def right_mul(self, g):
         assert g.rank == self.rank
         perms = [h*g for h in self]

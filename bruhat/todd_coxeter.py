@@ -4,8 +4,10 @@ import sys
 from random import randint, seed, choice
 
 
-from bruhat.gset import Perm, Group, mulclose
+from bruhat.gset import Perm, Group, Coset, mulclose
 from bruhat.argv import argv
+
+#sys.setrecursionlimit(8000)
 
 # Todd-Coxeter algorithm: compute finite group from generators and relations.
 # Implementation from: 
@@ -93,8 +95,19 @@ class Schreier(object):
 #        return c1
     
     # The identification procedure is called unify. 
+
+    """
+    I think I see the bug -- in the unify routine, when it's copying over and
+    unifying the neighbors list, it immediately calls unify(n1, n2).  This is
+    not correct, since this might result in c1 or c2 no longer satisfying c1 ==
+    find(c1) or c2 == find(c2), and as a result the neighbors will either get
+    stored into an old neighbors list or read from an old neighbors list.  I
+    think the fix is to create a to_unify = [] array right before the loop,
+    replace unify(n1, n2) with to_unify.append((n1, n2)), and then after the
+    loop have a second loop for n1, n2 in to_unify: unify(n1, n2).
+    """
     
-    def unify(self, c1, c2):
+    def unify_recursive(self, c1, c2):
         labels = self.labels
         neighbors = self.neighbors
         ngens = self.ngens
@@ -106,13 +119,42 @@ class Schreier(object):
         if self.DEBUG:
             print("unify:", c2, "-->", c1)
         labels[c2] = c1
+        to_unify = []
         for d in range(ngens):
             n1 = neighbors[c1][d]
             n2 = neighbors[c2][d]
             if n1 == None:
                 neighbors[c1][d] = n2
             elif n2 != None:
-                self.unify(n1, n2) # recurse
+                #self.unify(n1, n2) # recurse
+                to_unify.append((n1, n2))
+        for n1, n2 in to_unify:
+            self.unify_recursive(n1, n2) # recurse
+    
+    def unify(self, c1, c2):
+        labels = self.labels
+        neighbors = self.neighbors
+        ngens = self.ngens
+        to_unify = [(c1, c2)]
+        while to_unify:
+            c1, c2 = to_unify.pop()
+            c1 = self.get_label(c1)
+            c2 = self.get_label(c2)
+            if c1 == c2:
+                continue
+            c1, c2 = min(c1, c2), max(c1, c2)
+            if self.DEBUG:
+                print("unify:", c2, "-->", c1)
+            labels[c2] = c1
+            for d in range(ngens):
+                n1 = neighbors[c1][d]
+                n2 = neighbors[c2][d]
+                if n1 == None:
+                    neighbors[c1][d] = n2
+                elif n2 != None:
+                    to_unify.append((n1, n2))
+
+    #unify = unify_recursive
     
     #    It takes two vertices, and makes the one with the greater
     #    label refer to the lesser one with labels[c2] = c1. Then,
@@ -351,6 +393,19 @@ def test():
     #graph.build()
     #print(len(graph))
 
+    ngens = 8
+    rels = [(1, 0), (3, 2), (5, 4), (0, 0), (2, 2), (4, 4),
+        (6, 7), (7, 4, 0, 4), (4, 6, 4, 6, 4, 6, 4, 6), (0, 4,
+        0, 4, 0, 4, 0, 4), (2, 4, 2, 4, 2, 4, 2, 4), (0, 2, 0,
+        2, 0, 2, 0, 2, 0, 2), (0, 4, 0, 4, 0, 4, 0, 4), (2, 4,
+        2, 4), (2, 0, 2, 0, 2, 0, 0, 6, 2, 0, 2, 0, 2, 0, 0,
+        6, 2, 0, 2, 0, 2, 0, 0, 6)]
+    hgens = []
+    graph = Schreier(ngens, rels)
+    graph.build()
+
+    assert len(graph) == 240
+
 
     
 def make_random_modular():
@@ -379,7 +434,6 @@ def make_random_modular():
 def make_random_55():
 
     seed(4)
-    sys.setrecursionlimit(8000)
 
     ngens = 6
     a, ai, b, bi, c, ci = range(ngens)
@@ -593,7 +647,7 @@ def make_bring():
     assert alltrue(dot(Hz, Hxt)==0)
 
 
-def make_codes():
+def make_codes_55():
     # start with hyperbolic Coxeter reflection group: a--5--b--5--c
     # Then we add another generator "d" that halves these triangles.
     ngens = 8
@@ -606,6 +660,9 @@ def make_codes():
         (a,d)*4, (b,d)*2, (d,c)*4,
     ]
 
+    order = argv.get("order")
+
+    # Bring's curve & some random generators found from running make_random_55.
     for rel in [
         (3*(b,a)+(a,c))*3,           # 120  [[30,8,3]]
         (0, 2, 0, 2, 2, 4, 2, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 4,
@@ -615,6 +672,10 @@ def make_codes():
             0, 2, 2, 4, 2, 4, 2, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 4,
             0, 4, 0, 2, 0, 4, 0, 2, 2, 4, 0, 2, 0, 2, 0, 4, 0, 2,
             0, 4, 0, 4, 2, 4, 0, 4), # 320  [[80,18,?]]
+        (0, 2, 0, 2, 0, 4, 0, 2, 2, 4, 0, 2, 0, 4, 0, 2, 0, 4,
+            2, 4, 2, 4, 0, 2, 0, 4, 2, 4, 0, 4, 0, 2, 2, 4, 0, 4,
+            2, 4, 0, 4, 2, 4, 0, 2, 0, 4, 0, 2, 0, 4, 0, 4, 0, 4,
+            2, 4, 0, 4, 2, 4),       # 600 [[150,32,?]]
         (0, 2, 0, 4, 0, 2, 0, 2, 0, 4, 0, 2, 2, 4, 0, 2, 2, 4,
             0, 2, 2, 4, 0, 4, 0, 2, 0, 2, 0, 4, 0, 2, 0, 2, 0, 2,
             2, 4, 0, 4, 2, 4, 0, 4, 2, 4, 0, 4, 0, 2, 0, 2, 2, 4,
@@ -623,10 +684,52 @@ def make_codes():
         graph = Schreier(ngens, rels_552 + [rel])
         graph.build()
         G = graph.get_group()
-        print("|G| =", G)
-        make_surface(G)
 
-        #break
+        if order is not None and len(G) != order:
+            print(len(G))
+            continue
+
+        make_surface_54(G)
+
+        if argv.bring:
+            break
+
+
+def make_codes_45():
+    # start with hyperbolic Coxeter reflection group: d--4--a--5--b
+    # FAIL
+    ngens = 8
+    a, ai, b, bi, d, di, c, ci = range(ngens)
+    rels_452 = [
+        (ai, a), (bi, b), (di, d),
+        (a,)*2, (b,)*2, (d,)*2,
+        (c, ci), (ci, d, a, d), (d,c)*4, (a,d)*4, (b,d)*4,
+        (a,b)*5, (a,d)*4, (b,d)*2,
+    ]
+
+    for rel in [
+        (3*(b,a)+(a,c))*3,           # 120  [[30,8,3]]
+        (a, b, a, b, b, c, b, c, a, b, a, b, a, c, b, c, a, c,
+            a, c, a, b, b, c, a, b, a, c, a, c, a, b, a, c, a, b,
+            a, c, a, b),             # 16a  [[ca,1a,?]]
+        (b, c, a, b, a, b, a, b, a, b, b, c, a, b, a, c,
+            a, b, b, c, b, c, b, c, a, b, a, b, a, c, b, c, a, c,
+            a, c, a, b, a, c, a, b, b, c, a, b, a, b, a, c, a, b,
+            a, c, a, c, b, c, a, c), # 3ba  [[8a,18,?]]
+        (a, b, a, c, a, b, a, b, a, c, a, b, b, c, a, b, b, c,
+            a, b, b, c, a, c, a, b, a, b, a, c, a, b, a, b, a, b,
+            b, c, a, c, b, c, a, c, b, c, a, c, a, b, a, b, b, c,
+            b, c, b, c, b, c),       # 7ba  [[18a,38,?]]
+    ]:
+        print(ngens, rels_452+[rel])
+        graph = Schreier(ngens, rels_452 + [rel])
+        graph.build()
+        G = graph.get_group()
+        print("|G| =", G)
+        #make_surface(G)
+
+        if argv.bring:
+            break
 
 
 
@@ -635,65 +738,91 @@ class Surface(object):
         pass
 
 
-def make_surface(G):
+def make_surface_54(G0):
     from bruhat.solve import shortstr, zeros2, dot2
     from numpy import alltrue, zeros, dot
 
     print()
+    print("|G0| =", len(G0))
 
-    a, ai, b, bi, c, ci, d, di = G.gens
-    G0 = G
-    G = Group.generate([a, b, c])
+    a, ai, b, bi, c, ci, d, di = G0.gens
 
-    a1 = b*a
-    b1 = a*c
+    # 5,5 coxeter subgroup
+    G_55 = Group.generate([a, b, c])
+    assert G0.is_subgroup(G_55)
 
-    bc = b*c
-    ba = b*a
-    L = Group.generate([a1, b1])
+    # orientation subgroup
+    L = Group.generate([a*b, a*d])
     #assert len(L) == 60, len(L)
     print("L:", len(L))
-    orients = G.left_cosets(L)
-    #assert len(orients) == 2
-    #L, gL = orients
+    orients = G0.left_cosets(L)
+    assert len(orients) == 2
     orients = list(orients)
 
     H = Group.generate([a, b])
-    #assert len([g for g in H if g in L]) == 5
-    faces = G.left_cosets(H)
-    #assert len(faces) == 12 # unoriented faces
+    faces = G_55.left_cosets(H)
+    fold_faces = G0.left_cosets(H)
     print("faces:", len(faces))
+    print("fold_faces:", len(fold_faces))
     #hom = G.left_action(faces)
     o_faces = [face.intersect(orients[0]) for face in faces] # oriented faces
     r_faces = [face.intersect(orients[1]) for face in faces] # reverse oriented faces
 
     K = Group.generate([b, c])
-    vertices = G.left_cosets(K)
+    vertices = G_55.left_cosets(K)
     #assert len(vertices) == 12 # unoriented vertices
     o_vertices = [vertex.intersect(orients[0]) for vertex in vertices] # oriented vertices
     print("o_vertices:", len(o_vertices))
 
-    J0 = Group.generate([a, d, c])
+    J0 = Group.generate([a, d])
+    assert len(J0) == 8
 
     assert G0.is_subgroup(J0)
-    gset = G0.action_subgroup(J0)
-    #print("stab:", len(gset.get_stabilizer()))
+    act_edges = G0.action_subgroup(J0)
+    act_fold_faces = G0.action_subgroup(H)
+    #print("stab:", len(act_edges.get_stabilizer()))
     print("|G0| =", len(G0))
     print("edges:", len(G0) // len(J0))
-    for i, g in enumerate(gset.src):
-        #if g in L:
-        #    continue
-        j = gset.send_perms[i]
-        h = gset.tgt[j]
-        n = len(h.fixed())
-        print(n or '.', end=" ")
+    edges = G0.left_cosets(J0)
+    #for e in edges:
+    #    k = choice(e.perms)
+    #    e1 = e.left_mul(~k)
+    #    assert set(e1.perms) == set(J0.perms)
+    for i, g in enumerate(G0):
+        assert g in G0
+        h_edge = act_edges.tgt[act_edges.send_perms[i]]
+        h_fold_faces = act_fold_faces.tgt[act_fold_faces.send_perms[i]]
+        n_edge = len(h_edge.fixed())
+        n_fold_faces = len(h_fold_faces.fixed())
+        count = 0
+        perms = [] # extract action on the fixed edges
+        for e0 in edges:
+            e1 = e0.left_mul(g)
+            if e0 != e1:
+                continue
+            perm = e0.left_mul_perm(g)
+            #print(perm, end=" ")
+            perms.append(perm)
+            count += 1
+        assert count == n_edge
+        print([p.order() for p in perms] or '', end="")
+        print("[|g|=%s,%s.%s.%s.%s]"%(
+            g.order(),
+            n_edge or ' ',  # num fixed edges
+            n_fold_faces or ' ',  # num fixed faces+vertexes
+            ["    ", "pres"][int(g in G_55)], # preserves face/vertex distinction
+            ["refl", "rot "][int(g in L)], # oriented or un-oriented
+        ), end=" ", flush=True)
+        print()
     print()
 
     J = Group.generate([a, c])
-    u_edges = G.left_cosets(J)
+    u_edges = G_55.left_cosets(J)
+    print("u_edges:", len(u_edges))
 
     J = Group.generate([c])
-    edges = G.left_cosets(J)
+    edges = G_55.left_cosets(J)
+    print("edges:", len(edges))
 
     # Here we choose an orientation on each edge:
     pairs = {}
@@ -753,6 +882,128 @@ def make_surface(G):
     code = CSSCode(Hz=Hz, Hx=Hx)
     print(code)
 
+
+
+#def make_surface(G0):
+#    from bruhat.solve import shortstr, zeros2, dot2
+#    from numpy import alltrue, zeros, dot
+#
+#    print()
+#
+#    a, ai, b, bi, c, ci, d, di = G0.gens
+#    G = Group.generate([a, b, c])
+#
+#    a1 = b*a
+#    b1 = a*c
+#
+#    bc = b*c
+#    ba = b*a
+#    L = Group.generate([a1, b1])
+#    #assert len(L) == 60, len(L)
+#    print("L:", len(L))
+#    orients = G.left_cosets(L)
+#    #assert len(orients) == 2
+#    #L, gL = orients
+#    orients = list(orients)
+#
+#    H = Group.generate([a, b])
+#    #assert len([g for g in H if g in L]) == 5
+#    faces = G.left_cosets(H)
+#    #assert len(faces) == 12 # unoriented faces
+#    print("faces:", len(faces))
+#    #hom = G.left_action(faces)
+#    o_faces = [face.intersect(orients[0]) for face in faces] # oriented faces
+#    r_faces = [face.intersect(orients[1]) for face in faces] # reverse oriented faces
+#
+#    K = Group.generate([b, c])
+#    vertices = G.left_cosets(K)
+#    #assert len(vertices) == 12 # unoriented vertices
+#    o_vertices = [vertex.intersect(orients[0]) for vertex in vertices] # oriented vertices
+#    print("o_vertices:", len(o_vertices))
+#
+#    J0 = Group.generate([a, d])
+#    assert len(J0) == 8
+#
+#    assert G0.is_subgroup(J0)
+#    gset = G0.action_subgroup(J0)
+#    #print("stab:", len(gset.get_stabilizer()))
+#    print("|G0| =", len(G0))
+#    print("edges:", len(G0) // len(J0))
+#    for i, g in enumerate(gset.src):
+#        #if g in L:
+#        #    continue
+#        j = gset.send_perms[i]
+#        h = gset.tgt[j]
+#        n = len(h.fixed())
+#        print(n or '.', end=" ")
+#    print()
+#
+#    J = Group.generate([a, c])
+#    u_edges = G.left_cosets(J)
+#    print("u_edges:", len(u_edges))
+#
+#    J = Group.generate([c])
+#    edges = G.left_cosets(J)
+#    print("edges:", len(edges))
+#
+#    # Here we choose an orientation on each edge:
+#    pairs = {}
+#    for e in u_edges:
+#        pairs[e] = []
+#        for e1 in edges:
+#            if e.intersect(e1):
+#                pairs[e].append(e1)
+#        assert len(pairs[e]) == 2
+#
+#    def shortstr(A):
+#        s = str(A)
+#        s = s.replace("0", '.')
+#        return s
+#
+#    Hz = zeros((len(o_faces), len(u_edges)), dtype=int)
+#    for i, l in enumerate(o_faces):
+#      for j, e in enumerate(u_edges):
+#        le = l.intersect(e)
+#        if not le:
+#            continue
+#        e1, e2 = pairs[e]
+#        if e1.intersect(le):
+#            Hz[i, j] = 1
+#        elif e2.intersect(le):
+#            Hz[i, j] = -1
+#        else:
+#            assert 0
+#
+#    Hxt = zeros((len(u_edges), len(o_vertices)), dtype=int)
+#    for i, e in enumerate(u_edges):
+#      for j, v in enumerate(o_vertices):
+#        ev = e.intersect(v)
+#        if not ev:
+#            continue
+#        e1, e2 = pairs[e]
+#        if e1.intersect(ev):
+#            Hxt[i, j] = 1
+#        elif e2.intersect(ev):
+#            Hxt[i, j] = -1
+#        else:
+#            assert 0
+#
+#    #print(shortstr(Hz))
+#    #print()
+#    #print(shortstr(Hxt))
+#    #print()
+#
+#    assert alltrue(dot(Hz, Hxt)==0)
+#
+#    import qupy.ldpc.solve
+#    import bruhat.solve
+#    qupy.ldpc.solve.int_scalar = bruhat.solve.int_scalar
+#    from qupy.ldpc.css import CSSCode
+#    Hz = Hz % 2
+#    Hx = Hxt.transpose() % 2
+#    code = CSSCode(Hz=Hz, Hx=Hx)
+#    print(code)
+#
 
 
 if __name__ == "__main__":
