@@ -433,7 +433,7 @@ def make_random_modular():
 
 def make_random_55():
 
-    seed(4)
+    #seed(4)
 
     ngens = 6
     a, ai, b, bi, c, ci = range(ngens)
@@ -451,15 +451,15 @@ def make_random_55():
         for i in range(1):
             #gen = tuple([a, b, c][randint(0, 2)] for k in range(30))
             gen = ()
-            for k in range(30):
+            for k in range(50):
                 gen += choice([(a,b), (a,c), (b,c)])
             #gen = rel1
             rels.append(gen)
         graph = Schreier(ngens, rels)
-        if graph.build(maxsize=120000):
+        if graph.build(maxsize=640000):
             print(".", flush=True, end="")
             n = len(graph)
-            if n < 320:
+            if n <= 720:
                 continue
             #print("rels:", rels)
             #graph.show()
@@ -680,12 +680,18 @@ def make_codes_55():
             0, 2, 2, 4, 0, 4, 0, 2, 0, 2, 0, 4, 0, 2, 0, 2, 0, 2,
             2, 4, 0, 4, 2, 4, 0, 4, 2, 4, 0, 4, 0, 2, 0, 2, 2, 4,
             2, 4, 2, 4, 2, 4),       # 720  [[180,38,?]]
+        (2, 4, 0, 4, 0, 4, 0, 4, 2, 4, 0, 2, 2, 4, 2, 4, 0, 2,
+            0, 2, 2, 4, 0, 2, 2, 4, 0, 4, 0, 4, 0, 2, 2, 4, 0, 4,
+            0, 2, 0, 4, 0, 4, 0, 2, 0, 4, 0, 2, 2, 4, 2, 4, 2, 4,
+            0, 2, 0, 2, 0, 2, 2, 4, 2, 4, 0, 2, 0, 2, 0, 2, 2, 4,
+            0, 2, 2, 4, 0, 2, 0, 4, 0, 2, 2, 4, 0, 4, 0, 4, 2, 4,
+            0, 2, 0, 2, 2, 4, 0, 4, 0, 2), # 1320
     ]:
         graph = Schreier(ngens, rels_552 + [rel])
         graph.build()
         G = graph.get_group()
 
-        if order is not None and len(G) != order:
+        if order is not None and len(G) != order*2:
             print(len(G))
             continue
 
@@ -693,44 +699,6 @@ def make_codes_55():
 
         if argv.bring:
             break
-
-
-def make_codes_45():
-    # start with hyperbolic Coxeter reflection group: d--4--a--5--b
-    # FAIL
-    ngens = 8
-    a, ai, b, bi, d, di, c, ci = range(ngens)
-    rels_452 = [
-        (ai, a), (bi, b), (di, d),
-        (a,)*2, (b,)*2, (d,)*2,
-        (c, ci), (ci, d, a, d), (d,c)*4, (a,d)*4, (b,d)*4,
-        (a,b)*5, (a,d)*4, (b,d)*2,
-    ]
-
-    for rel in [
-        (3*(b,a)+(a,c))*3,           # 120  [[30,8,3]]
-        (a, b, a, b, b, c, b, c, a, b, a, b, a, c, b, c, a, c,
-            a, c, a, b, b, c, a, b, a, c, a, c, a, b, a, c, a, b,
-            a, c, a, b),             # 16a  [[ca,1a,?]]
-        (b, c, a, b, a, b, a, b, a, b, b, c, a, b, a, c,
-            a, b, b, c, b, c, b, c, a, b, a, b, a, c, b, c, a, c,
-            a, c, a, b, a, c, a, b, b, c, a, b, a, b, a, c, a, b,
-            a, c, a, c, b, c, a, c), # 3ba  [[8a,18,?]]
-        (a, b, a, c, a, b, a, b, a, c, a, b, b, c, a, b, b, c,
-            a, b, b, c, a, c, a, b, a, b, a, c, a, b, a, b, a, b,
-            b, c, a, c, b, c, a, c, b, c, a, c, a, b, a, b, b, c,
-            b, c, b, c, b, c),       # 7ba  [[18a,38,?]]
-    ]:
-        print(ngens, rels_452+[rel])
-        graph = Schreier(ngens, rels_452 + [rel])
-        graph.build()
-        G = graph.get_group()
-        print("|G| =", G)
-        #make_surface(G)
-
-        if argv.bring:
-            break
-
 
 
 class Surface(object):
