@@ -263,6 +263,31 @@ SL = lambda a, b, c : Mobius(a, b, c, (b*c+1)/a)
 
 I = Mobius()
 
+
+# does not need hashable operators
+def mulclose(gen, g0=I, verbose=False, maxsize=None):
+    ops = list(gen)
+    bdy = gen
+    while bdy:
+        _bdy = []
+        for g in bdy:
+            for h in gen:
+                k = g*h
+                if k not in ops:
+                    ops.append(k)
+                    _bdy.append(k)
+            if maxsize and len(ops) >= maxsize:
+                break
+            _bdy.sort(key = lambda g : g.dist(g0))
+        bdy = _bdy
+        if verbose:
+            print("mulclose:", len(ops))
+
+    return ops
+
+
+
+
 def mktriangle(a, b, c):
     # ref [2] Proposition 2.5
     assert a>1 and b>1 and c>1 
@@ -355,74 +380,6 @@ class Generator(object):
             yield node.data
 
 
-class Cayley(object):
-    def __init__(self, table):
-        self.table = dict(table)
-
-    def __len__(self):
-        return len(self.table)
-
-    def dump(self):
-        table = self.table
-        vals = list(set(table.values()))
-        vals.sort()
-        print('     '+''.join("%3d"%i for i in vals))
-        print('     '+'-'*3*len(vals))
-        for i in vals:
-          print("%3d |"%i, end="")
-          for j in vals:
-            k = table.get((i, j))
-            if k is None:
-                s = "   "
-            else:
-                s = "%3d"%k
-            print(s, end="")
-          print()
-
-    def _deduce(self):
-        table = self.table
-        vals = list(set(table.values()))
-        vals.sort()
-        for i in vals:
-            found = {}
-            for j in vals:
-                k = table.get((i, j))
-                if k is None:
-                    continue
-                if k not in found:
-                    found[k] = j
-                    continue
-                j1 = found[k]
-                # i*j == i*j1 == k => j==j1
-                self.rewrite(j1, j)
-                return True
-        return False
-
-    def deduce(self):
-        while self._deduce():
-            pass
-
-    def rewrite(self, i, j):
-        # send j to i
-        table = self.table
-        keys = list(table.keys())
-        for ii, jj in keys:
-            kk = table[ii, jj]
-            changed = False
-            if ii == j or jj == j:
-                del table[ii, jj]
-                if ii == j:
-                    ii = i
-                if jj == j:
-                    jj = i
-                changed = True
-            if kk == j:
-                kk = i
-                changed = True
-            if changed:
-                table[ii, jj] = kk
-    
-
 
 
 def test():
@@ -494,94 +451,6 @@ def test():
                 H.add(h0*h1)
             print("|H| =", len(H))
 
-
-    ops = list(G)
-    for idx, op in enumerate(ops):
-        op.idx = idx
-    table = {}
-    for g in ops:
-      for h in ops:
-        k = g*h
-        if k not in G:
-            continue
-        k = G.get(k)
-        table[g.idx, h.idx] = k.idx
-
-    table = Cayley(table)
-    i = 0
-    while i < len(ops):
-        g = ops[i]
-        j = i+1
-        while j < len(ops):
-            h = ops[j]
-            if (~g)*h in H:
-                table.rewrite(g.idx, h.idx)
-                ops.pop(j)
-            else:
-                j += 1
-        i += 1
-        print(len(table), len(ops))
-
-    table.dump()
-    table.deduce()
-    print()
-    table.dump()
-
-    return
-
-    done = False
-    while not done:
-        done = True
-        i = 0
-        while i < len(ops):
-            g = ops[i]
-            j = i+1
-            while j < len(ops):
-                h = ops[j]
-                if (~g)*h in H:
-                    ops.pop(j)
-                    done = False
-                else:
-                    j += 1
-            i += 1
-        print(done)
-    print(len(ops))
-    return
-
-    #for g in ops:
-    #  for h in ops:
-    #    if g==h:
-    #        continue
-    #    print(int(relation(g, h)), end="")
-    #  print()
-
-    equs = [equ.Equ(op) for op in ops]
-    n = len(ops)
-    for i in range(n):
-        print(len(set(e.top for e in equs)), end=" ", flush=True)
-        ei = equs[i]
-        for j in range(i+1, n):
-            ej = equs[j]
-            if ei.eq(ej):
-                continue
-            if relation(ops[i], ops[j]):
-                ei.merge(ej)
-    #print(len([e for e in equs if e.top is e]))
-    print(len(set(e.top for e in equs)))
-    
-    return
-
-    K = Generator([I])
-    for g in G:
-      for h in H:
-        gh = g*h
-        if gh in K:
-            break
-      else:
-        K.add(g)
-    print(len(K))
-
-    return
 
     # ------------ todisc ------------------------
 
