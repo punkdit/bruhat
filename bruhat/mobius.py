@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""
+Mobius transforms and triangle groups.
+
+"""
+
 import sys
 from random import shuffle
 from math import pi, hypot, cos, sin, tan, acosh, atan
