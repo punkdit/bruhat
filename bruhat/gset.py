@@ -6,10 +6,14 @@ Compute limits & colimits in the category of GSet's .
 Based on bruhat/action.py, but 
 here we do everything (set maps, permutations, etc.)
 with indexes, which is probably more efficient than action.py.
+
+It's also much more difficult using this than bruhat/action.py,
+there's no typechecking on inexes. Fail.
 """
 
 
 import numpy
+from numpy import alltrue
 scalar = numpy.int64
 
 from bruhat.util import factorial
@@ -288,17 +292,13 @@ def compose(f, g):
 class Coset(object):
     def __init__(self, perms):
         perms = list(perms)
-        perms.sort()
-        #gen = list(gen)
-        #self.gen = gen
+        perms.sort() # yes !
         self.perms = perms
+        self.data = numpy.array([perm.perm for perm in perms], dtype=scalar)
         self.n = len(self.perms)
         self.rank = perms[0].rank if perms else 0
-        #self.lookup = dict((perm, idx) for (idx, perm) in enumerate(self.perms))
-        #self.identity = Perm(list(range(self.rank)))
-        #self._str = str(self.perms)
-        self._hash = hash(tuple(self.perms))
-        #assert len(self.lookup) == self.n
+        #self._hash = hash(tuple(self.perms))
+        self._hash = hash(self.data.tobytes())
 
     def __str__(self):
         return "Coset(%d)"%(self.n,)
@@ -314,13 +314,14 @@ class Coset(object):
     #    return g in self.lookup
 
     def __eq__(self, other):
-        return self.perms == other.perms
-
-    def __ne__(self, other):
-        return self.perms != other.perms
+        assert isinstance(other, Coset)
+        return alltrue(self.data == other.data)
 
     def __hash__(self):
         return self._hash
+
+    def __lt__(self, other):
+        return self.data.tobytes() < other.data.tobytes()
 
     def left_mul(self, g):
         assert g.rank == self.rank
@@ -634,8 +635,8 @@ class Group(object):
     def action_subgroup(G, H):
         assert isinstance(H, Group)
         assert H.rank == G.rank
-        if debug:
-            assert G.is_subgroup(H)
+        assert G.is_subgroup(H)
+        H0 = H
         H = Coset(H)
         cosets = set([H])
         remain = set(G)
@@ -647,6 +648,9 @@ class Group(object):
             cosets.add(gH)
             remain.difference_update(gH)
         assert len(cosets) * len(H) == len(G)
+        cosets = list(cosets)
+        cosets.sort()
+        assert cosets == G.left_cosets(H0)
         lookup = dict((gH, idx) for (idx, gH) in enumerate(cosets))
         perms = set()
         all_perms = []
@@ -660,11 +664,14 @@ class Group(object):
 
     def left_cosets(G, H):
         assert isinstance(H, Group)
+        assert G.is_subgroup(H)
         H = Coset(H)
         cosets = set([H])
         for g in G:
             gH = H.left_mul(g)
             cosets.add(gH)
+        cosets = list(cosets)
+        cosets.sort()
         return cosets
 
 

@@ -647,7 +647,7 @@ def make_bring():
     assert alltrue(dot(Hz, Hxt)==0)
 
 
-def make_codes_55():
+def make_codes_54():
     # start with hyperbolic Coxeter reflection group: a--5--b--5--c
     # Then we add another generator "d" that halves these triangles.
     ngens = 8
@@ -663,7 +663,7 @@ def make_codes_55():
     order = argv.get("order")
 
     # Bring's curve & some random generators found from running make_random_55.
-    for rel in [
+    for idx, rel in enumerate([
         (3*(b,a)+(a,c))*3,                 # 120  [[30,8,3]]
         (0, 2, 0, 2, 2, 4, 2, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 4,
             0, 4, 0, 2, 2, 4, 0, 2, 0, 4, 0, 4, 0, 2, 0, 4, 0, 2,
@@ -692,7 +692,10 @@ def make_codes_55():
             2, 4, 0, 4, 2, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 2, 0, 2,
             0, 2, 0, 4, 2, 4, 0, 4, 2, 4, 0, 4, 0, 4, 0, 4, 0, 4,
             0, 2, 0, 2, 0, 4, 0, 4, 0, 2), # 1920  [[480,98,?]]
-    ]:
+    ]):
+        if argv.idx is not None and argv.idx != idx:
+            continue
+
         graph = Schreier(ngens, rels_552 + [rel])
         graph.build()
         G = graph.get_group()
@@ -701,7 +704,10 @@ def make_codes_55():
             print(len(G))
             continue
 
-        make_surface_54(G)
+        if argv.oriented:
+            make_surface_54_oriented(G)
+        else:
+            make_surface_54(G)
 
         if argv.bring:
             break
@@ -712,7 +718,163 @@ class Surface(object):
         pass
 
 
-def make_surface_54(G0):
+def make_surface_54(G_0):
+    "find Z/2 chain complex"
+
+    from bruhat.solve import shortstr, zeros2, dot2
+    from numpy import alltrue, zeros, dot
+
+    print()
+    print("|G_0| =", len(G_0))
+
+    a, ai, b, bi, c, ci, d, di = G_0.gens
+
+    # 5,5 coxeter subgroup
+    G_1 = Group.generate([a, b, c])
+    assert G_0.is_subgroup(G_1)
+
+    # orientation subgroup
+    L_0 = Group.generate([a*b, a*d])
+    assert G_0.is_subgroup(L_0)
+    orients = G_0.left_cosets(L_0)
+    assert len(orients) == 2
+
+    H_1 = Group.generate([a, b])
+    faces = G_1.left_cosets(H_1)
+    face_vertices = G_0.left_cosets(H_1) # G_0 swaps faces & vertices
+
+    K_1 = Group.generate([b, c])
+    vertices = G_1.left_cosets(K_1)
+
+    J_1 = Group.generate([a, c])
+    edges_1 = G_1.left_cosets(J_1)
+
+    print("faces: %d, edges: %d, vertices: %d" % (
+        len(faces), len(edges_1), len(vertices)))
+
+    J_0 = Group.generate([a, d])
+    assert len(J_0) == 8
+
+    edges_0 = G_0.left_cosets(J_0)
+
+    def get_hom(src, tgt):
+        hom = {}
+        for i_0, e_0 in enumerate(src):
+          for i_1, e_1 in enumerate(tgt):
+            if not e_0.intersect(e_1):
+                continue
+            assert hom.get(i_0) is None
+            hom[i_0] = i_1
+          assert hom[i_0] is not None
+        return hom
+
+    hom = get_hom(edges_0, edges_1)
+    hom_i = get_hom(edges_1, edges_0)
+
+    #                                                   
+    #                                                   
+    #  edges_0 ---------> edges_0                                                 
+    #    ^                  |                           
+    #    |                  |                           
+    #    | hom_i            | hom                          
+    #    |                  |                           
+    #    |                  v                           
+    #  edges_1 ---------> edges_1                                                 
+    #                                                   
+    #                                                   
+
+    assert G_0.is_subgroup(J_0)
+    act_edges_0 = G_0.action_subgroup(J_0)
+    act_fold_faces = G_0.action_subgroup(H_1)
+    #print("stab:", len(act_edges_0.get_stabilizer()))
+    print("|G_0| =", len(G_0))
+    print("edges:", len(G_0) // len(J_0))
+    edges = G_0.left_cosets(J_0)
+    fold_perms = []
+    for i, g in enumerate(G_0):
+        assert g in G_0
+        h_edge_0 = act_edges_0.tgt[act_edges_0.send_perms[i]]
+        h_fold_faces = act_fold_faces.tgt[act_fold_faces.send_perms[i]]
+        n_edge = len(h_edge_0.fixed())
+        n_fold_faces = len(h_fold_faces.fixed())
+        count = 0
+        perms = [] # extract action on the fixed edges
+        for e0 in edges:
+            e1 = e0.left_mul(g)
+            if e0 != e1:
+                continue
+            perm = e0.left_mul_perm(g)
+            #print(perm, end=" ")
+            perms.append(perm)
+            count += 1
+        assert count == n_edge
+        if g.order() == 2 and g not in G_1 and g not in L_0:
+            h_edge_1 = [hom[h_edge_0[hom_i[i_1]]] for (i_1, e_1) in enumerate(edges_1)]
+            h_edge_1 = Perm(h_edge_1)
+            assert h_edge_1.order() == 2
+            fold_perms.append(h_edge_1)
+            #print()
+            #print(h_edge_0)
+            #print(h_edge_1)
+        else:
+            continue
+        print([p.order() for p in perms] or '', end="")
+        print("[|g|=%s,%s.%s.%s.%s]"%(
+            g.order(),
+            n_edge or ' ',  # num fixed edges
+            n_fold_faces or ' ',  # num fixed faces+vertexes
+            ["    ", "pres"][int(g in G_1)], # preserves face/vertex distinction
+            ["refl", "rot "][int(g in L_0)], # oriented or un-oriented
+        ), end=" ", flush=True)
+        print()
+    print()
+
+    folds = Group(gen=fold_perms)
+    print(folds)
+
+    from bruhat.solve import shortstr, zeros2, dot2, array2, solve
+    from numpy import alltrue, zeros, dot
+
+    def get_adj(left, right):
+        A = zeros2((len(left), len(right)))
+        for i, l in enumerate(left):
+          for j, r in enumerate(right):
+            lr = l.intersect(r)
+            A[i, j] = len(lr)>0
+        return A
+
+    Hz = get_adj(faces, edges)
+    Hxt = get_adj(edges, vertices)
+    print(shortstr(Hz))
+    print()
+    print(shortstr(Hxt))
+    print()
+
+    assert alltrue(dot2(Hz, Hxt)==0)
+
+    for g in fold_perms:
+        Hz1 = Hz[:, g.perm]
+        Hxt1 = Hxt[g.perm, :]
+        print(shortstr(Hz1.transpose()))
+        assert solve(Hxt, Hz1.transpose()) is not None
+        assert solve(Hz1.transpose(), Hxt) is not None
+
+    for perm in fold_perms:
+        pass
+
+    import qupy.ldpc.solve
+    import bruhat.solve
+    qupy.ldpc.solve.int_scalar = bruhat.solve.int_scalar
+    from qupy.ldpc.css import CSSCode
+    Hz = Hz % 2
+    Hx = Hxt.transpose() % 2
+    code = CSSCode(Hz=Hz, Hx=Hx)
+    print(code)
+
+
+
+def make_surface_54_oriented(G0):
+    " find integer chain complex "
     from bruhat.solve import shortstr, zeros2, dot2
     from numpy import alltrue, zeros, dot
 
@@ -762,6 +924,7 @@ def make_surface_54(G0):
     #    k = choice(e.perms)
     #    e1 = e.left_mul(~k)
     #    assert set(e1.perms) == set(J0.perms)
+    fold_perms = []
     for i, g in enumerate(G0):
         assert g in G0
         h_edge = act_edges.tgt[act_edges.send_perms[i]]
@@ -779,6 +942,10 @@ def make_surface_54(G0):
             perms.append(perm)
             count += 1
         assert count == n_edge
+        if g.order() == 2 and g not in G_55 and g not in L:
+            fold_perms.append(g)
+        else:
+            continue
         print([p.order() for p in perms] or '', end="")
         print("[|g|=%s,%s.%s.%s.%s]"%(
             g.order(),
@@ -805,7 +972,7 @@ def make_surface_54(G0):
         for e1 in edges:
             if e.intersect(e1):
                 pairs[e].append(e1)
-        assert len(pairs[e]) == 2
+        assert len(pairs[e]) == 2, len(pairs[e])
 
     def shortstr(A):
         s = str(A)
@@ -847,6 +1014,9 @@ def make_surface_54(G0):
 
     assert alltrue(dot(Hz, Hxt)==0)
 
+    for perm in fold_perms:
+        pass
+
     import qupy.ldpc.solve
     import bruhat.solve
     qupy.ldpc.solve.int_scalar = bruhat.solve.int_scalar
@@ -856,128 +1026,6 @@ def make_surface_54(G0):
     code = CSSCode(Hz=Hz, Hx=Hx)
     print(code)
 
-
-
-#def make_surface(G0):
-#    from bruhat.solve import shortstr, zeros2, dot2
-#    from numpy import alltrue, zeros, dot
-#
-#    print()
-#
-#    a, ai, b, bi, c, ci, d, di = G0.gens
-#    G = Group.generate([a, b, c])
-#
-#    a1 = b*a
-#    b1 = a*c
-#
-#    bc = b*c
-#    ba = b*a
-#    L = Group.generate([a1, b1])
-#    #assert len(L) == 60, len(L)
-#    print("L:", len(L))
-#    orients = G.left_cosets(L)
-#    #assert len(orients) == 2
-#    #L, gL = orients
-#    orients = list(orients)
-#
-#    H = Group.generate([a, b])
-#    #assert len([g for g in H if g in L]) == 5
-#    faces = G.left_cosets(H)
-#    #assert len(faces) == 12 # unoriented faces
-#    print("faces:", len(faces))
-#    #hom = G.left_action(faces)
-#    o_faces = [face.intersect(orients[0]) for face in faces] # oriented faces
-#    r_faces = [face.intersect(orients[1]) for face in faces] # reverse oriented faces
-#
-#    K = Group.generate([b, c])
-#    vertices = G.left_cosets(K)
-#    #assert len(vertices) == 12 # unoriented vertices
-#    o_vertices = [vertex.intersect(orients[0]) for vertex in vertices] # oriented vertices
-#    print("o_vertices:", len(o_vertices))
-#
-#    J0 = Group.generate([a, d])
-#    assert len(J0) == 8
-#
-#    assert G0.is_subgroup(J0)
-#    gset = G0.action_subgroup(J0)
-#    #print("stab:", len(gset.get_stabilizer()))
-#    print("|G0| =", len(G0))
-#    print("edges:", len(G0) // len(J0))
-#    for i, g in enumerate(gset.src):
-#        #if g in L:
-#        #    continue
-#        j = gset.send_perms[i]
-#        h = gset.tgt[j]
-#        n = len(h.fixed())
-#        print(n or '.', end=" ")
-#    print()
-#
-#    J = Group.generate([a, c])
-#    u_edges = G.left_cosets(J)
-#    print("u_edges:", len(u_edges))
-#
-#    J = Group.generate([c])
-#    edges = G.left_cosets(J)
-#    print("edges:", len(edges))
-#
-#    # Here we choose an orientation on each edge:
-#    pairs = {}
-#    for e in u_edges:
-#        pairs[e] = []
-#        for e1 in edges:
-#            if e.intersect(e1):
-#                pairs[e].append(e1)
-#        assert len(pairs[e]) == 2
-#
-#    def shortstr(A):
-#        s = str(A)
-#        s = s.replace("0", '.')
-#        return s
-#
-#    Hz = zeros((len(o_faces), len(u_edges)), dtype=int)
-#    for i, l in enumerate(o_faces):
-#      for j, e in enumerate(u_edges):
-#        le = l.intersect(e)
-#        if not le:
-#            continue
-#        e1, e2 = pairs[e]
-#        if e1.intersect(le):
-#            Hz[i, j] = 1
-#        elif e2.intersect(le):
-#            Hz[i, j] = -1
-#        else:
-#            assert 0
-#
-#    Hxt = zeros((len(u_edges), len(o_vertices)), dtype=int)
-#    for i, e in enumerate(u_edges):
-#      for j, v in enumerate(o_vertices):
-#        ev = e.intersect(v)
-#        if not ev:
-#            continue
-#        e1, e2 = pairs[e]
-#        if e1.intersect(ev):
-#            Hxt[i, j] = 1
-#        elif e2.intersect(ev):
-#            Hxt[i, j] = -1
-#        else:
-#            assert 0
-#
-#    #print(shortstr(Hz))
-#    #print()
-#    #print(shortstr(Hxt))
-#    #print()
-#
-#    assert alltrue(dot(Hz, Hxt)==0)
-#
-#    import qupy.ldpc.solve
-#    import bruhat.solve
-#    qupy.ldpc.solve.int_scalar = bruhat.solve.int_scalar
-#    from qupy.ldpc.css import CSSCode
-#    Hz = Hz % 2
-#    Hx = Hxt.transpose() % 2
-#    code = CSSCode(Hz=Hz, Hx=Hx)
-#    print(code)
-#
 
 
 if __name__ == "__main__":
