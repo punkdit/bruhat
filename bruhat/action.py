@@ -121,7 +121,8 @@ class Perm(object):
             assert key in set_items, repr(key)
             assert value in set_items, repr(value)
         self.word = word
-        self._str_cache = None
+        #self._str_cache = None
+        self._hash_cache = None
 
     @classmethod
     def identity(cls, items, *args, **kw):
@@ -265,8 +266,8 @@ class Perm(object):
         return s
 
     def str(self): # HOTSPOT
-        if self._str_cache:
-            return self._str_cache
+        #if self._str_cache:
+        #    return self._str_cache
         perm = self.perm
         items = self.items
         lookup = dict((v,k) for (k,v) in enumerate(items))
@@ -275,7 +276,7 @@ class Perm(object):
             j = lookup[perm[item]]
             s.append("%d:%d"%(i, j))
         s = "{%s}"%(', '.join(s))
-        self._str_cache = s
+        #self._str_cache = s
         return s
 
     def __str__(self):
@@ -284,7 +285,10 @@ class Perm(object):
     __repr__ = __str__
 
     def __hash__(self):
-        return hash(str(self))
+        #return hash(str(self))
+        if self._hash_cache is None:
+            self._hash_cache = hash(str(self))
+        return self._hash_cache
 
     """
     _hash = None
@@ -943,10 +947,11 @@ class Group(object):
     def left_action(self, items):
         send_perms = {}
         perms = []
+        lookup = dict((item, item) for item in items)
         for g in self:
             perm = {}
             for item in items:
-                perm[item] = g*item
+                perm[item] = lookup[g*item]
             perm = Perm(perm, items)
             perms.append(perm)
             send_perms[g] = perm

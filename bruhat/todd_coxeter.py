@@ -2,10 +2,13 @@
 
 import sys
 from random import randint, seed, choice
+from time import sleep
 
+import numpy
 
 #from bruhat.gset import Perm, Group, Coset, mulclose # FAIL
 from bruhat.action import Perm, Group, Coset, mulclose
+from bruhat.util import cross
 from bruhat.argv import argv
 
 # Todd-Coxeter algorithm: compute finite group from generators and relations.
@@ -716,14 +719,16 @@ class Surface(object):
     def __init__(self, G):
         pass
 
-
+#import memory_profiler
+#from memory_profiler import profile
+#
+#@profile
 def make_surface_54(G_0):
     "find Z/2 chain complex"
 
     from bruhat.solve import shortstr, zeros2, dot2
     from numpy import alltrue, zeros, dot
 
-    print()
     print("|G_0| =", len(G_0))
 
     a, ai, b, bi, c, ci, d, di = G_0.gens
@@ -740,7 +745,7 @@ def make_surface_54(G_0):
 
     H_1 = Group.generate([a, b])
     faces = G_1.left_cosets(H_1)
-    face_vertices = G_0.left_cosets(H_1) # G_0 swaps faces & vertices
+    #face_vertices = G_0.left_cosets(H_1) # G_0 swaps faces & vertices
 
     K_1 = Group.generate([b, c])
     vertices = G_1.left_cosets(K_1)
@@ -755,47 +760,25 @@ def make_surface_54(G_0):
     assert len(J_0) == 8
 
     edges_0 = G_0.left_cosets(J_0)
-
-    def get_hom(src, tgt):
-        hom = {}
-        for i_0, e_0 in enumerate(src):
-          for i_1, e_1 in enumerate(tgt):
-            if not e_0.intersect(e_1):
-                continue
-            assert hom.get(i_0) is None
-            hom[i_0] = i_1
-          assert hom[i_0] is not None
-        return hom
-
-    #hom = get_hom(edges_0, edges_1)
-    #hom_i = get_hom(edges_1, edges_0)
-
-    #                                                   
-    #                                                   
-    #  edges_0 ---------> edges_0                                                 
-    #    ^                  |                           
-    #    |                  |                           
-    #    | hom_i            | hom                          
-    #    |                  |                           
-    #    |                  v                           
-    #  edges_1 ---------> edges_1                                                 
-    #                                                   
-    #                                                   
+    print("edges_0:", len(edges_0))
 
     assert G_0.is_subgroup(J_0)
     act_edges_0 = G_0.action_subgroup(J_0)
-    act_fold_faces = G_0.action_subgroup(H_1)
-    #print("stab:", len(act_edges_0.get_stabilizer()))
-    print("|G_0| =", len(G_0))
-    print("edges:", len(G_0) // len(J_0))
-    #edges = G_0.left_cosets(J_0)
-    fold_perms = []
+    #print("here")
+    #while 1:
+    #    sleep(1)
+
+#    act_fold_faces = G_0.action_subgroup(H_1)
+
+    dualities = []
+    idx = 0
     for i, g in enumerate(G_0):
         assert g in G_0
         h_edge_0 = act_edges_0[g]
-        h_fold_faces = act_fold_faces[g]
         n_edge = len(h_edge_0.fixed())
-        n_fold_faces = len(h_fold_faces.fixed())
+
+#        h_fold_faces = act_fold_faces[g]
+#        n_fold_faces = len(h_fold_faces.fixed())
         count = 0
         #perms = [] # extract action on the fixed edges
         for e0 in edges_0:
@@ -808,23 +791,30 @@ def make_surface_54(G_0):
         #    perms.append(perm)
         assert count == n_edge
 
-        if g.order() == 2 and g not in G_1 and g not in L_0:
-            fold_perms.append(act_edges_0[g])
-        else:
+        if g in G_1:
             continue
-        #print([p.order() for p in perms] or '', end="")
-        print("[|g|=%s,%s.%s.%s.%s]"%(
+        elif g.order() != 2:
+            continue
+        elif g in L_0:
+            continue
+        #elif g.order() == 2 and g not in G_1 and g not in L_0:
+
+        print("%d: [|g|=%s,%s.%s.%s]"%(
+            len(dualities),
             g.order(),
             n_edge or ' ',  # num fixed edges
-            n_fold_faces or ' ',  # num fixed faces+vertexes
+#            n_fold_faces or ' ',  # num fixed faces+vertexes
             ["    ", "pres"][int(g in G_1)], # preserves face/vertex distinction
             ["refl", "rot "][int(g in L_0)], # oriented or un-oriented
         ), end=" ", flush=True)
         print()
+        perm = h_edge_0.get_idxs()
+        dualities.append(perm)
+
     print()
 
-    #folds = Group.generate(fold_perms)
-    #print(folds)
+    #dualities = Group.generate(dualities)
+    #print(dualities)
 
     from bruhat.solve import shortstr, zeros2, dot2, array2, solve
     from numpy import alltrue, zeros, dot
@@ -839,6 +829,8 @@ def make_surface_54(G_0):
 
     Hz = get_adj(faces, edges_0)
     Hxt = get_adj(edges_0, vertices)
+    Hx = Hxt.transpose()
+
     print(shortstr(Hz))
     print()
     print(shortstr(Hxt))
@@ -846,9 +838,10 @@ def make_surface_54(G_0):
 
     assert alltrue(dot2(Hz, Hxt)==0)
 
-    for g in fold_perms:
-        Hz1 = Hz[:, g.get_idxs()]
-        Hxt1 = Hxt[g.get_idxs(), :]
+    # check we really do have weak dualities here:
+    for perm in dualities:
+        Hz1 = Hz[:, perm]
+        Hxt1 = Hxt[perm, :]
         assert solve(Hxt, Hz1.transpose()) is not None
         assert solve(Hz1.transpose(), Hxt) is not None
 
@@ -860,6 +853,93 @@ def make_surface_54(G_0):
     Hx = Hxt.transpose() % 2
     code = CSSCode(Hz=Hz, Hx=Hx)
     print(code)
+    n = len(edges_0)
+    assert code.n == n
+
+    from qupy.ldpc.asymplectic import Stim as Clifford
+    s_gates = []
+    h_gates = []
+    s_names = []
+    for idx, swap in enumerate(dualities):
+
+        fixed = [i for i in range(n) if swap[i] == i]
+        print(idx, fixed)
+        for signs in cross([(-1, 1)]*len(fixed)):
+            v = [0]*n
+            for i, sign in enumerate(signs):
+                v[fixed[i]] = sign
+            ux = numpy.dot(Hx, v)
+            uz = numpy.dot(Hz, v)
+            if numpy.alltrue(ux==0) and numpy.alltrue(uz==0):
+                #print("*", end=" ")
+                break
+        #else:
+        #    assert 0
+        #print(v)
+        #print()
+
+        # transversal S/CZ
+        g = Clifford.identity(n)
+        name = []
+        for i in range(n):
+            j = swap[i]
+            if j < i:
+                continue
+            if j==i:
+                assert v[i] in [1, -1]
+                if v[i] == 1:
+                    op = Clifford.s_gate(n, i)
+                    name.append("S_%d"%(i,))
+                else:
+                    op = Clifford.s_gate(n, i).inverse()
+                    name.append("Si_%d"%(i,))
+            else:
+                op = Clifford.cz_gate(n, i, j)
+                name.append("CZ_%d_%d"%(i,j))
+            g = op*g
+        name = "*".join(reversed(name))
+        s_names.append(name)
+        #print(g)
+        #print()
+        #assert g.is_transversal(code)
+
+        s_gates.append(g)
+
+        h = Clifford.identity(n)
+        for i in range(n):
+            h = h * Clifford.h_gate(n, i)
+
+        for i in range(n):
+            j = swap[i]
+            if j <= i:
+                continue
+            h = h * Clifford.swap_gate(n, i, j)
+        #print(g)
+        #print()
+        #assert h.is_transversal(code)
+        h_gates.append(h)
+
+
+    for idx, sop in enumerate(s_gates):
+        print(idx, end=" ")
+        for hx in Hx:
+            #print(idx)
+            #print(s_names[idx])
+            phase, zop, xop = sop(1., None, hx)
+            #print(phase, zop, xop)
+            assert numpy.alltrue(xop==hx)
+            if phase != 1:
+                #for jdx, xx in enumerate(xop):
+                #    if xx:
+                #        print(jdx, end=" ")
+                #print("\nFAIL: phase =", phase)
+                #return
+                print("FAIL")
+                break
+            assert phase == 1, phase
+        else:
+            print("OK")
+
 
 
 
