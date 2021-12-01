@@ -4,10 +4,9 @@ import sys
 from random import randint, seed, choice
 
 
-from bruhat.gset import Perm, Group, Coset, mulclose
+#from bruhat.gset import Perm, Group, Coset, mulclose # FAIL
+from bruhat.action import Perm, Group, Coset, mulclose
 from bruhat.argv import argv
-
-#sys.setrecursionlimit(8000)
 
 # Todd-Coxeter algorithm: compute finite group from generators and relations.
 # Implementation from: 
@@ -266,22 +265,22 @@ class Schreier(object):
         #print("cosets:", n)
         lookup = dict((v,k) for (k,v) in enumerate(cosets))
         gens = []
+        items = list(range(n))
         for i in range(ngens):
-            perm = [None]*n
+            perm = {}
             for idx in cosets:
                 nbd = neighbors[idx]
                 assert nbd[i] is not None, nbd
                 src, tgt = lookup[idx], lookup[self.get_label(nbd[i])]
-                assert perm[src] is None
+                assert perm.get(src) is None
                 perm[src] = tgt
-            assert None not in perm
-            perm = Perm(perm)
+            perm = Perm(perm, items)
             gens.append(perm)
         return gens
 
     def get_group(self):
         gens = self.get_gens()
-        G = Group(None, gens)
+        G = Group.generate(gens)
         return G
     
     def show(self):
@@ -768,8 +767,8 @@ def make_surface_54(G_0):
           assert hom[i_0] is not None
         return hom
 
-    hom = get_hom(edges_0, edges_1)
-    hom_i = get_hom(edges_1, edges_0)
+    #hom = get_hom(edges_0, edges_1)
+    #hom_i = get_hom(edges_1, edges_0)
 
     #                                                   
     #                                                   
@@ -789,36 +788,31 @@ def make_surface_54(G_0):
     #print("stab:", len(act_edges_0.get_stabilizer()))
     print("|G_0| =", len(G_0))
     print("edges:", len(G_0) // len(J_0))
-    edges = G_0.left_cosets(J_0)
+    #edges = G_0.left_cosets(J_0)
     fold_perms = []
     for i, g in enumerate(G_0):
         assert g in G_0
-        h_edge_0 = act_edges_0.tgt[act_edges_0.send_perms[i]]
-        h_fold_faces = act_fold_faces.tgt[act_fold_faces.send_perms[i]]
+        h_edge_0 = act_edges_0[g]
+        h_fold_faces = act_fold_faces[g]
         n_edge = len(h_edge_0.fixed())
         n_fold_faces = len(h_fold_faces.fixed())
         count = 0
-        perms = [] # extract action on the fixed edges
-        for e0 in edges:
-            e1 = e0.left_mul(g)
+        #perms = [] # extract action on the fixed edges
+        for e0 in edges_0:
+            e1 = g*e0
             if e0 != e1:
                 continue
-            perm = e0.left_mul_perm(g)
-            #print(perm, end=" ")
-            perms.append(perm)
             count += 1
+        #    perm = e0.left_mul_perm(g)
+        #    #print(perm, end=" ")
+        #    perms.append(perm)
         assert count == n_edge
+
         if g.order() == 2 and g not in G_1 and g not in L_0:
-            h_edge_1 = [hom[h_edge_0[hom_i[i_1]]] for (i_1, e_1) in enumerate(edges_1)]
-            h_edge_1 = Perm(h_edge_1)
-            assert h_edge_1.order() == 2
-            fold_perms.append(h_edge_1)
-            #print()
-            #print(h_edge_0)
-            #print(h_edge_1)
+            fold_perms.append(act_edges_0[g])
         else:
             continue
-        print([p.order() for p in perms] or '', end="")
+        #print([p.order() for p in perms] or '', end="")
         print("[|g|=%s,%s.%s.%s.%s]"%(
             g.order(),
             n_edge or ' ',  # num fixed edges
@@ -829,8 +823,8 @@ def make_surface_54(G_0):
         print()
     print()
 
-    folds = Group(gen=fold_perms)
-    print(folds)
+    #folds = Group.generate(fold_perms)
+    #print(folds)
 
     from bruhat.solve import shortstr, zeros2, dot2, array2, solve
     from numpy import alltrue, zeros, dot
@@ -843,8 +837,8 @@ def make_surface_54(G_0):
             A[i, j] = len(lr)>0
         return A
 
-    Hz = get_adj(faces, edges)
-    Hxt = get_adj(edges, vertices)
+    Hz = get_adj(faces, edges_0)
+    Hxt = get_adj(edges_0, vertices)
     print(shortstr(Hz))
     print()
     print(shortstr(Hxt))
@@ -853,14 +847,10 @@ def make_surface_54(G_0):
     assert alltrue(dot2(Hz, Hxt)==0)
 
     for g in fold_perms:
-        Hz1 = Hz[:, g.perm]
-        Hxt1 = Hxt[g.perm, :]
-        print(shortstr(Hz1.transpose()))
+        Hz1 = Hz[:, g.get_idxs()]
+        Hxt1 = Hxt[g.get_idxs(), :]
         assert solve(Hxt, Hz1.transpose()) is not None
         assert solve(Hz1.transpose(), Hxt) is not None
-
-    for perm in fold_perms:
-        pass
 
     import qupy.ldpc.solve
     import bruhat.solve
@@ -927,26 +917,29 @@ def make_surface_54_oriented(G0):
     fold_perms = []
     for i, g in enumerate(G0):
         assert g in G0
-        h_edge = act_edges.tgt[act_edges.send_perms[i]]
-        h_fold_faces = act_fold_faces.tgt[act_fold_faces.send_perms[i]]
+        #h_edge = act_edges.tgt[act_edges.send_perms[i]]
+        #h_fold_faces = act_fold_faces.tgt[act_fold_faces.send_perms[i]]
+        h_edge = act_edges[g]
+        h_fold_faces = act_fold_faces[g]
         n_edge = len(h_edge.fixed())
         n_fold_faces = len(h_fold_faces.fixed())
         count = 0
-        perms = [] # extract action on the fixed edges
-        for e0 in edges:
-            e1 = e0.left_mul(g)
-            if e0 != e1:
-                continue
-            perm = e0.left_mul_perm(g)
-            #print(perm, end=" ")
-            perms.append(perm)
-            count += 1
-        assert count == n_edge
+        #perms = [] # extract action on the fixed edges
+        #for e0 in edges:
+        #    #e1 = e0.left_mul(g)
+        #    e1 = g*e0
+        #    if e0 != e1:
+        #        continue
+        #    perm = e0.left_mul_perm(g)
+        #    #print(perm, end=" ")
+        #    perms.append(perm)
+        #    count += 1
+        #assert count == n_edge
         if g.order() == 2 and g not in G_55 and g not in L:
             fold_perms.append(g)
         else:
             continue
-        print([p.order() for p in perms] or '', end="")
+        #print([p.order() for p in perms] or '', end="")
         print("[|g|=%s,%s.%s.%s.%s]"%(
             g.order(),
             n_edge or ' ',  # num fixed edges
@@ -1031,11 +1024,11 @@ def make_surface_54_oriented(G0):
 if __name__ == "__main__":
 
     profile = argv.profile
-    name = argv.next()
+    name = argv.next() or "test"
 
     if profile:
         import cProfile as profile
-        profile.run("make_bring()")
+        profile.run("%s()"%name)
 
     elif name is not None:
         fn = eval(name)

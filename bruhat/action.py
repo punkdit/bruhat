@@ -251,14 +251,28 @@ class Perm(object):
         idxs = [lookup[self.perm[i]] for i in self.items]
         return idxs
 
-    def str(self): # HOTSPOT
+    def slowstr(self): # HOTSPOT
         if self._str_cache:
             return self._str_cache
         perm = self.perm
         items = self.items
         s = []
         for i, item in enumerate(items):
-            j = items.index(perm[item])
+            j = items.index(perm[item]) # <--- oof
+            s.append("%d:%d"%(i, j))
+        s = "{%s}"%(', '.join(s))
+        self._str_cache = s
+        return s
+
+    def str(self): # HOTSPOT
+        if self._str_cache:
+            return self._str_cache
+        perm = self.perm
+        items = self.items
+        lookup = dict((v,k) for (k,v) in enumerate(items))
+        s = []
+        for i, item in enumerate(items):
+            j = lookup[perm[item]]
             s.append("%d:%d"%(i, j))
         s = "{%s}"%(', '.join(s))
         self._str_cache = s
@@ -942,6 +956,13 @@ class Group(object):
         hom = Action(self, send_perms, items)
         return hom
 
+    def action_subgroup(self, H):
+        assert self.items == H.items
+        assert self.is_subgroup(H)
+        cosets = self.left_cosets(H)
+        hom = self.left_action(cosets)
+        return hom
+
     def is_subgroup(self, H):
         assert H.items == self.items
         for g in H.perms:
@@ -1064,7 +1085,10 @@ class Group(object):
 
 
 class Coset(Group):
-    pass
+    def intersect(self, other):
+        assert self.items == other.items
+        perms = self.set_perms.intersection(other.set_perms)
+        return Coset(perms, self.items)
 
 
 
