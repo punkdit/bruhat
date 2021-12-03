@@ -5,6 +5,7 @@ from random import randint, seed, choice
 from time import sleep
 
 import numpy
+from numpy import concatenate
 
 #from bruhat.gset import Perm, Group, Coset, mulclose # FAIL
 from bruhat.action import Perm, Group, Coset, mulclose
@@ -838,13 +839,6 @@ def make_surface_54(G_0):
 
     assert alltrue(dot2(Hz, Hxt)==0)
 
-    # check we really do have weak dualities here:
-    for perm in dualities:
-        Hz1 = Hz[:, perm]
-        Hxt1 = Hxt[perm, :]
-        assert solve(Hxt, Hz1.transpose()) is not None
-        assert solve(Hz1.transpose(), Hxt) is not None
-
     import qupy.ldpc.solve
     import bruhat.solve
     qupy.ldpc.solve.int_scalar = bruhat.solve.int_scalar
@@ -855,6 +849,21 @@ def make_surface_54(G_0):
     print(code)
     n = len(edges_0)
     assert code.n == n
+
+    Lx, Lz = code.Lx, code.Lz
+
+    # check we really do have weak dualities here:
+    for perm in dualities:
+        Hz1 = Hz[:, perm]
+        Hxt1 = Hxt[perm, :]
+        assert solve(Hxt, Hz1.transpose()) is not None
+        assert solve(Hz1.transpose(), Hxt) is not None
+
+        Lz1 = Lz[:, perm]
+        Lx1 = Lx[:, perm]
+        find_xz = solve(concatenate((Lx, Hx)).transpose(), Lz1.transpose()) is not None
+        find_zx = solve(concatenate((Lz1, Hz1)).transpose(), Lx.transpose()) is not None
+        #print(find_xz, find_zx)
 
     from qupy.ldpc.asymplectic import Stim as Clifford
     s_gates = []

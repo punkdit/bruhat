@@ -541,7 +541,7 @@ class Group(object):
 
     def __init__(self, perms, items, check=False):
         perms = list(perms)
-        self.perms = perms # ordered 
+        self.perms = perms # ordered  ( see Group .str and .__hash__ )
         self.items = list(items)
         self.set_items = set(items) # unordered
         self.set_perms = set(perms) # unordered
@@ -554,7 +554,7 @@ class Group(object):
     def str(self):
         if not self._str:
             ss = [perm.str() for perm in self.perms]
-            ss.sort()
+            ss.sort() # <-- ordered 
             self._str = ''.join(ss)
         return self._str
 
