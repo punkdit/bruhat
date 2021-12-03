@@ -795,8 +795,8 @@ def make_surface_54(G_0):
             continue
         elif g.order() != 2:
             continue
-        elif g in L_0:
-            continue
+        #elif g in L_0:
+        #    continue
         #elif g.order() == 2 and g not in G_1 and g not in L_0:
 
         print("%d: [|g|=%s,%s.%s.%s]"%(
@@ -831,10 +831,10 @@ def make_surface_54(G_0):
     Hxt = get_adj(edges_0, vertices)
     Hx = Hxt.transpose()
 
-    print(shortstr(Hz))
-    print()
-    print(shortstr(Hxt))
-    print()
+    #print(shortstr(Hz))
+    #print()
+    #print(shortstr(Hxt))
+    #print()
 
     assert alltrue(dot2(Hz, Hxt)==0)
 
