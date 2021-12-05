@@ -32,70 +32,50 @@ def get_angle(z):
 
 
 class Geodesic(object):
-    pass
+    @classmethod
+    def construct(cls, z0, z1):
+        if abs(z0-z1)<EPSILON or \
+            abs(z0) < EPSILON or \
+            abs(z1) < EPSILON or \
+            (abs(z0.real)<EPSILON and abs(z1.real) < EPSILON):
+            gamma = LineGeodesic(z0, z1)
+        elif abs(z0.real)>EPSILON and abs(z1.real)>EPSILON and \
+            abs(z0.imag/z0.real - z1.imag/z1.real) < EPSILON:
+            gamma = LineGeodesic(z0, z1)
+        elif (abs(z0*z0.conjugate() - 1.) > EPSILON or abs(z1*z1.conjugate() - 1.) > EPSILON):
+            gamma = cls._construct_short(z0, z1)
+        else:
+            gamma = cls._construct_long(z0, z1)
+        return gamma
 
+    @classmethod
+    def _construct_long(cls, z0, z1):
+        assert abs(z0*z0.conjugate() - 1.) < EPSILON
+        assert abs(z1*z1.conjugate() - 1.) < EPSILON
 
-class CircleGeodesic(Geodesic):
-    def __init__(self, z_center, radius, theta0, theta1):
-        self.z_center = complex(z_center)
-        assert abs(self.z_center) > 1+EPSILON, " not a geodesic "
-        self.radius = radius
-        self.theta0 = theta0
-        self.theta1 = theta1
+        theta0 = get_angle(z0)
+        theta1 = get_angle(z1)
+        r_cos = 1 / cos(0.5*abs(theta0 - theta1))
+        radius = tan(0.5*abs(theta0 - theta1))
+        z_center = r_cos * cmath.exp(1j * 0.5*(theta0+theta1))
+        #print(theta0*360 / (2*pi))
+        #print(theta1*360 / (2*pi))
 
+        radius = abs(radius)
+        t0 = (theta0 + 0.5*pi) % (2*pi)
+        t1 = (theta1 - 0.5*pi) % (2*pi)
+        gamma = CircleGeodesic(z_center, radius, t0, t1, path.arc)
 
-class LineGeodesic(Geodesic):
-    def __init__(self, z0, z1):
-        self.z0 = complex(z0)
-        self.z1 = complex(z1)
+        return gamma
 
-
-class Disc(object):
-
-    def __init__(self, z_center=1j):
-        self.g_center = Mobius.cayley(z_center) * ~Mobius.cayley()
-
-    def show_fixed(self, g):
-        #if g.trace.real < 2.-EPSILON and abs(g.c)>EPSILON:
-        cl = red
-        prev = 999.
-        for z in g.fixed():
-            if abs(z) > 1+EPSILON:
-                continue
-            if abs(z-prev) < EPSILON:
-                continue
-            prev = z
-            #z = g.inner_fixed()
-            w = g(z)
-            assert abs(w-z) < EPSILON
-            z = self.g_center(z)
-            x, y = z.real, z.imag
-            cvs.stroke(path.circle(x, y, 0.02), [cl])
-            cl = green
-
-    def d_poincare(self, z):
-        g = self.g_center
-        return d_poincare(g(z))
-
-    def show_point(self, z, attrs=[]):
-        z = self.g_center(z)
-        cvs.stroke(path.circle(z.real, z.imag, 0.04), attrs)
-
-    def get_short_geodesic(self, z0, z1):
-        z0, z1 = self.g_center(z0), self.g_center(z1)
-        #print("show_short_geodesic", z0, z1)
+    @classmethod
+    def _construct_short(cls, z0, z1):
         g = Mobius.get_translate(z0, z1)
-        #self.show_fixed(g)
         l, r = g.fixed()
-        #self.show_geodesic(l, r)
         src, tgt = l, r
 
         theta0 = get_angle(src)
         theta1 = get_angle(tgt)
-        if abs(src + tgt) < EPSILON:
-            p = path.line(z0.real, z0.imag, z1.real, z1.imag)
-            return p # <---------------- return
-
         r_cos = 1 / cos(0.5*abs(theta0 - theta1))
         radius = tan(0.5*abs(theta0 - theta1))
         z_center = r_cos * cmath.exp(1j * 0.5*(theta0+theta1))
@@ -115,79 +95,132 @@ class Disc(object):
         if abs(theta1-theta0) > pi:
             theta1 = theta1 - 2*pi
             idx = 1-idx
-            #dbg = meths[idx](z_center.real, z_center.imag, radius,
-            #    conv(0.9, theta0, theta1), theta1)
-            #cvs.stroke(dbg, [black]+st_THick)
-            #print("HERE")
-        #if theta0 > theta1:
-        #    theta0, theta1 = theta1, theta0
-        #    idx = 1-idx
-        #if abs(z2) > 1.:
-        #    idx = 1-idx
-        #    theta0, theta1 = theta1, theta0
 
-        #print("show_short_geodesic")
-        #print(z_center, radius, theta0, theta1)
-        #print(abs(z2) < 1.)
+        gamma = CircleGeodesic(z_center, radius, theta0, theta1, meths[idx])
+        assert abs(gamma.z0 - z0) < EPSILON, (gamma.z0, z0)
+        assert abs(gamma.z1 - z1) < EPSILON, (gamma.z1, z1)
 
-        p = meths[idx](z_center.real, z_center.imag, radius, theta0, theta1)
-        return p
+        return gamma
 
-    def show_short_geodesic(self, z0, z1, attrs=[]):
+    def __init__(self, z0, z1, z2):
+        self.z0 = complex(z0)
+        self.z1 = complex(z1)
+        self.z2 = complex(z2) # midpoint
+
+    def get_refl(self):
+        z0, z1, z2 = self.z0, self.z1, self.z2
+        g = Mobius.send(z0, z1, z2, -1, 0., 1.)
+        C = Mobius(1, 0, 0, 1, True) # conjugate
+        return (~g)*C*g
+
+
+class CircleGeodesic(Geodesic):
+    def __init__(self, z_center, radius, theta0, theta1, method=path.arc):
+        self.z_center = complex(z_center)
+        assert abs(self.z_center) > 1+EPSILON, " not a geodesic "
+        self.radius = radius
+        self.theta0 = theta0
+        self.theta1 = theta1
+        self.p = method(z_center.real, z_center.imag, radius, theta0, theta1)
+        z0 = radius*(cos(theta0) + 1j*sin(theta0)) + z_center
+        z1 = radius*(cos(theta1) + 1j*sin(theta1)) + z_center
+        theta2 = 0.5*(theta0 + theta1)
+        z2 = radius*(cos(theta2) + 1j*sin(theta2)) + z_center
+        z3 = -radius*(cos(theta2) + 1j*sin(theta2)) + z_center
+        lhs = abs(z0-z2) + abs(z1-z2)
+        rhs = abs(z0-z3) + abs(z1-z3)
+        if lhs > rhs:
+            z2 = z3
+        Geodesic.__init__(self, z0, z1, z2)
+
+
+
+class LineGeodesic(Geodesic):
+    def __init__(self, z0, z1):
+        self.z0 = z0 = complex(z0)
+        self.z1 = z1 = complex(z1)
+        self.p = path.line(z0.real, z0.imag, z1.real, z1.imag)
+        z2 = 0.5*(z0 + z1)
+        Geodesic.__init__(self, z0, z1, z2)
+        if abs(z0) < EPSILON or abs(z1)<EPSILON:
+            return
+        t0 = get_angle(z0)
+        t1 = get_angle(z1)
+        if abs(t0-t1) > EPSILON:
+            print("LineGeodesic fail:", z0, z1, t0, t1)
+
+
+class Disc(object):
+
+    def __init__(self, cvs=None, z_center=1j):
+        self.g_center = Mobius.cayley(z_center) * ~Mobius.cayley()
+        if cvs is None:
+            cvs = Canvas([Scale(5.0)])
+        cvs.fill(path.rect(-1, -1, 2, 2), [white])
+        self.cvs = cvs
+
+    def show_fixed(self, g):
+        #if g.trace.real < 2.-EPSILON and abs(g.c)>EPSILON:
+        cl = red
+        prev = 999.
+        for z in g.fixed():
+            if abs(z) > 1+EPSILON:
+                continue
+            if abs(z-prev) < EPSILON:
+                continue
+            prev = z
+            #z = g.inner_fixed()
+            w = g(z)
+            assert abs(w-z) < EPSILON
+            z = self.g_center(z)
+            x, y = z.real, z.imag
+            self.cvs.stroke(path.circle(x, y, 0.02), [cl])
+            cl = green
+
+    def d_poincare(self, z):
+        g = self.g_center
+        return d_poincare(g(z))
+
+    def show_point(self, z, attrs=[], radius=0.05):
+        z = self.g_center(z)
+        r = 2./d_poincare(z)
+        self.cvs.fill(path.circle(z.real, z.imag, radius*r), attrs)
+
+    def get_geodesic(self, z0, z1):
+        z0, z1 = self.g_center(z0), self.g_center(z1)
         #print("show_short_geodesic", z0, z1)
-        p = self.get_short_geodesic(z0, z1)
-        cvs.stroke(p, attrs)
+        gamma = Geodesic.construct(z0, z1)
+        return gamma
 
-    def show_polygon(self, pts, st_stroke=[], st_fill=None):
+    def show_polygon(self, pts, st_stroke=[], st_fill=None): # XXX broken XXX
+        cvs = self.cvs
         n = len(pts)
-        items = [self.get_short_geodesic(pts[i], pts[(i+1)%n])
-            for i in range(n)]
+        z = sum(pts) / n
+        # sometimes these geodesics are reversed XXX
+        items = [self.get_geodesic(pts[i], pts[(i+1)%n]) for i in range(n)]
+#        for item in items:
+#            if isinstance(item, LineGeodesic):
+#                #print(item.z0, item.z1)
+#                #st_fill = [grey]
+#                cvs.stroke(item.p, [thin])
+#            else:
+#                cvs.stroke(item.p, [thin])
+#        return
+        items = [item.p for item in items]
         items.append(path.closepath())
         p = path.path(items)
         if st_fill is not None:
-            cvs.fill(p, st_fill)
-        cvs.stroke(p, st_stroke)
+            self.cvs.fill(p, st_fill)
+        r = 2./d_poincare(z)
+        #if isinstance(p[0], path.line):
+        cvs.stroke(p, st_stroke+[r*normal])
 
     def show_geodesic(self, z0, z1, attrs=[]):
         "show_geodesic between two points"
-
-        if (abs(z0*z0.conjugate() - 1.) > EPSILON or
-            abs(z1*z1.conjugate() - 1.) > EPSILON):
-            self.show_short_geodesic(z0, z1, attrs)
-            return # <<<<<<<<<<-- return
-
-        assert abs(z0*z0.conjugate() - 1.) < EPSILON
-        assert abs(z1*z1.conjugate() - 1.) < EPSILON
         z0, z1 = self.g_center(z0), self.g_center(z1)
-
-        #from huygens.pov import get_angle
-        #z = z0/z1
-        #theta = get_angle(z.real, z.imag)
-        #print(theta*360 / (2*pi))
-
-        if abs(z0 + z1) < EPSILON:
-            p = path.line(z0.real, z0.imag, z1.real, z1.imag)
-
-        else:
-            theta0 = get_angle(z0)
-            theta1 = get_angle(z1)
-            r_cos = 1 / cos(0.5*abs(theta0 - theta1))
-            radius = tan(0.5*abs(theta0 - theta1))
-            z_center = r_cos * cmath.exp(1j * 0.5*(theta0+theta1))
-            #print(theta0*360 / (2*pi))
-            #print(theta1*360 / (2*pi))
-    
-            radius = abs(radius)
-            t0 = (theta0 + 0.5*pi) % (2*pi)
-            t1 = (theta1 - 0.5*pi) % (2*pi)
-            #cvs.stroke(path.line(z0.real, z0.imag, z1.real, z1.imag))
-            #print("arc", radius, t0, t1)
-            #cvs.stroke(path.line(0., 0., z_center.real, z_center.imag))
-            p = path.arc(z_center.real, z_center.imag, radius, t0, t1)
-
-        cvs.stroke(p, attrs)
-
-    #def get_refl(self, z0, z1):
+        gamma = Geodesic.construct(z0, z1)
+        r = 2./d_poincare(gamma.z2)
+        self.cvs.stroke(gamma.p, attrs+[r*normal])
 
     def show_tiles(self, G):
         # -----------------------------------------------------------
@@ -199,7 +232,7 @@ class Disc(object):
             #print("trace:", g.trace, "fixed:", g.fixed())
             #assert g.is_sl()
             assert g.is_su()
-            #cvs.fill(path.circle(x1, y1, 0.01), [green])
+            #self.cvs.fill(path.circle(x1, y1, 0.01), [green])
 
             g2 = self.g_center*g
 
@@ -207,31 +240,31 @@ class Disc(object):
             for idx in range(len(edge1)-1):
                 p, q = edge1[idx:idx+2]
                 lw = 2./d_poincare(p[0] + 1.j*p[1])
-                cvs.stroke(path.line(*p, *q), [lw*thin]+st_round)
+                self.cvs.stroke(path.line(*p, *q), [lw*thin]+st_round)
 
             z = g2(z2)
             ds = 2 / (1 - z*z.conjugate()).real
             draw_qubit(z.real, z.imag, 1.5/ds)
 
-
-
-# -------------------------------------------------------------
-#
-
-print()
-
-def save(name):
-    print("save(%r)"%(name,))
-    cvs.writePDFfile("i"+"mages/"+name+".pdf")
-    cvs.writeSVGfile("i"+"mages/"+name+".svg")
-    cvs.writePNGfile("i"+"mages/"+name+".png")
-
-
-def draw_qubit(x, y, scale=1.0):
-    p = path.circle(x, y, 0.05*scale)
-    cvs.fill(p, [white])
-    cvs.fill(p, [black.alpha(0.1)])
-    cvs.stroke(p, [black, normal*scale])
+    def fini(self):
+        cvs = self.cvs
+        p = path.circle(0, 0, 1)
+        cvs.clip(p)
+        cvs.stroke(p, [1.0*thin])
+    
+    def save(self, name):
+        print("save(%r)"%(name,))
+        cvs = self.cvs
+        cvs.writePDFfile("i"+"mages/"+name+".pdf")
+        cvs.writeSVGfile("i"+"mages/"+name+".svg")
+        cvs.writePNGfile("i"+"mages/"+name+".png")
+    
+    def draw_qubit(self, x, y, scale=1.0):
+        cvs = self.cvs
+        p = path.circle(x, y, 0.05*scale)
+        cvs.fill(p, [white])
+        cvs.fill(p, [black.alpha(0.1)])
+        cvs.stroke(p, [black, normal*scale])
 
 
 # -------------------------------------------------------------
@@ -239,36 +272,58 @@ def draw_qubit(x, y, scale=1.0):
 
 
 def main():
-    global cvs
-
-    gens = mktriangle(5, 2, 5)
-    
-    gens = [g.todisc() for g in gens] # --------------- todisc --------------
-    a, b = gens
-    
-    I = Mobius()
+    # build the rotation group generators
+    a, b = [g.todisc() for g in mktriangle(5, 2, 5)]
     
     disc = Disc()
 
-    cvs = Canvas([Scale(5)])
+    z_face = 0j
+    z_vert = (a*b).inner_fixed()
 
-    z0 = cos(0.1) + 1j*sin(0.1)
-    z1 = -z0
-    disc.show_geodesic(-1, 1, [green])
-    disc.show_geodesic(z0, z1, [green])
+    gamma = Geodesic.construct(z_vert, (~a)(z_vert))
+    z_edge = gamma.z2 # midpoint
+    g_face = gamma.get_refl()
+    gamma = Geodesic.construct(z_face, z_vert)
+    g_edge = gamma.get_refl()
+    g_vert = Mobius.conjugate()
 
-    z0 = 0j
-    z1 = (a*b).inner_fixed() # pentagon center
+    gens = [g_face, g_edge, g_vert]
+    gens = gens + [~g for g in gens]
+    G = mulclose(gens, verbose=True, maxsize=8000)
 
-    for g in [I, a, a**2, a**3, a**4]:
-        for h in [g, b*g, b*g*b]:
-            disc.show_geodesic(h(z0), h(z1), [thin])
-    
-    p = path.circle(0, 0, 1)
-    cvs.clip(p)
-    cvs.stroke(p, [1.0*thin])
-    
-    save("brings-curve")
+    faces, edges, verts = [], [], []
+    for g in G:
+        disc.show_geodesic(g(z_face), g(z_vert), attrs=[grey])
+        disc.show_geodesic(g(z_face), g(z_edge), attrs=[grey])
+        disc.show_geodesic(g(z_vert), g(z_edge))
+        faces.append(g(z_face))
+        edges.append(g(z_edge))
+        verts.append(g(z_vert))
+
+    #disc.show_polygon([z_face, z_edge, z_vert], st_fill=[grey])
+    #disc.show_point(z_vert, radius=0.1)
+    #disc.show_point((~a)(z_vert), radius=0.1)
+    #disc.show_point(z_edge, radius=0.1)
+
+#    z1, z2 = z_vert, a(z_vert)
+#    faces.append(0.j)
+#    for i in range(5):
+#        disc.show_geodesic(z1, z2)
+#        gamma = Geodesic.construct(z1, z2)
+#        disc.show_geodesic(0, z1)
+#        disc.show_geodesic(0, gamma.z2)
+#        edges.append(gamma.z2)
+#        verts.append(gamma.z0)
+#        #g = gamma.get_refl()
+#        #disc.show_point(g(0))
+#        z1, z2 = z2, a(z2)
+
+    for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
+        for z in zs:
+            disc.show_point(z, [cl])
+
+    disc.fini()
+    disc.save("brings-curve")
     
 
 
@@ -289,7 +344,8 @@ def main_bring():
     
     I = Mobius()
     
-    disc = Disc(z1)
+    cvs = Canvas([Scale(5)])
+    disc = Disc(cvs, z1)
     
     a, b = gens
     ab = a*b
@@ -307,7 +363,6 @@ def main_bring():
     #G = [Mobius(), a, b, a*b, b*a]
     G = [ab**idx for idx in range(5)]
     
-    cvs = Canvas([Scale(5)])
     # cvs.paint([white]) # broken ?!?
     
     aspect = 16/9
@@ -331,7 +386,7 @@ def main_bring():
     for conj in [I, c, c*c, c*c*c, c*c*c*c]:
         b1 = conj*b*~conj
         a1 = conj*a*~conj
-        #disc.show_fixed(a1) # vertices
+        #disc.show_fixed(a1) # _vertices
         #disc.show_fixed(b1) # edge midpoints
         z = b1.inner_fixed()
         edges.append(z)

@@ -169,10 +169,10 @@ class Mobius(object):
         return K * g * ~K
 
     def inv(self):
-        assert self.conjugate == False, "not implemented"
+        #assert self.conjugate == False, "not implemented"
         a, b, c, d = (self.a, self.b, self.c, self.d)
         det = a*d - b*c
-        return Mobius(d/det, -b/det, -c/det, a/det)
+        return Mobius(d/det, -b/det, -c/det, a/det, self.conjugate)
     __invert__ = inv
 
     @classmethod
@@ -180,6 +180,10 @@ class Mobius(object):
         a = cmath.exp(1j*theta)
         d = cmath.exp(-1j*theta)
         return Mobius(a, 0., 0., d)
+
+    @classmethod
+    def conjugate(cls):
+        return Mobius(1, 0, 0, 1, True)
 
     def __call__(self, z):
         a, b, c, d = (self.a, self.b, self.c, self.d)
@@ -293,12 +297,14 @@ def mulclose(gen, g0=I, verbose=False, maxsize=None):
                 if k not in ops:
                     ops.append(k)
                     _bdy.append(k)
-            if maxsize and len(ops) >= maxsize:
-                break
-            _bdy.sort(key = lambda g : g.dist(g0))
+            #if maxsize and len(ops) >= maxsize:
+            #    break
+            #_bdy.sort(key = lambda g : g.dist(g0))
         bdy = _bdy
         if verbose:
             print("mulclose:", len(ops))
+        if maxsize and len(ops) >= maxsize:
+            break
 
     return ops
 
@@ -439,6 +445,15 @@ def test():
         lhs = (g*h)(z)
         rhs = g(h(z))
         assert abs(lhs - rhs) < EPSILON
+
+    for g in gs:
+        h = ~g
+        assert g*h == I
+        z = rnd() + rnd()*1j
+        lhs = (g*h)(z)
+        rhs = g(h(z))
+        assert abs(lhs - rhs) < EPSILON
+        assert abs(lhs - z) < EPSILON
 
     N = argv.get("N", 100)
     gens = [Mobius(1, 1, 0, 1), Mobius(0, 1, -1, 0)]
