@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
 
 """
-Mobius transforms and triangle groups.
+Mobius transforms, reflections, and triangle groups.
 
+The automorphisms of the disc is SU(1,1), which
+lives inside SL(2, C) as:
+    [[u v]
+     [v* u*]]
+    such that u.u* - v.v* == 1.
+
+Refs:
+[1] "Indra's Pearls"
+[2] https://arxiv.org/pdf/1311.2081v2.pdf
+[3] https://www.math.cuhk.edu.hk/course_builder/2021/math4900e/MATH4900E_group3%20Oct%2012.pdf
 """
 
+
 import sys
-from random import shuffle
+from random import shuffle, random
 from math import pi, hypot, cos, sin, tan, acosh, atan
 import cmath
 
@@ -39,30 +50,18 @@ def d_poincare(z):
     return ds
 
 
-"""
-
-The automorphisms of the disc is SU(1,1), which
-lives inside SL(2, C) as:
-    [[u v]
-     [v* u*]]
-    such that u.u* - v.v* == 1.
-
-Refs:
-[1] "Indra's Pearls"
-[2] https://arxiv.org/pdf/1311.2081v2.pdf
-"""
-
 class Mobius(object):
     """
     [[a b]
      [c d]]
     """
-    def __init__(self, a=1., b=0., c=0., d=1.):
+    def __init__(self, a=1., b=0., c=0., d=1., conjugate=False):
         #assert abs(det - 1.) < EPSILON, det
         self.a = complex(a)
         self.b = complex(b)
         self.c = complex(c)
         self.d = complex(d)
+        self.conjugate = conjugate
 
     @property
     def det(self):
@@ -74,13 +73,15 @@ class Mobius(object):
         return self.a + self.d
 
     def __eq__(g, h):
-        return abs(g.a-h.a)+abs(g.b-h.b)+ abs(g.c-h.c)+abs(g.d-h.d) < EPSILON
-    #def __ne__(g, h):
-    #    return not g.__eq__(h)
+        return g.conjugate == h.conjugate and \
+            abs(g.a-h.a)+abs(g.b-h.b)+ abs(g.c-h.c)+abs(g.d-h.d) < EPSILON
 
     def __str__(self):
         flds = (self.a, self.b, self.c, self.d)
-        return "[[%s %s]\n [%s %s]]"%flds
+        s = "[[%s %s]\n [%s %s]]"%flds
+        if self.conjugate:
+            s = "*"+s
+        return s
     __repr__ = __str__
 
     def __mul__(g, h):
@@ -88,11 +89,19 @@ class Mobius(object):
         [[a b]  * [[a b]
          [c d]]    [c d]]
         """
-        a = g.a*h.a + g.b*h.c 
-        b = g.a*h.b + g.b*h.d 
-        c = g.c*h.a + g.d*h.c 
-        d = g.c*h.b + g.d*h.d 
-        return Mobius(a, b, c, d)
+        # See ref. [3], page 45
+        conjugate = (g.conjugate != h.conjugate)
+        if g.conjugate == False:
+            a = g.a*h.a + g.b*h.c 
+            b = g.a*h.b + g.b*h.d 
+            c = g.c*h.a + g.d*h.c 
+            d = g.c*h.b + g.d*h.d 
+        else:
+            a = g.a*h.a.conjugate() + g.b*h.c.conjugate() 
+            b = g.a*h.b.conjugate() + g.b*h.d.conjugate() 
+            c = g.c*h.a.conjugate() + g.d*h.c.conjugate() 
+            d = g.c*h.b.conjugate() + g.d*h.d.conjugate() 
+        return Mobius(a, b, c, d, conjugate)
 
     def __getitem__(self, idx):
         #return (self.a, self.b, self.c, self.d)[idx] # used by kdtree
@@ -108,6 +117,7 @@ class Mobius(object):
         return self.REAL_DIMS # used by kdtree
 
     def fixed(self):
+        assert self.conjugate == False, "not implemented"
         a, b, c, d = (self.a, self.b, self.c, self.d)
         if abs(c) < EPSILON and abs(b) < EPSILON:
             return (0.j, 0.j)
@@ -118,6 +128,7 @@ class Mobius(object):
         return (a-d+disc**0.5)/(2*c), (a-d-disc**0.5)/(2*c)
 
     def inner_fixed(self):
+        assert self.conjugate == False, "not implemented"
         z, w = self.fixed()
         if abs(z) < 1+EPSILON:
             return z
@@ -126,6 +137,8 @@ class Mobius(object):
     def is_translate(self):
         if self == I:
             return True
+        if self.conjugate:
+            return False
         z, w = self.fixed()
         if abs(z-w) < EPSILON:
             return False
@@ -156,6 +169,7 @@ class Mobius(object):
         return K * g * ~K
 
     def inv(self):
+        assert self.conjugate == False, "not implemented"
         a, b, c, d = (self.a, self.b, self.c, self.d)
         det = a*d - b*c
         return Mobius(d/det, -b/det, -c/det, a/det)
@@ -169,6 +183,8 @@ class Mobius(object):
 
     def __call__(self, z):
         a, b, c, d = (self.a, self.b, self.c, self.d)
+        if self.conjugate:
+            z = z.conjugate()
         top, bot = (a*z + b), (c*z + d)
         if abs(bot) < EPSILON:
             return None
@@ -183,13 +199,13 @@ class Mobius(object):
 
     def is_sl(self):
         a, b, c, d = (self.a, self.b, self.c, self.d)
-        return abs(self.det - 1.) < EPSILON
+        return abs(self.det - 1.) < EPSILON and not self.conjugate
 
     def is_su(self):
         a, b, c, d = (self.a, self.b, self.c, self.d)
         # u, v, v*, u*
         return abs(complex(d).conjugate() - a) < EPSILON and \
-            abs(complex(c).conjugate() - b) < EPSILON
+            abs(complex(c).conjugate() - b) < EPSILON and not self.conjugate
 
     @classmethod
     def _send(cls, p, q, r):
@@ -227,6 +243,7 @@ class Mobius(object):
         return count
 
     def dist(g, h):
+        assert g.conjugate == h.conjugate == False, "not implemented"
         a, b, c, d = (g.a-h.a, g.b-h.b, g.c-h.c, g.d-h.d)
         return (a*a.conjugate() + b*b.conjugate() 
             + c*c.conjugate() + d*d.conjugate()).real**0.5
@@ -409,6 +426,19 @@ def test():
     assert abs(g(q0) - q1) < EPSILON
     assert abs(g(q0) - q1) < EPSILON
 
+    rnd = lambda : 2*random() - 1.
+    z = rnd() + rnd()*1j
+    C = Mobius(1, 0, 0, 1, True) # conjugation
+    assert abs(C(z) - z.conjugate()) < EPSILON
+
+    # test group action property
+    gs = [Mobius(rnd(), rnd(), rnd(), rnd(), bool(random()>0.5)) for i in range(10)]
+    for g in gs:
+      for h in gs:
+        z = rnd() + rnd()*1j
+        lhs = (g*h)(z)
+        rhs = g(h(z))
+        assert abs(lhs - rhs) < EPSILON
 
     N = argv.get("N", 100)
     gens = [Mobius(1, 1, 0, 1), Mobius(0, 1, -1, 0)]
