@@ -839,6 +839,64 @@ def make_surface_54(G_0):
 
     assert alltrue(dot2(Hz, Hxt)==0)
 
+    check_dualities(Hz, Hxt, dualities)
+
+def check_toric():
+    global toric # arff !
+    import qupy.ldpc.solve
+    import bruhat.solve
+    qupy.ldpc.solve.int_scalar = bruhat.solve.int_scalar
+    from bruhat.solve import shortstr, zeros2, dot2, array2, solve
+    from numpy import alltrue, zeros, dot
+    l = argv.get("l", 2)
+    from qupy.ldpc.toric import Toric2D
+    toric = Toric2D(l)
+    Hx, Hz = toric.Hx, toric.Hz
+    assert alltrue(dot2(Hx, Hz.transpose()) == 0)
+
+    from qupy.condmat.isomorph import Tanner, search
+    src = Tanner.build2(Hx, Hz)
+    #tgt = Tanner.build2(Hx, Hz)
+    tgt = Tanner.build2(Hz, Hx) # weak duality
+
+    mx, n = Hx.shape
+    mz, n = Hz.shape
+
+    fns = []
+    perms = []
+    for fn in search(src, tgt):
+        assert len(fn) == mx+mz+n
+        bitmap = []
+        for i in range(n):
+            bitmap.append( fn[i+mx+mz]-mx-mz )
+        perm = tuple(bitmap)
+        #print(bitmap)
+        fixed = [i for i in range(n) if bitmap[i]==i]
+        print("perm:", perm)
+        print("fixed:", fixed)
+
+        g = Perm(perm, list(range(n)))
+        assert g.order() == 2
+
+        perms.append(perm)
+
+    for hx in Hx:
+        print(toric.strop(hx))
+        print("--->")
+        hx = array2([hx[i] for i in perm])
+        print(toric.strop(hx))
+        print("--->")
+        hx = array2([hx[i] for i in perm])
+        print(toric.strop(hx))
+        print()
+
+    check_dualities(Hz, Hx.transpose(), perms)
+
+
+def check_dualities(Hz, Hxt, dualities):
+    from bruhat.solve import shortstr, zeros2, dot2, array2, solve, span
+    from numpy import alltrue, zeros, dot
+
     import qupy.ldpc.solve
     import bruhat.solve
     qupy.ldpc.solve.int_scalar = bruhat.solve.int_scalar
@@ -847,8 +905,7 @@ def make_surface_54(G_0):
     Hx = Hxt.transpose() % 2
     code = CSSCode(Hz=Hz, Hx=Hx)
     print(code)
-    n = len(edges_0)
-    assert code.n == n
+    n = code.n
 
     Lx, Lz = code.Lx, code.Lz
 
@@ -864,6 +921,21 @@ def make_surface_54(G_0):
         find_xz = solve(concatenate((Lx, Hx)).transpose(), Lz1.transpose()) is not None
         find_zx = solve(concatenate((Lz1, Hz1)).transpose(), Lx.transpose()) is not None
         #print(find_xz, find_zx)
+        assert find_xz 
+        assert find_zx 
+
+        # the fixed points live simultaneously in the homology & the cohomology
+        fixed = [i for i in range(n) if perm[i]==i]
+        if len(fixed) == 0:
+            continue
+        v = array2([0]*n)
+        v[fixed] = 1
+        v.shape = (n, 1)
+        find_xz = solve(concatenate((Lx, Hx)).transpose(), v) is not None
+        find_zx = solve(concatenate((Lz, Hz)).transpose(), v) is not None
+        #print(find_xz, find_zx)
+        assert find_xz 
+        assert find_zx 
 
     from qupy.ldpc.asymplectic import Stim as Clifford
     s_gates = []
@@ -928,26 +1000,47 @@ def make_surface_54(G_0):
         #assert h.is_transversal(code)
         h_gates.append(h)
 
+    if 0:
+        print()
+        print("CZ:")
+        CZ = Clifford.cz_gate(2, 0, 1)
+        op = (1., [0, 0], [1,1])
+        for i in range(4):
+            print(op)
+            op = CZ(*op)
+        return
 
     for idx, sop in enumerate(s_gates):
-        print(idx, end=" ")
+        print("idx =", idx)
+        #for hx in Hx:
+        perm = dualities[idx]
+        #for hx in span(Hx):
         for hx in Hx:
-            #print(idx)
+            #print("hx =", hx)
             #print(s_names[idx])
             phase, zop, xop = sop(1., None, hx)
-            #print(phase, zop, xop)
-            assert numpy.alltrue(xop==hx)
-            if phase != 1:
-                #for jdx, xx in enumerate(xop):
-                #    if xx:
-                #        print(jdx, end=" ")
-                #print("\nFAIL: phase =", phase)
-                #return
-                print("FAIL")
-                break
-            assert phase == 1, phase
-        else:
-            print("OK")
+            assert numpy.alltrue(xop==hx) # fixes x component
+            print(phase, zop, xop, dot2(zop, xop))
+            for (i, j) in enumerate(perm):
+                if xop[i] and xop[j]:
+                    print("pair", (i, j))
+            print("xop =")
+            print(toric.strop(xop))
+            print("zop =")
+            print(toric.strop(zop))
+            print()
+#            if phase != 1:
+#                #for jdx, xx in enumerate(xop):
+#                #    if xx:
+#                #        print(jdx, end=" ")
+#                #print("\nFAIL: phase =", phase)
+#                #return
+#                print("FAIL")
+#                break
+#            assert phase == 1, phase
+#            print(phase)
+#        else:
+#            print("OK")
 
 
 

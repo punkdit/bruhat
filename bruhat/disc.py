@@ -244,7 +244,14 @@ class Disc(object):
 
             z = g2(z2)
             ds = 2 / (1 - z*z.conjugate()).real
-            draw_qubit(z.real, z.imag, 1.5/ds)
+            self.show_qubit(z.real, z.imag, 1.5/ds)
+
+    def show_qubit(self, x, y, scale=1.0):
+        cvs = self.cvs
+        p = path.circle(x, y, 0.05*scale)
+        cvs.fill(p, [white])
+        cvs.fill(p, [black.alpha(0.1)])
+        cvs.stroke(p, [black, normal*scale])
 
     def fini(self):
         cvs = self.cvs
@@ -257,15 +264,9 @@ class Disc(object):
         cvs = self.cvs
         cvs.writePDFfile("i"+"mages/"+name+".pdf")
         cvs.writeSVGfile("i"+"mages/"+name+".svg")
+        cvs = Canvas([Scale(5.), cvs])
         cvs.writePNGfile("i"+"mages/"+name+".png")
     
-    def draw_qubit(self, x, y, scale=1.0):
-        cvs = self.cvs
-        p = path.circle(x, y, 0.05*scale)
-        cvs.fill(p, [white])
-        cvs.fill(p, [black.alpha(0.1)])
-        cvs.stroke(p, [black, normal*scale])
-
 
 # -------------------------------------------------------------
 #

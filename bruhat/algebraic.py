@@ -230,7 +230,7 @@ class Matrix(object):
         #self.n = n
         if p>0:
             self.A %= p
-        self.key = (self.p, self.A.tostring())
+        self.key = (self.p, self.A.tobytes())
         self._hash = hash(self.key)
         self.shape = A.shape
 
@@ -1001,7 +1001,18 @@ def test_symplectic():
     F = G.invariant_form
     for g in G.gen:
         assert g * F * g.transpose()  == F
-        print(g)
+        #print(g)
+
+    #gs = list(G.get_elements())
+    #print(len(gs))
+    #for g in gs:
+    #    A = g.A
+    #    if numpy.alltrue(A.sum(0) == 1):
+    #        print(A)
+    #        A = numpy.array(g.A, dtype=float)
+    #        a = numpy.linalg.det(A)
+    #        print("det:", a)
+    #return
 
     lookup = {}
     items = []
@@ -1122,10 +1133,10 @@ def get_permrep(G):
     n, _ = op.shape
     p = op.p
     space = list(numpy.array(v) for v in enum2(n))
-    lookup = dict((v.tostring(), idx) for (idx, v) in enumerate(space))
+    lookup = dict((v.tobytes(), idx) for (idx, v) in enumerate(space))
     perms = []
     for op in G:
-        idxs = [lookup[(numpy.dot(op.A, v)%p).tostring()] for v in space]
+        idxs = [lookup[(numpy.dot(op.A, v)%p).tobytes()] for v in space]
         perms.append(gset.Perm(idxs))
     G = gset.Group(perms)
     return G
@@ -1195,7 +1206,7 @@ class Figure(object):
         items = [A.copy() for A in items]
         self.items = items
         #self._str = self.__str__()
-        self._str = b' '.join(A.tostring() for A in items)
+        self._str = b' '.join(A.tobytes() for A in items)
         if check:
             self.check()
 
