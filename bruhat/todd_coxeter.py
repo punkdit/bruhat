@@ -56,7 +56,7 @@ class Schreier(object):
         #The labels variable is a list of _numbers, with the property
         #that labels[i] <= i. This is a union-find data structure
         #for keeping track of the vertex quotients for the Schreier
-        #graph so far. The find function looks up the current-lowest
+        #graph so far. The find function _looks up the current-lowest
         #label for a particular labeled vertex.
         
         #For vertices which have not been removed, the neighbors
@@ -769,6 +769,28 @@ def make_surface_54(G_0):
     #while 1:
     #    sleep(1)
 
+    from bruhat.solve import shortstr, zeros2, dot2, array2, solve
+    from numpy import alltrue, zeros, dot
+
+    def get_adj(left, right):
+        A = zeros2((len(left), len(right)))
+        for i, l in enumerate(left):
+          for j, r in enumerate(right):
+            lr = l.intersect(r)
+            A[i, j] = len(lr)>0
+        return A
+
+    Hz = get_adj(faces, edges_0)
+    Hxt = get_adj(edges_0, vertices)
+    Hx = Hxt.transpose()
+
+    #print(shortstr(Hz))
+    #print()
+    #print(shortstr(Hxt))
+    #print()
+
+    assert alltrue(dot2(Hz, Hxt)==0)
+
 #    act_fold_faces = G_0.action_subgroup(H_1)
 
     dualities = []
@@ -800,47 +822,106 @@ def make_surface_54(G_0):
         #    continue
         #elif g.order() == 2 and g not in G_1 and g not in L_0:
 
-        print("%d: [|g|=%s,%s.%s.%s]"%(
+        perm = h_edge_0.get_idxs()
+        dualities.append(perm)
+        #if g not in L_0:
+        #    check_432(Hz, Hx, perm)
+        #    return
+        result = is_422_cat_selfdual(Hz, Hx, perm)
+
+        print("%d: [|g|=%s,%s.%s.%s.%s]"%(
             len(dualities),
             g.order(),
             n_edge or ' ',  # num fixed edges
 #            n_fold_faces or ' ',  # num fixed faces+vertexes
             ["    ", "pres"][int(g in G_1)], # preserves face/vertex distinction
             ["refl", "rot "][int(g in L_0)], # oriented or un-oriented
+            ["        ","selfdual"][result],
         ), end=" ", flush=True)
         print()
-        perm = h_edge_0.get_idxs()
-        dualities.append(perm)
 
     print()
 
     #dualities = Group.generate(dualities)
     #print(dualities)
 
-    from bruhat.solve import shortstr, zeros2, dot2, array2, solve
+    #check_dualities(Hz, Hxt, dualities)
+
+
+def is_422_cat_selfdual(Hz, Hx, perm):
+    "concatenate with the [[4,2,2]] code and see if we get a self-dual code"
     from numpy import alltrue, zeros, dot
+    import qupy.ldpc.solve
+    import bruhat.solve
+    qupy.ldpc.solve.int_scalar = bruhat.solve.int_scalar
+    from bruhat.solve import shortstrx, zeros2, dot2, array2, solve
+    from qupy.ldpc.css import CSSCode
+    Cout = CSSCode(Hz=Hz, Hx=Hx)
+    #print(Cout)
+    #Cin = CSSCode(Hz=array2([[1,1,1,1]]), Hx=array2([[1,1,1,1]]))
+    #print(Cin)
 
-    def get_adj(left, right):
-        A = zeros2((len(left), len(right)))
-        for i, l in enumerate(left):
-          for j, r in enumerate(right):
-            lr = l.intersect(r)
-            A[i, j] = len(lr)>0
-        return A
+    pairs = []
+    singles = []
+    for i in range(Cout.n):
+        j = perm[i]
+        if j < i:
+            continue
+        if i==j:
+            singles.append(i)
+        else:
+            pairs.append((i, j))
+    #print(singles, pairs)
+    M = len(singles) + 4*len(pairs)
 
-    Hz = get_adj(faces, edges_0)
-    Hxt = get_adj(edges_0, vertices)
-    Hx = Hxt.transpose()
+    # encoding matrices
+    enc_z = zeros2(M, Cout.n)
+    enc_x = zeros2(M, Cout.n)
+    
+    row = 0
+    for col in singles:
+        enc_z[row, col] = 1
+        enc_x[row, col] = 1
+        row += 1
+    H = []
+    for (i,j) in pairs:
+        enc_z[row, i] = 1   # 1010
+        enc_z[row+2, i] = 1
+        enc_z[row, j] = 1   # 1100
+        enc_z[row+1, j] = 1
 
-    #print(shortstr(Hz))
-    #print()
-    #print(shortstr(Hxt))
-    #print()
+        enc_x[row, i] = 1   # 1100
+        enc_x[row+1, i] = 1
+        enc_x[row, j] = 1   # 1010
+        enc_x[row+2, j] = 1
+        h = array2([0]*M)
+        h[row:row+4] = 1
+        H.append(h)
 
-    assert alltrue(dot2(Hz, Hxt)==0)
+        row += 4
+    assert row == M
+    
+    #print(shortstrx(enc_z, enc_x))
 
-    check_dualities(Hz, Hxt, dualities)
+    Hz = dot2(enc_z, Cout.Hz.transpose()).transpose()
+    Hx = dot2(enc_x, Cout.Hx.transpose()).transpose()
+    assert alltrue(dot2(Hz, Hx.transpose()) == 0)
 
+    Hz = numpy.concatenate((Hz, H))
+    Hx = numpy.concatenate((Hx, H))
+    assert alltrue(dot2(Hz, Hx.transpose()) == 0)
+
+    C = CSSCode(Hz=Hz, Hx=Hx)
+    assert C.k == Cout.k
+    #print(C)
+
+    lhs = (solve(Hz.transpose(), Hx.transpose()) is not None)
+    rhs = (solve(Hx.transpose(), Hz.transpose()) is not None)
+    return lhs and rhs
+
+
+
+toric = None
 def check_toric():
     global toric # arff !
     import qupy.ldpc.solve
@@ -891,7 +972,6 @@ def check_toric():
         print()
 
     check_dualities(Hz, Hx.transpose(), perms)
-
 
 def check_dualities(Hz, Hxt, dualities):
     from bruhat.solve import shortstr, zeros2, dot2, array2, solve, span
@@ -945,7 +1025,7 @@ def check_dualities(Hz, Hxt, dualities):
 
         fixed = [i for i in range(n) if swap[i] == i]
         print(idx, fixed)
-        for signs in cross([(-1, 1)]*len(fixed)):
+        for signs in cross([(-1, 1)]*len(fixed)): # <------- does not scale !!! XXX
             v = [0]*n
             for i, sign in enumerate(signs):
                 v[fixed[i]] = sign
@@ -1022,8 +1102,10 @@ def check_dualities(Hz, Hxt, dualities):
             assert numpy.alltrue(xop==hx) # fixes x component
             print(phase, zop, xop, dot2(zop, xop))
             for (i, j) in enumerate(perm):
-                if xop[i] and xop[j]:
+                if xop[i] and xop[j] and i < j:
                     print("pair", (i, j))
+            if toric is None:
+                continue
             print("xop =")
             print(toric.strop(xop))
             print("zop =")
