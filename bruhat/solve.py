@@ -205,7 +205,7 @@ def swap_col(A, j, k):
 
 
 def shortstrx(*As, **kw):
-    from .smap import SMap
+    from bruhat.smap import SMap
     smap = SMap()
 
     zero = kw.get('zero', '.')

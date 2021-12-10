@@ -42,8 +42,8 @@ def shortstr(*items, **kw):
         A.shape = (1, len(A))
     m, n = A.shape
 
-    if m==0 or n==0:
-        return "[]"
+    smap = SMap()
+    smap[0, 0] = "["
 
     items = {}
     dw = 3
@@ -54,19 +54,15 @@ def shortstr(*items, **kw):
         dw = max(dw, len(s)+1)
         items[i, j] = s
 
-    smap = SMap()
-    smap[0, 0] = "["
     for i in range(m):
       smap[i, 1] = "["
       smap[i, n*dw+2] = "]"
-      if i+1<m:
-        smap[i, n*dw+3] = ","
-      else:
-        smap[i, n*dw+3] = "]"
+      smap[i, n*dw+3] = ","
       for j in range(n):
         s = items[i, j]
         s = s.rjust(dw-1)
         smap[i, j*dw+2] = s
+    smap[max(0, m-1), n*dw+3] = "]"
 
     return smap
 

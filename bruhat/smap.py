@@ -49,6 +49,12 @@ class SMap(object):
     def __ne__(self, other):
         return self.data != other.data
 
+    def paste(self, other, row=0, col=0):
+        for (k, v) in other.data.items():
+            r, c = k
+            self[r+row, c+col] = v
+
+
 
 
 def tabulate(table, rows, cols, space):

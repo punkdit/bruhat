@@ -27,6 +27,7 @@ from bruhat.frobenius import GF
 from bruhat.action import Perm, Group, mulclose, mulclose_hom
 from bruhat.rep import Young
 from bruhat.util import partitions, cross
+from bruhat.smap import SMap
 
 
 def shortstr(A):
@@ -118,6 +119,9 @@ class Space(object):
         s = UU.get_swap()
         f = I.coequalizer(s)
         return f
+
+    def asgrade(self, grade, name="?"):
+        return Space(self.ring, self.n, grade, name)
 
 
 class AddSpace(Space):
@@ -473,6 +477,20 @@ class Lin(object):
         K = Lin(other.src, src, K)
         return J, K
 
+    def kernel(self, other=None):
+        assert other is None, "todo"
+        K = elim.kernel(self.ring, self.A)
+        src = Space(self.ring, K.shape[1])
+        K = Lin(self.src, src, K)
+        return K
+
+    def cokernel(self, other=None):
+        assert other is None, "todo"
+        K = elim.cokernel(self.ring, self.A)
+        tgt = Space(self.ring, K.shape[0])
+        lin = Lin(tgt, self.tgt, K)
+        return lin
+
 
 # ------------------------------------------------------------
 
@@ -541,9 +559,35 @@ class Chain(Seq):
         return "%s(%s)"%(self.__class__.__name__,
             "-->".join(str(space) for space in spaces))
 
+    def __add__(self, other):
+        assert isinstance(other, Chain)
+        return AddChain(self, other)
+
     def __matmul__(self, other):
         assert isinstance(other, Chain)
         return MulChain(self, other)
+
+    def longstr(self):
+        lins = self.lins
+        ss = [elim.shortstr(lin.A) for lin in lins]
+        rows = max([s.rows for s in ss])
+        #print("rows", rows, [s.rows for s in ss])
+        smap = SMap()
+        col = 2
+        for s, lin in zip(ss, lins):
+            tgt, src = lin.hom
+            smap.paste(s, rows-s.rows, col)
+            col1 = col + s.cols + 4
+            for i in range(col, col1-2):
+                smap[rows+1, i] = '-'
+            smap[rows+1, i] = '>'
+            smap[rows+1, col-2] = str(src.n)
+            col = col1 + 1
+        smap[rows+1, col-2] = str(tgt.n)
+        result = str(smap)
+        result = result.replace(" 0 ", " . ")
+        return result
+            
 
 
 class ChainMap(object):
@@ -641,6 +685,20 @@ class ChainMap(object):
         zero = ChainMap(self.tgt, self.src)
         return self.coequalizer(zero)
 
+
+class AddChain(Chain):
+    "direct sum of Chain complexes"
+    def __init__(self, lhs, rhs):
+        assert lhs.lins
+        assert rhs.lins
+        assert lhs.ring is rhs.ring
+        ring = lhs.ring
+
+        lins = []
+        for l, r in zip(lhs.lins, rhs.lins):
+            lin = l.direct_sum(r)
+            lins.append(lin)
+        Chain.__init__(self, lins)
 
 
 class MulChain(Chain):
@@ -1135,7 +1193,44 @@ def test_gf():
     #    print(f)
 
 
+def randchain(ring, n, m):
+    V = Space(ring, n, 1, "V")
+    U = Space(ring, m, 0, "U")
+    B = Lin.rand(U, V)
+
+    A = B.kernel()
+    A = Lin(A.tgt, A.src.asgrade(2), A.A) # yikes
+    assert (B*A).is_zero()
+
+    C = B.cokernel()
+    C = Lin(C.tgt.asgrade(-1), C.src, C.A)
+    assert (C*B).is_zero()
+
+    c = Chain([A, B, C])
+    return c
+
+
 def test_chain():
+    ring = element.Q
+
+    m = argv.get("m", 3)
+    n = argv.get("n", 3)
+
+    c = randchain(ring, n, m)
+    d = randchain(ring, n, m)
+
+    print("c =")
+    print(c.longstr())
+    print("d =")
+    print(d.longstr())
+
+    cd = c+d
+    print("c+d =")
+    print(cd)
+    print(cd.longstr())
+
+
+def test_chain_tensor():
     #p = argv.get("p", 3)
     #ring = element.FiniteField(p)
     ring = element.Q
@@ -1170,8 +1265,10 @@ def test_chain():
     c = Chain([A])
     print(c)
 
-    cc = c @ c
-    print(cc)
+    c.dump()
+
+    #cc = c @ c
+    #print(cc)
     #ccc = c@cc
     #print(ccc)
 
