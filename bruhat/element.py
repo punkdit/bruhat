@@ -191,7 +191,7 @@ class Element(Type):
         return p
 
 
-class Keyed(object): # use for Type's
+class Keyed(object): # mixin, used for Type's
 
     def __init__(self, key):
         if not type(key) is tuple:
