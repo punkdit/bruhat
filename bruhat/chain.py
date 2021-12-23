@@ -316,6 +316,8 @@ class Lin(object):
         self.grade = none_sub(tgt.grade, src.grade)
         if A is None:
             A = elim.zeros(self.ring, tgt.n, src.n)
+        if type(A) is list:
+            A = elim.array(A)
         assert A.shape == (tgt.n, src.n), "%s != %s" % ( A.shape , (tgt.n, src.n) )
         self.hom = (tgt, src) # yes it's backwards, just like shape is.
         self.shape = A.shape
