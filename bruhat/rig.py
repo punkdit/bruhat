@@ -9,7 +9,7 @@ from bruhat import element
 from bruhat.element import GenericElement, Type, Keyed
 Gen = GenericElement
 from bruhat import elim
-from bruhat.chain import Space, Lin
+from bruhat.chain import Space, Lin, shortstr
 
 #
 # unwrapped has ob_ prefix
@@ -78,11 +78,45 @@ def test_rig(rig):
     assert one + zero == one
 
 
+def test_structure():
+    ring = element.Q
+    N = Space(ring, 0, 0, 'N') # null (direct_sum unit)
+    K = Space(ring, 1, 0, 'K') # field (tensor unit)
+    U = Space(ring, 2, 0, 'U')
+    V = Space(ring, 3, 0, 'V')
+    W = Space(ring, 5, 0, 'W')
+
+    f = (V+N).nullitor()
+    fi = (V+N).nullitor(inverse=True)
+    assert f*fi == V.identity()
+    assert fi*f == (V+N).identity()
+
+    f = (V@K).unitor()
+    fi = (V@K).unitor(inverse=True)
+    assert f*fi == V.identity()
+    assert fi*f == (V@K).identity()
+
+    f = (V@N).annihilator()
+    fi = (V@N).annihilator(inverse=True)
+    assert f*fi == N.identity()
+    assert fi*f == (V@N).identity()
+
+    tgt, src = U@V + U@W, U@(V+W)
+    f = src.left_distributor()
+    assert f.tgt == tgt
+    fi = src.left_distributor(inverse=True)
+    assert f*fi == tgt.identity()
+    assert fi*f == src.identity()
+
+
 def main():
 
     ring = element.Q
-    N = Space(ring, 0, 0, 'N') # null
-    K = Space(ring, 1, 0, 'K') # field
+    N = Space(ring, 0, 0, 'N') # null (direct_sum unit)
+    K = Space(ring, 1, 0, 'K') # field (tensor unit)
+
+    # N, K are the zero and one of a rig.
+    # We "wrap" these Space objects into a GenericElement.
     rig = Rig(N, K, Space.__add__, Space.__matmul__)
 
     # Objects are Space's over a rig
@@ -91,32 +125,44 @@ def main():
     #V2 = Space(rig, 2, name='V2')
     V2 = V1 + V1
 
+    # 1-morphism's are Lin's over this rig
     i1 = V1.identity()
-
-    #print(i1[0,0].value)
-    #A = [[Lin(i1[0,0].value, i1[0,0].value )]]
-    A = [[Lin(K, K)]]
-    m = Lin2(i1, i1, A)
-
     copy = Lin(V2, V1, [[rig.one],[rig.one]])
     delete = Lin(V0, V1)
     add = Lin(V1, V2, copy.A.transpose())
     zero = Lin(V1, V0)
 
-    #print(add * copy)
-    #print(copy * add)
     assert copy * zero == Lin(V2, V0)
-    
-    tgt, src = add * zero.direct_sum(i1), i1
 
-    print(tgt)
-    print(src)
+    # 2-morphism's are Lin2's.
+    # These are 2d arrays of Lin's.
+    zero_2 = Lin2(i1, i1, [[Lin(K, K)]])
 
-    m = Lin2(tgt, src)
-    print(m)
+    # The left unitorator
+    tgt_1, src_1 = add * zero.direct_sum(i1), i1
+    tgt = tgt_1[0,0].value  # unwrapped
+    src = src_1[0,0].value  # unwrapped
+    assert tgt == K@N + K@K
+    assert src == K
+
+    lin = Lin(tgt, src, elim.identity(ring, 1))
+    m_2 = Lin2(tgt_1, src_1, [[lin]])
+
+    # The "bialgebrator" should be a 2-morphism from src to tgt
+    a = copy.direct_sum(copy)
+    b = a.tgt.get_swap((0, 2, 1, 3))
+    c = add.direct_sum(add)
+    tgt = (c*b*a)
+    src = (copy * add)
+    arrays = [elim.zeros(ring, 1, 1), elim.identity(ring, 1)]
+    lins = [[
+        Lin(tgt[i,j].value, src[i,j].value, arrays[int(i==j)]) # unwrapped
+        for j in range(2)] for i in range(2)]
+    bialgebrator = Lin2(tgt, src, lins)
 
 
 if __name__ == "__main__":
+    test_structure()
     main()
 
 

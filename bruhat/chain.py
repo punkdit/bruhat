@@ -123,6 +123,11 @@ class Space(object):
     def asgrade(self, grade, name="?"):
         return Space(self.ring, self.n, grade, name)
 
+#    def left_nullitor(V):
+#        "V <-- 0 + V" # yes but which zero to use ?
+#        lin = Lin(V, null + V, A)
+#        return lin
+
 
 class AddSpace(Space):
     "direct sum of vector spaces"
@@ -131,7 +136,7 @@ class AddSpace(Space):
     def __new__(cls, *_items):
         assert _items
         #if len(_items)==1:
-        #    return _items[0]
+        #    return _items[0] # breaks MulChain ...
         items = []
         for item in _items:
             if type(item) is AddSpace:
@@ -168,6 +173,22 @@ class AddSpace(Space):
         n = sum(item.n for item in items)
         Space.__init__(self, ring, n)
         self.items = items
+
+    def nullitor(self, inverse=False):
+        "remove all zero (null) summands"
+        items = self.items
+        src = self
+        tgt = [item for item in self.items if item.n]
+        if len(tgt)>1:
+            tgt = AddSpace(*tgt)
+        elif len(tgt):
+            tgt = tgt[0]
+        else:
+            assert 0, "wah?"
+        A = elim.identity(self.ring, self.n)
+        if inverse:
+            src, tgt = tgt, src # the same A works
+        return Lin(tgt, src, A)
 
     def get_swap(self, perm=(1, 0)):
         perm = tuple(perm)
@@ -269,6 +290,63 @@ class MulSpace(Space):
         n = reduce(mul, [item.n for item in items])
         Space.__init__(self, ring, n)
         self.items = items
+
+    def unitor(self, inverse=False):
+        "remove all tensor units"
+        items = self.items
+        src = self
+        tgt = [item for item in self.items if item.n!=1]
+        if len(tgt)>1:
+            tgt = MulSpace(*tgt)
+        elif len(tgt):
+            tgt = tgt[0]
+        else:
+            assert 0, "wah?"
+        A = elim.identity(self.ring, self.n)
+        if inverse:
+            src, tgt = tgt, src # the same A works
+        return Lin(tgt, src, A)
+
+    def annihilator(self, inverse=False):
+        "zero factors _annihilate the tensor"
+        items = self.items
+        zero = None
+        for space in items:
+            if space.n == 0:
+                zero = space
+        if zero is None:
+            return self.identity()
+        src = self
+        tgt = zero
+        if inverse:
+            src, tgt = tgt, src # the same A works
+        return Lin(tgt, src)
+
+    def left_distributor(self, inverse=False):
+        items = self.items
+        assert len(items) == 2
+        U = items[0]
+        right = items[1]
+        assert isinstance(right, AddSpace)
+        A = elim.zeros(self.ring, self.n, self.n)
+        col = 0
+        rows = [0]
+        for V in right.items:
+            rows.append(U.n * V.n + rows[-1])
+        for i in range(U.n):
+          for j, V in enumerate(right.items):
+            row = rows[j]
+            A1 = elim.identity(self.ring, V.n)
+            A[row:row+A1.shape[0], col:col+A1.shape[1]] = A1
+            col += V.n
+            rows[j] += V.n
+        tgt = reduce(add, [U@V for V in right.items])
+        src = self
+        if inverse:
+            src, tgt = tgt, src
+            A = A.transpose()
+        lin = Lin(tgt, src, A)
+        return lin
 
     def get_swap(self, perm=(1, 0)):
         perm = tuple(perm)
