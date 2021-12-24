@@ -72,43 +72,6 @@ class Lin2(object):
 
 
 
-def test_rig(rig):
-    one = rig.one
-    zero = rig.zero
-    assert one + zero == one
-
-
-def test_structure():
-    ring = element.Q
-    N = Space(ring, 0, 0, 'N') # null (direct_sum unit)
-    K = Space(ring, 1, 0, 'K') # field (tensor unit)
-    U = Space(ring, 2, 0, 'U')
-    V = Space(ring, 3, 0, 'V')
-    W = Space(ring, 5, 0, 'W')
-
-    f = (V+N).nullitor()
-    fi = (V+N).nullitor(inverse=True)
-    assert f*fi == V.identity()
-    assert fi*f == (V+N).identity()
-
-    f = (V@K).unitor()
-    fi = (V@K).unitor(inverse=True)
-    assert f*fi == V.identity()
-    assert fi*f == (V@K).identity()
-
-    f = (V@N).annihilator()
-    fi = (V@N).annihilator(inverse=True)
-    assert f*fi == N.identity()
-    assert fi*f == (V@N).identity()
-
-    tgt, src = U@V + U@W, U@(V+W)
-    f = src.left_distributor()
-    assert f.tgt == tgt
-    fi = src.left_distributor(inverse=True)
-    assert f*fi == tgt.identity()
-    assert fi*f == src.identity()
-
-
 def main():
 
     ring = element.Q
@@ -162,7 +125,6 @@ def main():
 
 
 if __name__ == "__main__":
-    test_structure()
     main()
 
 
