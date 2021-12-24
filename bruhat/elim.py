@@ -50,7 +50,7 @@ def shortstr(*items, **kw):
     for i in range(m):
       for j in range(n):
         x = A[i, j]
-        s = str(x)
+        s = str(x) if x is not None else "N"
         dw = max(dw, len(s)+1)
         items[i, j] = s
 

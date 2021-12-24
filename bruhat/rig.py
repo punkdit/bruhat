@@ -4,6 +4,9 @@
 Kapranov-Voevodsky 2-vector spaces
 """
 
+from functools import reduce
+
+import numpy # for the matrix indexing and ops
 
 from bruhat import element
 from bruhat.element import GenericElement, Type, Keyed
@@ -52,8 +55,9 @@ class Lin2(object):
         self.ring = tgt.ring
         self.tgt = tgt
         self.src = src
-        assert src.shape == tgt.shape
-        rows, cols = src.shape
+        shape = src.shape
+        assert shape == tgt.shape
+        rows, cols = shape
         if A is None:
             A = [[Lin(tgt[i,j].value, src[i,j].value) # note unwrapping here 
                 for j in range(cols)] for i in range(rows)]
@@ -66,10 +70,132 @@ class Lin2(object):
                 assert A[i, j].tgt == tgt[i, j].value # unwrapped
                 assert A[i, j].src == src[i, j].value # unwrapped
         self.A = A
+        self.shape = shape
 
     def __str__(self):
         return str(self.A)
 
+    def __getitem__(self, idx):
+        #i, j = idx
+        #rows, cols = self.shape
+        #assert 0<=i<rows
+        #assert 0<=j<cols
+        return self.A[idx]
+
+    def __mul__(left, right):
+        "(vertical) composition of 2-morphism's"
+        assert right.tgt == left.src
+        A = left.A * right.A
+        return Lin2(left.tgt, right.src, A)
+
+    def __lshift__(left, right):
+        "horizontal composition of 2-morphism's"
+        src = left.src * right.src
+        tgt = left.tgt * right.tgt
+        lins = []
+        for i in range(left.shape[0]):
+          row = []
+          for k in range(right.shape[1]):
+            f = reduce(Lin.direct_sum, 
+                [left[i,j]@right[j,k] for j in range(left.shape[1])])
+            row.append(f)
+          lins.append(row)
+        return Lin2(tgt, src, lins)
+
+    def __eq__(self, other):
+        assert self.tgt == other.tgt
+        assert self.src == other.src
+        return numpy.alltrue(self.A == other.A)
+
+    def weak_eq(self, other):
+        assert self.tgt.shape == other.tgt.shape
+        assert self.src.shape == other.src.shape
+        shape = self.tgt.shape 
+        for i in range(shape[0]):
+          for j in range(shape[1]):
+            if not self[i,j].weak_eq(other[i,j]):
+                return False
+        return True
+
+    @classmethod
+    def identity(cls, ring, rig, lin):
+        r"""
+            |
+            |
+         V  *   U
+            |
+            |
+           lin
+        """
+        assert lin.ring == rig
+        src = tgt = lin
+        V, U = lin.hom
+        lins = [[
+            Lin(
+                lin[i,j].value, 
+                lin[i,j].value, 
+                elim.identity(ring, lin[i,j].value.n)) # unwrapped
+            for j in range(U.n)] for i in range(V.n)]
+        i_2 = Lin2(tgt, src, lins)
+        return i_2
+
+    @classmethod
+    def unit(cls, ring, rig, V1, V):
+        r"""
+            |   |
+            | V1|
+             \  /
+              \/
+               *
+             V .  V
+               .
+        """
+        assert isinstance(V1, Space)
+        assert V1.ring == rig
+        assert V1.n == 1
+        assert isinstance(V, Space)
+        assert V.ring == rig
+        n = V.n
+        src = V.identity()
+        add = Lin(V1, V, [[rig.one for i in range(n)]])
+        copy = Lin(V, V1, [[rig.one] for i in range(n)])
+        tgt = copy * add
+        
+        arrays = [elim.zeros(ring, 1, 0), elim.identity(ring, 1)]
+        lins = [[
+            Lin(tgt[i,j].value, src[i,j].value, arrays[int(i==j)]) # unwrapped
+            for j in range(n)] for i in range(n)]
+        unit = Lin2(tgt, src, lins)
+        return unit
+
+    @classmethod
+    def counit(cls, ring, rig, V1, V):
+        r"""
+               .
+             V .  V
+               *
+              /\
+             /  \
+            | V1|
+            |   |
+        """
+        assert isinstance(V1, Space)
+        assert V1.ring == rig
+        assert V1.n == 1
+        assert isinstance(V, Space)
+        assert V.ring == rig
+        n = V.n
+        add = Lin(V1, V, [[rig.one for i in range(n)]])
+        copy = Lin(V, V1, [[rig.one] for i in range(n)])
+        src = copy * add
+        tgt = V.identity()
+        
+        arrays = [elim.zeros(ring, 0, 1), elim.identity(ring, 1)]
+        lins = [[
+            Lin(tgt[i,j].value, src[i,j].value, arrays[int(i==j)]) # unwrapped
+            for j in range(n)] for i in range(n)]
+        counit = Lin2(tgt, src, lins)
+        return counit
 
 
 def main():
@@ -82,7 +208,7 @@ def main():
     # We "wrap" these Space objects into a GenericElement.
     rig = Rig(N, K, Space.__add__, Space.__matmul__)
 
-    # Objects are Space's over a rig
+    # An Object is a Space over a rig
     V0 = Space(rig, 0, name='V0')
     V1 = Space(rig, 1, name='V1')
     #V2 = Space(rig, 2, name='V2')
@@ -90,6 +216,7 @@ def main():
 
     # 1-morphism's are Lin's over this rig
     i1 = V1.identity()
+    #print(V2.identity())
     copy = Lin(V2, V1, [[rig.one],[rig.one]])
     delete = Lin(V0, V1)
     add = Lin(V1, V2, copy.A.transpose())
@@ -122,6 +249,35 @@ def main():
         Lin(tgt[i,j].value, src[i,j].value, arrays[int(i==j)]) # unwrapped
         for j in range(2)] for i in range(2)]
     bialgebrator = Lin2(tgt, src, lins)
+
+    # ----------------------------
+
+    V = V1+V1+V1
+    unit = Lin2.unit(ring, rig, V1, V)
+    assert unit == Lin2.unit(ring, rig, V1, V)
+    #print(unit)
+    counit = Lin2.counit(ring, rig, V1, V)
+    #print(counit)
+
+    #print(counit * unit)
+    assert unit == unit
+
+    mid = unit * counit
+
+    Vi = V.identity()
+    Vii = Lin2.identity(ring, rig, Vi)
+
+    lhs = (unit << Vii) * (Vii << counit)
+    assert lhs == (unit*Vii) << (Vii*counit) # on the nose
+    assert lhs == unit << counit # on the nose
+    assert lhs.weak_eq(mid)
+
+    rhs = (Vii << unit) * (counit<<Vii) 
+    assert rhs == counit << unit # on the nose
+
+    rhs = (Vii*counit) << (unit*Vii)
+    assert rhs.weak_eq(unit << counit)
+    assert rhs.weak_eq(mid)
 
 
 if __name__ == "__main__":

@@ -396,6 +396,8 @@ class Lin(object):
             A = elim.zeros(self.ring, tgt.n, src.n)
         if type(A) is list:
             A = elim.array(A)
+        #for row in A:
+        #    assert None not in row
         assert A.shape == (tgt.n, src.n), "%s != %s" % ( A.shape , (tgt.n, src.n) )
         self.hom = (tgt, src) # yes it's backwards, just like shape is.
         self.shape = A.shape
@@ -403,6 +405,8 @@ class Lin(object):
 
     @classmethod
     def zeros(cls, tgt, src):
+        assert isinstance(tgt, Space), tgt
+        assert isinstance(src, Space), src
         assert tgt.ring is src.ring
         ring = tgt.ring
         A = elim.zeros(ring, tgt.n, src.n)
@@ -410,6 +414,8 @@ class Lin(object):
 
     @classmethod
     def rand(cls, tgt, src, a=1, b=1):
+        assert isinstance(tgt, Space)
+        assert isinstance(src, Space)
         assert tgt.ring is src.ring
         ring = tgt.ring
         A = elim.rand(ring, tgt.n, src.n, a, b)
@@ -428,7 +434,9 @@ class Lin(object):
         return shortstr(self.A)
 
     def __repr__(self):
-        return "Lin( %s <--- %s )"%(self.tgt, self.src)
+        #s = str(self.A).replace("\n", " ")
+        s = shortstr(self.A)
+        return "Lin(%s, %s, %s)"%(self.tgt, self.src, s)
 
     def weak_eq(self, other):
         assert self.A.shape == other.A.shape
@@ -461,6 +469,10 @@ class Lin(object):
     def __mul__(self, other):
         assert other.tgt == self.src, "%s != %s" % (other.tgt, self.src)
         A = numpy.dot(self.A, other.A)
+        #print(self.A.shape, other.A.shape, shortstr(A))
+        if self.shape[1]==0:
+            # replace all the None's with zero
+            A[:] = self.ring.zero
         return Lin(self.tgt, other.src, A)
 
     def __rshift__(self, other):
@@ -481,7 +493,7 @@ class Lin(object):
         ring = self.ring
         A, B = self.A, other.A
         if 0 in A.shape or 0 in B.shape:
-            C = self.zeros(A.shape[0]*B.shape[0], A.shape[1]*B.shape[1])
+            C = elim.zeros(ring, A.shape[0]*B.shape[0], A.shape[1]*B.shape[1])
         else:
             #print("kron", A.shape, B.shape)
             C = numpy.kron(A, B)
