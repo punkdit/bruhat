@@ -2,9 +2,14 @@
 
 """
 Kapranov-Voevodsky 2-vector spaces
+
+Fail: too complicated, and i think it's also wrong.
+
 """
 
+import operator
 from functools import reduce
+from random import randint
 
 import numpy # for the matrix indexing and ops
 
@@ -67,7 +72,7 @@ class Lin2(object):
                 #print(i, j)
                 #print( A[i, j].tgt )
                 #print(tgt[i, j].value )
-                assert A[i, j].tgt == tgt[i, j].value # unwrapped
+                assert A[i, j].tgt == tgt[i, j].value, (A[i, j].tgt, tgt[i, j].value) # unwrapped
                 assert A[i, j].src == src[i, j].value # unwrapped
         self.A = A
         self.shape = shape
@@ -138,6 +143,30 @@ class Lin2(object):
             for j in range(U.n)] for i in range(V.n)]
         i_2 = Lin2(tgt, src, lins)
         return i_2
+
+    @classmethod
+    def left_unitor(cls, ring, rig, lin):
+        r"""
+            |
+            |
+        V   *   U
+          . |
+         .  |
+           lin
+        """
+        assert lin.ring == rig
+        tgt = lin
+        V, U = lin.hom
+        one = V.identity()
+        lins = [[
+            Lin(
+                lin[i,j].value, 
+                lin[i,j].value, 
+                elim.identity(ring, lin[i,j].value.n)) # unwrapped
+            for j in range(U.n)] for i in range(V.n)]
+        i_2 = Lin2(tgt, src, lins)
+        return i_2
+
 
     @classmethod
     def unit(cls, ring, rig, V1, V):
@@ -213,9 +242,10 @@ def main():
     V1 = Space(rig, 1, name='V1')
     #V2 = Space(rig, 2, name='V2')
     V2 = V1 + V1
+    V3 = V1 + V1 + V1
 
     # 1-morphism's are Lin's over this rig
-    i1 = V1.identity()
+    Vi = V1.identity()
     #print(V2.identity())
     copy = Lin(V2, V1, [[rig.one],[rig.one]])
     delete = Lin(V0, V1)
@@ -226,10 +256,10 @@ def main():
 
     # 2-morphism's are Lin2's.
     # These are 2d arrays of Lin's.
-    zero_2 = Lin2(i1, i1, [[Lin(K, K)]])
+    zero_2 = Lin2(Vi, Vi, [[Lin(K, K)]])
 
     # The left unitorator
-    tgt_1, src_1 = add * zero.direct_sum(i1), i1
+    tgt_1, src_1 = add * zero.direct_sum(Vi), Vi
     tgt = tgt_1[0,0].value  # unwrapped
     src = src_1[0,0].value  # unwrapped
     assert tgt == K@N + K@K
@@ -249,6 +279,45 @@ def main():
         Lin(tgt[i,j].value, src[i,j].value, arrays[int(i==j)]) # unwrapped
         for j in range(2)] for i in range(2)]
     bialgebrator = Lin2(tgt, src, lins)
+
+    # ----------------------------
+
+    def rand_1cell(ring, rig, m, n, maxdim=5, name="A"):
+        A = elim.zeros(rig, m, n)
+        for i in range(m):
+          for j in range(n):
+            dim = randint(0, 5)
+            item = Space(ring, dim, 0, "%s_%d%d"%(name,i,j))
+            A[i, j] = rig.promote(item)
+        #print(reduce, add, [rig.one]*m, rig.zero)
+        tgt = reduce(operator.add, [rig.one]*m)
+        src = reduce(operator.add, [rig.one]*n)
+        return Lin(tgt.value, src.value, A) # unwrapped
+
+    V = V3
+    Vi = V.identity()
+    m_1 = rand_1cell(ring, rig, 3, 2)
+    #print(type(Vi[0,0]))
+    #print(type(m_1[0,0]))
+    #print(type(Vi.tgt), type(m_1.tgt))
+    print(m_1)
+
+    def rand_2cell(ring, rig, m, n, maxim=5):
+        tgt_1 = rand_1cell(ring, rig, m, n, name="tgt")
+        src_1 = rand_1cell(ring, rig, m, n, name="src")
+        lins = [[
+            Lin(
+                tgt_1[i,j].value, 
+                src_1[i,j].value, 
+                elim.rand(ring, tgt_1[i,j].value.n, 
+                src_1[i,j].value.n))
+            for j in range(n)]
+            for i in range(m)]
+        m_2 = Lin2(tgt, src, lins)
+        return m_2
+
+    m_2 = rand_2cell(ring, rig, 3, 2)
+    print(m_2)
 
     # ----------------------------
 

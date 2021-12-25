@@ -279,18 +279,6 @@ class MulSpace(Space):
     def __init__(self, *_items):
         pass
 
-    def _old__init__(self, *_items):
-        items = []
-        for item in _items:
-            if type(item) is MulSpace:
-                items += item.items
-            else:
-                items.append(item)
-        ring = items[0].ring
-        n = reduce(mul, [item.n for item in items])
-        Space.__init__(self, ring, n)
-        self.items = items
-
     def unitor(self, inverse=False):
         "remove all tensor units"
         items = self.items
