@@ -3,6 +3,10 @@
 """
 Kapranov-Voevodsky 2-vector spaces.
 
+This is a bicategory with 0,1,2-cells, 
+or objects, morphisms, 2-morphisms.
+Here we call these types Cell0, Cell1, Cell2.
+
 """
 
 from functools import reduce
@@ -95,7 +99,7 @@ class Rig(object):
         return C
 
 
-class Lin0(object):
+class Cell0(object):
     """
     The 0-cell's (object's) are determinued by a natural _number dimension.
     """
@@ -124,10 +128,10 @@ class Lin0(object):
         return idx
 
     def __add__(self, other):
-        return AddLin0(self, other)
+        return AddCell0(self, other)
 
     def __mul__(self, other):
-        return MulLin0(self, other)
+        return MulCell0(self, other)
 
     # should we use a list (a basis) instead of n ??
 
@@ -137,7 +141,7 @@ class Lin0(object):
         for row in self:
           for col in self:
             A[row, col] = rig.one if row==col else rig.zero
-        return Lin1(self, self, A)
+        return Cell1(self, self, A)
 
     def zero(tgt, src): # tgt <---- src
         assert tgt.rig == src.rig
@@ -146,7 +150,7 @@ class Lin0(object):
         for row in tgt:
           for col in src:
             A[row, col] = rig.zero
-        return Lin1(tgt, src, A)
+        return Cell1(tgt, src, A)
 
     def rand(tgt, src, maxdims=4, name="A"): # tgt <---- src
         assert tgt.rig == src.rig
@@ -157,10 +161,10 @@ class Lin0(object):
           for col in src:
             n = randint(0, maxdims)
             A[row, col] = Space(ring, n, name="%s_%d%d"%(name, row, col))
-        return Lin1(tgt, src, A)
+        return Cell1(tgt, src, A)
 
 
-class AddLin0(Lin0):
+class AddCell0(Cell0):
 
     cache = {} # XXX use https://docs.python.org/3/library/weakref.html
     def __new__(cls, *_items):
@@ -169,7 +173,7 @@ class AddLin0(Lin0):
         #    return _items[0] # ???
         items = []
         for item in _items:
-            if type(item) is AddLin0:
+            if type(item) is AddCell0:
                 items += item.items # _associative on the nose
             else:
                 items.append(item)
@@ -182,7 +186,7 @@ class AddLin0(Lin0):
         rig = items[0].rig
         n = sum(item.n for item in items)
         name = "("+"+".join(item.name for item in items)+")"
-        Lin0.__init__(lin0, rig, n, name)
+        Cell0.__init__(lin0, rig, n, name)
         lin0.items = items
         cls.cache[key] = lin0
         return lin0
@@ -193,13 +197,13 @@ class AddLin0(Lin0):
 
 
 
-class Lin1(Matrix):
+class Cell1(Matrix):
     """
     The 1-cell's (morphism's) : a Matrix of Space's
     """
     def __init__(self, tgt, src, A):
-        assert isinstance(tgt, Lin0)
-        assert isinstance(src, Lin0)
+        assert isinstance(tgt, Cell0)
+        assert isinstance(src, Cell0)
         assert tgt.rig == src.rig
         self.rig = tgt.rig
         self.tgt = tgt
@@ -217,7 +221,7 @@ class Lin1(Matrix):
     def __repr__(self):
         s = str(self.A)
         s = s.replace("\n", " ")
-        return "Lin1(%s, %s, %s)"%(self.tgt, self.src, s)
+        return "Cell1(%s, %s, %s)"%(self.tgt, self.src, s)
 
     def __eq__(self, other):
         assert self.hom == other.hom
@@ -229,29 +233,29 @@ class Lin1(Matrix):
         assert self.src == other.tgt
         rig = self.rig
         A = rig.dot(self.A, other.A)
-        return Lin1(self.tgt, other.src, A)
+        return Cell1(self.tgt, other.src, A)
 
-    # are we doing classmethod's of Lin1, or method's of Lin0 ???
+    # are we doing classmethod's of Cell1, or method's of Cell0 ???
     @classmethod
     def rand(cls, tgt, src, *args, **kw):
         return tgt.rand(src, *args, **kw)
 
     def send(self, f):
-        "apply f component-wise to construct a Lin2"
+        "apply f component-wise to construct a Cell2"
         A = Matrix.send(self, f)
         rows, cols = self.shape
         tgt = [[A[i,j].tgt for j in range(cols)] for i in range(rows)]
-        tgt = Lin1(self.tgt, self.src, tgt)
+        tgt = Cell1(self.tgt, self.src, tgt)
         src = [[A[i,j].src for j in range(cols)] for i in range(rows)]
-        src = Lin1(self.tgt, self.src, src)
-        lin2 = Lin2(tgt, src, A)
+        src = Cell1(self.tgt, self.src, src)
+        lin2 = Cell2(tgt, src, A)
         return lin2
 
     def identity(self):
         tgt, src = self, self
         rows, cols = self.shape
         A = [[self[i,j].identity() for j in range(cols)] for i in range(rows)]
-        return Lin2(tgt, src, A)
+        return Cell2(tgt, src, A)
 
     def left_unitor(self, inverse=False):
         m, n = self.hom
@@ -264,7 +268,7 @@ class Lin1(Matrix):
         rows, cols = self.shape
         A = [[Lin.iso(tgt[i,j], src[i,j])
             for j in range(cols)] for i in range(rows)]
-        return Lin2(tgt, src, A)
+        return Cell2(tgt, src, A)
 
     def right_unitor(self, inverse=False):
         m, n = self.hom
@@ -277,16 +281,16 @@ class Lin1(Matrix):
         rows, cols = self.shape
         A = [[Lin.iso(tgt[i,j], src[i,j])
             for j in range(cols)] for i in range(rows)]
-        return Lin2(tgt, src, A)
+        return Cell2(tgt, src, A)
 
 
-class Lin2(Matrix):
+class Cell2(Matrix):
     """
     The 2-cell's (2-morphism's) : a Matrix of Lin's
     """
     def __init__(self, tgt, src, A):
-        assert isinstance(tgt, Lin1)
-        assert isinstance(src, Lin1)
+        assert isinstance(tgt, Cell1)
+        assert isinstance(src, Cell1)
         assert tgt.rig == src.rig
         assert tgt.hom == src.hom
         self.rig = tgt.rig
@@ -318,19 +322,19 @@ class Lin2(Matrix):
     def __repr__(self):
         s = str(self.A)
         s = s.replace("\n", " ")
-        return "Lin2(%s, %s, %s)"%(self.tgt, self.src, s)
+        return "Cell2(%s, %s, %s)"%(self.tgt, self.src, s)
 
     def __eq__(self, other):
         assert self.hom == other.hom
         return numpy.alltrue(self.A == other.A)
 
     def __mul__(self, other):
-        "composition of 2-morphism's"
+        "(vertical) composition of 2-morphism's"
         assert self.rig == other.rig
         assert self.src == other.tgt
         rig = self.rig
         A = self.A * other.A # compose Lin's elementwise
-        return Lin2(self.tgt, other.src, A)
+        return Cell2(self.tgt, other.src, A)
 
     def __lshift__(left, right):
         "horizontal composition of 2-morphism's"
@@ -344,7 +348,7 @@ class Lin2(Matrix):
                 [left[i,j]@right[j,k] for j in range(left.shape[1])])
             row.append(f)
           lins.append(row)
-        return Lin2(tgt, src, lins)
+        return Cell2(tgt, src, lins)
 
     @classmethod
     def rand(cls, tgt, src):
@@ -352,7 +356,7 @@ class Lin2(Matrix):
         shape = tgt.shape
         lins = [[Lin.rand(tgt[i,j], src[i,j]) 
             for j in range(shape[1])] for i in range(shape[0])]
-        return Lin2(tgt, src, lins)
+        return Cell2(tgt, src, lins)
 
     @staticmethod
     def reassociate(V, W, U):
@@ -408,11 +412,11 @@ def test():
 
     l, m, n, o, p = 1, 3, 2, 2, 2
 
-    l = Lin0(rig, l, "l")
-    m = Lin0(rig, m, "m")
-    n = Lin0(rig, n, "n")
-    o = Lin0(rig, o, "o")
-    p = Lin0(rig, p, "p")
+    l = Cell0(rig, l, "l")
+    m = Cell0(rig, m, "m")
+    n = Cell0(rig, n, "n")
+    o = Cell0(rig, o, "o")
+    p = Cell0(rig, p, "p")
 
     I_l = l.identity()
     I_m = m.identity()
@@ -422,10 +426,10 @@ def test():
 
     #     A      B      C      D
     # l <--- m <--- n <--- o <--- p
-    A = Lin1.rand(l, m, name="A")
-    B = Lin1.rand(m, n, name="B")
-    C = Lin1.rand(n, o, name="C")
-    D = Lin1.rand(o, p, name="D")
+    A = Cell1.rand(l, m, name="A")
+    B = Cell1.rand(m, n, name="B")
+    C = Cell1.rand(n, o, name="C")
+    D = Cell1.rand(o, p, name="D")
 
     assert A == A
     assert A*I_m == A*I_m
@@ -434,14 +438,14 @@ def test():
     # Does not hold strictly, only up to 2-cell 
     #assert (A*I_m)*B == A*(I_m*B) # nope
 
-    i_A = A.identity() # Lin2
-    i_B = B.identity() # Lin2
-    i_C = C.identity() # Lin2
-    i_D = D.identity() # Lin2
+    i_A = A.identity() # Cell2
+    i_B = B.identity() # Cell2
+    i_C = C.identity() # Cell2
+    i_D = D.identity() # Cell2
     assert i_A * i_A == i_A
 
     tgt, src = A*(B*C), (A*B)*C
-    a = Lin2.reassociate(A, B, C)
+    a = Cell2.reassociate(A, B, C)
     assert a.tgt == tgt
     assert a.src == src
 
@@ -453,7 +457,7 @@ def test():
     assert lu_B.src == I_m * B
     assert lu_B.tgt == B
 
-    a = Lin2.reassociate(A, I_m, B)
+    a = Cell2.reassociate(A, I_m, B)
 
     # check the triangle equation for identity 1-cell's
     lhs = ru_A << i_B
@@ -462,30 +466,30 @@ def test():
 
     if argv.pentagon:
         # check the pentagon equation (slow !)
-        a = Lin2.reassociate(A*B, C, D)
-        b = Lin2.reassociate(A, B, C*D)
+        a = Cell2.reassociate(A*B, C, D)
+        b = Cell2.reassociate(A, B, C*D)
         lhs = b*a
     
-        a = (i_A << Lin2.reassociate(B, C, D))
-        b = Lin2.reassociate(A, B*C, D)
-        c = (Lin2.reassociate(A, B, C) << i_D)
+        a = (i_A << Cell2.reassociate(B, C, D))
+        b = Cell2.reassociate(A, B*C, D)
+        c = (Cell2.reassociate(A, B, C) << i_D)
         rhs = a*b*c
         assert lhs==rhs
 
     # ----------------------------------------------------
-    # For object's (Lin0's), m & n
+    # For object's (Cell0's), m & n
     # the 1- and 2- cell's form a category on the nose
 
-    m, n = Lin0(rig, 2, "m"), Lin0(rig, 3, "n")
+    m, n = Cell0(rig, 2, "m"), Cell0(rig, 3, "n")
 
-    A = Lin1.rand(m, n, name="A")
-    B = Lin1.rand(m, n, name="B")
-    C = Lin1.rand(m, n, name="C")
-    D = Lin1.rand(m, n, name="D")
+    A = Cell1.rand(m, n, name="A")
+    B = Cell1.rand(m, n, name="B")
+    C = Cell1.rand(m, n, name="C")
+    D = Cell1.rand(m, n, name="D")
 
-    f = Lin2.rand(B, A)
-    g = Lin2.rand(C, B)
-    h = Lin2.rand(D, C)
+    f = Cell2.rand(B, A)
+    g = Cell2.rand(C, B)
+    h = Cell2.rand(D, C)
 
     # identity
     assert (B.identity() * f) == f
