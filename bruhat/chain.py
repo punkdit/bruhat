@@ -37,6 +37,23 @@ def shortstr(A):
     return s
 
 
+def _dot(ring, A, B):
+    #C = numpy.dot(self.A, other.A) # argh...
+    #print("dot", A.shape, B.shape)
+    assert len(A.shape)==len(B.shape)==2
+    m, n = A.shape
+    assert B.shape[0] == n
+    l = B.shape[1]
+    C = elim.zeros(ring, m, l)
+    for i in range(m):
+      for j in range(l):
+        for k in range(n):
+          C[i,j] += A[i, k] * B[k, j]
+    return C
+
+dot = elim.dot # it's a tiny bit faster than _dot
+
+
 def none_uniq(grades):
     if len(set(grades))==1:
         return grades[0]
@@ -45,13 +62,14 @@ def none_uniq(grades):
 none_add = lambda g0, g1 : g0+g1 if g0 is not None and g1 is not None else None
 none_sub = lambda g0, g1 : g0-g1 if g0 is not None and g1 is not None else None
     
+NO_NAME = "?"
 
 class Space(object):
     """
     vector Space over a field (aka a ring).
     These have a dimenion 'n', a 'grade', and a 'name' (for debugging).
     """
-    def __init__(self, ring, n=0, grade=0, name="?"):
+    def __init__(self, ring, n=0, grade=0, name=NO_NAME):
         assert isinstance(ring, element.Type), ring.__class__
         assert type(n) is int
         assert grade is None or type(grade) is int, repr(grade)
@@ -193,7 +211,7 @@ class AddSpace(Space):
     def get_swap(self, perm=(1, 0)):
         perm = tuple(perm)
         items = self.items
-        assert len(perm) == len(items)
+        assert len(perm) == len(items), ("len(%s)!=%d"%(perm, len(items)))
         assert set(perm) == set(range(len(items)))
         tgt = reduce(add, [items[i] for i in perm])
         N = len(items)
@@ -310,31 +328,86 @@ class MulSpace(Space):
             src, tgt = tgt, src # the same A works
         return Lin(tgt, src)
 
-    def left_distributor(self, inverse=False):
-        items = self.items
-        assert len(items) == 2
-        U = items[0]
-        right = items[1]
-        assert isinstance(right, AddSpace)
-        A = elim.zeros(self.ring, self.n, self.n)
-        col = 0
-        rows = [0]
-        for V in right.items:
-            rows.append(U.n * V.n + rows[-1])
-        for i in range(U.n):
-          for j, V in enumerate(right.items):
-            row = rows[j]
-            A1 = elim.identity(self.ring, V.n)
-            A[row:row+A1.shape[0], col:col+A1.shape[1]] = A1
-            col += V.n
-            rows[j] += V.n
-        tgt = reduce(add, [U@V for V in right.items])
+#    def _left_distributor(self, inverse=False):
+#        items = self.items
+#        assert len(items) == 2
+#        U = items[0]
+#        right = items[1]
+#        assert isinstance(right, AddSpace)
+#        A = elim.zeros(self.ring, self.n, self.n)
+#        col = 0
+#        rows = [0]
+#        for V in right.items:
+#            rows.append(U.n * V.n + rows[-1])
+#        for i in range(U.n):
+#          for j, V in enumerate(right.items):
+#            row = rows[j]
+#            A1 = elim.identity(self.ring, V.n)
+#            A[row:row+A1.shape[0], col:col+A1.shape[1]] = A1
+#            col += V.n
+#            rows[j] += V.n
+#        tgt = reduce(add, [U@V for V in right.items])
+#        src = self
+#        if inverse:
+#            src, tgt = tgt, src
+#            A = A.transpose()
+#        lin = Lin(tgt, src, A)
+#        return lin
+
+    def right_distributor(self, inverse=False):
+        # These turn out to be identity matrices (on the nose).
+        assert len(self.items) == 2, "not implemented"
         src = self
+        left, right = self.items
+        assert isinstance(left, AddSpace)
+        tgt = AddSpace(*[l@right for l in left.items])
         if inverse:
-            src, tgt = tgt, src
-            A = A.transpose()
-        lin = Lin(tgt, src, A)
-        return lin
+            tgt, src = src, tgt
+        A = elim.identity(self.ring, self.n)
+        return Lin(tgt, src, A)
+
+    def left_distributor(self, inverse=False):
+        # here we cheat: use right_distributor and swap's
+        assert len(self.items) == 2, "not implemented"
+        S = self.get_swap((1, 0))
+        tgt = S.tgt
+        L = tgt.right_distributor()
+        assert isinstance(L.tgt, AddSpace)
+        swaps = []
+        for i, sumand in enumerate(L.tgt.items):
+            assert isinstance(sumand, MulSpace)
+            n = len(sumand.items)
+            assert n>=2
+            perm = [n-1]+list(range(n-1))
+            swap = sumand.get_swap(perm)
+            swaps.append(swap)
+        S1 = reduce(Lin.direct_sum, swaps)
+        R = S1*L*S
+        if inverse:
+            R = R.transpose() # it's a permutation matrix
+        return R
+
+#    def _right_distributor(self, inverse=False):
+#        # here we cheat: use left_distributor and swap's
+#        # these turn out to be identity matrices (on the nose)...!
+#        assert len(self.items) == 2
+#        S = self.get_swap((1, 0))
+#        tgt = S.tgt
+#        L = tgt.left_distributor()
+#        assert isinstance(L.tgt, AddSpace)
+#        swaps = []
+#        for i, sumand in enumerate(L.tgt.items):
+#            assert isinstance(sumand, MulSpace)
+#            n = len(sumand.items)
+#            assert n>=2
+#            perm = list(range(1,n))+[0]
+#            swap = sumand.get_swap(perm)
+#            swaps.append(swap)
+#        S1 = reduce(Lin.direct_sum, swaps)
+#        R = S1*L*S
+#        if inverse:
+#            R = R.transpose() # it's a permutation matrix
+#        return R
 
     def get_swap(self, perm=(1, 0)):
         perm = tuple(perm)
@@ -409,6 +482,16 @@ class Lin(object):
         A = elim.rand(ring, tgt.n, src.n, a, b)
         return Lin(tgt, src, A)
 
+    @classmethod
+    def iso(cls, tgt, src):
+        assert isinstance(tgt, Space)
+        assert isinstance(src, Space)
+        assert tgt.ring is src.ring
+        assert tgt.n == src.n
+        ring = tgt.ring
+        A = elim.identity(ring, tgt.n)
+        return Lin(tgt, src, A)
+
     def is_zero(self):
         B = Lin.zeros(self.tgt, self.src)
         return eq(self.A, B.A)
@@ -425,6 +508,9 @@ class Lin(object):
         #s = str(self.A).replace("\n", " ")
         s = shortstr(self.A)
         return "Lin(%s, %s, %s)"%(self.tgt, self.src, s)
+
+    def homstr(self):
+        return "%s<---%s"%(self.tgt.name, self.src.name)
 
     def weak_eq(self, other):
         assert self.A.shape == other.A.shape
@@ -456,11 +542,7 @@ class Lin(object):
 
     def __mul__(self, other):
         assert other.tgt == self.src, "%s != %s" % (other.tgt, self.src)
-        A = numpy.dot(self.A, other.A)
-        #print(self.A.shape, other.A.shape, shortstr(A))
-        if self.shape[1]==0:
-            # replace all the None's with zero
-            A[:] = self.ring.zero
+        A = dot(self.ring, self.A, other.A)
         return Lin(self.tgt, other.src, A)
 
     def __rshift__(self, other):
@@ -487,6 +569,11 @@ class Lin(object):
             C = numpy.kron(A, B)
             #print("\t", C.shape)
         return Lin(tgt, src, C)
+
+    def transpose(self):
+        src, tgt = self.tgt, self.src
+        A = self.A.transpose()
+        return Lin(tgt, src, A)
 
     def rank(self):
         return elim.rank(self.ring, self.A)
@@ -571,17 +658,6 @@ class Lin(object):
         lin = Lin(tgt, self.tgt, K)
         return lin
 
-
-# ------------------------------------------------------------
-
-# ------------------------              ----------------------
-
-# 2-rig of matrices of Lin's ?
-
-class Matrix(object):
-    def __init__(self, tgts, srcs):
-        self.tgts = list(tgts)
-        self.srcs = list(srcs)
 
 
 # ------------------------------------------------------------
@@ -862,6 +938,8 @@ def test_structure():
     U = Space(ring, 2, 0, 'U')
     V = Space(ring, 3, 0, 'V')
     W = Space(ring, 5, 0, 'W')
+    X = Space(ring, 2, 0, 'X')
+    Y = Space(ring, 1, 0, 'Y')
 
     f = (V+N).nullitor()
     fi = (V+N).nullitor(inverse=True)
@@ -878,12 +956,26 @@ def test_structure():
     assert f*fi == N.identity()
     assert fi*f == (V@N).identity()
 
-    tgt, src = U@V + U@W, U@(V+W)
+    # These turn out to be identity matrices (on the nose).
+    tgt, src = V@U + W@U + K@U, (V+W+K)@U
+    f = src.right_distributor()
+    assert f.tgt == tgt
+    assert f.src == src
+    fi = src.right_distributor(inverse=True)
+    assert fi.tgt == src
+    assert fi.src == tgt
+    assert f*fi == tgt.identity()
+    assert fi*f == src.identity()
+
+    tgt, src = U@V@X + U@W@Y, U@(V@X+W@Y)
     f = src.left_distributor()
+    print(f.homstr())
     assert f.tgt == tgt
     fi = src.left_distributor(inverse=True)
     assert f*fi == tgt.identity()
     assert fi*f == src.identity()
+
+
 
 
 def test_young():

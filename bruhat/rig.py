@@ -3,7 +3,9 @@
 """
 Kapranov-Voevodsky 2-vector spaces
 
-Fail: too complicated, and i think it's also wrong.
+FAIL FAIL FAIL: too complicated, and i think it's also wrong.
+
+See: vect2.py for another attempt.
 
 """
 
