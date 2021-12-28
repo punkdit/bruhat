@@ -79,6 +79,7 @@ class Space(object):
         self.n = n
         self.grade = grade
         self.name = name
+        self._dual = None 
 
     def __str__(self):
         return "%s(%s, grade=%s, name=%r)"%(
@@ -100,6 +101,7 @@ class Space(object):
             raise IndexError
         return idx
 
+    # XXX this is not consistent with Lin.__add__
     def __add__(self, other):
         #assert self.grade == other.grade
         return AddSpace(self, other)
@@ -107,8 +109,11 @@ class Space(object):
     def __matmul__(self, other):
         return MulSpace(self, other)
 
-    def __inv__(self):
-        return DualSpace(self)
+    @property
+    def dual(self):
+        if self._dual is None:
+            self._dual = DualSpace(self)
+        return self._dual
 
     def parse(self, decl):
         A = solve.parse(decl)
@@ -141,10 +146,12 @@ class Space(object):
     def asgrade(self, grade, name="?"):
         return Space(self.ring, self.n, grade, name)
 
-#    def left_nullitor(V):
-#        "V <-- 0 + V" # yes but which zero to use ?
-#        lin = Lin(V, null + V, A)
-#        return lin
+
+class DualSpace(Space):
+    def __init__(self, dual):
+        assert type(dual) == Space, type(dual)
+        Space.__init__(self, dual.ring, dual.n, -dual.grade, "~"+dual.name)
+        self._dual = dual
 
 
 class AddSpace(Space):
@@ -180,17 +187,12 @@ class AddSpace(Space):
     def __init__(self, *_items):
         pass
 
-    def _old__init__(self, *_items):
-        items = []
-        for item in _items:
-            if type(item) is AddSpace:
-                items += item.items
-            else:
-                items.append(item)
-        ring = items[0].ring
-        n = sum(item.n for item in items)
-        Space.__init__(self, ring, n)
-        self.items = items
+    @property
+    def dual(self):
+        if self._dual is None:
+            # distribute dual's
+            self._dual = AddSpace(*[space.dual for space in self.items])
+        return self._dual
 
     def nullitor(self, inverse=False):
         "remove all zero (null) summands"
@@ -297,6 +299,13 @@ class MulSpace(Space):
     def __init__(self, *_items):
         pass
 
+    @property
+    def dual(self):
+        if self._dual is None:
+            # distribute dual's
+            self._dual = MulSpace(*[space.dual for space in self.items])
+        return self._dual
+
     def unitor(self, inverse=False):
         "remove all tensor units"
         items = self.items
@@ -327,32 +336,6 @@ class MulSpace(Space):
         if inverse:
             src, tgt = tgt, src # the same A works
         return Lin(tgt, src)
-
-#    def _left_distributor(self, inverse=False):
-#        items = self.items
-#        assert len(items) == 2
-#        U = items[0]
-#        right = items[1]
-#        assert isinstance(right, AddSpace)
-#        A = elim.zeros(self.ring, self.n, self.n)
-#        col = 0
-#        rows = [0]
-#        for V in right.items:
-#            rows.append(U.n * V.n + rows[-1])
-#        for i in range(U.n):
-#          for j, V in enumerate(right.items):
-#            row = rows[j]
-#            A1 = elim.identity(self.ring, V.n)
-#            A[row:row+A1.shape[0], col:col+A1.shape[1]] = A1
-#            col += V.n
-#            rows[j] += V.n
-#        tgt = reduce(add, [U@V for V in right.items])
-#        src = self
-#        if inverse:
-#            src, tgt = tgt, src
-#            A = A.transpose()
-#        lin = Lin(tgt, src, A)
-#        return lin
 
     def right_distributor(self, inverse=False):
         # These turn out to be identity matrices (on the nose).
@@ -387,28 +370,6 @@ class MulSpace(Space):
             R = R.transpose() # it's a permutation matrix
         return R
 
-#    def _right_distributor(self, inverse=False):
-#        # here we cheat: use left_distributor and swap's
-#        # these turn out to be identity matrices (on the nose)...!
-#        assert len(self.items) == 2
-#        S = self.get_swap((1, 0))
-#        tgt = S.tgt
-#        L = tgt.left_distributor()
-#        assert isinstance(L.tgt, AddSpace)
-#        swaps = []
-#        for i, sumand in enumerate(L.tgt.items):
-#            assert isinstance(sumand, MulSpace)
-#            n = len(sumand.items)
-#            assert n>=2
-#            perm = list(range(1,n))+[0]
-#            swap = sumand.get_swap(perm)
-#            swaps.append(swap)
-#        S1 = reduce(Lin.direct_sum, swaps)
-#        R = S1*L*S
-#        if inverse:
-#            R = R.transpose() # it's a permutation matrix
-#        return R
-
     def get_swap(self, perm=(1, 0)):
         perm = tuple(perm)
         items = self.items
@@ -431,15 +392,6 @@ class MulSpace(Space):
         tgt = reduce(matmul, [self.items[i] for i in perm])
         A = A.reshape((tgt.n, self.n)) # its a square matrix
         return Lin(tgt, self, A)
-
-
-class DualSpace(Space):
-    def __init__(self, item):
-        Space.__init__(self, item.ring, item.n, -item.grade)
-        self.item = item
-
-    def __inv__(self):
-        return self.item
 
 
 class Lin(object):
@@ -465,7 +417,7 @@ class Lin(object):
         self.A = A.copy()
 
     @classmethod
-    def zeros(cls, tgt, src):
+    def zero(cls, tgt, src):
         assert isinstance(tgt, Space), tgt
         assert isinstance(src, Space), src
         assert tgt.ring is src.ring
@@ -493,7 +445,7 @@ class Lin(object):
         return Lin(tgt, src, A)
 
     def is_zero(self):
-        B = Lin.zeros(self.tgt, self.src)
+        B = Lin.zero(self.tgt, self.src)
         return eq(self.A, B.A)
 
     def is_identity(self):
@@ -530,6 +482,7 @@ class Lin(object):
     def __setitem__(self, idx, val):
         self.A[idx] = val
 
+    # XXX should be direct sum here, consistent with Space.__add__ ?
     def __add__(self, other):
         assert self.hom == other.hom
         A = self.A + other.A
@@ -570,6 +523,33 @@ class Lin(object):
             #print("\t", C.shape)
         return Lin(tgt, src, C)
 
+    @staticmethod
+    def unit(K, U): # method of K ?
+        assert isinstance(K, Space)
+        assert isinstance(U, Space)
+        ring = K.ring
+        assert K.n == 1, "not tensor identity"
+        tgt = U.dual @ U
+        src = K
+        #A = elim.zeros(ring, tgt.n, src.n)
+        A = elim.identity(ring, U.n)
+        A.shape = (tgt.n, src.n)
+        lin = Lin(tgt, src, A)
+        return lin
+
+    @staticmethod
+    def counit(K, U): # method of K ?
+        assert isinstance(K, Space)
+        assert isinstance(U, Space)
+        ring = K.ring
+        assert K.n == 1, "not tensor identity"
+        tgt = K
+        src = U @ U.dual
+        A = elim.identity(ring, U.n)
+        A.shape = (tgt.n, src.n)
+        lin = Lin(tgt, src, A)
+        return lin
+
     def transpose(self):
         src, tgt = self.tgt, self.src
         A = self.A.transpose()
@@ -586,7 +566,7 @@ class Lin(object):
     def direct_sum(self, other):
         tgt = self.tgt + other.tgt
         src = self.src + other.src
-        f = Lin.zeros(tgt, src)
+        f = Lin.zero(tgt, src)
         m, n = self.A.shape
         f.A[:m, :n] = self.A
         f.A[m:, n:] = other.A
@@ -969,13 +949,40 @@ def test_structure():
 
     tgt, src = U@V@X + U@W@Y, U@(V@X+W@Y)
     f = src.left_distributor()
-    print(f.homstr())
+    assert f.homstr() == "(U@V@X+U@W@Y)<---U@(V@X+W@Y)"
     assert f.tgt == tgt
     fi = src.left_distributor(inverse=True)
     assert f*fi == tgt.identity()
     assert fi*f == src.identity()
 
+    assert U.dual == U.dual
+    assert U.dual.dual == U
+    assert (U@V).dual == U.dual @ V.dual
+    assert (U+V).dual == U.dual + V.dual
 
+    cup = Lin.unit(K, W)
+    cap = Lin.counit(K, W)
+    assert cup.homstr() == "~W@W<---K"
+    assert cap.homstr() == "K<---W@~W"
+
+    swap = cup.tgt.get_swap()
+    bubble = cap * swap * cup
+    assert bubble[0,0] == W.n
+
+    i_W = W.identity()
+    r_W = (W@K).unitor() # right unitor
+    l_W = (K@W).unitor() # left unitor
+
+    lhs = l_W * (cap @ i_W) * (i_W @ cup)
+    rhs = r_W
+    assert lhs == rhs
+
+    i_dW = W.dual.identity()
+    r_dW = (W.dual@K).unitor() # right unitor
+    l_dW = (K@W.dual).unitor() # left unitor
+    lhs = r_dW * (i_dW @ cap) * (cup @ i_dW)
+    rhs = l_dW
+    assert lhs == rhs
 
 
 def test_young():

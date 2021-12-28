@@ -16,6 +16,7 @@ from random import randint, seed
 import numpy
 
 from bruhat import element
+from bruhat import elim
 from bruhat.chain import Space, Lin, AddSpace, MulSpace
 from bruhat.argv import argv
 
@@ -99,11 +100,19 @@ class Rig(object):
         return C
 
 
+# ----------------------------------------------------------------
+# Here we build the 0,1,2-cells of a bicategory.
+# Note use of classmethod/staticmethod: these could also be
+# method's of the first argument, but we like seeing the type when calling.
+# It helps to keep track of what level (0,1 or 2) we are on.
+
+
 class Cell0(object):
     """
     The 0-cell's (object's) are determinued by a natural _number dimension.
     """
     def __init__(self, rig, n=0, name="?"):
+        # should we use a list (a basis) instead of n ??
         assert n>=0
         self.rig = rig
         self.ring = rig.ring
@@ -119,13 +128,13 @@ class Cell0(object):
 
     # __eq__ is object identity.
 
-    # todo: __add__, __mul__ for (bi-)monoidal structure
-    # See: chain.Space 
-
     def __getitem__(self, idx):
         if idx<0 or idx >= self.n:
             raise IndexError
         return idx
+
+    # todo: __add__, __mul__ for (bi-)monoidal structure
+    # See: chain.Space 
 
     def __add__(self, other):
         return AddCell0(self, other)
@@ -133,35 +142,6 @@ class Cell0(object):
     def __mul__(self, other):
         return MulCell0(self, other)
 
-    # should we use a list (a basis) instead of n ??
-
-    def identity(self):
-        rig = self.rig
-        A = numpy.empty((self.n, self.n), dtype=object)
-        for row in self:
-          for col in self:
-            A[row, col] = rig.one if row==col else rig.zero
-        return Cell1(self, self, A)
-
-    def zero(tgt, src): # tgt <---- src
-        assert tgt.rig == src.rig
-        rig = tgt.rig
-        A = numpy.empty((tgt.n, src.n), dtype=object)
-        for row in tgt:
-          for col in src:
-            A[row, col] = rig.zero
-        return Cell1(tgt, src, A)
-
-    def rand(tgt, src, maxdims=4, name="A"): # tgt <---- src
-        assert tgt.rig == src.rig
-        rig = tgt.rig
-        ring = rig.ring
-        A = numpy.empty((tgt.n, src.n), dtype=object)
-        for row in tgt:
-          for col in src:
-            n = randint(0, maxdims)
-            A[row, col] = Space(ring, n, name="%s_%d%d"%(name, row, col))
-        return Cell1(tgt, src, A)
 
 
 class AddCell0(Cell0):
@@ -182,14 +162,14 @@ class AddCell0(Cell0):
             #print("cache hit", key)
             return cls.cache[key]
         #print("cache miss", key)
-        lin0 = object.__new__(cls)
+        cell0 = object.__new__(cls)
         rig = items[0].rig
         n = sum(item.n for item in items)
         name = "("+"+".join(item.name for item in items)+")"
-        Cell0.__init__(lin0, rig, n, name)
-        lin0.items = items
-        cls.cache[key] = lin0
-        return lin0
+        Cell0.__init__(cell0, rig, n, name)
+        cell0.items = items
+        cls.cache[key] = cell0
+        return cell0
 
     def __init__(self, *_items):
         pass
@@ -209,6 +189,7 @@ class Cell1(Matrix):
         self.tgt = tgt
         self.src = src
         self.hom = (tgt, src) # yes it's backwards, just like shape is.
+        self._dual = None # cache this
         Matrix.__init__(self, Space, A)
 
     def __str__(self):
@@ -235,53 +216,45 @@ class Cell1(Matrix):
         A = rig.dot(self.A, other.A)
         return Cell1(self.tgt, other.src, A)
 
-    # are we doing classmethod's of Cell1, or method's of Cell0 ???
+    @property
+    def dual(self):
+        if self._dual is not None:
+            return self._dual
+        src, tgt = self.hom
+        A = [[self[j,i].dual for j in src] for i in tgt]
+        self._dual = Cell1(tgt, src, A)
+        return self._dual
+
     @classmethod
-    def rand(cls, tgt, src, *args, **kw):
-        return tgt.rand(src, *args, **kw)
+    def identity(cls, cell0):
+        rig = cell0.rig
+        A = numpy.empty((cell0.n, cell0.n), dtype=object)
+        for row in cell0:
+          for col in cell0:
+            A[row, col] = rig.one if row==col else rig.zero
+        return Cell1(cell0, cell0, A)
 
-    def send(self, f):
-        "apply f component-wise to construct a Cell2"
-        A = Matrix.send(self, f)
-        rows, cols = self.shape
-        tgt = [[A[i,j].tgt for j in range(cols)] for i in range(rows)]
-        tgt = Cell1(self.tgt, self.src, tgt)
-        src = [[A[i,j].src for j in range(cols)] for i in range(rows)]
-        src = Cell1(self.tgt, self.src, src)
-        lin2 = Cell2(tgt, src, A)
-        return lin2
+    @classmethod
+    def zero(cls, tgt, src): # tgt <---- src
+        assert tgt.rig == src.rig
+        rig = tgt.rig
+        A = numpy.empty((tgt.n, src.n), dtype=object)
+        for row in tgt:
+          for col in src:
+            A[row, col] = rig.zero
+        return Cell1(tgt, src, A)
 
-    def identity(self):
-        tgt, src = self, self
-        rows, cols = self.shape
-        A = [[self[i,j].identity() for j in range(cols)] for i in range(rows)]
-        return Cell2(tgt, src, A)
-
-    def left_unitor(self, inverse=False):
-        m, n = self.hom
-        i_m = m.identity()
-        tgt, src = self, i_m * self
-        if inverse:
-            tgt, src = src, tgt
-        # Bit of a hack just using .iso here!
-        # Should use MulSpace.unitor, etc. etc. XXX
-        rows, cols = self.shape
-        A = [[Lin.iso(tgt[i,j], src[i,j])
-            for j in range(cols)] for i in range(rows)]
-        return Cell2(tgt, src, A)
-
-    def right_unitor(self, inverse=False):
-        m, n = self.hom
-        i_n = n.identity()
-        tgt, src = self, self * i_n
-        if inverse:
-            tgt, src = src, tgt
-        # Bit of a hack just using .iso here!
-        # Should use MulSpace.unitor, etc. etc. XXX
-        rows, cols = self.shape
-        A = [[Lin.iso(tgt[i,j], src[i,j])
-            for j in range(cols)] for i in range(rows)]
-        return Cell2(tgt, src, A)
+    @classmethod
+    def rand(cls, tgt, src, maxdims=4, name="A"): # tgt <---- src
+        assert tgt.rig == src.rig
+        rig = tgt.rig
+        ring = rig.ring
+        A = numpy.empty((tgt.n, src.n), dtype=object)
+        for row in tgt:
+          for col in src:
+            n = randint(0, maxdims)
+            A[row, col] = Space(ring, n, name="%s_%d%d"%(name, row, col))
+        return Cell1(tgt, src, A)
 
 
 class Cell2(Matrix):
@@ -351,6 +324,53 @@ class Cell2(Matrix):
         return Cell2(tgt, src, lins)
 
     @classmethod
+    def send(cls, cell1, f):
+        "apply f component-wise to construct a Cell2"
+        A = Matrix.send(cell1, f)
+        rows, cols = cell1.shape
+        tgt = [[A[i,j].tgt for j in range(cols)] for i in range(rows)]
+        tgt = Cell1(cell1.tgt, cell1.src, tgt)
+        src = [[A[i,j].src for j in range(cols)] for i in range(rows)]
+        src = Cell1(cell1.tgt, cell1.src, src)
+        lin2 = Cell2(tgt, src, A)
+        return lin2
+
+    @classmethod
+    def identity(cls, cell1):
+        tgt, src = cell1, cell1
+        rows, cols = cell1.shape
+        A = [[cell1[i,j].identity() for j in range(cols)] for i in range(rows)]
+        return Cell2(tgt, src, A)
+
+    @classmethod
+    def left_unitor(cls, cell1, inverse=False):
+        m, n = cell1.hom
+        I_m = Cell1.identity(m)
+        tgt, src = cell1, I_m * cell1
+        if inverse:
+            tgt, src = src, tgt
+        # Bit of a hack just using .iso here!
+        # Should use MulSpace.unitor, etc. etc. XXX
+        rows, cols = cell1.shape
+        A = [[Lin.iso(tgt[i,j], src[i,j])
+            for j in range(cols)] for i in range(rows)]
+        return Cell2(tgt, src, A)
+
+    @classmethod
+    def right_unitor(cls, cell1, inverse=False):
+        m, n = cell1.hom
+        I_n = Cell1.identity(n)
+        tgt, src = cell1, cell1 * I_n
+        if inverse:
+            tgt, src = src, tgt
+        # Bit of a hack just using .iso here!
+        # Should use MulSpace.unitor, etc. etc. XXX
+        rows, cols = cell1.shape
+        A = [[Lin.iso(tgt[i,j], src[i,j])
+            for j in range(cols)] for i in range(rows)]
+        return Cell2(tgt, src, A)
+
+    @classmethod
     def rand(cls, tgt, src):
         assert tgt.hom == src.hom
         shape = tgt.shape
@@ -372,10 +392,10 @@ class Cell2(Matrix):
             f = reduce(Lin.direct_sum, fs)
             return f
         lhs, rhs = (V*W)*U, V*(W*U)
-        rd = lhs.send(right_distributor)
+        rd = Cell2.send(lhs, right_distributor)
         #print("right_distributor")
         #print(rd.homstr())
-        ld = rhs.send(left_distributor)
+        ld = Cell2.send(rhs, left_distributor)
         #print("left_distributor")
         #print(ld.homstr())
     
@@ -391,7 +411,8 @@ class Cell2(Matrix):
             #print(perm)
             f = u.get_swap(perm)
             return f
-        s = rd.tgt.send(get_swap)
+        #s = rd.tgt.send(get_swap)
+        s = Cell2.send(rd.tgt, get_swap)
         #print("get_swap:")
         #print(s.homstr())
         #print(s.tgt)
@@ -403,6 +424,71 @@ class Cell2(Matrix):
         assert f.src == lhs
         assert f.tgt == rhs
         return f
+
+    @staticmethod
+    def unit(A):
+        assert isinstance(A, Cell1)
+        src = Cell1.identity(A.src)
+        tgt = A.dual * A
+        assert tgt.hom == src.hom
+        shape = tgt.shape
+        n = shape[0]
+        assert n == shape[1]
+        rig = A.rig
+        ring = rig.ring
+        linss = []
+        for i in range(n):
+          lins = [] # row
+          for k in range(n):
+            t, s = tgt[i,k], src[i,k]
+            if i!=k:
+                lin = Lin.zero(t, s)
+            else:
+                # argh... why can't we direct_sum the Lin.unit's ?
+                a = elim.zeros(ring, t.n, s.n)
+                idx = 0
+                for j in range(A.shape[0]):
+                    unit = Lin.unit(rig.one, A[j,i])
+                    a[idx:idx+unit.shape[0], :] = unit.A
+                    idx += unit.shape[0]
+                assert idx == t.n
+                lin = Lin(t, s, a)
+            lins.append(lin)
+          linss.append(lins)
+        return Cell2(tgt, src, linss)
+        
+    @staticmethod
+    def counit(A):
+        assert isinstance(A, Cell1)
+        src = A * A.dual
+        tgt = Cell1.identity(A.tgt)
+        assert tgt.hom == src.hom
+        shape = tgt.shape
+        n = shape[0]
+        assert n == shape[1]
+        rig = A.rig
+        ring = rig.ring
+        linss = []
+        for i in range(n):
+          lins = [] # row
+          for k in range(n):
+            t, s = tgt[i,k], src[i,k]
+            if i!=k:
+                lin = Lin.zero(t, s)
+            else:
+                # argh... why can't we direct_sum the Lin.counit's ?
+                a = elim.zeros(ring, t.n, s.n)
+                idx = 0
+                for j in range(A.shape[1]):
+                    counit = Lin.counit(rig.one, A[i,j])
+                    a[:, idx:idx+counit.shape[1]] = counit.A
+                    idx += counit.shape[1]
+                assert idx == s.n
+                lin = Lin(t, s, a)
+            lins.append(lin)
+          linss.append(lins)
+        return Cell2(tgt, src, linss)
+        
 
 
 def test():
@@ -418,11 +504,11 @@ def test():
     o = Cell0(rig, o, "o")
     p = Cell0(rig, p, "p")
 
-    I_l = l.identity()
-    I_m = m.identity()
-    I_n = n.identity()
-    I_o = o.identity()
-    I_p = p.identity()
+    I_l = Cell1.identity(l)
+    I_m = Cell1.identity(m)
+    I_n = Cell1.identity(n)
+    I_o = Cell1.identity(o)
+    I_p = Cell1.identity(p)
 
     #     A      B      C      D
     # l <--- m <--- n <--- o <--- p
@@ -438,10 +524,10 @@ def test():
     # Does not hold strictly, only up to 2-cell 
     #assert (A*I_m)*B == A*(I_m*B) # nope
 
-    i_A = A.identity() # Cell2
-    i_B = B.identity() # Cell2
-    i_C = C.identity() # Cell2
-    i_D = D.identity() # Cell2
+    i_A = Cell2.identity(A)
+    i_B = Cell2.identity(B)
+    i_C = Cell2.identity(C)
+    i_D = Cell2.identity(D)
     assert i_A * i_A == i_A
 
     tgt, src = A*(B*C), (A*B)*C
@@ -449,11 +535,11 @@ def test():
     assert a.tgt == tgt
     assert a.src == src
 
-    ru_A = A.right_unitor()
+    ru_A = Cell2.right_unitor(A)
     assert ru_A.src == A * I_m
     assert ru_A.tgt == A
 
-    lu_B = B.left_unitor()
+    lu_B = Cell2.left_unitor(B)
     assert lu_B.src == I_m * B
     assert lu_B.tgt == B
 
@@ -492,11 +578,19 @@ def test():
     h = Cell2.rand(D, C)
 
     # identity
-    assert (B.identity() * f) == f
-    assert (f * A.identity()) == f
+    assert (Cell2.identity(B) * f) == f
+    assert (f * Cell2.identity(A)) == f
 
     # _assoc
     assert (h*g)*f == h*(g*f)
+
+    # ----------------------------------------------------
+
+    print(A)
+    print(A.dual)
+    print(A.dual * A)
+    cup = Cell2.unit(A)
+    cap = Cell2.counit(A)
 
 
 if __name__ == "__main__":
