@@ -199,6 +199,13 @@ class Cell1(Matrix):
             ["["+' '.join(A[i,j].name for j in range(cols))+"]" for i in range(rows)])+"]"
         return s
 
+    def dimstr(self):
+        A = self.A
+        rows, cols = A.shape
+        s = "["+''.join(
+            ["["+' '.join(str(A[i,j].n) for j in range(cols))+"]" for i in range(rows)])+"]"
+        return s
+
     def __repr__(self):
         s = str(self.A)
         s = s.replace("\n", " ")
@@ -292,6 +299,14 @@ class Cell2(Matrix):
         return s
     __str__ = homstr
 
+    def transpose2(self):
+        rows, cols = self.shape
+        tgt, src = self.hom
+        #A = self.A.transpose()
+        A = self.A
+        A = [[lin.transpose() for lin in row] for row in A]
+        return Cell2(src, tgt, A)
+
     def __repr__(self):
         s = str(self.A)
         s = s.replace("\n", " ")
@@ -379,7 +394,7 @@ class Cell2(Matrix):
         return Cell2(tgt, src, lins)
 
     @staticmethod
-    def reassociate(V, W, U):
+    def reassociate(V, W, U, inverse=False):
         "V*(W*U) <--- (V*W)*U"
         def right_distributor(u):
             assert isinstance(u, AddSpace)
@@ -423,6 +438,8 @@ class Cell2(Matrix):
         #print(f.homstr())
         assert f.src == lhs
         assert f.tgt == rhs
+        if inverse:
+            f = f.transpose2()
         return f
 
     @staticmethod
@@ -490,13 +507,109 @@ class Cell2(Matrix):
         return Cell2(tgt, src, linss)
         
 
+def test_frobenius():
+
+    # ----------------------------------------------------
+    # Here we construct a Frobenius algebra object 
+    # See: https://math.ucr.edu/home/baez/week174.html
+
+    #ring = element.Z # too slow
+
+    class Ring(element.Type):
+        one = 1
+        zero = 0
+    ring = Ring()
+
+    rig = Rig(ring)
+    m = Cell0(rig, 2, "m")
+    n = Cell0(rig, 2, "n")
+    I_m = Cell1.identity(m)
+    I_n = Cell1.identity(n)
+    #A = Cell1.rand(m, n, name="A") # too slow
+    A = Cell1(m, n, [[Space(ring, 2), Space(ring, 1)], [Space(ring, 0), Space(ring, 1)]])
+    #print(A.dimstr())
+
+    l_cup = Cell2.unit(A)
+    l_cap = Cell2.counit(A)
+    r_cup = Cell2.unit(A.dual)
+    r_cap = Cell2.counit(A.dual)
+    i_A = Cell2.identity(A)
+    l_A = Cell2.left_unitor(A)
+    r_A = Cell2.right_unitor(A)
+    i_dA = Cell2.identity(A.dual)
+    l_dA = Cell2.left_unitor(A.dual)
+    r_dA = Cell2.right_unitor(A.dual)
+
+    # getting down to business
+    X = A * A.dual # the 'object' supporting the algebra
+    i_X = Cell2.identity(X)
+    unit = r_cup
+    counit = l_cap
+    assert unit.tgt == X
+    assert counit.src == X
+
+    left_unitor = l_A << i_dA
+    left_unitor = left_unitor * Cell2.reassociate(I_m, A, A.dual, inverse=True)
+    assert left_unitor.tgt == X
+    assert left_unitor.src == I_m * X
+
+    right_unitor = i_A << r_dA
+    right_unitor = right_unitor * Cell2.reassociate(A, A.dual, I_m)
+    assert right_unitor.tgt == X
+    assert right_unitor.src == X * I_m
+
+    mul = i_A << r_cap << i_dA
+    assert mul.tgt == (A * I_n) * A.dual
+    mul = (r_A << i_dA)*mul
+    assert mul.tgt == X
+    assert mul.src == A * (A.dual * A) * A.dual
+    a = Cell2.reassociate(A, A.dual, A) << i_dA
+    mul = mul*a
+    assert mul.src == ((A * A.dual) * A) * A.dual
+    a = Cell2.reassociate(A*A.dual, A, A.dual, inverse=True)
+    mul = mul*a
+    assert mul.src == X*X
+
+    comul = i_A << l_cup << i_dA
+    comul = comul * (Cell2.right_unitor(A, inverse=True) << i_dA)
+    a = Cell2.reassociate(A, A.dual, A, inverse=True) << i_dA
+    comul = a * comul
+    a = Cell2.reassociate(A*A.dual, A, A.dual)
+    comul = a * comul
+    assert comul.src == X
+    assert comul.tgt == X*X
+
+    a = Cell2.reassociate(X, X, X)                # X*(X*X) <--- (X*X)*X 
+    ai = Cell2.reassociate(X, X, X, inverse=True) # (X*X)*X <--- X*(X*X)
+
+    # Verify Frobenius algebra axioms
+    # (1) monoid axioms
+    assert mul * (i_X << unit) == right_unitor
+    assert mul * (unit << i_X) == left_unitor
+    assert mul * (i_X << mul) * a == mul * (mul << i_X)
+
+    # (2) comonoid axioms
+    assert right_unitor * (i_X << counit) * comul == i_X
+    assert left_unitor * (counit << i_X) * comul == i_X
+    assert (i_X << comul) * comul == a * (comul << i_X) * comul
+
+    # (3) Frobenius law
+    lhs = (mul << i_X) * ai * (i_X << comul)
+    rhs = (i_X << mul) * a * (comul << i_X)
+    assert lhs == rhs
+
+    # a consequence of the Frobenius law
+    mid = comul * mul
+    assert lhs == mid
+
+
 
 def test():
 
     ring = element.Z
     rig = Rig(ring)
 
-    l, m, n, o, p = 1, 3, 2, 2, 2
+    l, m, n, o, p = 2, 3, 2, 2, 2
 
     l = Cell0(rig, l, "l")
     m = Cell0(rig, m, "m")
@@ -531,9 +644,14 @@ def test():
     assert i_A * i_A == i_A
 
     tgt, src = A*(B*C), (A*B)*C
-    a = Cell2.reassociate(A, B, C)
+    a = Cell2.reassociate(A, B, C)  #  A*(B*C) <--- (A*B)*C
     assert a.tgt == tgt
     assert a.src == src
+
+    if argv.reassociate:
+        b = Cell2.reassociate(A, B, C, inverse=True)
+        assert a*b == Cell2.identity(A*(B*C))
+        assert b*a == Cell2.identity((A*B)*C)
 
     ru_A = Cell2.right_unitor(A)
     assert ru_A.src == A * I_m
@@ -550,6 +668,11 @@ def test():
     rhs = (i_A << lu_B) * a
     assert lhs == rhs
 
+    a = Cell2.reassociate(A, B, C)
+    b = Cell2.reassociate(A, B, C, inverse=True)
+    lhs = b*a
+    assert lhs == Cell2.identity((A*B)*C)
+
     if argv.pentagon:
         # check the pentagon equation (slow !)
         a = Cell2.reassociate(A*B, C, D)
@@ -561,6 +684,7 @@ def test():
         c = (Cell2.reassociate(A, B, C) << i_D)
         rhs = a*b*c
         assert lhs==rhs
+
 
     # ----------------------------------------------------
     # For object's (Cell0's), m & n
@@ -585,12 +709,33 @@ def test():
     assert (h*g)*f == h*(g*f)
 
     # ----------------------------------------------------
+    # snake equations (zig-zag) for adjoint 1-cell's
 
-    print(A)
-    print(A.dual)
-    print(A.dual * A)
     cup = Cell2.unit(A)
     cap = Cell2.counit(A)
+
+    i_A = Cell2.identity(A)
+    l_A = Cell2.left_unitor(A)
+    r_A = Cell2.right_unitor(A)
+
+    a, b, c = l_A , (cap << i_A) , (i_A << cup)
+    assoc = Cell2.reassociate(A, A.dual, A, inverse=True)
+    lhs = l_A * (cap << i_A) * assoc * (i_A << cup)
+    rhs = r_A
+    assert lhs == rhs
+
+    i_dA = Cell2.identity(A.dual)
+    r_dA = Cell2.right_unitor(A.dual)
+    l_dA = Cell2.left_unitor(A.dual)
+
+    assoc = Cell2.reassociate(A.dual, A, A.dual)
+    
+    lhs = r_dA * (i_dA << cap) * assoc * (cup << i_dA)
+    rhs = l_dA
+    assert lhs == rhs
+
+
+
 
 
 if __name__ == "__main__":
