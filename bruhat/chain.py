@@ -104,10 +104,10 @@ class Space(object):
     # XXX this is not consistent with Lin.__add__
     def __add__(self, other):
         #assert self.grade == other.grade
-        return AddSpace(self, other)
+        return AddSpace(self.ring, self, other)
 
     def __matmul__(self, other):
-        return MulSpace(self, other)
+        return MulSpace(self.ring, self, other)
 
     @property
     def dual(self):
@@ -154,16 +154,23 @@ class DualSpace(Space):
         self._dual = dual
 
 
+# We record the bimonoidal structure (+,*) into AddSpace and MulSpace below.
+# This is strictly associative, ie., these are multi-arity operations.
+# However, we don't make these two operations strictly unital,
+# which seems like a mistake as the unit's can be seen as nullary operations.
+
 class AddSpace(Space):
     "direct sum of vector spaces"
 
     cache = {} # XXX use https://docs.python.org/3/library/weakref.html
-    def __new__(cls, *_items):
-        assert _items
+    def __new__(cls, ring, *_items):
+        assert isinstance(ring, element.Type), ring.__class__
+        #assert _items
         #if len(_items)==1:
         #    return _items[0] # breaks MulChain ...
         items = []
         for item in _items:
+            assert item.ring == ring
             if type(item) is AddSpace:
                 items += item.items
             else:
@@ -174,7 +181,7 @@ class AddSpace(Space):
             return cls.cache[key]
         #print("cache miss", key)
         space = object.__new__(cls)
-        ring = items[0].ring
+        #ring = items[0].ring
         #grade = items[0].grade
         grade = none_uniq([item.grade for item in items])
         n = sum(item.n for item in items)
@@ -184,14 +191,21 @@ class AddSpace(Space):
         cls.cache[key] = space
         return space
 
-    def __init__(self, *_items):
+    def __init__(self, ring, *_items):
         pass
+
+    @classmethod
+    def promote(cls, space):
+        assert isinstance(space, Space)
+        if isinstance(space, AddSpace):
+            return space
+        return AddSpace(space.ring, space)
 
     @property
     def dual(self):
         if self._dual is None:
             # distribute dual's
-            self._dual = AddSpace(*[space.dual for space in self.items])
+            self._dual = AddSpace(self.ring, *[space.dual for space in self.items])
         return self._dual
 
     def nullitor(self, inverse=False):
@@ -200,7 +214,7 @@ class AddSpace(Space):
         src = self
         tgt = [item for item in self.items if item.n]
         if len(tgt)>1:
-            tgt = AddSpace(*tgt)
+            tgt = AddSpace(self.ring, *tgt)
         elif len(tgt):
             tgt = tgt[0]
         else:
@@ -272,10 +286,12 @@ class MulSpace(Space):
     "tensor product of vector spaces"
 
     cache = {} # XXX use https://docs.python.org/3/library/weakref.html
-    def __new__(cls, *_items):
-        assert _items
+    def __new__(cls, ring, *_items):
+        assert isinstance(ring, element.Type), ring.__class__
+        #assert _items
         items = []
         for item in _items:
+            assert item.ring == ring
             if type(item) is MulSpace:
                 items += item.items
             else:
@@ -286,24 +302,31 @@ class MulSpace(Space):
             return cls.cache[key]
         #print("cache miss", key)
         space = object.__new__(cls)
-        ring = items[0].ring
+        #ring = items[0].ring
         #grade = sum(item.grade for item in items)
         grade = reduce(none_add, [item.grade for item in items])
-        n = reduce(mul, [item.n for item in items])
+        n = reduce(mul, [item.n for item in items], 1)
         name = "@".join(item.name for item in items)
         Space.__init__(space, ring, n, grade, name=name)
         space.items = items
         cls.cache[key] = space
         return space
 
-    def __init__(self, *_items):
+    def __init__(self, ring, *_items):
         pass
+
+    @classmethod
+    def promote(cls, space):
+        assert isinstance(space, Space)
+        if isinstance(space, MulSpace):
+            return space
+        return MulSpace(space.ring, space)
 
     @property
     def dual(self):
         if self._dual is None:
             # distribute dual's
-            self._dual = MulSpace(*[space.dual for space in self.items])
+            self._dual = MulSpace(self.ring, *[space.dual for space in self.items])
         return self._dual
 
     def unitor(self, inverse=False):
@@ -312,7 +335,7 @@ class MulSpace(Space):
         src = self
         tgt = [item for item in self.items if item.n!=1]
         if len(tgt)>1:
-            tgt = MulSpace(*tgt)
+            tgt = MulSpace(self.ring, *tgt)
         elif len(tgt):
             tgt = tgt[0]
         else:
@@ -339,36 +362,38 @@ class MulSpace(Space):
 
     def right_distributor(self, inverse=False):
         # These turn out to be identity matrices (on the nose).
-        assert len(self.items) == 2, "not implemented"
-        src = self
-        left, right = self.items
-        assert isinstance(left, AddSpace)
-        tgt = AddSpace(*[l@right for l in left.items])
-        if inverse:
-            tgt, src = src, tgt
-        A = elim.identity(self.ring, self.n)
-        return Lin(tgt, src, A)
+        assert len(self.items) == 2, "not implemented: %s"%(self,)
+        return Lin.right_distributor(*self.items, inverse=inverse)
+#        src = self
+#        left, right = self.items
+#        assert isinstance(left, AddSpace)
+#        tgt = AddSpace(self.ring, *[l@right for l in left.items])
+#        if inverse:
+#            tgt, src = src, tgt
+#        A = elim.identity(self.ring, self.n)
+#        return Lin(tgt, src, A)
 
     def left_distributor(self, inverse=False):
         # here we cheat: use right_distributor and swap's
-        assert len(self.items) == 2, "not implemented"
-        S = self.get_swap((1, 0))
-        tgt = S.tgt
-        L = tgt.right_distributor()
-        assert isinstance(L.tgt, AddSpace)
-        swaps = []
-        for i, sumand in enumerate(L.tgt.items):
-            assert isinstance(sumand, MulSpace)
-            n = len(sumand.items)
-            assert n>=2
-            perm = [n-1]+list(range(n-1))
-            swap = sumand.get_swap(perm)
-            swaps.append(swap)
-        S1 = reduce(Lin.direct_sum, swaps)
-        R = S1*L*S
-        if inverse:
-            R = R.transpose() # it's a permutation matrix
-        return R
+        assert len(self.items) == 2, "not implemented: %s"%(self,)
+        return Lin.left_distributor(*self.items, inverse=inverse)
+#        S = self.get_swap((1, 0))
+#        tgt = S.tgt
+#        L = tgt.right_distributor()
+#        assert isinstance(L.tgt, AddSpace)
+#        swaps = []
+#        for i, sumand in enumerate(L.tgt.items):
+#            assert isinstance(sumand, MulSpace)
+#            n = len(sumand.items)
+#            assert n>=2
+#            perm = [n-1]+list(range(n-1))
+#            swap = sumand.get_swap(perm)
+#            swaps.append(swap)
+#        S1 = reduce(Lin.direct_sum, swaps)
+#        R = S1*L*S
+#        if inverse:
+#            R = R.transpose() # it's a permutation matrix
+#        return R
 
     def get_swap(self, perm=(1, 0)):
         perm = tuple(perm)
@@ -522,6 +547,74 @@ class Lin(object):
             C = numpy.kron(A, B)
             #print("\t", C.shape)
         return Lin(tgt, src, C)
+
+    @staticmethod
+    def get_mulswap(ring, spaces, perm):
+        # This is where strict associative tensor product gets annoying
+        assert len(spaces) == len(perm)
+        if not len(spaces):
+            return MulSpace(ring).identity()
+        perms = []
+        idx = 0
+        for space in spaces:
+            if isinstance(space, MulSpace):
+                n = len(space.items)
+                prm = tuple(i+idx for i in range(n))
+                idx += n
+            else:
+                prm = (idx,)
+                idx += 1
+            perms.append(prm)
+        perms = [perms[i] for i in perm]
+        perm = reduce(add, perms, ())
+        src = MulSpace(ring, *spaces)
+        assert len(perm) == len(src.items)
+        tgt = MulSpace(ring, *[src.items[i] for i in perm])
+        f = src.get_swap(perm)
+        assert f.tgt == tgt
+        return f
+
+    @staticmethod
+    def right_distributor(lhs, rhs, inverse=False):
+        "A@C+B@C <---- (A+B)@C"
+        # These turn out to be identity matrices (on the nose).
+        if not isinstance(lhs, AddSpace):
+            # There's nothing to distribute
+            return (lhs@rhs).identity()
+        src = lhs @ rhs
+        tgt = AddSpace(lhs.ring, *[l@rhs for l in lhs.items])
+        if inverse:
+            tgt, src = src, tgt
+        A = elim.identity(src.ring, src.n)
+        return Lin(tgt, src, A)
+
+    @staticmethod
+    def left_distributor(lhs, rhs, inverse=False):
+        "A@B+A@C <---- A@(B+C)"
+        # here we cheat: use right_distributor and swap's
+        if not isinstance(rhs, AddSpace):
+            # There's nothing to distribute
+            return (lhs@rhs).identity()
+        src = lhs @ rhs  # A@(B+C)
+        S = Lin.get_mulswap(lhs.ring, [lhs, rhs], (1, 0)) # (B+C)@A <--- A@(B+C)
+        assert S.src == src
+        L = Lin.right_distributor(rhs, lhs)
+        assert isinstance(L.tgt, AddSpace)
+        offset = len(lhs.items) if isinstance(lhs, MulSpace) else 1
+        swaps = []
+        for i, sumand in enumerate(L.tgt.items):
+            assert isinstance(sumand, MulSpace)
+            n = len(sumand.items)
+            assert offset<n
+            perm = list(range(n))
+            perm = perm[n-offset:]+perm[:n-offset]
+            swap = sumand.get_swap(perm)
+            swaps.append(swap)
+        S1 = reduce(Lin.direct_sum, swaps)
+        R = S1*L*S
+        if inverse:
+            R = R.transpose() # it's a permutation matrix
+        return R
 
     @staticmethod
     def unit(K, U): # method of K ?
@@ -885,8 +978,8 @@ class MulChain(Chain):
         for idx in range(N-1):
             i = keys[idx]
             assert keys[idx+1] == i-1, keys
-            tgt = AddSpace(*self.grades[i-1])
-            src = AddSpace(*self.grades[i])
+            tgt = AddSpace(ring, *self.grades[i-1])
+            src = AddSpace(ring, *self.grades[i])
             #print(tgt)
             #print(src)
             A = elim.zeros(ring, tgt.n, src.n)
