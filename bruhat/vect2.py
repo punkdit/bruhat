@@ -137,8 +137,10 @@ class Cell0(object):
             raise IndexError
         return idx
 
-    # todo: __add__, __mul__ for (bi-)monoidal structure
+    # __add__, __matmul__ for (bi-)monoidal structure
     # See: chain.Space 
+
+    # XXX i think this is silly... should at least make __add__ strict
 
     def __add__(self, other):
         return AddCell0(self.rig, (self, other))
@@ -174,6 +176,29 @@ class AddCell0(Cell0):
 
     def __init__(self, *_items):
         pass
+
+    def get_swap(self, perm):
+        rig = self.rig
+        perm = tuple(perm)
+        items = self.items
+        assert len(perm) == len(items), ("len(%s)!=%d"%(perm, len(items)))
+        assert set(perm) == set(range(len(items)))
+        tgt = reduce(operator.add, [items[i] for i in perm])
+        N = len(items)
+        rows = []
+        for i in perm:
+          row = []
+          for j in range(N):
+            if i==j:
+                lin = rig.one
+            else:
+                lin = rig.zero
+            row.append(lin)
+          rows.append(row)
+        #rows = [numpy.concatenate(row, axis=1) for row in rows]
+        #A = numpy.concatenate(rows)
+        return Cell1(tgt, self, rows)
+
 
 
 
@@ -253,6 +278,18 @@ class Cell1(Matrix):
         A = rig.dot(self.A, other.A)
         return Cell1(self.tgt, other.src, A)
 
+    def __add__(self, other):
+        "direct sum of 1-morphism's"
+        assert self.rig == other.rig
+        rig = self.rig
+        src = self.src + other.src
+        tgt = self.tgt + other.tgt
+        A = numpy.empty((tgt.n, src.n), dtype=object)
+        A[:, :] = [[rig.zero]]
+        A[:self.tgt.n, :self.src.n] = self.A
+        A[self.tgt.n:, self.src.n:] = other.A
+        return Cell1(tgt, src, A)
+
     @property
     def dual(self):
         if self._dual is not None:
@@ -262,8 +299,8 @@ class Cell1(Matrix):
         self._dual = Cell1(tgt, src, A)
         return self._dual
 
-    @classmethod
-    def identity(cls, cell0):
+    @staticmethod
+    def identity(cell0):
         rig = cell0.rig
         A = numpy.empty((cell0.n, cell0.n), dtype=object)
         for row in cell0:
@@ -271,8 +308,8 @@ class Cell1(Matrix):
             A[row, col] = rig.one if row==col else rig.zero
         return Cell1(cell0, cell0, A)
 
-    @classmethod
-    def zero(cls, tgt, src): # tgt <---- src
+    @staticmethod
+    def zero(tgt, src): # tgt <---- src
         assert tgt.rig == src.rig
         rig = tgt.rig
         A = numpy.empty((tgt.n, src.n), dtype=object)
@@ -281,8 +318,23 @@ class Cell1(Matrix):
             A[row, col] = rig.zero
         return Cell1(tgt, src, A)
 
-    @classmethod
-    def rand(cls, tgt, src, maxdims=4, name="A"): # tgt <---- src
+    @staticmethod
+    def all_ones(tgt, src): # tgt <---- src
+        assert tgt.rig == src.rig
+        rig = tgt.rig
+        A = numpy.empty((tgt.n, src.n), dtype=object)
+        for row in tgt:
+          for col in src:
+            A[row, col] = rig.one
+        return Cell1(tgt, src, A)
+
+#    @staticmethod
+#    def get_addswap(cell0, perm):
+#        assert len(perm) == cell0.n
+        
+
+    @staticmethod
+    def rand(tgt, src, maxdims=4, name="A"): # tgt <---- src
         assert tgt.rig == src.rig
         rig = tgt.rig
         ring = rig.ring
@@ -472,10 +524,6 @@ class Cell2(Matrix):
     def reassociate(A, B, C, inverse=False):
         "A*(B*C) <--- (A*B)*C"
 
-#        print("reassociate")
-#        print("A =", A, A.shape)
-#        print("B =", B, B.shape)
-#        print("C =", C, C.shape)
         assert C.tgt == B.src
         assert B.tgt == A.src
         m, n = A.shape
@@ -483,9 +531,8 @@ class Cell2(Matrix):
 
         if n*p == 0:
             tgt, src = A*(B*C), (A*B)*C
-            #print(tgt)
-            #print(src)
-            #assert tgt == src
+            if inverse:
+                tgt, src = src, tgt
             return Cell2.zero(tgt, src)
             
         rig = A.rig
@@ -496,8 +543,6 @@ class Cell2(Matrix):
             if len(items) == 1:
                 return items[0]
             return AddSpace(ring, *items)
-        #add = lambda items: AddSpace(ring, *list(items))
-        #add = lambda items: reduce(operator.add, list(items) or [rig.zero]) # nullitor ?
 
         ABC = numpy.empty((m, n, p, q), dtype=object)
         for i in range(m):
@@ -516,16 +561,11 @@ class Cell2(Matrix):
                 add(A[i,j]@B[j,k] for j in range(n)), C[k,l]) for k in range(p)]
             #rd = reduce(Lin.direct_sum, items or [rig.zero.identity()]) # will need nullitor's ?
             rd = reduce(Lin.direct_sum, items)
-            #print(rd.tgt)
-            #print(AB_C[i,l])
             assert rd.src == AB_C[i, l], ("%s != %s"%(rd.src, AB_C[i,l]))
             ab_c[i, l] = rd
         src = Cell1(A.tgt, C.src, AB_C)
         cell1 = Cell1(A.tgt, C.src, [[ab_c[i,l].tgt for l in range(q)] for i in range(m)])
         ab_c = Cell2(cell1, src, ab_c)
-
-#        print("ab_c")
-#        print(ab_c)
 
         # tgt
         A_BC = numpy.empty((m, q), dtype=object)
@@ -542,97 +582,27 @@ class Cell2(Matrix):
         tgt = Cell1(A.tgt, C.src, A_BC)
         cell1 = Cell1(A.tgt, C.src, [[a_bc[i,l].src for l in range(q)] for i in range(m)])
         a_bc = Cell2(tgt, cell1, a_bc)
-#        print("a_bc")
-#        print(a_bc)
 
         lookup = {}
         for k in range(p):
             for j in range(n):
                 lookup[(j,k)] = len(lookup)
         perm = tuple(lookup[j,k] for j in range(n) for k in range(p))
-#        print("perm:", perm)
         def get_swap(u):
             assert isinstance(u, AddSpace), (u, perm)
-#            print("get_swap")
-#            print(u.name)
-            #print(perm)
             f = u.get_swap(perm)
             return f
 
         if len(perm) > 1:
-            #s = rd.tgt.send(get_swap)
             s = Cell2.send(ab_c.tgt, get_swap)
-#            if s.tgt != a_bc.src:
-#                print("get_swap:")
-#                print(s.homstr())
-#                print(s.tgt)
-#                print(a_bc.src)
             assert s.tgt == a_bc.src
         else:
             s = Cell2.identity(ab_c.tgt)
             assert s.tgt == a_bc.src
     
         f = a_bc*s*ab_c
-        #print(f.homstr())
         assert f.src == src
         assert f.tgt == tgt
-        if inverse:
-            f = f.transpose2()
-        return f
-
-
-    @staticmethod
-    def _XXX_reassociate(V, W, U, inverse=False):
-        "V*(W*U) <--- (V*W)*U"
-        def right_distributor(u):
-            u = AddSpace.promote(u)
-            #print("right_distributor:", u)
-            fs = [v.right_distributor() for v in u.items]
-            f = reduce(Lin.direct_sum, fs)
-            return f
-        def left_distributor(u):
-            u = AddSpace.promote(u)
-            fs = [v.left_distributor(inverse=True) for v in u.items]
-            f = reduce(Lin.direct_sum, fs)
-            return f
-        lhs, rhs = (V*W)*U, V*(W*U)
-        print("reassociate")
-        print("V", V)
-        print("W", W)
-        print("U", U)
-        print("lhs:", lhs)
-        print("rhs:", rhs)
-        rd = Cell2.send(lhs, right_distributor)
-        #print("right_distributor")
-        #print(rd.homstr())
-        ld = Cell2.send(rhs, left_distributor)
-        #print("left_distributor")
-        #print(ld.homstr())
-    
-        lookup = {}
-        for k in range(U.shape[0]):
-            for j in range(V.shape[1]):
-                lookup[(j,k)] = len(lookup)
-        perm = tuple(lookup[j,k] for j in range(V.shape[1]) for k in range(U.shape[0]))
-        def get_swap(u):
-            assert isinstance(u, AddSpace)
-            #print("get_swap")
-            #print(u.name)
-            #print(perm)
-            f = u.get_swap(perm)
-            return f
-        #s = rd.tgt.send(get_swap)
-        s = Cell2.send(rd.tgt, get_swap)
-        #print("get_swap:")
-        #print(s.homstr())
-        #print(s.tgt)
-        #print(ld.src)
-        assert s.tgt == ld.src
-    
-        f = ld*s*rd
-        #print(f.homstr())
-        assert f.src == lhs
-        assert f.tgt == rhs
         if inverse:
             f = f.transpose2()
         return f
@@ -701,86 +671,6 @@ class Cell2(Matrix):
           linss.append(lins)
         return Cell2(tgt, src, linss)
         
-
-def test_reassociate():
-    class Ring(element.Type):
-        one = 1
-        zero = 0
-    ring = Ring()
-
-    rig = Rig(ring)
-    zero = Cell0(rig, 0, "z")
-    one = Cell0(rig, 1, "i")
-    m = Cell0(rig, 2, "m")
-    n = Cell0(rig, 3, "n")
-
-    N, K = rig.zero, rig.one
-    cell0s = [zero, one, one+one]
-    spaces = itertools.cycle([N, K, N+K, K@K, K@K@K, N@N@K@(K+K), K+K])
-    for q in cell0s:
-     for p in cell0s:
-      for n in cell0s:
-       for m in cell0s:
-        for trial in range(10):
-            A = Cell1(m, n, [[spaces.__next__() for j in n] for i in m])
-            B = Cell1(n, p, [[spaces.__next__() for k in p] for j in n])
-            C = Cell1(p, q, [[spaces.__next__() for l in q] for k in p])
-            a = Cell2.reassociate(A, B, C)
-
-            A = Cell1.rand(m, n, name="A")
-            B = Cell1.rand(n, p, name="B")
-            C = Cell1.rand(p, q, name="C")
-    
-            a = Cell2.reassociate(A, B, C)
-
-
-def test_monoidal():
-    class Ring(element.Type):
-        one = 1
-        zero = 0
-    ring = Ring()
-
-    rig = Rig(ring)
-    zero = Cell0(rig, 0, "z")
-    one = Cell0(rig, 1, "i")
-    m = Cell0(rig, 2, "m")
-    n = Cell0(rig, 3, "n")
-
-    print(m+n)
-    print(m@n)
-
-    F = Cell1.fold(one, m)
-    G = Cell1.unfold(one, m)
-
-    print(F)
-    print(F*G)
-    print(G*F)
-
-    make_frobenius(F)
-
-
-def test_frobenius():
-
-    # ----------------------------------------------------
-    # Here we construct a Frobenius algebra object 
-    # See: https://math.ucr.edu/home/baez/week174.html
-
-    #ring = element.Z # too slow
-
-    class Ring(element.Type):
-        one = 1
-        zero = 0
-    ring = Ring()
-
-    rig = Rig(ring)
-    m = Cell0(rig, 2, "m")
-    n = Cell0(rig, 2, "n")
-    #A = Cell1.rand(m, n, name="A") # too slow
-    S = lambda n, name : Space(ring, n, 0, name)
-    A = Cell1(m, n, [[S(2, "A0"), S(1, "A1")], [S(0, "A2"), S(1, "A3")]])
-    #print(A.dimstr())
-    make_frobenius(A)
-
 
 def make_frobenius(A):
     assert isinstance(A, Cell1)
@@ -862,10 +752,154 @@ def make_frobenius(A):
     assert lhs == mid
 
 
+def test_monoidal():
+    class Ring(element.Type):
+        one = 1
+        zero = 0
+    ring = Ring()
+
+    rig = Rig(ring)
+    zero = Cell0(rig, 0, "z")
+    one = Cell0(rig, 1, "i")
+    m = Cell0(rig, 2, "m")
+    n = Cell0(rig, 3, "n")
+
+    print(m+n)
+    print(m@n)
+
+    F = Cell1.fold(one, m)
+    G = Cell1.unfold(one, m)
+
+    print(F)
+    print(F*G)
+    print(G*F)
+
+    make_frobenius(F)
+
+
+def test_frobenius():
+
+    # ----------------------------------------------------
+    # Here we construct a Frobenius algebra object 
+    # See: https://math.ucr.edu/home/baez/week174.html
+
+    #ring = element.Z # too slow
+    class Ring(element.Type):
+        one = 1
+        zero = 0
+    ring = Ring()
+
+    rig = Rig(ring)
+    m = Cell0(rig, 2, "m")
+    n = Cell0(rig, 2, "n")
+    #A = Cell1.rand(m, n, name="A") # too slow
+    S = lambda n, name : Space(ring, n, 0, name)
+    A = Cell1(m, n, [[S(2, "A0"), S(1, "A1")], [S(0, "A2"), S(1, "A3")]])
+    #print(A.dimstr())
+    make_frobenius(A)
+
+
+def test_reassociate():
+    #ring = element.Z # too slow
+    class Ring(element.Type):
+        one = 1
+        zero = 0
+    ring = Ring()
+
+    rig = Rig(ring)
+    zero = Cell0(rig, 0, "z")
+    one = Cell0(rig, 1, "i")
+    m = Cell0(rig, 2, "m")
+    n = Cell0(rig, 3, "n")
+
+    N, K = rig.zero, rig.one
+    cell0s = [zero, one, one+one]
+    spaces = itertools.cycle([N, K, N+K, K@K, K@K@K, N@N@K@(K+K), K+K])
+    for q in cell0s:
+     for p in cell0s:
+      for n in cell0s:
+       for m in cell0s:
+        for trial in range(10):
+            A = Cell1(m, n, [[spaces.__next__() for j in n] for i in m])
+            B = Cell1(n, p, [[spaces.__next__() for k in p] for j in n])
+            C = Cell1(p, q, [[spaces.__next__() for l in q] for k in p])
+            a = Cell2.reassociate(A, B, C)
+            ai = Cell2.reassociate(A, B, C, inverse=True)
+            left = a*ai
+            assert left == Cell2.identity(A*(B*C))
+            right = ai*a
+            assert right == Cell2.identity((A*B)*C)
+
+            A = Cell1.rand(m, n, name="A")
+            B = Cell1.rand(n, p, name="B")
+            C = Cell1.rand(p, q, name="C")
+    
+            a = Cell2.reassociate(A, B, C)
+
+
+def test_bialgebra():
+    class Ring(element.Type):
+        one = 1
+        zero = 0
+    ring = Ring()
+
+    rig = Rig(ring)
+    zero = Cell0(rig, 0, "0")
+    m = Cell0(rig, 1, "1")
+
+    I = Cell1.all_ones(m, m)
+    Null = Cell1.zero(zero, zero)
+    NAdd = Cell1.zero(zero, zero+zero)
+    NCopy = Cell1.zero(zero+zero, zero)
+    Add = Cell1.all_ones(m, m+m)
+    Zero = Cell1.zero(m, zero)
+    Copy = Cell1.all_ones(m+m, m)
+    Delete = Cell1.zero(zero, m)
+
+    # assoc
+    lhs = Add * (Add + I)
+    rhs = Add * (I + Add)
+    assert lhs != rhs # not strict
+
+    lhs = (Copy + I) * Copy
+    rhs = (I + Copy) * Copy
+    assert lhs != rhs # not strict
+
+    print( Add * (Zero + I), I)
+    #assert Add * (Zero + I) == I
+
+    lhs = (Delete * Add)
+    rhs = NAdd*(Delete + Delete)
+    assert lhs == rhs
+
+    return
+
+    # --------------------
+    # bialgebrator
+
+    lhs = Copy * Add
+    print(lhs)
+
+    CC = Copy + Copy
+    S = CC.tgt.get_swap((0, 2, 1, 3))
+
+    AA =Add + Add
+    rhs = AA * S * CC
+    print(rhs)
+
+    #print((Delete*Zero).hom)
+
+    
+
 
 def test():
 
-    ring = element.Z
+    #ring = element.Z # too slow
+    class Ring(element.Type):
+        one = 1
+        zero = 0
+    ring = Ring()
+
     rig = Rig(ring)
 
     l, m, n, o, p = 2, 3, 2, 2, 2
