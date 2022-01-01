@@ -130,23 +130,33 @@ class Cell0(object):
     def __hash__(self):
         return id(self)
 
-    # __eq__ is object identity.
-
     def __getitem__(self, idx):
         if idx<0 or idx >= self.n:
             raise IndexError
         return idx
 
-    # __add__, __matmul__ for (bi-)monoidal structure
-    # See: chain.Space 
-
-    # XXX i think this is silly... should at least make __add__ strict
+#    # __eq__ is object identity.
+#    # __add__, __matmul__ for (bi-)monoidal structure
+#    # See: chain.Space 
+#    # XXX i think this is silly... should at least make __add__ strict
+#
+#    def __add__(self, other):
+#        return AddCell0(self.rig, (self, other))
+#
+#    def __matmul__(self, other):
+#        return MulCell0(self.rig, (self, other))
 
     def __add__(self, other):
-        return AddCell0(self.rig, (self, other))
+        assert isinstance(other, Cell0)
+        return Cell0(self.rig, self.n+other.n, "(%s+%s)"%(self.name, other.name))
 
     def __matmul__(self, other):
-        return MulCell0(self.rig, (self, other))
+        assert isinstance(other, Cell0)
+        return Cell0(self.rig, self.n*other.n, "%s@%s"%(self.name, other.name))
+
+    def __eq__(self, other):
+        assert isinstance(other, Cell0)
+        return self.n == other.n
 
 
 
@@ -220,7 +230,7 @@ class MulCell0(Cell0):
             return cls.cache[key]
         cell0 = object.__new__(cls)
         n = reduce(operator.mul, [item.n for item in items], 1)
-        name = "@".join(item.name for item in items)
+        name = "("+"@".join(item.name for item in items)+")"
         Cell0.__init__(cell0, rig, n, name)
         cell0.items = items
         cls.cache[key] = cell0
@@ -288,6 +298,18 @@ class Cell1(Matrix):
         A[:, :] = [[rig.zero]]
         A[:self.tgt.n, :self.src.n] = self.A
         A[self.tgt.n:, self.src.n:] = other.A
+        return Cell1(tgt, src, A)
+
+    def __matmul__(self, other):
+        "tensor (monoidal) product of 1-morphism's"
+        assert self.rig == other.rig
+        src = self.src @ other.src
+        tgt = self.tgt @ other.tgt
+        A = numpy.empty((tgt.n, src.n), dtype=object)
+        m, n = other.shape
+        for i, j in numpy.ndindex(self.shape): # big
+          for k, l in numpy.ndindex(other.shape): # little
+            A[i*m+k, j*n+l ] = self[i,j] @ other[k,l]
         return Cell1(tgt, src, A)
 
     @property
@@ -401,7 +423,7 @@ class Cell2(Matrix):
         for i in range(rows):
           for j in range(cols):
             f = self[i,j]
-            assert f.tgt == tgt[i,j], ("%s != %s"%(f.tgt.name, tgt[i,j].name))
+            assert f.tgt == tgt[i,j], ("%s != %s = tgt[%d,%d]"%(f.tgt.name, tgt[i,j].name, i, j))
             assert f.src == src[i,j], ("%s != %s"%(f.src.name, src[i,j].name))
 
     def homstr(self):
@@ -452,8 +474,8 @@ class Cell2(Matrix):
 
     def __lshift__(left, right):
         "horizontal composition of 2-morphism's"
-        src = left.src * right.src
         tgt = left.tgt * right.tgt
+        src = left.src * right.src
         lins = []
         for i in range(left.shape[0]):
           row = []
@@ -463,6 +485,29 @@ class Cell2(Matrix):
             row.append(f)
           lins.append(row)
         return Cell2(tgt, src, lins)
+
+    def __add__(left, right):
+        "direct_sum of 2-morphisms's"
+        tgt = left.tgt + right.tgt
+        src = left.src + right.src
+        rig = left.rig
+        zero = Lin(rig.zero, rig.zero)
+        A = numpy.empty(tgt.shape, dtype=object)
+        A[:] = [[zero]]
+        A[:left.shape[0], :left.shape[1]] = left.A
+        A[left.shape[0]:, left.shape[1]:] = right.A
+        return Cell2(tgt, src, A)
+
+    def __matmul__(self, other):
+        "tensor (monoidal) product of 2-morphism's"
+        src = self.src @ other.src
+        tgt = self.tgt @ other.tgt
+        A = numpy.empty(tgt.shape, dtype=object)
+        m, n = other.shape
+        for i, j in numpy.ndindex(self.shape): # big
+          for k, l in numpy.ndindex(other.shape): # little
+            A[i*m+k, j*n+l ] = self[i,j] @ other[k,l]
+        return Cell2(tgt, src, A)
 
     @classmethod
     def send(cls, cell1, f):
@@ -544,12 +589,12 @@ class Cell2(Matrix):
                 return items[0]
             return AddSpace(ring, *items)
 
-        ABC = numpy.empty((m, n, p, q), dtype=object)
-        for i in range(m):
-         for j in range(n):
-          for k in range(p):
-           for l in range(q):
-            ABC[i,j,k,l] = A[i,j]@B[j,k]@C[k,l]
+        #ABC = numpy.empty((m, n, p, q), dtype=object)
+        #for i in range(m):
+        # for j in range(n):
+        #  for k in range(p):
+        #   for l in range(q):
+        #    ABC[i,j,k,l] = A[i,j]@B[j,k]@C[k,l]
 
         # src
         AB_C = numpy.empty((m, q), dtype=object)
@@ -672,6 +717,11 @@ class Cell2(Matrix):
         return Cell2(tgt, src, linss)
         
 
+class Frobenius(object):
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+
+
 def make_frobenius(A):
     assert isinstance(A, Cell1)
 
@@ -754,34 +804,49 @@ def make_frobenius(A):
     s = mul * comul
     special = s == i_X
 
-    return locals()
+    frobenius = Frobenius(**locals())
+
+    return frobenius
 
 
 def test_monoidal():
-    class Ring(element.Type):
-        one = 1
-        zero = 0
-    ring = Ring()
+    #class Ring(element.Type):
+    #    one = 1
+    #    zero = 0
+    #ring = Ring()
 
+    ring = element.Q
     rig = Rig(ring)
     zero = Cell0(rig, 0, "z")
     one = Cell0(rig, 1, "i")
     m = Cell0(rig, 3, "m")
+    n = Cell0(rig, 2, "n")
 
-    F = Cell1.fold(one, m)
-    G = Cell1.unfold(one, m)
+    A = Cell1.rand(m, n, name="A")
+    B = Cell1.rand(m, n, name="B")
+    a = Cell2.rand(B, A)
+    b = Cell2.rand(B, A)
 
-    print("F:", F)
-    print("F.dual:", F.dual)
-    print("G:", G)
+    AB = (A+B)
+    AB = (A @ B)
+    ab = (a+b)
+    ab = (a @ b)
+
+    F = Cell1.fold(one, n)
+    G = Cell1.unfold(one, n)
+
     assert F.dual == G
 
-    print(F*G)
-    print(G*F)
+    I_n = Cell1.identity(n)
+    lhs, rhs = (I_n @ I_n), F.dual
+    lhs * rhs
 
-    kw = make_frobenius(F)
+    lhs, rhs = (I_n @ F), (F.dual @ I_n)
+    snake = lhs * rhs
 
-    assert kw['special']
+    frobenius = make_frobenius(F)
+
+    assert frobenius.special
 
 
 def test_frobenius():
