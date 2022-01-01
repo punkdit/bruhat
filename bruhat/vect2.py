@@ -751,6 +751,11 @@ def make_frobenius(A):
     mid = comul * mul
     assert lhs == mid
 
+    s = mul * comul
+    special = s == i_X
+
+    return locals()
+
 
 def test_monoidal():
     class Ring(element.Type):
@@ -761,20 +766,22 @@ def test_monoidal():
     rig = Rig(ring)
     zero = Cell0(rig, 0, "z")
     one = Cell0(rig, 1, "i")
-    m = Cell0(rig, 2, "m")
-    n = Cell0(rig, 3, "n")
-
-    print(m+n)
-    print(m@n)
+    m = Cell0(rig, 3, "m")
 
     F = Cell1.fold(one, m)
     G = Cell1.unfold(one, m)
 
-    print(F)
+    print("F:", F)
+    print("F.dual:", F.dual)
+    print("G:", G)
+    assert F.dual == G
+
     print(F*G)
     print(G*F)
 
-    make_frobenius(F)
+    kw = make_frobenius(F)
+
+    assert kw['special']
 
 
 def test_frobenius():

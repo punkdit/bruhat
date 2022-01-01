@@ -80,6 +80,8 @@ class Space(object):
         self.grade = grade
         self.name = name
         self._dual = None 
+        if self.n <= 1:
+            self._dual = self # reasonable ?
 
     def __str__(self):
         return "%s(%s, grade=%s, name=%r)"%(
