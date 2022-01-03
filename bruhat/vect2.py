@@ -834,6 +834,7 @@ def test_monoidal():
 
     F = Cell1.fold(one, n)
     G = Cell1.unfold(one, n)
+    print(F)
 
     assert F.dual == G
 
@@ -970,6 +971,9 @@ def test():
     class Ring(element.Type):
         one = 1
         zero = 0
+        @classmethod
+        def promote(cls, a):
+            return a
     ring = Ring()
 
     rig = Rig(ring)
@@ -1100,6 +1104,12 @@ def test():
     assert lhs == rhs
 
 
+def test_all():
+    test_monoidal()
+    test_frobenius()
+    test_reassociate()
+    test_bialgebra()
+    test()
 
 
 
@@ -1108,7 +1118,7 @@ if __name__ == "__main__":
     seed(1)
     
     profile = argv.profile
-    fn = argv.next() or "test"
+    fn = argv.next() or "test_all"
 
     print("%s()"%fn)
 

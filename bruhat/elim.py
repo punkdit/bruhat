@@ -89,8 +89,11 @@ def rand(ring, m, n, p=3, q=3):
     A = zeros(ring, m, n)
     for i in range(m):
       for j in range(n):
-        a = randint(-p, q)
-        A[i, j] = ring.promote(a) / randint(1, q)
+        a = randint(-p, p)
+        a = ring.promote(a)
+        if q > 1:
+            a /= randint(1, q)
+        A[i, j] = a
     return A
 
 
