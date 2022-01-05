@@ -276,12 +276,23 @@ class Cell1(Matrix):
         s = s.replace("\n", " ")
         return "Cell1(%s, %s, %s)"%(self.tgt, self.src, s)
 
+    @classmethod
+    def promote(cls, cell):
+        if isinstance(cell, Cell0):
+            I = Cell1.identity(cell)
+            return I
+        if isinstance(cell, Cell1):
+            return cell
+        assert 0, "what's this: %s"%(cell,)
+
     def __eq__(self, other):
+        other = Cell1.promote(other)
         assert self.hom == other.hom
         return numpy.alltrue(self.A == other.A)
 
     def __mul__(self, other):
         "composition of 1-morphism's"
+        other = Cell1.promote(other)
         assert self.rig == other.rig
         assert self.src == other.tgt
         rig = self.rig
@@ -290,6 +301,7 @@ class Cell1(Matrix):
 
     def __add__(self, other):
         "direct sum of 1-morphism's"
+        other = Cell1.promote(other)
         assert self.rig == other.rig
         rig = self.rig
         src = self.src + other.src
@@ -302,6 +314,7 @@ class Cell1(Matrix):
 
     def __matmul__(self, other):
         "tensor (monoidal) product of 1-morphism's"
+        other = Cell1.promote(other)
         assert self.rig == other.rig
         src = self.src @ other.src
         tgt = self.tgt @ other.tgt
@@ -320,6 +333,12 @@ class Cell1(Matrix):
         A = [[self[j,i].dual for j in src] for i in tgt]
         self._dual = Cell1(tgt, src, A)
         return self._dual
+
+#    def transpose(self): # use .dual
+#        A = self.A.transpose()
+#        tgt, src = self.src, self.tgt
+#        cell1 = Cell1(tgt, src, A)
+#        return cell1
 
     @staticmethod
     def identity(cell0):
@@ -354,6 +373,12 @@ class Cell1(Matrix):
 #    def get_addswap(cell0, perm):
 #        assert len(perm) == cell0.n
         
+
+    def get_normal(self, inverse=False, force=False):
+        rig = self.rig
+        N, K = rig.zero, rig.one
+        cell2 = Cell2.send(self, lambda space : space.get_normal(N, K, inverse, force))
+        return cell2
 
     @staticmethod
     def rand(tgt, src, maxdims=4, name="A"): # tgt <---- src
@@ -437,6 +462,19 @@ class Cell2(Matrix):
     __str__ = homstr
 
     @classmethod
+    def promote(cls, cell):
+        if isinstance(cell, Cell0):
+            I = Cell1.identity(cell)
+            i = Cell2.identity(I)
+            return i
+        if isinstance(cell, Cell1):
+            i = Cell2.identity(cell)
+            return i
+        if isinstance(cell, Cell2):
+            return cell
+        assert 0, "what's this: %s"%(cell,)
+
+    @classmethod
     def zero(cls, tgt, src): # tgt <---- src
         assert isinstance(tgt, Cell1)
         assert isinstance(src, Cell1)
@@ -446,6 +484,12 @@ class Cell2(Matrix):
         rows, cols = tgt.shape
         linss = [[Lin.zero(tgt[i,j], src[i,j]) for j in range(cols)] for i in range(rows)]
         return Cell2(tgt, src, linss)
+
+#    def transpose(self): # ???
+#        A = self.A.transpose()
+#        tgt, src = self.src, self.tgt
+#        cell2 = Cell2(tgt, src, A)
+#        return cell2
 
     def transpose2(self):
         rows, cols = self.shape
@@ -461,11 +505,13 @@ class Cell2(Matrix):
         return "Cell2(%s, %s, %s)"%(self.tgt, self.src, s)
 
     def __eq__(self, other):
+        other = Cell2.promote(other)
         assert self.hom == other.hom
         return numpy.alltrue(self.A == other.A)
 
     def __mul__(self, other):
         "(vertical) composition of 2-morphism's"
+        other = Cell2.promote(other)
         assert self.rig == other.rig
         assert self.src == other.tgt
         rig = self.rig
@@ -474,6 +520,7 @@ class Cell2(Matrix):
 
     def __lshift__(left, right):
         "horizontal composition of 2-morphism's"
+        right = Cell2.promote(right)
         tgt = left.tgt * right.tgt
         src = left.src * right.src
         lins = []
@@ -488,6 +535,7 @@ class Cell2(Matrix):
 
     def __add__(left, right):
         "direct_sum of 2-morphisms's"
+        right = Cell2.promote(right)
         tgt = left.tgt + right.tgt
         src = left.src + right.src
         rig = left.rig
@@ -500,6 +548,7 @@ class Cell2(Matrix):
 
     def __matmul__(self, other):
         "tensor (monoidal) product of 2-morphism's"
+        other = Cell2.promote(other)
         src = self.src @ other.src
         tgt = self.tgt @ other.tgt
         A = numpy.empty(tgt.shape, dtype=object)
@@ -511,7 +560,7 @@ class Cell2(Matrix):
 
     @classmethod
     def send(cls, cell1, f):
-        "apply f component-wise to construct a Cell2"
+        "apply f component-wise to construct a Cell2 tgt or src"
         #print("send", cell1.shape)
         A = Matrix.send(cell1, f)
         rows, cols = cell1.shape
@@ -832,22 +881,76 @@ def test_monoidal():
     ab = (a+b)
     ab = (a @ b)
 
-    F = Cell1.fold(one, n)
-    G = Cell1.unfold(one, n)
-    print(F)
+    F = Cell1.fold(one, m)
+    G = Cell1.unfold(one, m)
 
     assert F.dual == G
 
-    I_n = Cell1.identity(n)
-    lhs, rhs = (I_n @ I_n), F.dual
-    lhs * rhs
-
-    lhs, rhs = (I_n @ F), (F.dual @ I_n)
-    snake = lhs * rhs
-
     frobenius = make_frobenius(F)
-
     assert frobenius.special
+
+
+def test_hopf():
+
+    ring = element.Q
+    rig = Rig(ring)
+    zero = Cell0(rig, 0, "z")
+    one = Cell0(rig, 1, "i")
+
+    if 0:
+        m = Cell0(rig, 2, "m")
+        n = Cell0(rig, 2, "n")
+        A = Cell1.rand(m, n, maxdims=2, name="A")
+    else:
+        m = Cell0(rig, 2, "m")
+        n = m
+        A = Cell1.identity(m)
+
+    Im = Cell1.identity(m)
+    In = Cell1.identity(n)
+    Ad = A.dual
+
+
+    Fm = Cell1.fold(one, m)
+    Gm = Cell1.unfold(one, m)
+    assert Fm.dual == Gm
+
+    Fn = Cell1.fold(one, n)
+    Gn = Cell1.unfold(one, n)
+    assert Fn.dual == Gn
+
+    #H = Fm * (A @ A) * (Ad @ Ad) * Gm
+    #f = H.get_normal()
+    #fi = H.get_normal(inverse=True)
+    #H = f*Cell2.identity(H)*fi
+
+    frobenius = make_frobenius((A @ In)*Gn)
+
+    # can we cancel wormhole's?
+    lhs = frobenius.counit * frobenius.unit
+    rhs = m @ n
+    rhs = Cell1.identity(rhs)
+    rhs = Cell2.identity(rhs)
+    print(lhs == rhs)
+    print(lhs[1,1])
+    print(rhs[1,1])
+
+    for i in range(4):
+      for j in range(4):
+        print(lhs[i,j] == rhs[i,j], end=" ")
+      print()
+
+
+    return
+
+    lhs = frobenius.unit * frobenius.counit
+    rhs = frobenius.X
+    print(lhs == rhs)
+
+    #print(frobenius.X)
+    #lhs, rhs = frobenius.X , ((A@In)*Gn) * (Fn*(Ad@In))
+    #print(lhs.get_normal().tgt == rhs.get_normal().tgt)
+    #assert frobenius.X == ((A@In)*Gn) * (Fn*(Ad@In))
 
 
 def test_frobenius():
@@ -1115,7 +1218,10 @@ def test_all():
 
 if __name__ == "__main__":
 
-    seed(1)
+    _seed = argv.get("seed")
+    if _seed is not None:
+        print("seed(%s)"%_seed)
+        seed(_seed)
     
     profile = argv.profile
     fn = argv.next() or "test_all"

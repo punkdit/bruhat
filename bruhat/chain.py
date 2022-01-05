@@ -148,6 +148,10 @@ class Space(object):
     def asgrade(self, grade, name="?"):
         return Space(self.ring, self.n, grade, name)
 
+    def get_normal(self, N, K, inverse=False, force=False):
+        return self.identity()
+
+
 
 class DualSpace(Space):
     def __init__(self, dual):
@@ -165,11 +169,13 @@ class AddSpace(Space):
     "direct sum of vector spaces"
 
     cache = {} # XXX use https://docs.python.org/3/library/weakref.html
-    def __new__(cls, ring, *_items):
+    def __new__(cls, ring, *_items, N=None):
         assert isinstance(ring, element.Type), ring.__class__
-        #assert _items
-        #if len(_items)==1:
-        #    return _items[0] # breaks MulChain ...
+        assert _items or N is not None
+        if not _items:
+            return N
+        if len(_items)==1:
+            return _items[0] # breaks MulChain ...
         items = []
         for item in _items:
             assert item.ring == ring
@@ -191,9 +197,10 @@ class AddSpace(Space):
         Space.__init__(space, ring, n, grade, name)
         space.items = items
         cls.cache[key] = space
+        assert len(items)>1
         return space
 
-    def __init__(self, ring, *_items):
+    def __init__(self, ring, *args, **kw):
         pass
 
     @classmethod
@@ -283,14 +290,44 @@ class AddSpace(Space):
             i += item.n
         assert 0, "space %s not found in %s"%(space, self)
 
+    def get_normal(self, N, K, inverse=False, force=False):
+        # remove null summands, and recurse
+        assert N.n == 0
+        assert K.n == 1
+        ring = self.ring
+        spaces = list(self.items)
+        assert len(spaces)>1, str(self)
+        # depth-first recurse
+        fs = [space.get_normal(N, K, force=force) for space in spaces]
+        f = reduce(Lin.direct_sum, fs)
+        assert isinstance(f.tgt, AddSpace)
+        spaces = list(f.tgt.items)
+        idx = 0
+        while idx < len(spaces):
+            if force and spaces[idx].n == 0 or spaces[idx]==N:
+                spaces.pop(idx)
+                tgt, src = AddSpace(ring, *spaces, N=N), f.tgt
+                g = Lin(tgt, src, elim.identity(ring, tgt.n))
+                f = g*f
+                done = False
+            else:
+                idx += 1
+        if inverse:
+            f = f.transpose() # permutation matrix
+        return f
+
 
 class MulSpace(Space):
     "tensor product of vector spaces"
 
     cache = {} # XXX use https://docs.python.org/3/library/weakref.html
-    def __new__(cls, ring, *_items):
+    def __new__(cls, ring, *_items, K=None):
         assert isinstance(ring, element.Type), ring.__class__
-        #assert _items
+        assert _items or K is not None
+        if not _items:
+            return K
+        if len(_items)==1:
+            return _items[0] 
         items = []
         for item in _items:
             assert item.ring == ring
@@ -314,7 +351,7 @@ class MulSpace(Space):
         cls.cache[key] = space
         return space
 
-    def __init__(self, ring, *_items):
+    def __init__(self, ring, *args, **kw):
         pass
 
     @classmethod
@@ -330,6 +367,82 @@ class MulSpace(Space):
             # distribute dual's
             self._dual = MulSpace(self.ring, *[space.dual for space in self.items])
         return self._dual
+
+    def get_normal(self, N, K, inverse=False, force=False):
+        #print("MulSpace.get_normal", self.name)
+        assert N.n == 0
+        assert K.n == 1
+        ring = self.ring
+
+        # depth-first recurse
+        spaces = list(self.items)
+        assert len(spaces)>1, str(self)
+        fs = [space.get_normal(N, K, force=force) for space in spaces]
+        f = reduce(matmul, fs)
+        assert isinstance(f.tgt, MulSpace)
+        assert f.src == self
+        spaces = list(f.tgt.items)
+
+        # first deal with N, K factors (*)
+        idx = 0
+        while idx < len(spaces):
+            space = spaces[idx]
+            if force and space.n == 0 or space == N:
+                # kills everything
+                tgt = N
+                g = Lin.zero(tgt, f.tgt)
+                f = g*f
+                if inverse:
+                    f = f.transpose() # permutation matrix
+                return f # <-------------- return
+            elif force and space.n == 1 or space == K:
+                spaces.pop(idx)
+            else:
+                idx += 1
+        if len(spaces) < len(self.items):
+            tgt, src = MulSpace(ring, *spaces, K=K), f.tgt
+            g = Lin(tgt, src, elim.identity(ring, tgt.n))
+            f = g*f
+
+        if spaces:
+            gs = [space.get_normal(N, K, force=force) for space in spaces] # <--------- recurse
+            spaces = [g.tgt for g in gs]
+            g = reduce(matmul, gs)
+            f = g*f
+            # go back to (*) ?
+
+        # now distribute over AddSpace's
+        for idx, space in enumerate(spaces):
+            if isinstance(space, AddSpace):
+                break
+        else:
+            if inverse:
+                f = f.transpose() # permutation matrix
+            return f # <---------------- return
+
+        if idx+1 < len(spaces):
+            head = spaces[:idx]
+            lhs = spaces[idx]
+            rhs = MulSpace(ring, *spaces[idx+1:], K=K)
+            g = Lin.right_distributor(lhs, rhs)
+            if head:
+                head = MulSpace(ring, *head)
+                g = head.identity() @ g
+            f = g*f
+        elif len(spaces) > 1:
+            lhs = MulSpace(ring, *spaces[:idx], K=K)
+            rhs = spaces[idx]
+            #print("f =", f.homstr())
+            assert f.tgt == lhs @ rhs
+            #print("left_distributor", lhs, rhs)
+            g = Lin.left_distributor(lhs, rhs)
+            f = g*f
+
+        g = f.tgt.get_normal(N, K, force=force) # <-------------- recurse
+        f = g*f
+        if inverse:
+            f = f.transpose() # permutation matrix
+        return f
 
     def unitor(self, inverse=False):
         "remove all tensor units"
@@ -521,7 +634,7 @@ class Lin(object):
         return Lin(*self.hom, A)
 
     def __mul__(self, other):
-        assert other.tgt == self.src, "%s != %s" % (other.tgt, self.src)
+        assert other.tgt == self.src, "%s != %s" % (other.tgt.name, self.src.name)
         A = dot(self.ring, self.A, other.A)
         return Lin(self.tgt, other.src, A)
 
@@ -1079,6 +1192,37 @@ def test_structure():
     rhs = l_dW
     assert lhs == rhs
 
+    assert AddSpace(ring, W) == W
+    assert MulSpace(ring, W) == W
+    assert AddSpace(ring, N=N) == N
+    assert MulSpace(ring, K=K) == K
+
+    for (tgt, src) in [
+            (U, K@U@K),
+            (N, K@N@K),
+            (N, N+N+N),
+            (K+K, N+N+N+K+K),
+            (U+U, (K+K)@U),
+            (U@U+U@U, U@(K+K)@U),
+            (U+U, K@(U+U)@K),
+            (U@U, 
+            (U@K@K+U@N@N+V@K@N+V@N@K)@(U@K@K+U@N@N+V@K@N+V@N@K)),
+        ]:
+        #print("src =", src.name)
+        try:
+            f = src.get_normal(N, K)
+        except AssertionError:
+            print("get_normal %s failed" % (src.name))
+            raise
+        assert f.src == src, "%s should be %s<---%s"%(f.homstr(), tgt.name, src.name)
+        assert f.tgt == tgt, "%s should be %s<---%s"%(f.homstr(), tgt.name, src.name)
+
+        fi = src.get_normal(N, K, inverse=True)
+        assert fi.src == tgt
+        assert fi.tgt == src
+        assert f*fi == tgt.identity()
+        assert fi*f == src.identity()
+
 
 def test_young():
     # code ripped from qu.py
@@ -1493,7 +1637,7 @@ def test_gf():
     #print(H)
 
     c = Chain([H])
-    cc = c@c
+    #cc = c@c # XXX fix fix fix
     #for f in cc.lins:
     #    print(f)
 
