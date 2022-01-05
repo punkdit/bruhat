@@ -159,85 +159,85 @@ class Cell0(object):
         return self.n == other.n
 
 
-
-class AddCell0(Cell0):
-
-    # XXX use https://docs.python.org/3/library/weakref.html
-    cache = {}
-    def __new__(cls, rig, _items):
-        assert _items
-        items = []
-        for item in _items:
-            assert item.rig == rig
-            if type(item) is AddCell0:
-                items += item.items # _associative on the nose
-            else:
-                items.append(item)
-        key = tuple(items)
-        if key in cls.cache:
-            return cls.cache[key]
-        cell0 = object.__new__(cls)
-        n = sum(item.n for item in items)
-        name = "("+"+".join(item.name for item in items)+")"
-        Cell0.__init__(cell0, rig, n, name)
-        cell0.items = items
-        cls.cache[key] = cell0
-        return cell0
-
-    def __init__(self, *_items):
-        pass
-
-    def get_swap(self, perm):
-        rig = self.rig
-        perm = tuple(perm)
-        items = self.items
-        assert len(perm) == len(items), ("len(%s)!=%d"%(perm, len(items)))
-        assert set(perm) == set(range(len(items)))
-        tgt = reduce(operator.add, [items[i] for i in perm])
-        N = len(items)
-        rows = []
-        for i in perm:
-          row = []
-          for j in range(N):
-            if i==j:
-                lin = rig.one
-            else:
-                lin = rig.zero
-            row.append(lin)
-          rows.append(row)
-        #rows = [numpy.concatenate(row, axis=1) for row in rows]
-        #A = numpy.concatenate(rows)
-        return Cell1(tgt, self, rows)
-
-
-
-
-class MulCell0(Cell0):
-
-    # XXX use https://docs.python.org/3/library/weakref.html
-    cache = {}
-    def __new__(cls, rig, _items):
-        assert _items
-        items = []
-        for item in _items:
-            assert item.rig == rig
-            if type(item) is AddCell0:
-                items += item.items # _associative on the nose
-            else:
-                items.append(item)
-        key = tuple(items)
-        if key in cls.cache:
-            return cls.cache[key]
-        cell0 = object.__new__(cls)
-        n = reduce(operator.mul, [item.n for item in items], 1)
-        name = "("+"@".join(item.name for item in items)+")"
-        Cell0.__init__(cell0, rig, n, name)
-        cell0.items = items
-        cls.cache[key] = cell0
-        return cell0
-
-    def __init__(self, *_items):
-        pass
+#
+#class AddCell0(Cell0):
+#
+#    # XXX use https://docs.python.org/3/library/weakref.html
+#    cache = {}
+#    def __new__(cls, rig, _items):
+#        assert _items
+#        items = []
+#        for item in _items:
+#            assert item.rig == rig
+#            if type(item) is AddCell0:
+#                items += item.items # _associative on the nose
+#            else:
+#                items.append(item)
+#        key = tuple(items)
+#        if key in cls.cache:
+#            return cls.cache[key]
+#        cell0 = object.__new__(cls)
+#        n = sum(item.n for item in items)
+#        name = "("+"+".join(item.name for item in items)+")"
+#        Cell0.__init__(cell0, rig, n, name)
+#        cell0.items = items
+#        cls.cache[key] = cell0
+#        return cell0
+#
+#    def __init__(self, *_items):
+#        pass
+#
+#    def get_swap(self, perm):
+#        rig = self.rig
+#        perm = tuple(perm)
+#        items = self.items
+#        assert len(perm) == len(items), ("len(%s)!=%d"%(perm, len(items)))
+#        assert set(perm) == set(range(len(items)))
+#        tgt = reduce(operator.add, [items[i] for i in perm])
+#        N = len(items)
+#        rows = []
+#        for i in perm:
+#          row = []
+#          for j in range(N):
+#            if i==j:
+#                lin = rig.one
+#            else:
+#                lin = rig.zero
+#            row.append(lin)
+#          rows.append(row)
+#        #rows = [numpy.concatenate(row, axis=1) for row in rows]
+#        #A = numpy.concatenate(rows)
+#        return Cell1(tgt, self, rows)
+#
+#
+#
+#
+#class MulCell0(Cell0):
+#
+#    # XXX use https://docs.python.org/3/library/weakref.html
+#    cache = {}
+#    def __new__(cls, rig, _items):
+#        assert _items
+#        items = []
+#        for item in _items:
+#            assert item.rig == rig
+#            if type(item) is AddCell0:
+#                items += item.items # _associative on the nose
+#            else:
+#                items.append(item)
+#        key = tuple(items)
+#        if key in cls.cache:
+#            return cls.cache[key]
+#        cell0 = object.__new__(cls)
+#        n = reduce(operator.mul, [item.n for item in items], 1)
+#        name = "("+"@".join(item.name for item in items)+")"
+#        Cell0.__init__(cell0, rig, n, name)
+#        cell0.items = items
+#        cls.cache[key] = cell0
+#        return cell0
+#
+#    def __init__(self, *_items):
+#        pass
 
 
 
@@ -374,11 +374,12 @@ class Cell1(Matrix):
 #        assert len(perm) == cell0.n
         
 
-    def get_normal(self, inverse=False, force=False):
+    def get_normal(self, force=False):
         rig = self.rig
         N, K = rig.zero, rig.one
-        cell2 = Cell2.send(self, lambda space : space.get_normal(N, K, inverse, force))
-        return cell2
+        n = Cell2.send(self, lambda space : space.get_normal(N, K, force))
+        ni = n.transpose2()
+        return n*ni
 
     @staticmethod
     def rand(tgt, src, maxdims=4, name="A"): # tgt <---- src
@@ -485,7 +486,7 @@ class Cell2(Matrix):
         linss = [[Lin.zero(tgt[i,j], src[i,j]) for j in range(cols)] for i in range(rows)]
         return Cell2(tgt, src, linss)
 
-#    def transpose(self): # ???
+#    def transpose(self): # what am i trying to do here....
 #        A = self.A.transpose()
 #        tgt, src = self.src, self.tgt
 #        cell2 = Cell2(tgt, src, A)
@@ -892,19 +893,27 @@ def test_monoidal():
 
 def test_hopf():
 
-    ring = element.Q
+    class Ring(element.Type):
+        one = 1
+        zero = 0
+        @classmethod
+        def promote(cls, a):
+            return a
+    ring = Ring()
+
+    #ring = element.Q # slooooow
     rig = Rig(ring)
     zero = Cell0(rig, 0, "z")
     one = Cell0(rig, 1, "i")
 
-    if 0:
-        m = Cell0(rig, 2, "m")
-        n = Cell0(rig, 2, "n")
-        A = Cell1.rand(m, n, maxdims=2, name="A")
-    else:
+    if argv.trivial:
         m = Cell0(rig, 2, "m")
         n = m
         A = Cell1.identity(m)
+    else:
+        m = Cell0(rig, 2, "m")
+        n = Cell0(rig, 2, "n")
+        A = Cell1.rand(m, n, maxdims=2, name="A")
 
     Im = Cell1.identity(m)
     In = Cell1.identity(n)
@@ -919,10 +928,14 @@ def test_hopf():
     Gn = Cell1.unfold(one, n)
     assert Fn.dual == Gn
 
-    #H = Fm * (A @ A) * (Ad @ Ad) * Gm
-    #f = H.get_normal()
-    #fi = H.get_normal(inverse=True)
-    #H = f*Cell2.identity(H)*fi
+    frobenius = make_frobenius(Fm * (A@A))
+
+    X = (Fm * (A @ A)) * ((Ad @ Ad) * Gm)
+    lhs = frobenius.X.get_normal()
+    rhs = X.get_normal()
+    assert lhs == rhs
+
+    return
 
     frobenius = make_frobenius((A @ In)*Gn)
 
