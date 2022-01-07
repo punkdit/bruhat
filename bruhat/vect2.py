@@ -86,7 +86,9 @@ class Rig(object):
     def __init__(self, ring):
         self.ring = ring
         self.zero = Space(ring, 0, name="N") # null
+        self.zero._dual = self.zero
         self.one = Space(ring, 1, name="K")  # the underlying field is the tensor unit
+        self.one._dual = self.one
 
     def dot(self, A, B):
         assert type(A) is numpy.ndarray
@@ -283,15 +285,21 @@ class Cell1(Matrix):
             return I
         if isinstance(cell, Cell1):
             return cell
-        assert 0, "what's this: %s"%(cell,)
+        assert 0, "what's this: %s"%(type(cell),)
 
     def __eq__(self, other):
+        if isinstance(other, Cell2):
+            self = Cell2.promote(self)
+            return self.__eq__(other) # <-------- return
         other = Cell1.promote(other)
         assert self.hom == other.hom
         return numpy.alltrue(self.A == other.A)
 
     def __mul__(self, other):
         "composition of 1-morphism's"
+        if isinstance(other, Cell2):
+            self = Cell2.promote(self)
+            return self.__mul__(other) # <-------- return
         other = Cell1.promote(other)
         assert self.rig == other.rig
         assert self.src == other.tgt
@@ -301,6 +309,9 @@ class Cell1(Matrix):
 
     def __add__(self, other):
         "direct sum of 1-morphism's"
+        if isinstance(other, Cell2):
+            self = Cell2.promote(self)
+            return self.__add__(other) # <-------- return
         other = Cell1.promote(other)
         assert self.rig == other.rig
         rig = self.rig
@@ -314,6 +325,9 @@ class Cell1(Matrix):
 
     def __matmul__(self, other):
         "tensor (monoidal) product of 1-morphism's"
+        if isinstance(other, Cell2):
+            self = Cell2.promote(self)
+            return self.__matmul__(other) # <-------- return
         other = Cell1.promote(other)
         assert self.rig == other.rig
         src = self.src @ other.src
@@ -325,6 +339,19 @@ class Cell1(Matrix):
             A[i*m+k, j*n+l ] = self[i,j] @ other[k,l]
         return Cell1(tgt, src, A)
 
+    def __lshift__(self, other):
+        if isinstance(other, Cell1):
+            return self.__mul__(other) # <-------- return
+        self = Cell2.promote(self)
+        return self << other
+
+    @property
+    def transpose(self):
+        A = self.A.transpose()
+        tgt, src = self.src, self.tgt
+        cell1 = Cell1(tgt, src, A)
+        return cell1
+
     @property
     def dual(self):
         if self._dual is not None:
@@ -333,12 +360,6 @@ class Cell1(Matrix):
         A = [[self[j,i].dual for j in src] for i in tgt]
         self._dual = Cell1(tgt, src, A)
         return self._dual
-
-#    def transpose(self): # use .dual
-#        A = self.A.transpose()
-#        tgt, src = self.src, self.tgt
-#        cell1 = Cell1(tgt, src, A)
-#        return cell1
 
     @staticmethod
     def identity(cell0):
@@ -373,28 +394,47 @@ class Cell1(Matrix):
 #    def get_addswap(cell0, perm):
 #        assert len(perm) == cell0.n
         
+    @property
+    def normalized(self):
+        rig = self.rig
+        N, K = rig.zero, rig.one
+        n = Cell2.send(self, lambda space : space.get_normal(N, K, inverse=False, force=False))
+        return n.tgt
+
+    def to_normal(self, force=False):
+        rig = self.rig
+        N, K = rig.zero, rig.one
+        n = Cell2.send(self, lambda space : space.get_normal(N, K, False, force))
+        return n
+
+    def from_normal(self, force=False):
+        rig = self.rig
+        N, K = rig.zero, rig.one
+        n = Cell2.send(self, lambda space : space.get_normal(N, K, True, force))
+        return n
 
     def get_normal(self, force=False):
         rig = self.rig
         N, K = rig.zero, rig.one
-        n = Cell2.send(self, lambda space : space.get_normal(N, K, force))
-        ni = n.transpose2()
+        n = Cell2.send(self, lambda space : space.get_normal(N, K, False, force))
+        ni = n.transpose2() # inverse is transpose 
         return n*ni
 
     @staticmethod
-    def rand(tgt, src, maxdims=4, name="A"): # tgt <---- src
+    def rand(tgt, src, mindim=0, maxdim=4, name="A"): # tgt <---- src
         assert tgt.rig == src.rig
         rig = tgt.rig
         ring = rig.ring
         A = numpy.empty((tgt.n, src.n), dtype=object)
         for row in tgt:
           for col in src:
-            n = randint(0, maxdims)
+            n = randint(mindim, maxdim)
             A[row, col] = Space(ring, n, name="%s_%d%d"%(name, row, col))
         return Cell1(tgt, src, A)
 
     @staticmethod
-    def unfold(i, cell0): # the unit of a higher adjunction
+    def fold(i, cell0): # the unit of a higher adjunction
+        "cell0.dual @ cell0 <---- i"
         assert isinstance(i, Cell0)
         assert isinstance(cell0, Cell0)
         rig = i.rig
@@ -409,7 +449,8 @@ class Cell1(Matrix):
         return Cell1(tgt, src, A)
 
     @staticmethod
-    def fold(i, cell0): # the counit of a higher adjunction
+    def unfold(i, cell0): # the counit of a higher adjunction
+        "i <---- cell0 @ cell0.dual"
         assert isinstance(i, Cell0)
         assert isinstance(cell0, Cell0)
         rig = i.rig
@@ -514,6 +555,9 @@ class Cell2(Matrix):
         "(vertical) composition of 2-morphism's"
         other = Cell2.promote(other)
         assert self.rig == other.rig
+        if self.src != other.tgt:
+            self = self * self.src.from_normal() # recurse
+            other = other.tgt.to_normal() * other # recurse
         assert self.src == other.tgt
         rig = self.rig
         A = self.A * other.A # compose Lin's elementwise
@@ -558,6 +602,11 @@ class Cell2(Matrix):
           for k, l in numpy.ndindex(other.shape): # little
             A[i*m+k, j*n+l ] = self[i,j] @ other[k,l]
         return Cell2(tgt, src, A)
+
+    @property
+    def normalized(self):
+        self = self.tgt.to_normal() * self * self.src.from_normal()
+        return self
 
     @classmethod
     def send(cls, cell1, f):
@@ -703,6 +752,41 @@ class Cell2(Matrix):
         return f
 
     @staticmethod
+    def interchanger(A, B, C, D, inverse=False):
+        """ 
+            (A @ C) << (B @ D) <------- (A << B) @ (C << D) 
+        """
+        assert isinstance(A, Cell1)
+        assert isinstance(B, Cell1)
+        assert isinstance(C, Cell1)
+        assert isinstance(D, Cell1)
+        rig = A.rig
+        N, K = rig.zero, rig.one
+        tgt = (A @ C) << (B @ D)
+        src = (A << B) @ (C << D)
+        linss = []
+        for i in src.hom[0]:
+          lins = []
+          for j in src.hom[1]:
+            s, t = src[i,j], tgt[i,j]
+            #print(s.name)
+            #print(t.name)
+            #print()
+            f = s.get_normal() # XXX too much in general
+            s = f.tgt
+            assert isinstance(f.tgt, AddSpace)
+            gs = [space.get_swap((0,2,1,3)) for space in f.tgt.items]
+            g = reduce(Lin.direct_sum, gs)
+            lin = g*f
+            #lin = Lin.zero(t, s)
+            lins.append(lin)
+          linss.append(lins)
+        mu = Cell2(tgt, src, linss)
+        if inverse:
+            mu = mu.transpose2()
+        return mu
+
+    @staticmethod
     def unit(A):
         assert isinstance(A, Cell1)
         src = Cell1.identity(A.src)
@@ -765,6 +849,89 @@ class Cell2(Matrix):
             lins.append(lin)
           linss.append(lins)
         return Cell2(tgt, src, linss)
+
+    @staticmethod
+    def fold(one, A):
+        assert isinstance(A, Cell1)
+        m, n = A.hom
+        Im = Cell1.identity(m)
+        In = Cell1.identity(n)
+        Fm = Cell1.fold(one, m)
+        Fn = Cell1.fold(one, n)
+        tgt = (Im @ A.transpose) * Fm
+        src = (A @ In) * Fn
+        tgt = tgt.get_normal().tgt
+        src = src.get_normal().tgt
+        assert tgt == src
+        i = Cell2.identity(src)
+        return i
+
+    @staticmethod
+    def unfold(one, A):
+        assert isinstance(A, Cell1)
+        m, n = A.hom
+        Im = Cell1.identity(m)
+        In = Cell1.identity(n)
+        Gm = Cell1.unfold(one, m)
+        Gn = Cell1.unfold(one, n)
+        tgt = Gn * (In @ A.transpose)
+        src = Gm * (A @ Im)
+        tgt = tgt.get_normal().tgt
+        src = src.get_normal().tgt
+        assert tgt == src
+        i = Cell2.identity(src)
+        return i
+
+    @staticmethod
+    def fold_counit(one, A): # fold the cap
+        assert isinstance(A, Cell1)
+        m, n = A.hom
+        Im = Cell1.identity(m)
+        In = Cell1.identity(n) # not needed
+        At = A.transpose
+        Atd = At.dual
+        Fm = Cell1.fold(one, m)
+        Fn = Cell1.fold(one, n) # not needed
+        fA = Cell2.fold(one, A)
+        assert fA.src == ((A @ In) << Fn).normalized
+        cap = Cell2.counit(Atd)
+        assert cap.src == Atd * At
+        assert cap.tgt == Im
+        bot = (Im @ Atd) << fA
+        lhs, rhs = bot.src.normalized , ((A @ Atd)<<Fn).normalized
+        #assert ((Im @ Atd) << (A @ In)).normalized == ((A @ Im) << (In @ Atd)).normalized # no
+        #assert (A @ Atd).normalized == ((A @ Im) << (In @ Atd)).normalized # yes
+            #(A @ C) << (B @ D) <------- (A << B) @ (C << D) 
+        rhs = (Im @ Atd) << (A @ In) << Fn
+        rhs = rhs.normalized
+        assert lhs == rhs
+        top = (Im @ cap) << Fm
+        assert (bot.tgt.normalized) == (top.src.normalized)
+        #mu = Cell2.interchanger(Im, A, Atd, In, inverse=True)
+        mu = Cell2.interchanger(Im, A, Atd, In) << Fn
+        #print(mu.tgt)
+        #print(bot.src)
+        left = (top.normalized * bot.normalized * mu.normalized).normalized
+        return left
+
+    @staticmethod
+    def unfold_counit(one, A): # unfold the cap
+        assert isinstance(A, Cell1)
+        m, n = A.hom
+        In = Cell1.identity(n)
+        At = A.transpose
+        Atd = At.dual
+        Gn = Cell1.unfold(one, n)
+        gA = Cell2.unfold(one, A)
+        cap = Cell2.counit(At)
+        assert cap.src == At * Atd
+        assert cap.tgt == In
+        bot = gA << (In @ Atd)
+        top = Gn << (In @ cap)
+        assert (bot.tgt.normalized) == (top.src.normalized)
+        left = (top * bot).normalized
+        return left
+
         
 
 class Frobenius(object):
@@ -860,20 +1027,28 @@ def make_frobenius(A):
 
 
 def test_monoidal():
-    #class Ring(element.Type):
-    #    one = 1
-    #    zero = 0
-    #ring = Ring()
 
-    ring = element.Q
+    class Ring(element.Type):
+        one = 1
+        zero = 0
+        @classmethod
+        def promote(cls, a):
+            return a
+    ring = Ring()
     rig = Rig(ring)
+
     zero = Cell0(rig, 0, "z")
     one = Cell0(rig, 1, "i")
     m = Cell0(rig, 3, "m")
     n = Cell0(rig, 2, "n")
+    Im = Cell1.identity(m)
+    In = Cell1.identity(n)
 
-    A = Cell1.rand(m, n, name="A")
-    B = Cell1.rand(m, n, name="B")
+    A = Cell1.rand(m, n, mindim=2, maxdim=2, name="A")
+    B = Cell1.rand(m, n, mindim=2, maxdim=2, name="B")
+    C = Cell1.rand(m, n, mindim=2, maxdim=2, name="C")
+    D = Cell1.rand(m, n, mindim=2, maxdim=2, name="D")
+
     a = Cell2.rand(B, A)
     b = Cell2.rand(B, A)
 
@@ -882,13 +1057,37 @@ def test_monoidal():
     ab = (a+b)
     ab = (a @ b)
 
-    F = Cell1.fold(one, m)
-    G = Cell1.unfold(one, m)
+    F = Cell1.unfold(one, m)
+    G = Cell1.fold(one, m)
 
     assert F.dual == G
 
     frobenius = make_frobenius(F)
     assert frobenius.special
+
+    lhs = (A @ Im) << (In @ B)
+    mid = (A @ B)
+    rhs = (Im @ B) << (A @ In)
+    lhs = lhs.normalized
+    rhs = rhs.normalized
+    mid = mid.normalized
+    assert(lhs == mid) # just happens to work
+    assert(rhs != mid)
+    assert(lhs != rhs)
+
+    l, m, n, o, p, q = [Cell0(rig, d, name) for (d, name) in zip([2,4,3,2,2,3], 'lmnopq')]
+    A = Cell1.rand(l, m, mindim=2, maxdim=2, name="A")
+    B = Cell1.rand(m, n, mindim=2, maxdim=2, name="B")
+    C = Cell1.rand(o, p, mindim=2, maxdim=2, name="C")
+    D = Cell1.rand(p, q, mindim=2, maxdim=2, name="D")
+
+    # interchanger
+    tgt = (A @ C) << (B @ D)
+    src = (A << B) @ (C << D)
+
+    mu = Cell2.interchanger(A, B, C, D)
+    assert mu.src == src
+    assert mu.tgt == tgt
 
 
 def test_hopf():
@@ -907,64 +1106,67 @@ def test_hopf():
     one = Cell0(rig, 1, "i")
 
     if argv.trivial:
-        m = Cell0(rig, 2, "m")
+        m = Cell0(rig, 3, "m")
         n = m
         A = Cell1.identity(m)
+        B = Cell1.identity(m)
     else:
         m = Cell0(rig, 2, "m")
         n = Cell0(rig, 2, "n")
-        A = Cell1.rand(m, n, maxdims=2, name="A")
+        A = Cell1.rand(m, n, mindim=0, maxdim=1, name="A")
 
     Im = Cell1.identity(m)
     In = Cell1.identity(n)
     Ad = A.dual
+    At = A.transpose
+    Atd = At.dual
 
-
-    Fm = Cell1.fold(one, m)
     Gm = Cell1.unfold(one, m)
-    assert Fm.dual == Gm
+    Fm = Cell1.fold(one, m)
+    assert Gm.dual == Fm
 
-    Fn = Cell1.fold(one, n)
     Gn = Cell1.unfold(one, n)
-    assert Fn.dual == Gn
+    Fn = Cell1.fold(one, n)
+    assert Gn.dual == Fn
 
-    frobenius = make_frobenius(Fm * (A@A))
+    f = Cell2.fold(one, A)
+    g = Cell2.unfold(one, A)
 
-    X = (Fm * (A @ A)) * ((Ad @ Ad) * Gm)
-    lhs = frobenius.X.get_normal()
-    rhs = X.get_normal()
+    left = Cell2.unfold_counit(one, A)
+    assert left.src == (Gm << (A @ Atd)).normalized
+
+    right = Cell2.fold_counit(one, Ad)
+    lhs, rhs = right.src , ((Ad @ At) << Fm).normalized
     assert lhs == rhs
 
-    return
+    right = Cell2.fold_counit(one, Ad)
+    lhs, rhs = right.src , ((Ad @ At) << Fm).normalized
+    assert lhs == rhs
 
-    frobenius = make_frobenius((A @ In)*Gn)
+    stem = left << right
+    lhs = stem.src
+    left, right = (Gm << (A @ Atd)), ((Ad @ At) << Fm)
+    rhs = left << right
 
-    # can we cancel wormhole's?
-    lhs = frobenius.counit * frobenius.unit
-    rhs = m @ n
-    rhs = Cell1.identity(rhs)
-    rhs = Cell2.identity(rhs)
-    print(lhs == rhs)
-    print(lhs[1,1])
-    print(rhs[1,1])
+    assert lhs.normalized == rhs.normalized
 
-    for i in range(4):
-      for j in range(4):
-        print(lhs[i,j] == rhs[i,j], end=" ")
-      print()
+    cap = Cell2.counit(Gn).normalized
+
+    cap = cap * stem
 
 
-    return
+    if 0:
 
-    lhs = frobenius.unit * frobenius.counit
-    rhs = frobenius.X
-    print(lhs == rhs)
+        # only works when the saddle is invertible
 
-    #print(frobenius.X)
-    #lhs, rhs = frobenius.X , ((A@In)*Gn) * (Fn*(Ad@In))
-    #print(lhs.get_normal().tgt == rhs.get_normal().tgt)
-    #assert frobenius.X == ((A@In)*Gn) * (Fn*(Ad@In))
-
+        frobenius = make_frobenius(Gm << (A @ Atd))
+    
+        lhs = cap * frobenius.mul 
+        rhs = cap << cap
+        print( lhs.normalized[0,0] )
+        print( rhs.normalized[0,0] )
+        assert lhs.normalized == rhs.normalized
+    
 
 def test_frobenius():
 
@@ -1218,6 +1420,25 @@ def test():
     lhs = r_dA * (i_dA << cap) * assoc * (cup << i_dA)
     rhs = l_dA
     assert lhs == rhs
+
+    # ----------------------------------------------------
+    # _interchange law for 2-morphisms
+
+    #     A      B    
+    # l <--- m <--- n 
+    A = Cell1.rand(l, m, mindim=1, maxdim=2, name="A")
+    B = Cell1.rand(m, n, mindim=1, maxdim=2, name="B")
+
+    a = Cell2.rand(A, A)
+    c = Cell2.rand(A, A)
+    b = Cell2.rand(B, B)
+    d = Cell2.rand(B, B)
+
+    lhs = (c << d) * (a << b)
+    rhs = (c*a) << (d*b)
+
+    assert lhs == rhs
+    
 
 
 def test_all():

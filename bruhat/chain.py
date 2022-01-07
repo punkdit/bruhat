@@ -69,7 +69,7 @@ class Space(object):
     vector Space over a field (aka a ring).
     These have a dimenion 'n', a 'grade', and a 'name' (for debugging).
     """
-    def __init__(self, ring, n=0, grade=0, name=NO_NAME):
+    def __init__(self, ring, n=0, grade=0, name=NO_NAME, _dual=None):
         assert isinstance(ring, element.Type), ring.__class__
         assert type(n) is int
         assert grade is None or type(grade) is int, repr(grade)
@@ -79,9 +79,9 @@ class Space(object):
         self.n = n
         self.grade = grade
         self.name = name
-        self._dual = None 
-        if self.n <= 1:
-            self._dual = self # reasonable ?
+        self._dual = _dual
+        #if self.n <= 1:
+        #    self._dual = self # reasonable ?
 
     def __str__(self):
         return "%s(%s, grade=%s, name=%r)"%(
@@ -156,8 +156,7 @@ class Space(object):
 class DualSpace(Space):
     def __init__(self, dual):
         assert type(dual) == Space, type(dual)
-        Space.__init__(self, dual.ring, dual.n, -dual.grade, "~"+dual.name)
-        self._dual = dual
+        Space.__init__(self, dual.ring, dual.n, -dual.grade, "~"+dual.name, dual)
 
 
 # We record the bimonoidal structure (+,*) into AddSpace and MulSpace below.
@@ -290,10 +289,10 @@ class AddSpace(Space):
             i += item.n
         assert 0, "space %s not found in %s"%(space, self)
 
-    def get_normal(self, N, K, inverse=False, force=False):
+    def get_normal(self, N=None, K=None, inverse=False, force=False):
         # remove null summands, and recurse
-        assert N.n == 0
-        assert K.n == 1
+        assert N is None or N.n == 0
+        assert K is None or K.n == 1
         ring = self.ring
         spaces = list(self.items)
         assert len(spaces)>1, str(self)
@@ -368,10 +367,10 @@ class MulSpace(Space):
             self._dual = MulSpace(self.ring, *[space.dual for space in self.items])
         return self._dual
 
-    def get_normal(self, N, K, inverse=False, force=False):
-        #print("MulSpace.get_normal", self.name)
-        assert N.n == 0
-        assert K.n == 1
+    def get_normal(self, N=None, K=None, inverse=False, force=False):
+        #print("\nMulSpace.get_normal", self.name)
+        assert N is None or N.n == 0
+        assert K is None or K.n == 1
         ring = self.ring
 
         # depth-first recurse
@@ -382,6 +381,9 @@ class MulSpace(Space):
         assert isinstance(f.tgt, MulSpace)
         assert f.src == self
         spaces = list(f.tgt.items)
+
+        #print("spaces:")
+        #print([space.name for space in spaces])
 
         # first deal with N, K factors (*)
         idx = 0
@@ -399,15 +401,22 @@ class MulSpace(Space):
                 spaces.pop(idx)
             else:
                 idx += 1
-        if len(spaces) < len(self.items):
+
+        #print("spaces:", [space.name for space in spaces])
+        #print("self.items:", [space.name for space in self.items])
+
+        if len(spaces) < len(f.tgt.items):
             tgt, src = MulSpace(ring, *spaces, K=K), f.tgt
             g = Lin(tgt, src, elim.identity(ring, tgt.n))
             f = g*f
+            #print(tgt)
 
+        #print("f.tgt", f.tgt)
         if spaces:
             gs = [space.get_normal(N, K, force=force) for space in spaces] # <--------- recurse
             spaces = [g.tgt for g in gs]
             g = reduce(matmul, gs)
+            assert f.tgt == g.src
             f = g*f
             # go back to (*) ?
 
@@ -1205,8 +1214,9 @@ def test_structure():
             (U+U, (K+K)@U),
             (U@U+U@U, U@(K+K)@U),
             (U+U, K@(U+U)@K),
-            (U@U, 
-            (U@K@K+U@N@N+V@K@N+V@N@K)@(U@K@K+U@N@N+V@K@N+V@N@K)),
+            (U@U, (U@K@K+U@N@N+V@K@N+V@N@K)@(U@K@K+U@N@N+V@K@N+V@N@K)),
+            (U+V+U, (K@U@K+V+U)@K),
+            (U@U, (K@U@U@K+K@U@U@N+K@U@U@N+N@U@U@K+N@U@U@N+N@U@U@N)@K),
         ]:
         #print("src =", src.name)
         try:
