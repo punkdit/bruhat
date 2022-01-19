@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
 """
+
+An attempt at basic 
+Ring's Field's, Polynomial rings, etc.
+
+See also _element.pyx for another attempt at Fraction's .
 """
 
 from functools import total_ordering
