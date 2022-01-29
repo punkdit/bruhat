@@ -301,7 +301,7 @@ def main():
         edges.append(g(z_edge))
         verts.append(g(z_vert))
 
-    #disc.show_polygon([z_face, z_edge, z_vert], st_fill=[grey])
+    disc.show_polygon([z_face, z_edge, z_vert], st_fill=[grey])
     #disc.show_point(z_vert, radius=0.1)
     #disc.show_point((~a)(z_vert), radius=0.1)
     #disc.show_point(z_edge, radius=0.1)
