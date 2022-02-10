@@ -2643,15 +2643,21 @@ def is_hom(hom):
 
 def close_hom(hom):
     hom = dict(hom)
-    ks = list(hom.keys())
-    for g in ks:
-      for h in ks:
-        k = g*h
-        if k in hom:
-            if hom[k] != hom[g]*hom[h]:
-                return None
-        else:
-            hom[k] = hom[g]*hom[h]
+    done = False
+    gen = list(hom.keys())
+    bdy = list(gen)
+    while bdy:
+        _bdy = []
+        for g in gen:
+          for h in bdy:
+            k = g*h
+            if k in hom:
+                if hom[k] != hom[g]*hom[h]:
+                    return None
+            else:
+                hom[k] = hom[g]*hom[h]
+                _bdy.append(k)
+        bdy = _bdy
     return hom
 
 

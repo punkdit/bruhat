@@ -8,7 +8,7 @@ import numpy
 from numpy import concatenate
 
 #from bruhat.gset import Perm, Group, Coset, mulclose # FAIL
-from bruhat.action import Perm, Group, Coset, mulclose
+from bruhat.action import Perm, Group, Coset, mulclose, close_hom
 from bruhat.util import cross
 from bruhat.argv import argv
 
@@ -650,7 +650,7 @@ def make_bring():
     assert alltrue(dot(Hz, Hxt)==0)
 
 
-def make_codes_54():
+def make_hyperbolic_group(idx):
     # start with hyperbolic Coxeter reflection group: a--5--b--5--c
     # Then we add another generator "d" that halves these triangles.
     ngens = 8
@@ -699,30 +699,105 @@ def make_codes_54():
     for rel in rels:
         assert len(rel)%2 == 0
 
-    for idx, rel in enumerate(rels):
-        if argv.idx is not None and argv.idx != idx:
-            continue
+    rel = rels[idx]
+    graph = Schreier(ngens, rels_552 + [rel])
+    graph.build()
+    G = graph.get_group()
 
-        graph = Schreier(ngens, rels_552 + [rel])
-        graph.build()
-        G = graph.get_group()
+    return G
 
-        if order is not None and len(G) != order*2:
-            print(len(G))
-            continue
 
-        if argv.oriented:
-            make_surface_54_oriented(G)
-        else:
-            make_surface_54(G)
+def test_cover():
+    print("test_cover")
 
-        if argv.bring:
-            break
+    G2 = make_hyperbolic_group(2)
+    G1 = make_hyperbolic_group(1)
+
+    assert len(G2) == 640
+    assert len(G1) == 320
+
+    hom = {}
+    for g,h in zip(G2.gens, G1.gens):
+        hom[g] = h
+
+    hom = close_hom(hom)
+    assert hom is not None
+
+    assert len(hom) == len(G2)
+    kern = [g for (g,h) in hom.items() if h.is_identity()]
+    assert len(kern) * len(G1) == len(G2)
+
+    swaps = [g for g in kern if not g.is_identity()]
+    swap = swaps[0]
+    assert (swap*swap).is_identity()
+
+    s1 = Surface(G1)
+    s2 = Surface(G2)
+
+    # Check we have an unramified degree 2 covering
+    #s1.faces # list of Coset's
+    fwd = {}
+    counts = {}
+    for f2 in s2.faces:
+        f1 = Coset([hom[g] for g in f2], G1.items)
+        counts[f1] = counts.get(f1, 0) + 1
+        fwd[f2] = f1
+    
+    print(list(counts.values()))
+    
+    for f2 in s2.faces:
+        swapf2 = Coset([swap*g for g in f2], G2.items)
+        assert(fwd[f2]==fwd[swapf2])
+
+
+def make_codes_54():
+    idx = argv.get("idx", 0)
+
+    G = make_hyperbolic_group(idx)
+
+    if argv.oriented:
+        make_surface_54_oriented(G)
+    else:
+        make_surface_54(G)
+
 
 
 class Surface(object):
-    def __init__(self, G):
-        pass
+    def __init__(self, G_0):
+        a, ai, b, bi, c, ci, d, di = G_0.gens
+    
+        # 5,5 coxeter subgroup
+        G_1 = Group.generate([a, b, c])
+        assert G_0.is_subgroup(G_1)
+    
+        # orientation subgroup
+        L_0 = Group.generate([a*b, a*d])
+        assert G_0.is_subgroup(L_0)
+        orients = G_0.left_cosets(L_0)
+        assert len(orients) == 2
+    
+        H_1 = Group.generate([a, b])
+        self.faces = G_1.left_cosets(H_1)
+        self.act_faces = G_1.action_subgroup(H_1)
+
+        print("faces:", len(self.faces))
+
+        return
+    
+        K_1 = Group.generate([b, c])
+        vertices = G_1.left_cosets(K_1)
+    
+        J_1 = Group.generate([a, c])
+        edges = G_1.left_cosets(J_1)
+    
+        print("faces: %d, edges: %d, vertices: %d" % (
+            len(faces), len(edges), len(vertices)))
+
+        self.faces = faces
+        self.edges = edges
+        self.vertices = vertices
+        self.act_faces = act_faces
+
 
 #import memory_profiler
 #from memory_profiler import profile
