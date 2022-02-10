@@ -1105,6 +1105,7 @@ def test_hopf():
     zero = Cell0(rig, 0, "z")
     one = Cell0(rig, 1, "i")
 
+
     if argv.trivial:
         m = Cell0(rig, 3, "m")
         n = m
@@ -1154,18 +1155,14 @@ def test_hopf():
 
     cap = cap * stem
 
+    # only works when the saddle is invertible
+    frobenius = make_frobenius(Gm << (A @ Atd))
 
-    if 0:
-
-        # only works when the saddle is invertible
-
-        frobenius = make_frobenius(Gm << (A @ Atd))
-    
-        lhs = cap * frobenius.mul 
-        rhs = cap << cap
-        print( lhs.normalized[0,0] )
-        print( rhs.normalized[0,0] )
-        assert lhs.normalized == rhs.normalized
+    lhs = cap * frobenius.mul 
+    rhs = cap << cap
+    #print( lhs.normalized[0,0] )
+    #print( rhs.normalized[0,0] )
+    print( lhs.normalized == rhs.normalized )
     
 
 def test_frobenius():

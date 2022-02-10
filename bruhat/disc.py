@@ -155,7 +155,8 @@ class Disc(object):
     def __init__(self, cvs=None, z_center=1j):
         self.g_center = Mobius.cayley(z_center) * ~Mobius.cayley()
         if cvs is None:
-            cvs = Canvas([Scale(5.0)])
+            cvs = Canvas()
+        cvs.append(Scale(5.0))
         cvs.fill(path.rect(-1, -1, 2, 2), [white])
         self.cvs = cvs
 
@@ -246,17 +247,27 @@ class Disc(object):
             ds = 2 / (1 - z*z.conjugate()).real
             self.show_qubit(z.real, z.imag, 1.5/ds)
 
-    def show_qubit(self, x, y, scale=1.0):
+    def show_qubit(self, z, scale=None):
         cvs = self.cvs
+        x, y = z.real, z.imag
+        if scale is None:
+            scale = 1.5/d_poincare(z)
         p = path.circle(x, y, 0.05*scale)
         cvs.fill(p, [white])
         cvs.fill(p, [black.alpha(0.1)])
         cvs.stroke(p, [black, normal*scale])
 
+    def show_label(self, z, label, scale=1.0):
+        cvs = self.cvs
+        x, y = z.real, z.imag
+        scale = scale*2.5/d_poincare(z)
+        cvs.text(x, y, label, [Scale(scale)]+st_center)
+
     def fini(self):
         cvs = self.cvs
         p = path.circle(0, 0, 1)
         cvs.clip(p)
+        cvs.stroke(p, [1.5*thin]+[black.alpha(0.5)])
         cvs.stroke(p, [1.0*thin])
     
     def save(self, name):
@@ -264,7 +275,7 @@ class Disc(object):
         cvs = self.cvs
         cvs.writePDFfile("i"+"mages/"+name+".pdf")
         cvs.writeSVGfile("i"+"mages/"+name+".svg")
-        cvs = Canvas([Scale(5.), cvs])
+        cvs = Canvas([Scale(3.), cvs])
         cvs.writePNGfile("i"+"mages/"+name+".png")
     
 
@@ -272,7 +283,7 @@ class Disc(object):
 #
 
 
-def main():
+def main_bring():
     # build the rotation group generators
     a, b = [g.todisc() for g in mktriangle(5, 2, 5)]
     
@@ -290,18 +301,21 @@ def main():
 
     gens = [g_face, g_edge, g_vert]
     gens = gens + [~g for g in gens]
-    G = mulclose(gens, verbose=True, maxsize=8000)
+    G = mulclose(gens, verbose=True, maxsize=8000) # 8000 is enough
 
     faces, edges, verts = [], [], []
     for g in G:
-        disc.show_geodesic(g(z_face), g(z_vert), attrs=[grey])
-        disc.show_geodesic(g(z_face), g(z_edge), attrs=[grey])
-        disc.show_geodesic(g(z_vert), g(z_edge))
+        #disc.show_geodesic(g(z_face), g(z_vert), attrs=[grey])
+        #disc.show_geodesic(g(z_face), g(z_edge), attrs=[grey])
         faces.append(g(z_face))
         edges.append(g(z_edge))
         verts.append(g(z_vert))
 
-    disc.show_polygon([z_face, z_edge, z_vert], st_fill=[grey])
+    for g in G:
+        disc.show_geodesic(g(z_vert), g(z_edge), attrs=st_round)
+#        break
+
+    #disc.show_polygon([z_face, z_edge, z_vert], st_fill=[grey])
     #disc.show_point(z_vert, radius=0.1)
     #disc.show_point((~a)(z_vert), radius=0.1)
     #disc.show_point(z_edge, radius=0.1)
@@ -319,12 +333,151 @@ def main():
 #        #disc.show_point(g(0))
 #        z1, z2 = z2, a(z2)
 
-    for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
-        for z in zs:
-            disc.show_point(z, [cl])
+    for z in edges:
+        disc.show_qubit(z)
+
+    #for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
+    #    for z in zs:
+    #        disc.show_point(z, [cl])
+
+    I = Mobius()
+    z = 0.j
+    pts0 = []
+    for (g, label) in [
+        (I, "1"),
+        (b, "6"),
+        (a*b, "2"),
+        (a*a*b, "3"),
+        (a*a*a*b, "4"),
+        (a*a*a*a*b, "5"),
+        (b*a*b, "8"),
+        (a*b*a*b, "10"),
+        (a*a*b*a*b, "7"),
+        (a*a*a*b*a*b, "9"),
+        (a*a*a*a*b*a*b, "11"),
+        (b*a*b*a*b, "7"),
+        (a*b*a*b*a*b, "9"),
+        (a*a*b*a*b*a*b, "11"),
+        (a*a*a*b*a*b*a*b, "8"),
+        (a*a*a*a*b*a*b*a*b, "10"),
+        (a*b*a*a*b, "5"),
+        (a*a*b*a*a*b, "6"),
+        (a*a*a*b*a*a*b, "2"),
+        (a*a*a*a*b*a*a*b, "3"),
+        (a*a*a*a*a*b*a*a*b, "4"),
+        (b*a*a*a*b, "3"),
+        (a*b*a*a*a*b, "4"),
+        (a*a*b*a*a*a*b, "5"),
+        (a*a*a*b*a*a*a*b, "6"),
+        (a*a*a*a*b*a*a*a*b, "2"),
+        (b*a*a*a*a*b*a*b*a*b, "7"),
+        (a*b*a*a*a*a*b*a*b*a*b, "9"),
+        (a*a*b*a*a*a*a*b*a*b*a*b, "11"),
+        (a*a*a*b*a*a*a*a*b*a*b*a*b, "8"),
+        (a*a*a*a*b*a*a*a*a*b*a*b*a*b, "10"),
+        (b*a*a*a*a*b*a*b, "12"),
+        (a*b*a*a*a*a*b*a*b, "12"),
+        (a*a*b*a*a*a*a*b*a*b, "12"),
+        (a*a*a*b*a*a*a*a*b*a*b, "12"),
+        (a*a*a*a*b*a*a*a*a*b*a*b, "12"),
+        (b*a*b*a*a*a*a*b, "12"),
+        (a*b*a*b*a*a*a*a*b, "12"),
+        (a*a*b*a*b*a*a*a*a*b, "12"),
+        (a*a*a*b*a*b*a*a*a*a*b, "12"),
+        (a*a*a*a*b*a*b*a*a*a*a*b, "12"),
+        (b*a*a*b*a*b, "10"),
+        (a*b*a*a*b*a*b, "7"),
+        (a*a*b*a*a*b*a*b, "9"),
+        (a*a*a*b*a*a*b*a*b, "11"),
+        (a*a*a*a*b*a*a*b*a*b, "8"),
+    ]:
+        z1 = g(z)
+        z1 = 0.98*z1
+        disc.show_label(z1, label)
+        #pts0.append(z1)
+        #disc.show_point(z1, [red], radius=0.02)
 
     disc.fini()
     disc.save("brings-curve")
+    
+
+def main():
+
+    w, h = 5, 3
+    dx = w/3.
+
+    for (l, m, n,gens ) in [(5,2,5,"abc"), (5,2,4,"def")]:
+
+        print(l, m, n)
+
+        cvs = Canvas()
+
+        radius = 0.14
+        x, y = 0., 0.
+
+        xs = [dx*i for i in range(3)]
+
+        cvs.stroke(path.line(xs[0], y, xs[2], y), st_Thick)
+
+        for x,cl,label in zip(xs, [red, blue, green], "vertex edge face".split()):
+            cvs.fill(path.circle(x, y, radius), [cl])
+            cvs.text(x, y-2*radius, label, st_north)
+
+        for x,gen in zip(xs, gens):
+            cvs.text(x, y+2*radius, gen, st_south)
+
+        cvs.text(0.5*(xs[0] + xs[1]), y+2*radius, "%d"%l, st_center)
+        cvs.text(0.5*(xs[1] + xs[2]), y+2*radius, "%d"%n, st_center)
+
+        cvs.writePDFfile("images/coxeter-%d%d%d"%(l,m,n))
+
+
+
+
+def main_poincare():
+
+    for (l, m, n, maxsize) in [(5,2,5,8000), (5,2,4,12000)]:
+
+        # build the rotation group generators
+        a, b = [g.todisc() for g in mktriangle(l, m, n)]
+        
+        cvs = Canvas()
+        if n==4:
+            cvs.append(Rotate(pi))
+        disc = Disc(cvs)
+    
+        z_face = 0j
+        z_vert = (a*b).inner_fixed()
+    
+        gamma = Geodesic.construct(z_vert, (~a)(z_vert))
+        z_edge = gamma.z2 # midpoint
+        g_face = gamma.get_refl()
+        gamma = Geodesic.construct(z_face, z_vert)
+        g_edge = gamma.get_refl()
+        g_vert = Mobius.conjugate()
+    
+        gens = [g_face, g_edge, g_vert]
+        gens = gens + [~g for g in gens]
+        G = mulclose(gens, verbose=True, maxsize=maxsize)
+    
+        faces, edges, verts = [], [], []
+        for g in G:
+            faces.append(g(z_face))
+            edges.append(g(z_edge))
+            verts.append(g(z_vert))
+    
+        for g in G:
+            disc.show_geodesic(g(z_vert), g(z_edge), attrs=st_round)
+            disc.show_geodesic(g(z_face), g(z_edge), attrs=st_round+[grey])
+            disc.show_geodesic(g(z_face), g(z_vert), attrs=st_round+[grey])
+    
+    
+        for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
+            for z in zs:
+                disc.show_point(z, [cl])
+    
+        disc.fini()
+        disc.save("poincare-disc-%d%d%d"%(l,m,n))
     
 
 
@@ -551,6 +704,8 @@ def main_bring():
 
 if __name__ == "__main__":
     main()
+
+    print("OK\n")
 
 
 
