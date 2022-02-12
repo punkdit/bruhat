@@ -306,6 +306,71 @@ class Schreier(object):
         #for d in range(self.ngens):
         #    print("g%d ="%d, cycle(perms[d]))
 
+    @staticmethod
+    def make_A(N):
+        "A series coxeter group"
+        ngens = 2*N
+        links = [3]*(N-1)
+        gens = range(ngens)
+        rels = []
+        for i in range(N):
+            rels.append((2*i, 2*i+1))
+            rels.append((2*i, 2*i))
+        for i in range(N-1):
+            rels.append((2*i, 2*(i+1))*links[i])
+            for j in range(i+2, N):
+                rels.append((2*i, 2*j)*2)
+        graph = Schreier(ngens, rels)
+        graph.build()
+        return graph
+
+    @staticmethod
+    def make_B(N):
+        "B/C series coxeter group"
+        ngens = 2*N
+        links = [3]*(N-1)
+        links[-1] = 4
+        gens = range(ngens)
+        rels = []
+        for i in range(N):
+            rels.append((2*i, 2*i+1))
+            rels.append((2*i, 2*i))
+        for i in range(N-1):
+            rels.append((2*i, 2*(i+1))*links[i])
+            for j in range(i+2, N):
+                rels.append((2*i, 2*j)*2)
+        graph = Schreier(ngens, rels)
+        graph.build()
+        return graph
+
+    @staticmethod
+    def make_Afold(N):
+        "fold A series coxeter group"
+        assert N%2 == 1
+        ngens = 2*N + 2
+        links = [3]*(N-1)
+        gens = range(ngens)
+        rels = []
+        for i in range(N+1):
+            rels.append((2*i, 2*i+1))
+            rels.append((2*i, 2*i))
+        for i in range(N-1):
+            rels.append((2*i, 2*(i+1))*links[i])
+            for j in range(i+2, N):
+                rels.append((2*i, 2*j)*2)
+        new = N
+        for i in range(N//2):
+            j = N-i-1
+            rels.append((2*new, 2*i, 2*new, 2*j+1))
+        i = N//2
+        rels.append((2*new, 2*i, 2*new, 2*i+1))
+        names = "a ai b bi c ci d di e ei f fi".split()
+        print(['.'.join([names[r] for r in rel]) for rel in rels])
+        graph = Schreier(ngens, rels)
+        graph.build()
+        return graph
+
+
     
 def test():
     ngens = 4 # include the inverses
@@ -649,6 +714,73 @@ def make_bring():
 
     assert alltrue(dot(Hz, Hxt)==0)
 
+def test_s5():
+
+    graph = Schreier.make_A(5) # order 720
+    #graph = Schreier.make_B(4) # order 384
+    #graph = Schreier.make_Afold(5) 
+    G = graph.get_group()
+    print(len(G))
+
+    # From gap, the make_Afold(5) is C2xS6, not B_4
+    #gap>F := FreeGroup("a","b","c","d","e","f");;
+    #gap>AssignGeneratorVariables(F);;
+    #gap>G := F/[a^2, b^2, c^2, d^2, e^2, f^2, (a*b)^3, (a*c)^2,
+    #  (a*d)^2, (a*e)^2, (b*c)^3, (b*d)^2, (b*e)^2, (c*d)^3,
+    #  (c*e)^2, (d*e)^3, f*a*f*e, f*b*f*d, f*c*f*c];;
+    #gap> Order(G);
+    #1440
+    #gap> StructureDescription(G);
+    #"C2 x S6"
+
+
+    if 1:
+        pass
+
+    elif 0:
+        # R := [a^2,b^2,c^2,(a*b)^5,(b*c)^5,(a*c)^2,(a*b*c*b)^3];
+        ngens = 6
+        a, ai, b, bi, c, ci, = range(ngens)
+        rels = [
+            (ai, a), (bi, b), (ci, c),
+            (a, a), (b, b), (c, c), (a,b)*5, (b,c)*5, (a,c)*2, (a,b,c,b)*3,
+        ]
+        graph = Schreier(ngens, rels)
+        graph.build()
+        G = graph.get_group()
+        print(len(G))
+
+    
+    elif 0:
+        ngens = 10
+        a, ai, b, bi, c, ci, r, ri, s, si = range(ngens)
+        rels = [
+            (ai, a), (bi, b), (ci, c), (ri, r), (s, si),
+            (a, a), (b, b), (c, c), (r,)*5, (s,)*5, (a,c)*2, (r, si)*3,
+            (a,b)*3, (b,c)*3, 
+            (a,b,ri), (b,c,si),
+        ]
+        graph = Schreier(ngens, rels)
+        graph.build()
+        G = graph.get_group()
+        print(len(G))
+
+    else:
+        perms = []
+        items = list(range(1, 31))
+        for swap in [
+            [(2,3),(4,5),(6,8),(7,9),(10,13),(11,14),(12,15),(16,19),(18,20),(21,26),(22,27),(23,28),(24,29)],
+            [(1,2),(3,6),(4,7),(5,10),(9,16),(11,17),(13,21),(14,22),(15,23),(18,24),(19,26),(20,30),(25,28)],
+            [(2,4),(3,5),(6,11),(7,12),(8,14),(9,15),(10,18),(13,20),(17,25),(21,27),(22,26),(23,29),(24,28)],
+        ]:
+            perm = dict(swap)
+            for item in items:
+                perm[item] = perm.get(item, item)
+            perm = Perm(perm, items)
+            perms.append(perm)
+        G = Group.generate(perms, items=items)
+        print("G:", len(G))
+    
 
 def make_hyperbolic_group(idx):
     # start with hyperbolic Coxeter reflection group: a--5--b--5--c
@@ -667,7 +799,8 @@ def make_hyperbolic_group(idx):
 
     # Bring's curve & some random generators found from running make_random_55.
     rels = [
-        (3*(b,a)+(a,c))*3,                 # 120  [[30,8,3]]
+#        (3*(b,a)+(a,c))*3,                 # 120  [[30,8,3]]
+        (a,b,c,b)*3,
         (0, 2, 0, 2, 2, 4, 2, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 4,
             0, 4, 0, 2, 2, 4, 0, 2, 0, 4, 0, 4, 0, 2, 0, 4, 0, 2,
             0, 4, 0, 2),                   # 160  [[40,10,4]]

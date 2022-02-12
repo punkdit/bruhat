@@ -480,6 +480,56 @@ def main_poincare():
         disc.save("poincare-disc-%d%d%d"%(l,m,n))
     
 
+def main_poincare_1():
+
+    for (l, m, n, maxsize) in [(5,2,4,4000)]:
+
+        # build the rotation group generators
+        a, b = [g.todisc() for g in mktriangle(l, m, n)]
+        
+        cvs = Canvas()
+        cvs.append(Scale(2.))
+        #if n==4:
+        #    cvs.append(Rotate(pi))
+        disc = Disc(cvs)
+    
+        z_face = 0j
+        z_vert = (a*b).inner_fixed()
+    
+        gamma = Geodesic.construct(z_vert, (~a)(z_vert))
+        z_edge = gamma.z2 # midpoint
+        g_face = gamma.get_refl()
+        gamma = Geodesic.construct(z_face, z_vert)
+        g_edge = gamma.get_refl()
+        g_vert = Mobius.conjugate()
+    
+        gens = [g_face, g_edge, g_vert]
+        gens = gens + [~g for g in gens]
+        G = mulclose(gens, verbose=True, maxsize=maxsize)
+    
+        faces, edges, verts = [], [], []
+        for g in G:
+            faces.append(g(z_face))
+            edges.append(g(z_edge))
+            verts.append(g(z_vert))
+    
+        for g in G:
+            disc.show_geodesic(g(z_face), g(z_edge), attrs=st_round+[grey])
+            disc.show_geodesic(g(z_face), g(z_vert), attrs=st_round+[grey.alpha(0.1)])
+    
+        for g in G:
+            disc.show_geodesic(g(z_vert), g(z_edge), attrs=st_round)
+
+    
+#        for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
+        for [cl, zs] in ([red, verts],):
+            for z in zs:
+                disc.show_point(z, [cl])
+    
+        disc.fini()
+        disc.save("poincare-rotation-%d%d%d"%(l,m,n))
+    
+
 
 
 # -------------------------------------------------------------
@@ -703,7 +753,10 @@ def main_bring():
 
 
 if __name__ == "__main__":
-    main()
+    from bruhat.argv import argv
+    name = argv.next() or "main"
+    fn = eval(name)
+    fn()
 
     print("OK\n")
 
