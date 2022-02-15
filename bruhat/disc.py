@@ -10,6 +10,8 @@ copied from transversal2018.hyperbolic
 
 import sys
 from math import pi, hypot, cos, sin, tan, acosh, atan
+from functools import reduce
+from operator import mul
 import cmath
 
 from huygens import config
@@ -261,7 +263,8 @@ class Disc(object):
         cvs = self.cvs
         x, y = z.real, z.imag
         scale = scale*2.5/d_poincare(z)
-        cvs.text(x, y, label, [Scale(scale)]+st_center)
+        if scale > 1e-5:
+            cvs.text(x, y, label, [Scale(scale)]+st_center)
 
     def fini(self):
         cvs = self.cvs
@@ -475,7 +478,7 @@ def main_poincare():
         for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
             for z in zs:
                 disc.show_point(z, [cl])
-    
+
         disc.fini()
         disc.save("poincare-disc-%d%d%d"%(l,m,n))
     
@@ -489,8 +492,6 @@ def main_poincare_1():
         
         cvs = Canvas()
         cvs.append(Scale(2.))
-        #if n==4:
-        #    cvs.append(Rotate(pi))
         disc = Disc(cvs)
     
         z_face = 0j
@@ -514,9 +515,9 @@ def main_poincare_1():
             verts.append(g(z_vert))
     
         for g in G:
-            disc.show_geodesic(g(z_face), g(z_edge), attrs=st_round+[grey])
             disc.show_geodesic(g(z_face), g(z_vert), attrs=st_round+[grey.alpha(0.1)])
-    
+        for g in G:
+            disc.show_geodesic(g(z_face), g(z_edge), attrs=st_round+[grey])
         for g in G:
             disc.show_geodesic(g(z_vert), g(z_edge), attrs=st_round)
 
@@ -528,6 +529,82 @@ def main_poincare_1():
     
         disc.fini()
         disc.save("poincare-rotation-%d%d%d"%(l,m,n))
+    
+
+def render_group(l, m, n, words, rels, name="output", maxsize=1000):
+
+    # build the rotation group generators
+    a, b = [g.todisc() for g in mktriangle(l, m, n)]
+    assert (a.order()) == 10 # SL(2) not PSL(2)  
+    assert (b.order()) == 4  # SL(2) not PSL(2)  
+    c = (~b)*(~a)
+    
+    cvs = Canvas()
+    cvs.append(Scale(2.))
+    disc = Disc(cvs)
+
+    z_face = 0j
+    z_vert = (a*b).inner_fixed()
+
+    gamma = Geodesic.construct(z_vert, (~a)(z_vert))
+    z_edge = gamma.z2 # midpoint
+    #z_tile = (1/3)*(z_face + z_edge + z_vert)
+    z_tile = (1/2)*(z_face + z_vert)
+    g_face = gamma.get_refl()
+    gamma = Geodesic.construct(z_face, z_vert)
+    g_edge = gamma.get_refl()
+    g_vert = Mobius.conjugate()
+
+    gens = [g_vert, ~g_vert, g_edge, ~g_edge, g_face, ~g_face]
+    G = mulclose(gens, verbose=True, maxsize=maxsize)
+
+    faces, edges, verts = [], [], []
+    for g in G:
+        faces.append(g(z_face))
+        edges.append(g(z_edge))
+        verts.append(g(z_vert))
+
+    #for g in G:
+    #    disc.show_geodesic(g(z_face), g(z_vert), attrs=st_round+[grey.alpha(0.1)])
+    for g in G:
+        disc.show_geodesic(g(z_face), g(z_edge), attrs=st_round+[grey])
+    for g in G:
+        disc.show_geodesic(g(z_vert), g(z_edge), attrs=st_round)
+
+#    for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
+    for [cl, zs] in ([red, verts],):
+        for z in zs:
+            disc.show_point(z, [cl])
+
+    # ------------------------------------------------------
+
+    I = Mobius()
+    gens = [a, ~a, b, ~b, c, ~c]
+    def get(word):
+        g = reduce(mul, [gens[i] for i in word], I)
+        return g
+
+    for word in words:
+        g = get(word)
+        disc.show_point(g(z_tile), [blue.alpha(0.5)])
+
+    scale = 0.4
+    for (g, label) in [
+        (I, r"$\star$"), 
+        (a, r"$a$"),
+        (b, r"$b$"),
+        #(c, r"$c$"),
+        #(c**2, r"$c^2$"),
+        #(c**3, r"$c^3$"),
+    ]:
+        disc.show_label(g(z_tile), label, scale)
+
+    for rel in rels:
+        g = get(reversed(rel))
+        disc.show_label(g(z_tile), "I", scale)
+
+    disc.fini()
+    disc.save(name)
     
 
 

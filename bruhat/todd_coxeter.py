@@ -3,6 +3,8 @@
 import sys
 from random import randint, seed, choice
 from time import sleep
+from functools import reduce
+from operator import mul
 
 import numpy
 from numpy import concatenate
@@ -10,6 +12,7 @@ from numpy import concatenate
 #from bruhat.gset import Perm, Group, Coset, mulclose # FAIL
 from bruhat.action import Perm, Group, Coset, mulclose, close_hom
 from bruhat.util import cross
+from bruhat.smap import SMap
 from bruhat.argv import argv
 
 # Todd-Coxeter algorithm: compute finite group from generators and relations.
@@ -189,11 +192,11 @@ class Schreier(object):
             ns[d] = self.add_vertex()
         return self.get_label(ns[d])
     
-    def follow_path(self, c, ds):
-        c = self.get_label(c)
-        for d in reversed(ds):
-            c = self.follow_step(c, d)
-        return c
+    def follow_path(self, idx, word):
+        idx = self.get_label(idx)
+        for jdx in reversed(word):
+            idx = self.follow_step(idx, jdx)
+        return idx
     
     #    The first takes a vertex and finds the neighbor in the
     #    d direction, creating a new vertex in that direction
@@ -286,6 +289,25 @@ class Schreier(object):
         gens = self.get_gens()
         G = Group.generate(gens)
         return G
+
+    def get_words(self):
+        cosets = set([c for i, c in enumerate(self.labels) if i == c])
+        ngens = self.ngens
+        words = [()]
+        found = set([0])
+        bdy = list(words)
+        while bdy:
+            _bdy = []
+            for word in bdy:
+              for gen in range(ngens):
+                w = (gen,) + word # left-multiply 
+                idx = self.follow_path(0, w)
+                if idx not in found:
+                    found.add(idx)
+                    _bdy.append(w)
+                    words.append(w)
+            bdy = _bdy
+        return words
     
     def show(self):
         #    After this, the data structures contain the Schreier
@@ -545,6 +567,409 @@ def make_random_55():
             print()
 
 
+def make_random_homogeneous_refl():
+
+    seed(1)
+
+    ngens = 6
+    a, ai, b, bi, c, ci = range(ngens)
+    i_rels = [
+        (ai, a), (bi, b), (ci, c), 
+        (a,)*2, (b,)*2, (c,)*2,
+        (a,b)*5, (b,c)*5, (a,c)*2,
+    ]
+
+    while 1:
+        rels = []
+        for i in range(4):
+            gen = ()
+            for k in range(20):
+                gen += choice([(a,b), (a,c), (b,c)])
+            rels.append(gen)
+
+        # G/H = 720/24 = 30, N(H)=24
+        _rels = [(0, 2, 2, 4, 0, 4, 2, 4, 2, 4, 0, 4, 0, 4, 2,
+            4, 0, 2, 0, 4, 2, 4, 0, 4, 2, 4, 0, 2, 0, 2, 0, 2, 2, 4, 2, 4, 2, 4, 2, 4),
+            (0, 2, 2, 4, 0, 4, 2, 4, 0, 2, 0, 4, 0, 2, 0, 4, 0, 4,
+            0, 2, 0, 2, 0, 2, 0, 4, 0, 4, 2, 4, 0, 4, 0, 2, 0, 2, 2, 4, 0, 2),
+            (0, 2, 2, 4, 2, 4, 2, 4, 2, 4, 0, 2, 0, 4, 0, 4, 0, 4,
+            0, 4, 0, 2, 0, 2, 0, 4, 0, 2, 0, 2, 2, 4, 0, 4, 0, 2, 0, 4, 0, 2),
+            (0, 2, 0, 4, 0, 4, 2, 4, 0, 4, 0, 2, 0, 2, 2, 4, 0, 4,
+            0, 4, 0, 2, 0, 4, 0, 2, 0, 2, 2, 4, 0, 2, 2, 4, 2, 4, 0, 4, 0, 2)]
+
+        # G/H = 9720/324 = 30, N(H)=1944
+        _rels = [(0, 4, 0, 2, 0, 4, 2, 4, 2, 4, 2, 4, 2, 4, 2,
+        4, 0, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 2, 0, 2, 0, 2, 2,
+        4, 0, 2, 0, 4, 0, 4), (0, 4, 2, 4, 0, 2, 0, 2, 0, 2,
+        2, 4, 0, 2, 0, 2, 2, 4, 2, 4, 0, 4, 2, 4, 0, 4, 2, 4,
+        0, 4, 0, 2, 2, 4, 0, 2, 2, 4, 0, 2), (0, 4, 0, 4, 0,
+        4, 0, 2, 0, 4, 0, 4, 2, 4, 0, 4, 0, 2, 0, 2, 0, 4, 0,
+        2, 0, 2, 0, 2, 0, 4, 0, 4, 0, 4, 2, 4, 0, 2, 2, 4), (2,
+        4, 2, 4, 0, 4, 2, 4, 0, 2, 0, 4, 0, 4, 2, 4, 2, 4, 2,
+        4, 2, 4, 2, 4, 0, 4, 0, 4, 2, 4, 2, 4, 2, 4, 0, 4, 0, 2, 2, 4)]
+
+
+        graph = Schreier(ngens, i_rels)
+        if not graph.build(rels, maxsize=10400):
+            print(choice("/\\"), end="", flush=True)
+            continue
+
+        n = len(graph)
+        if n <= 24:
+            continue
+
+        print("\n[%d]"%n) #, flush=True, end="")
+        print(len(graph.neighbors)) # how big did the graph get? compare with maxsize above
+
+        try:
+            gens = graph.get_gens()
+        except AssertionError:
+            print("** FAIL **")
+            continue
+
+        N = 10000
+        perms = mulclose(gens, maxsize=N)
+        if len(perms) >= N:
+            print("|G| = ?")
+            continue
+
+        print(rels)
+        items = list(range(n))
+        G = Group(perms, items)
+        G.gens = gens
+        print("|G| =", len(G))
+        print()
+
+        break
+
+    rels = [reduce(mul, [gens[i] for i in rel]) for rel in rels]
+    H = Coset(mulclose(rels), items)
+    print(len(H))
+    print(len(G) / len(H))
+
+    N = []
+    for g in G:
+        lhs = g*H
+        rhs = H*g
+        if lhs == rhs:
+            N.append(g)
+    print(len(N))
+
+
+def conj_rels(_rels):
+    rels = []
+    for rel in _rels:
+        for i in range(len(rel)):
+            r = rel[i:] + rel[:i] # cyclic permutation
+            rels.append(r)
+    return rels
+
+def reduce_word(_rels, word):
+    rels = []
+    for rel in _rels:
+        for i in range(len(rel)):
+            r = rel[i:] + rel[:i] # cyclic permutation
+            rels.append(r)
+    done = False
+    while not done:
+        done = True
+        n = len(word)
+        for i in range(n):
+            for rel in rels:
+                m = len(rel)
+                if word[i:i+m] == rel:
+                    word = word[:i] + word[i+m:]
+                    done = False
+                    break
+            else:
+                continue
+            break
+    return word
+
+
+def make_random_homogeneous():
+    # use rotation group
+
+    #seed(1)
+
+    ngens = 6
+    a, ai, b, bi, c, ci = range(ngens)
+    i_rels = [
+        (ai, a), (bi, b), (ci, c), 
+        (a,)*5, (b,)*2, (c,)*4, (a, b, c),
+    ]
+
+    while 1:
+        rels = []
+        for i in range(argv.get("nwords", 2)):
+            gen = tuple(choice([a, b, c]) for k in range(argv.get("wordlen", 100)))
+            rels.append(gen)
+            gen = (ci,) + gen + (c,)
+            rels.append(gen)
+            gen = (ci,) + gen + (c,)
+            rels.append(gen)
+
+        rels = [reduce_word(i_rels, rel) for rel in rels]
+
+        graph = Schreier(ngens, i_rels)
+        if not graph.build(rels, maxsize=10400):
+            print(choice("/\\"), end="", flush=True)
+            continue
+
+        n = len(graph)
+        if n <= argv.get("minsize", 12):
+            print('.', end="", flush=True)
+            continue
+
+        print("[%d]"%n, flush=True, end="")
+
+        # how big did the graph get? compare with maxsize above
+        print("(%d) "%len(graph.neighbors), flush=True, end="")
+
+        try:
+            gens = graph.get_gens()
+        except AssertionError:
+            print("** FAIL **")
+            continue
+
+        items = list(range(n))
+        print()
+        break
+
+        N = argv.get("N", 10000)
+        perms = mulclose(gens, maxsize=N)
+        if len(perms) >= N:
+            #print("|G| = ?")
+            continue
+
+        print()
+        print(rels)
+        G = Group(perms, items)
+        G.gens = gens
+        print("|G| =", len(G))
+
+
+        rels = [reduce(mul, [gens[i] for i in rel]) for rel in rels]
+        H = Coset(mulclose(rels), items)
+        print("|H| =", len(H))
+        assert len(G)%len(H) == 0
+        print("[H:G] = ", len(G) // len(H))
+    
+        N = []
+        for g in G:
+            lhs = g*H
+            rhs = H*g
+            if lhs == rhs:
+                N.append(g)
+        assert len(N)%len(H) == 0
+        print("[H:N(H)] =", len(N)//len(H))
+
+    print(rels)
+
+    a, ai, b, bi, c, ci = gens
+    assert (a**5).is_identity()
+    assert (b**2).is_identity()
+    assert (c**4).is_identity()
+    assert (a*b*c).is_identity()
+
+    print(a.fixed())
+    print(b.fixed())
+    print(c.fixed())
+
+    print(a.orbits())
+    print(b.orbits())
+    print(c.orbits())
+    #for face in items:
+        
+
+def make_homogeneous():
+    # use rotation group
+
+    ngens = 6
+    a, ai, b, bi, c, ci = range(ngens)
+    i_rels = [
+        (ai, a), (bi, b), (ci, c), 
+        (a,)*5, (b,)*2, (c,)*4, (a, b, c),
+    ]
+    _rels = [(2, 4, 0, 4, 0, 0, 4, 0, 4, 4, 4, 2, 2, 2, 2,
+        2, 0, 4, 2, 0, 4, 4, 2, 4, 0, 4, 0, 4, 4, 0, 2, 0, 4,
+        2, 4, 0, 2, 0, 4, 4), (0, 0, 0, 2, 2, 4, 2, 0, 4, 2,
+        0, 4, 0, 4, 4, 0, 0, 0, 4, 4, 2, 4, 4, 4, 4, 4, 0, 2,
+        2, 2, 0, 4, 4, 0, 4, 0, 2, 4, 0, 4), (2, 0, 4, 4, 0,
+        2, 4, 4, 2, 0, 0, 2, 0, 2, 2, 2, 2, 2, 0, 4, 2, 2, 0,
+        0, 2, 4, 0, 4, 4, 2, 2, 4, 2, 4, 0, 0, 2, 0, 0, 0)]
+
+    # no fixed points, F,E,V = 12,30,16
+    rels = [(2, 0, 4, 4, 0, 0, 4, 4, 0, 4, 0, 0, 0, 0, 4,
+        2, 0, 4, 2, 0, 0, 4, 4, 0, 4, 2, 0, 4, 4, 2, 0, 2, 0,
+        4, 4, 4), (5, 2, 0, 4, 4, 0, 0, 4, 4, 0, 4, 0, 0, 0,
+        0, 4, 2, 0, 4, 2, 0, 0, 4, 4, 0, 4, 2, 0, 4, 4, 2, 0,
+        2, 0), (5, 5, 2, 0, 4, 4, 0, 0, 4, 4, 0, 4, 0, 0, 0,
+        0, 4, 2, 0, 4, 2, 0, 0, 4, 4, 0, 4, 2, 0, 4, 4, 2, 0,
+        2, 0, 4), (0, 0, 4, 0, 0, 4, 0, 4, 4, 4, 0, 0, 4, 0,
+        4, 2, 0, 0, 0, 0, 4, 0, 4, 0, 4, 4, 0, 4, 4, 2, 4, 4,
+        4, 2, 0, 4, 2, 4, 2, 4, 4, 0, 4, 4, 4), (5, 0, 0, 4,
+        0, 0, 4, 0, 4, 4, 4, 0, 0, 4, 0, 4, 2, 0, 0, 0, 0, 4,
+        0, 4, 0, 4, 4, 0, 4, 4, 2, 4, 4, 4, 2, 0, 4, 2, 4, 2,
+        4, 4, 0), (5, 5, 0, 0, 4, 0, 0, 4, 0, 4, 4, 4, 0, 0,
+        4, 0, 4, 2, 0, 0, 0, 0, 4, 0, 4, 0, 4, 4, 0, 4, 4, 2,
+        4, 4, 4, 2, 0, 4, 2, 4, 2, 4, 4, 0, 4)]
+
+
+    rels = [reduce_word(i_rels, word) for word in rels]
+    print(rels)
+
+    graph = Schreier(ngens, i_rels)
+    if not graph.build(rels, maxsize=10400):
+        assert 0
+
+    words = graph.get_words()
+    for w in words:
+        assert reduce_word(conj_rels(i_rels + rels), w) == w
+    #    print(w)
+    print("words:", len(words))
+
+    gens = graph.get_gens()
+
+    N = argv.get("N", 10000)
+    perms = mulclose(gens, maxsize=N)
+    if len(perms) >= N:
+        print("|G| = ?")
+    else:
+        print("|G| = ", len(perms))
+
+    a, ai, b, bi, c, ci = gens
+    assert (a**5).is_identity()
+    assert (b**2).is_identity()
+    assert (c**4).is_identity()
+    assert (a*b*c).is_identity()
+
+    print(a.fixed())
+    print(b.fixed())
+    print(c.fixed())
+
+    print("faces:", len(a.orbits()))
+    print("edges:", len(b.orbits()))
+    print("vertices:", len(c.orbits()))
+
+    from bruhat.disc import render_group
+    rels = conj_rels(rels)
+    render_group(5, 2, 4, words, rels)
+
+    return
+        
+#    edges = set()
+#    for tile in items:
+#        for g in [a, ai, c, ci]:
+#            edge = (tile, g(tile))
+#            edges.append(edge)
+
+    def intersect(lhs, rhs):
+        return bool(set(lhs).intersection(rhs))
+    def eq(lhs, rhs):
+        for i in lhs:
+            if i not in rhs:
+                return False
+        for i in rhs:
+            if i not in lhs:
+                return False
+        assert len(lhs)==len(rhs)
+        return True
+    def search(tiles, tiless):
+        for rhs in tiless:
+            if eq(tiles, rhs):
+                return True
+
+    faces = [tuple(face) for face in a.orbits()]
+    print("faces:", faces)
+
+    assert intersect(faces[0], faces[0])
+    assert not intersect(faces[0], faces[1])
+
+    flookup = {}
+    for face in faces:
+        for i in face:
+            flookup[i] = face
+    for face in faces:
+        print(faces.index(face), ":", end=" ")
+        for i in face:
+            print(faces.index(flookup[c(i)]), end=" ")
+        print()
+            
+
+def make_euclidean():
+
+    ngens = 6
+    a, ai, b, bi, c, ci = range(ngens)
+    rels = [
+        (ai, a), (bi, b), (ci, c), 
+        (a,)*4, (b,)*2, (c,)*4, (a, b, c),
+    ]
+
+    L = argv.get("L", 2)
+    gamma = [(ci, a)*L,]
+    H = [(b,)]
+    graph = Schreier(ngens, rels + gamma)
+    result = graph.build(H, maxsize=10000)
+    assert result
+    print("n =", len(graph))
+
+#    labels = graph.labels
+#    neighbors = graph.neighbors
+#    for i, nbd in enumerate(graph.neighbors):
+#        if labels[i] == i:
+#            print(i, nbd)
+
+    G = graph.get_group()
+    a, ai, b, bi, c, ci = G.gens
+    assert (a**4).is_identity()
+    assert (b**2).is_identity()
+    assert (c**4).is_identity()
+    assert (a*b*c).is_identity()
+
+    print("vertices", a.orbits())
+    print("edges   ", b.orbits())
+    print("faces   ", c.orbits())
+    print("fixed vertices", a.fixed())
+    print("fixed edges   ", b.fixed())
+    print("fixed faces   ", c.fixed())
+
+    print("faces:", len(a.orbits()))
+    print("edges:", len(b.orbits()))
+    print("vertices:", len(c.orbits()))
+
+    faces = [tuple(o) for o in c.orbits()]
+
+    flookup = {}
+    for face in faces:
+        for i in face:
+            flookup[i] = face
+    for face in faces:
+        print(faces.index(face), ":", end=" ")
+        for i in face:
+            print(faces.index(flookup[b(i)]), end=" ")
+        print()
+            
+    I = G.identity
+    def get_face(row, col):
+        g = reduce(mul, [b*c*c]*row + [c*b*c]*col or [I])
+        return g
+
+    print()
+    dj = 4
+    di = 3
+    star = 0
+    smap = SMap()
+    for row in range(L):
+      for col in range(L):
+        g = get_face(row, col)
+        i, j = di*row, 2*dj*col
+        smap[i, j] = str(g(star))
+        smap[i, j+3] = str((c*g)(star))
+        smap[i+1, j+3] = str((c*c*g)(star))
+        smap[i+1, j] = str((c*c*c*g)(star))
+    print(smap)
+
 
 def make_bring():
 
@@ -766,6 +1191,18 @@ def test_s5():
         print(len(G))
 
     else:
+        """
+gap> Permutation((2,3)(4,5)(6,8)(7,9)(10,13)(11,14)(12,15)(16,19)(18,20)(21,26)(22,27)(23,28)(24,29),[1..30]);;
+gap> a := Permutation((2,3)(4,5)(6,8)(7,9)(10,13)(11,14)(12,15)(16,19)(18,20)(21,26)(22,27)(23,28)(24,29),[1..30]);;
+gap> b := Permutation((1,2)(3,6)(4,7)(5,10)(9,16)(11,17)(13,21)(14,22)(15,23)(18,24)(19,26)(20,30)(25,28),[1..30]);;
+gap> c := Permutation((2,4)(3,5)(6,11)(7,12)(8,14)(9,15)(10,18)(13,20)(17,25)(21,27)(22,26)(23,29)(24,28),[1..30]);;
+gap> G := Group([a,b,c]);;
+gap> Order(G);
+120
+gap> StructureDescription(G);
+"C2 x A5"
+        """
+
         perms = []
         items = list(range(1, 31))
         for swap in [
@@ -932,10 +1369,6 @@ class Surface(object):
         self.act_faces = act_faces
 
 
-#import memory_profiler
-#from memory_profiler import profile
-#
-#@profile
 def make_surface_54(G_0):
     "find Z/2 chain complex"
 
@@ -1501,6 +1934,10 @@ if __name__ == "__main__":
 
     profile = argv.profile
     name = argv.next() or "test"
+    _seed = argv.get("seed")
+    if _seed is not None:
+        print("seed(%s)"%(_seed))
+        seed(_seed)
 
     if profile:
         import cProfile as profile

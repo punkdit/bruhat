@@ -51,7 +51,9 @@ def d_poincare(z):
 
 
 class Mobius(object):
-    """
+    """ 
+    Warning: these matrices are in GL(2) not PGL(2) so they
+    act projectively on the Disc, etc.
     [[a b]
      [c d]]
     """
