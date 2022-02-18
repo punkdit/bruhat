@@ -4,7 +4,7 @@ import sys
 from random import randint, seed, choice
 from time import sleep
 from functools import reduce
-from operator import mul
+from operator import mul, add
 
 import numpy
 from numpy import concatenate
@@ -496,7 +496,7 @@ def make_euclidean():
     print(smap)
 
 
-def make_hyperbolic():
+def make_hyperbolic_525():
 
     ngens = 6
     a, ai, b, bi, c, ci = range(ngens)
@@ -507,7 +507,8 @@ def make_hyperbolic():
         #(a, b, c),
     ]
 
-    gamma = [(ci, a)*3]
+    rel = (ci, a)*3 # Bring's curve
+    gamma = [rel]
     H = [(b,)]
     graph = Schreier(ngens, rels + gamma)
     result = graph.build(H, maxsize=10000)
@@ -551,11 +552,148 @@ def make_hyperbolic():
         for i in face:
             print(faces.index(flookup[b(i)]), end=" ")
         print()
-            
+
+
+def make_random_524():
+    ngens = 6
+    a, ai, b, bi, c, ci = range(ngens)
+    rels = [
+        (ai, a), (bi, b), (ci, c), 
+        (a,)*5, (b,)*2, (c,)*4, 
+        (a, c, b), # Note: this relator gives better (more local) "vertices" than (a, b, c) !
+        #(a, b, c),
+    ]
+
+    while 1:
+        rel = tuple(choice([a, b, c]) for i in range(20))
+        rel = reduce_word(rels, rel)
+        #print(rel)
+    
+        gamma = [rel]
+        H = []
+    
+        graph = Schreier(ngens, rels + gamma)
+        result = graph.build(H, maxsize=10000)
+        if not result:
+            print("/", end="", flush=True)
+            continue
+        n = len(graph)
+        if n > 120:
+            break
+        print(".", end="", flush=True)
+    print()
+    print(rel)
+    print("n =", n)
+
+
+def make_524():
+    ngens = 6
+    a, ai, b, bi, c, ci = range(ngens)
+    rels = [
+        (ai, a), (bi, b), (ci, c), 
+        (a,)*5, (b,)*2, (c,)*4, 
+        (a, c, b), # Note: this relator gives better (more local) "vertices" than (a, b, c) !
+        #(a, b, c),
+    ]
+
+    rel = (ai,b,a,b)*3 # Bring's curve
+    rel = (2, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0)
+
+
+    gamma = [rel]
+    if argv.wrap:
+        H = [(b,)]
+    else:
+        H = []
+
+    graph = Schreier(ngens, rels + gamma)
+    result = graph.build(H, maxsize=10000)
+    assert result
+    print("n =", len(graph))
+
+    G = graph.get_group()
+    print("|G| =", len(G))
+    a, ai, b, bi, c, ci = G.gens
+
+    assert (a**5).is_identity()
+    assert (b**2).is_identity()
+    assert (c**4).is_identity()
+    assert (a*c*b).is_identity()
+
+    vertices = c.orbits()
+    edges = b.orbits()
+    faces = a.orbits()
+
+    print("vertices:")
+    for idx, item in enumerate(vertices):
+        print("\t", idx, item)
+    print("edges:   ")
+    for idx, item in enumerate(edges):
+        print("\t", idx, item)
+    print("faces:   ")
+    for idx, item in enumerate(faces):
+        print("\t", idx, item)
+
+    print("faces:", len(a.orbits()))
+    print("edges:", len(b.orbits()))
+    print("vertices:", len(c.orbits()))
+
+    print("fixed vertices", c.fixed())
+    print("fixed edges   ", b.fixed())
+    print("fixed faces   ", a.fixed())
+
+    faces = [tuple(o) for o in a.orbits()]
+
+    flookup = {}
+    for face in faces:
+        for i in face:
+            flookup[i] = face
+    for face in faces:
+        print(faces.index(face), ":", end=" ")
+        for i in face:
+            print(faces.index(flookup[b(i)]), end=" ")
+        print()
+
+    
+    twists = [edge[0] for edge in edges if len(edge)==1]
+    H = numpy.empty((len(faces), len(vertices)), dtype=object)
+    H[:] = '.'
+    for i in range(len(faces)):
+        lhs = set(faces[i])
+        for j in range(len(vertices)):
+            rhs = set(vertices[j])
+            meet = lhs.intersection(rhs)
+            if meet:
+                if meet.intersection(twists):
+                    H[i, j] = 'Y'
+                else:
+                    H[i, j] = 'I'
+    print('\n'.join(''.join(row) for row in H))
+
+    labels = {}
     I = G.identity
-    def get_face(row, col):
-        g = reduce(mul, [b*c*c]*row + [c*b*c]*col or [I])
-        return g
+    words = list(graph.get_words())
+    for word in words:
+        g = reduce(mul, [G.gens[w] for w in word], I)
+        #print(word, g(0))
+        label = str(g(0))
+        labels[word] = label
+#        if H:
+#            labels[word+(2,)] = label
+        #w = word + rel
+        #labels[w] = label
+#        for wrd in words:
+#            iwrd = tuple({0:1, 1:0, 2:3, 3:2, 4:5, 5:4}[w] for w in reversed(wrd))
+#            assert graph.follow_path(0, wrd+iwrd) == 0
+#            #w = word + iwrd+rel+wrd
+#            #labels[w] = label
+#            w = word + iwrd+rel+wrd+(2,)
+#            labels[w] = label
+
+#    from bruhat.disc import render_group
+#    render_group(5, 2, 4, labels=labels, name="output", maxsize=1000)
+#    render_group(5, 2, 4, labels=labels, name="bring", maxsize=1000)
+#    return
 
 
 def make_bring():
@@ -727,86 +865,6 @@ def make_bring():
     assert alltrue(dot(Hz, Hxt)==0)
 
 
-def test_s5():
-
-    graph = Schreier.make_A(5) # order 720
-    #graph = Schreier.make_B(4) # order 384
-    #graph = Schreier.make_Afold(5) 
-    G = graph.get_group()
-    print(len(G))
-
-    # From gap, the make_Afold(5) is C2xS6, not B_4
-    #gap>F := FreeGroup("a","b","c","d","e","f");;
-    #gap>AssignGeneratorVariables(F);;
-    #gap>G := F/[a^2, b^2, c^2, d^2, e^2, f^2, (a*b)^3, (a*c)^2,
-    #  (a*d)^2, (a*e)^2, (b*c)^3, (b*d)^2, (b*e)^2, (c*d)^3,
-    #  (c*e)^2, (d*e)^3, f*a*f*e, f*b*f*d, f*c*f*c];;
-    #gap> Order(G);
-    #1440
-    #gap> StructureDescription(G);
-    #"C2 x S6"
-
-
-    if 1:
-        pass
-
-    elif 0:
-        # R := [a^2,b^2,c^2,(a*b)^5,(b*c)^5,(a*c)^2,(a*b*c*b)^3];
-        ngens = 6
-        a, ai, b, bi, c, ci, = range(ngens)
-        rels = [
-            (ai, a), (bi, b), (ci, c),
-            (a, a), (b, b), (c, c), (a,b)*5, (b,c)*5, (a,c)*2, (a,b,c,b)*3,
-        ]
-        graph = Schreier(ngens, rels)
-        graph.build()
-        G = graph.get_group()
-        print(len(G))
-
-    
-    elif 0:
-        ngens = 10
-        a, ai, b, bi, c, ci, r, ri, s, si = range(ngens)
-        rels = [
-            (ai, a), (bi, b), (ci, c), (ri, r), (s, si),
-            (a, a), (b, b), (c, c), (r,)*5, (s,)*5, (a,c)*2, (r, si)*3,
-            (a,b)*3, (b,c)*3, 
-            (a,b,ri), (b,c,si),
-        ]
-        graph = Schreier(ngens, rels)
-        graph.build()
-        G = graph.get_group()
-        print(len(G))
-
-    else:
-        """
-gap> Permutation((2,3)(4,5)(6,8)(7,9)(10,13)(11,14)(12,15)(16,19)(18,20)(21,26)(22,27)(23,28)(24,29),[1..30]);;
-gap> a := Permutation((2,3)(4,5)(6,8)(7,9)(10,13)(11,14)(12,15)(16,19)(18,20)(21,26)(22,27)(23,28)(24,29),[1..30]);;
-gap> b := Permutation((1,2)(3,6)(4,7)(5,10)(9,16)(11,17)(13,21)(14,22)(15,23)(18,24)(19,26)(20,30)(25,28),[1..30]);;
-gap> c := Permutation((2,4)(3,5)(6,11)(7,12)(8,14)(9,15)(10,18)(13,20)(17,25)(21,27)(22,26)(23,29)(24,28),[1..30]);;
-gap> G := Group([a,b,c]);;
-gap> Order(G);
-120
-gap> StructureDescription(G);
-"C2 x A5"
-        """
-
-        perms = []
-        items = list(range(1, 31))
-        for swap in [
-            [(2,3),(4,5),(6,8),(7,9),(10,13),(11,14),(12,15),(16,19),(18,20),(21,26),(22,27),(23,28),(24,29)],
-            [(1,2),(3,6),(4,7),(5,10),(9,16),(11,17),(13,21),(14,22),(15,23),(18,24),(19,26),(20,30),(25,28)],
-            [(2,4),(3,5),(6,11),(7,12),(8,14),(9,15),(10,18),(13,20),(17,25),(21,27),(22,26),(23,29),(24,28)],
-        ]:
-            perm = dict(swap)
-            for item in items:
-                perm[item] = perm.get(item, item)
-            perm = Perm(perm, items)
-            perms.append(perm)
-        G = Group.generate(perms, items=items)
-        print("G:", len(G))
-    
-
 def make_hyperbolic_group(idx):
     # start with hyperbolic Coxeter reflection group: a--5--b--5--c
     # Then we add another generator "d" that halves these triangles.
@@ -854,8 +912,27 @@ def make_hyperbolic_group(idx):
             0, 2, 0, 4, 2, 4, 0, 4, 2, 4, 0, 4, 0, 4, 0, 4, 0, 4,
             0, 2, 0, 2, 0, 4, 0, 4, 0, 2), # 1920  [[480,98,5 or 6?]]
     ]
+
+    # reduced words
+    rels = [
+        (a,b,c,b)*3,
+        (0, 2, 0, 4, 2, 4, 0, 2, 0, 2, 0, 4, 0, 2, 0, 4, 0, 2, 0, 4, 0, 2),
+        (2, 4, 0, 2, 0, 2, 0, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 2, 0, 2, 0, 2, 0, 4),
+        (0, 2, 0, 2, 0, 2, 0, 4, 0, 2, 0, 4, 2, 4, 2, 4, 0, 2,
+          0, 4, 2, 4, 0, 4, 2, 4, 0, 4, 2, 4, 0, 2, 0, 4, 0, 2, 0, 4, 2, 4, 0, 4, 2, 4),
+        (0, 2, 0, 4, 0, 2, 0, 2, 0, 4, 0, 2, 0, 2, 0, 4, 0, 2, 0, 4, 2, 4, 2, 4, 2, 4),
+        (2, 4, 0, 4, 2, 4, 0, 4, 2, 4, 0, 2, 0, 2, 0, 4, 2, 4,
+          0, 2, 0, 2, 0, 4, 2, 4, 0, 2, 0, 2, 0, 4, 0, 2, 0, 2),
+        (2, 4, 2, 4, 0, 2, 0, 2, 0, 2, 0, 4, 2, 4, 0, 2, 0, 4,
+          2, 4, 0, 4, 2, 4, 0, 2, 0, 2, 0, 4, 2, 4, 0, 2, 0, 2,
+          0, 2, 0, 4, 2, 4, 0, 4, 2, 4, 0, 2, 0, 2, 0, 2),
+    ]
     for rel in rels:
         assert len(rel)%2 == 0
+
+    #for rel in rels:
+    #    rel = reduce_word(rels_552, rel)
+    #    print(rel)
 
     rel = rels[idx]
     graph = Schreier(ngens, rels_552 + [rel])

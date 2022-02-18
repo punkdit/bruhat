@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
 
+"""
+Build groups from presentations,
+and Schreier coset graphs using Todd-Coxeter algorithm.
+See also bruhat.hyperbolic
+
+
+Implementation from: 
+https://math.berkeley.edu/~kmill/notes/todd_coxeter.html
+
+See also:
+https://arxiv.org/pdf/2012.09271.pdf p10.
+
+"""
+
 import sys
 from random import randint, seed, choice
 from time import sleep
@@ -15,17 +29,9 @@ from bruhat.util import cross
 from bruhat.smap import SMap
 from bruhat.argv import argv
 
-# Todd-Coxeter algorithm: compute finite group from generators and relations.
-# Implementation from: 
-# https://math.berkeley.edu/~kmill/notes/todd_coxeter.html
-
-# See also:
-# https://arxiv.org/pdf/2012.09271.pdf p10.
-
     
 def cycle(perm):
-    # The permutations can be written in cycle notation fairly
-    # easily. One way is with
+    # The permutations can be written in cycle notation fairly easily.
     parts = []
     for i in range(len(perm)):
         part = [str(i+1)]

@@ -184,10 +184,14 @@ class Disc(object):
         g = self.g_center
         return d_poincare(g(z))
 
-    def show_point(self, z, attrs=[], radius=0.05):
+    def show_point(self, z, fill_attrs=None, stroke_attrs=None, radius=0.05):
         z = self.g_center(z)
         r = 2./d_poincare(z)
-        self.cvs.fill(path.circle(z.real, z.imag, radius*r), attrs)
+        p = path.circle(z.real, z.imag, radius*r)
+        if fill_attrs is not None:
+            self.cvs.fill(p, fill_attrs)
+        if stroke_attrs is not None:
+            self.cvs.stroke(p, stroke_attrs + [normal*r])
 
     def get_geodesic(self, z0, z1):
         z0, z1 = self.g_center(z0), self.g_center(z1)
@@ -531,7 +535,7 @@ def main_poincare_1():
         disc.save("poincare-rotation-%d%d%d"%(l,m,n))
     
 
-def render_group(l, m, n, words, rels, name="output", maxsize=1000):
+def render_group(l, m, n, words=[], rels=[], labels={}, name="output", maxsize=1000):
 
     # build the rotation group generators
     a, b = [g.todisc() for g in mktriangle(l, m, n)]
@@ -540,7 +544,7 @@ def render_group(l, m, n, words, rels, name="output", maxsize=1000):
     c = (~b)*(~a)
     
     cvs = Canvas()
-    cvs.append(Scale(2.))
+    cvs.append(Scale(4.))
     disc = Disc(cvs)
 
     z_face = 0j
@@ -574,7 +578,7 @@ def render_group(l, m, n, words, rels, name="output", maxsize=1000):
 #    for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
     for [cl, zs] in ([red, verts],):
         for z in zs:
-            disc.show_point(z, [cl])
+            disc.show_point(z, fill_attrs=[white], stroke_attrs=[black])
 
     # ------------------------------------------------------
 
@@ -589,15 +593,21 @@ def render_group(l, m, n, words, rels, name="output", maxsize=1000):
         disc.show_point(g(z_tile), [blue.alpha(0.5)])
 
     scale = 0.4
-    for (g, label) in [
-        (I, r"$\star$"), 
-        (a, r"$a$"),
-        (b, r"$b$"),
-        #(c, r"$c$"),
-        #(c**2, r"$c^2$"),
-        #(c**3, r"$c^3$"),
-    ]:
-        disc.show_label(g(z_tile), label, scale)
+    if labels:
+        for (word, label) in labels.items():
+            g = reduce(mul, [gens[w] for w in reversed(word)], I)
+            disc.show_label(g(z_tile), label, scale)
+            
+    else:
+        for (g, label) in [
+            (I, r"$\star$"), 
+            (a, r"$a$"),
+            (b, r"$b$"),
+            (c, r"$c$"),
+            #(c**2, r"$c^2$"),
+            #(c**3, r"$c^3$"),
+        ]:
+            disc.show_label(g(z_tile), label, scale)
 
     for rel in rels:
         g = get(reversed(rel))
