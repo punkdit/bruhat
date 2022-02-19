@@ -565,11 +565,8 @@ def make_random_524():
     ]
 
     while 1:
-        rel = tuple(choice([a, b, c]) for i in range(20))
-        rel = reduce_word(rels, rel)
-        #print(rel)
-    
-        gamma = [rel]
+        gamma = [tuple(choice([a, b, c]) for i in range(50)) for j in range(3)]
+        gamma = [reduce_word(rels, rel) for rel in gamma]
         H = []
     
         graph = Schreier(ngens, rels + gamma)
@@ -578,8 +575,12 @@ def make_random_524():
             print("/", end="", flush=True)
             continue
         n = len(graph)
-        if n > 120:
+        if n >= 120:
+            print("[%d]"%n, end="")
+
+        if n > 320:
             break
+
         print(".", end="", flush=True)
     print()
     print(rel)
@@ -596,13 +597,15 @@ def make_524():
         #(a, b, c),
     ]
 
-    rel = (ai,b,a,b)*3 # Bring's curve
-    rel = (2, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0)
-
+    rel = (ai,b,a,b)*3 # n=120, Bring's curve
+    #rel = (2, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0) # n = 160
+    #rel = (2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0) # 320
 
     gamma = [rel]
     if argv.wrap:
         H = [(b,)]
+        H = [(a,a,a,a,b,a)]
+        H = [(c,c)]
     else:
         H = []
 
@@ -610,6 +613,8 @@ def make_524():
     result = graph.build(H, maxsize=10000)
     assert result
     print("n =", len(graph))
+
+    return
 
     G = graph.get_group()
     print("|G| =", len(G))

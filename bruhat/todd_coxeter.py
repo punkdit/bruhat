@@ -372,13 +372,22 @@ class Schreier(object):
         links[(N-3, N-1)] = 3
         return Schreier.make_reflection(N, links)
 
+#    @staticmethod
+#    def make_E(N):
+#        "E series coxeter group"
+#        links = {}
+#        for i in range(N-2):
+#            links[(i, i+1)] = 3
+#        links[2, N-1] = 3
+#        return Schreier.make_reflection(N, links)
+
     @staticmethod
     def make_E(N):
         "E series coxeter group"
         links = {}
-        for i in range(N-2):
+        for i in range(1, N-1):
             links[(i, i+1)] = 3
-        links[2, N-1] = 3
+        links[0, 3] = 3
         return Schreier.make_reflection(N, links)
 
     @staticmethod
@@ -522,6 +531,61 @@ def test_coxeter():
         graph = make(N)
         assert len(graph) == size, ("%s != %s"%(len(graph), size))
 
+    if 0:
+        print("go...")
+        N = 6
+        graph = Schreier.make_E(N)
+        rels = list(graph.rels)
+        a = N
+        b = N+1
+        rels.append((a, a))
+        rels.append((b, b))
+        for i in [0, 2, 3, 4]:
+            rels.append((a, i)*2) # commutes
+        for i in [0, 1, 3, 5]:
+            rels.append((b, i)*2) # commutes
+    
+        rels.append((a, 1, a, 5))
+        rels.append((b, 2, b, 4))
+        rels.append((a, b)*2)
+    
+        graph = Schreier(N+2, rels)
+        graph.build()
+        print(len(graph))
+    
+        return
+
+    # fold D_4 fishtail to get B_4
+    N = 4
+    graph = Schreier.make_D(N)
+    rels = list(graph.rels)
+    # add another reflection
+    rels.append((N, N))
+    for i in range(N-2):
+        rels.append((i, N)*2)
+    rels.append((N, N-2, N, N-1))
+    graph = Schreier(N+1, rels)
+    graph.build()
+    assert len(graph) == 384, len(graph)
+
+    # fold again 
+    N = 5
+    rels = list(graph.rels)
+    # add another reflection
+    rels.append((N, N))
+    for j in [1, 3]:
+        rels.append((i, N)*2)
+    rels.append((N, 0, 2, N-1))
+    graph = Schreier(N+1, rels)
+    graph.build()
+    assert len(graph) == 12, len(graph) # G_2 !!
+    G = graph.get_group()
+    gens = G.gens
+    #for a in G:
+    #  for b in G:
+    #    print( (a*b).order(), end = " " )
+    #  print()
+    
     # fold D_5 fishtail to get B_5
     N = 5
     graph = Schreier.make_D(N)
