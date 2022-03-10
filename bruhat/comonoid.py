@@ -45,6 +45,12 @@ class System(object):
                 A[idx] = A[idx].subs(values)
         return items
 
+    def show(self, x):
+        assert len(x) == len(self.vs)
+        ns = dict((str(v), xi) for (v, xi) in zip(self.vs, x))
+        for item in self.subs(ns):
+            print(item)
+
     def add(self, lhs, rhs):
         #print("add:")
         eqs = self.eqs
@@ -59,6 +65,15 @@ class System(object):
                 eqs.append(eq)
         #print(len(eqs), "eqs")
 
+    def __call__(self, x):
+        assert len(x) == len(self.vs)
+        eqs = self.eqs
+        ns = dict((str(v), xi) for (v, xi) in zip(self.vs, x))
+        value = []
+        for eq in eqs:
+            value.append(eq.subs(ns))
+        return value
+
     def sage_dump(self):
         vs = ','.join(self.vs)
         print("vs = %s = var('%s')" % (vs, vs))
@@ -68,6 +83,22 @@ class System(object):
         print("]")
         #print("slns = solve(eqs, vs, solution_dict=True)")
         print("slns = solve(eqs, vs)")
+
+    def py_func(self):
+        arg = ",".join(str(v) for v in self.vs)
+        #lines = ["def f(%s):"%arg]
+        lines = ["def f(x):"]
+        lines.append("  %s = x" % (arg,))
+        lines.append("  value = [")
+        for eq in self.eqs:
+            lines.append("    %s,"%(eq,))
+        lines.append("  ]")
+        lines.append("  return value")
+        code = '\n'.join(lines)
+        #print(code)
+        ns = {}
+        exec(code, ns, ns)
+        return ns['f']
     
     def test_eq(self, lhs, rhs):
         m, n = lhs.shape
@@ -155,7 +186,8 @@ if 0:
     print(M1)
 
 
-if argv.frobenius:
+def main():
+
     # Commutative special Frobenius algebra
     
     system = System()
@@ -165,6 +197,9 @@ if argv.frobenius:
     
     D = system.array(dim**2, dim, "D") # comul
     E = system.array(1, dim, "E") # counit
+
+    for item in system.items:
+        print(item)
     
     IF = tensor(I, F)
     FI = tensor(F, I)
@@ -205,196 +240,30 @@ if argv.frobenius:
     # special
     system.add(compose(D, F), I)
     
-    system.sage_dump()
+    #system.sage_dump()
+    f = system.py_func()
 
-    if 0:
-        print(len(system.eqs))
-        system.solve()
-        print(F)
-        print(G)
-        print(D)
-        print(E)
+    n = len(system.vs)
+    x0 = numpy.random.rand(n)
+    #print(x0)
+    #v = system(x0)
+    #print(v)
 
-    exit()
+    from scipy.optimize import root
+    print("solving...")
+    solution = root(f, x0, method="lm", tol=1e-4) # 43 secs
+    assert solution.success
+    x = solution.x
+    print("solution:")
+    print(solution.x)
+    print(f(x))
 
-    """
-    F_0, F_1, F_2, F_3, F_4, F_5, F_6, F_7, G_8, G_9, 
-    D_10, D_11, D_12, D_13, D_14, D_15, D_16, D_17, E_18, E_19
-
-    [[F_0 F_1 F_2 F_3]
-     [F_4 F_5 F_6 F_7]]
-    [[G_8]
-     [G_9]]
-    [[D_10 D_11]
-     [D_12 D_13]
-     [D_14 D_15]
-     [D_16 D_17]]
-    [[E_18 E_19]]
-    """
-
-    vs = "F_0 F_1 F_2 F_3 F_4 F_5 F_6 F_7 G_8 G_9 " 
-    vs += "D_10 D_11 D_12 D_13 D_14 D_15 D_16 D_17 E_18 E_19"
-    vs = vs.split()
-    for v in vs:
-        exec("%s = 1"%v)
-
-    # hmmm.... this is all useless....
-
-    # result from sage_dump:
-    [
-        D_12 - D_14 == 0,
-        -D_12 + D_14 == 0,
-        D_11*D_12 - D_11*D_14 == 0,
-        -D_11*D_12 + D_11*D_14 == 0,
-        D_13 - D_15 == 0,
-        -D_13 + D_15 == 0,
-        -D_11*D_13 + D_11*D_15 == 0,
-        D_10*D_12 - D_10*D_14 + D_13*D_14 - D_12*D_15 == 0,
-        D_12*D_13 - D_11*D_16 == 0,
-        D_14*D_15 - D_11*D_16 == 0,
-        -D_12*D_13 + D_11*D_16 == 0,
-        -D_14*D_15 + D_11*D_16 == 0,
-        D_12*D_16 - D_14*D_16 == 0,
-        D_13*D_16 - D_15*D_16 == 0,
-        -D_13*D_16 + D_15*D_16 == 0,
-        D_11*D_14 - D_10*D_15 + D_15**2 - D_11*D_17 == 0,
-        -D_11*D_12 + D_10*D_13 - D_13**2 + D_11*D_17 == 0,
-        D_12**2 - D_10*D_16 + D_13*D_16 - D_12*D_17 == 0,
-        -D_14**2 + D_10*D_16 - D_15*D_16 + D_14*D_17 == 0,
-        D_13*D_14 - D_12*D_15 - D_13*D_17 + D_15*D_17 == 0,
-        D_10*E_18 + D_12*E_19 - 1 == 0,
-        D_11*E_18 + D_13*E_19 == 0,
-        D_10*E_18 + D_14*E_19 - 1 == 0,
-        D_11*E_18 + D_15*E_19 == 0,
-        D_12*E_18 + D_16*E_19 == 0,
-        D_14*E_18 + D_16*E_19 == 0,
-        D_13*E_18 + D_17*E_19 - 1 == 0,
-        D_15*E_18 + D_17*E_19 - 1 == 0,
-        D_10*F_0 + D_12*F_1 + D_14*F_2 + D_16*F_3 - 1 == 0,
-        D_11*F_0 + D_13*F_1 + D_15*F_2 + D_17*F_3 == 0,
-        F_1*F_3 - F_2*F_3 == 0,
-        D_14*F_1 - D_11*F_4 == 0,
-        D_12*F_2 - D_11*F_4 == 0,
-        -D_14*F_1 + D_11*F_4 == 0,
-        -D_12*F_2 + D_11*F_4 == 0,
-        D_16*F_1 - D_13*F_4 == 0,
-        -D_16*F_1 + D_13*F_4 == 0,
-        D_16*F_2 - D_15*F_4 == 0,
-        -D_16*F_2 + D_15*F_4 == 0,
-        F_1*F_4 - F_2*F_4 == 0,
-        -F_1*F_4 + F_2*F_4 == 0,
-        D_11*F_0 - D_10*F_1 + D_15*F_1 - D_11*F_5 == 0,
-        D_12*F_3 - D_11*F_5 == 0,
-        -D_12*F_3 + D_11*F_5 == 0,
-        D_13*F_0 - D_12*F_1 + D_17*F_1 - D_13*F_5 == 0,
-        -D_14*F_0 + D_10*F_4 - D_15*F_4 + D_14*F_5 == 0,
-        D_16*F_3 - D_15*F_5 == 0,
-        -D_16*F_3 + D_15*F_5 == 0,
-        -D_16*F_0 + D_12*F_4 - D_17*F_4 + D_16*F_5 == 0,
-        F_3*F_4 - F_1*F_5 == 0,
-        -F_3*F_4 + F_1*F_5 == 0,
-        D_11*F_0 - D_10*F_2 + D_13*F_2 - D_11*F_6 == 0,
-        D_14*F_3 - D_11*F_6 == 0,
-        -D_14*F_3 + D_11*F_6 == 0,
-        -D_12*F_0 + D_10*F_4 - D_13*F_4 + D_12*F_6 == 0,
-        D_16*F_3 - D_13*F_6 == 0,
-        -D_16*F_3 + D_13*F_6 == 0,
-        D_15*F_0 - D_14*F_2 + D_17*F_2 - D_15*F_6 == 0,
-        -D_16*F_0 + D_14*F_4 - D_17*F_4 + D_16*F_6 == 0,
-        F_0*F_1 - F_0*F_2 + F_2*F_5 - F_1*F_6 == 0,
-        F_3*F_4 - F_2*F_6 == 0,
-        -F_3*F_4 + F_2*F_6 == 0,
-        F_3*F_5 - F_3*F_6 == 0,
-        -F_3*F_5 + F_3*F_6 == 0,
-        -F_4*F_5 + F_4*F_6 == 0,
-        D_11*F_1 - D_10*F_3 + D_13*F_3 - D_11*F_7 == 0,
-        D_11*F_2 - D_10*F_3 + D_15*F_3 - D_11*F_7 == 0,
-        -D_12*F_1 + D_10*F_5 - D_13*F_5 + D_12*F_7 == 0,
-        D_13*F_2 - D_12*F_3 + D_17*F_3 - D_13*F_7 == 0,
-        -D_14*F_2 + D_10*F_6 - D_15*F_6 + D_14*F_7 == 0,
-        D_15*F_1 - D_14*F_3 + D_17*F_3 - D_15*F_7 == 0,
-        -D_16*F_1 + D_14*F_5 - D_17*F_5 + D_16*F_7 == 0,
-        D_10*F_4 + D_12*F_5 + D_14*F_6 + D_16*F_7 == 0,
-        -D_16*F_2 + D_12*F_6 - D_17*F_6 + D_16*F_7 == 0,
-        D_11*F_4 + D_13*F_5 + D_15*F_6 + D_17*F_7 - 1 == 0,
-        F_1**2 - F_0*F_3 + F_3*F_5 - F_1*F_7 == 0,
-        -F_2**2 + F_0*F_3 - F_3*F_6 + F_2*F_7 == 0,
-        F_2*F_4 - F_0*F_6 + F_6**2 - F_4*F_7 == 0,
-        -F_1*F_4 + F_0*F_5 - F_5**2 + F_4*F_7 == 0,
-        F_2*F_5 - F_1*F_6 - F_5*F_7 + F_6*F_7 == 0,
-        F_0*G_8 + F_1*G_9 - 1 == 0,
-        F_0*G_8 + F_2*G_9 - 1 == 0,
-        F_1*G_8 + F_3*G_9 == 0,
-        F_2*G_8 + F_3*G_9 == 0,
-        F_4*G_8 + F_5*G_9 == 0,
-        F_4*G_8 + F_6*G_9 == 0,
-        F_5*G_8 + F_7*G_9 - 1 == 0,
-        F_6*G_8 + F_7*G_9 - 1 == 0,
-    ]
+    system.show(x)
 
 
+if __name__ == "__main__":
 
-    # result from sage_dump:
-    soln = [
-        D_12 - D_14, -D_12 + D_14,
-        D_11*D_12 - D_11*D_14, -D_11*D_12 + D_11*D_14,
-        D_13 - D_15, -D_13 + D_15,
-        -D_11*D_13 + D_11*D_15, D_10*D_12 - D_10*D_14 + D_13*D_14 - D_12*D_15,
-        D_12*D_13 - D_11*D_16, D_14*D_15 - D_11*D_16,
-        -D_12*D_13 + D_11*D_16, -D_14*D_15 + D_11*D_16,
-        D_12*D_16 - D_14*D_16, D_13*D_16 - D_15*D_16,
-        -D_13*D_16 + D_15*D_16, D_11*D_14 - D_10*D_15 + D_15**2 - D_11*D_17,
-        -D_11*D_12 + D_10*D_13 - D_13**2 + D_11*D_17,
-        D_12**2 - D_10*D_16 + D_13*D_16 - D_12*D_17,
-        -D_14**2 + D_10*D_16 - D_15*D_16 + D_14*D_17,
-        D_13*D_14 - D_12*D_15 - D_13*D_17 + D_15*D_17,
-        D_10*E_18 + D_12*E_19 - 1, D_11*E_18 + D_13*E_19,
-        D_10*E_18 + D_14*E_19 - 1, D_11*E_18 + D_15*E_19,
-        D_12*E_18 + D_16*E_19, D_14*E_18 + D_16*E_19,
-        D_13*E_18 + D_17*E_19 - 1, D_15*E_18 + D_17*E_19 - 1,
-        D_10*F_0 + D_12*F_1 + D_14*F_2 + D_16*F_3 - 1,
-        D_11*F_0 + D_13*F_1 + D_15*F_2 + D_17*F_3,
-        F_1*F_3 - F_2*F_3, D_14*F_1 - D_11*F_4,
-        D_12*F_2 - D_11*F_4, -D_14*F_1 + D_11*F_4,
-        -D_12*F_2 + D_11*F_4, D_16*F_1 - D_13*F_4,
-        -D_16*F_1 + D_13*F_4, D_16*F_2 - D_15*F_4,
-        -D_16*F_2 + D_15*F_4, F_1*F_4 - F_2*F_4,
-        -F_1*F_4 + F_2*F_4, D_11*F_0 - D_10*F_1 + D_15*F_1 - D_11*F_5,
-        D_12*F_3 - D_11*F_5, -D_12*F_3 + D_11*F_5,
-        D_13*F_0 - D_12*F_1 + D_17*F_1 - D_13*F_5,
-        -D_14*F_0 + D_10*F_4 - D_15*F_4 + D_14*F_5,
-        D_16*F_3 - D_15*F_5, -D_16*F_3 + D_15*F_5,
-        -D_16*F_0 + D_12*F_4 - D_17*F_4 + D_16*F_5,
-        F_3*F_4 - F_1*F_5, -F_3*F_4 + F_1*F_5,
-        D_11*F_0 - D_10*F_2 + D_13*F_2 - D_11*F_6,
-        D_14*F_3 - D_11*F_6, -D_14*F_3 + D_11*F_6,
-        -D_12*F_0 + D_10*F_4 - D_13*F_4 + D_12*F_6,
-        D_16*F_3 - D_13*F_6, -D_16*F_3 + D_13*F_6,
-        D_15*F_0 - D_14*F_2 + D_17*F_2 - D_15*F_6,
-        -D_16*F_0 + D_14*F_4 - D_17*F_4 + D_16*F_6,
-        F_0*F_1 - F_0*F_2 + F_2*F_5 - F_1*F_6, F_3*F_4 - F_2*F_6,
-        -F_3*F_4 + F_2*F_6, F_3*F_5 - F_3*F_6,
-        -F_3*F_5 + F_3*F_6, -F_4*F_5 + F_4*F_6,
-        D_11*F_1 - D_10*F_3 + D_13*F_3 - D_11*F_7,
-        D_11*F_2 - D_10*F_3 + D_15*F_3 - D_11*F_7,
-        -D_12*F_1 + D_10*F_5 - D_13*F_5 + D_12*F_7,
-        D_13*F_2 - D_12*F_3 + D_17*F_3 - D_13*F_7,
-        -D_14*F_2 + D_10*F_6 - D_15*F_6 + D_14*F_7,
-        D_15*F_1 - D_14*F_3 + D_17*F_3 - D_15*F_7,
-        -D_16*F_1 + D_14*F_5 - D_17*F_5 + D_16*F_7,
-        D_10*F_4 + D_12*F_5 + D_14*F_6 + D_16*F_7,
-        -D_16*F_2 + D_12*F_6 - D_17*F_6 + D_16*F_7,
-        D_11*F_4 + D_13*F_5 + D_15*F_6 + D_17*F_7 - 1,
-        F_1**2 - F_0*F_3 + F_3*F_5 - F_1*F_7,
-        -F_2**2 + F_0*F_3 - F_3*F_6 + F_2*F_7,
-        F_2*F_4 - F_0*F_6 + F_6**2 - F_4*F_7,
-        -F_1*F_4 + F_0*F_5 - F_5**2 + F_4*F_7,
-        F_2*F_5 - F_1*F_6 - F_5*F_7 + F_6*F_7,
-        F_0*G_8 + F_1*G_9 - 1, F_0*G_8 + F_2*G_9 - 1,
-        F_1*G_8 + F_3*G_9, F_2*G_8 + F_3*G_9,
-        F_4*G_8 + F_5*G_9, F_4*G_8 + F_6*G_9,
-        F_5*G_8 + F_7*G_9 - 1, F_6*G_8 + F_7*G_9 - 1]
+    main()
 
 
-    print(len(soln))
 

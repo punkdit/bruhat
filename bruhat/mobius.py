@@ -189,11 +189,16 @@ class Mobius(object):
 
     def __call__(self, z):
         a, b, c, d = (self.a, self.b, self.c, self.d)
+        if z is None: # infinity
+            top, bot = a, c
+            if abs(bot) < EPSILON:
+                return None # infinity
+            return top / bot
         if self.conjugate:
             z = z.conjugate()
         top, bot = (a*z + b), (c*z + d)
         if abs(bot) < EPSILON:
-            return None
+            return None # infinity
         w = top / bot
         return w
 
