@@ -38,11 +38,14 @@ class System(object):
         self.items.append(A)
         return A
 
-    def subs(self, values):
+    def subs(self, values=None, x=None):
+        if values is None:
+            values = dict((str(v), xi) for (v, xi) in zip(self.vs, x))
         items = [A.copy() for A in self.items]
         for i, A in enumerate(items):
             for idx in numpy.ndindex(A.shape):
                 A[idx] = A[idx].subs(values)
+        items = [A.astype(float) for A in items]
         return items
 
     def show(self, x):
@@ -136,13 +139,13 @@ dim = argv.get("dim", 2)
 
 dim2 = dim**2
 
-I = empty((dim, dim), dtype=object)
+I = empty((dim, dim), dtype=float)
 I[:] = 0
 for i in range(dim):
     I[i, i] = 1
 #print(I)
 
-SWAP = empty((dim, dim, dim, dim), dtype=object)
+SWAP = empty((dim, dim, dim, dim), dtype=float)
 SWAP[:] = 0
 for i in range(dim):
   for j in range(dim):
@@ -161,7 +164,8 @@ if dim==2:
 
 assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
 
-if 0:
+
+def test():
     system = System()
     #M = system.array(2, 4, "M")
     M = array([
@@ -189,6 +193,10 @@ if 0:
 def main():
 
     # Commutative special Frobenius algebra
+
+    # TODO: find dependancies between these various axioms
+    # can we force inequalities somehow? many axioms
+    # get satisfied seemingly by accident in root() below .
     
     system = System()
     
@@ -221,7 +229,7 @@ def main():
     system.add(compose(FI, F), compose(IF, F))
     
     # commutative
-    #system.add(F, compose(SWAP, F))
+    system.add(F, compose(SWAP, F))
     
     # counit 
     system.add(compose(D, IE), I)
@@ -231,7 +239,7 @@ def main():
     system.add(compose(D, DI), compose(D, ID))
     
     # cocommutative
-    system.add(D, compose(D, SWAP))
+#    system.add(D, compose(D, SWAP))
     
     # Frobenius
     system.add(compose(DI, IF), compose(F, D))
@@ -244,21 +252,30 @@ def main():
     f = system.py_func()
 
     n = len(system.vs)
-    x0 = numpy.random.rand(n)
-    #print(x0)
-    #v = system(x0)
-    #print(v)
-
+    x0 = numpy.random.normal(size=n)
     from scipy.optimize import root
-    print("solving...")
-    solution = root(f, x0, method="lm", tol=1e-4) # 43 secs
-    assert solution.success
-    x = solution.x
-    print("solution:")
-    print(solution.x)
-    print(f(x))
+    for trial in range(5):
+        print("solving...")
+        solution = root(f, x0, method="lm", tol=1e-4)
+        if solution.success:
+            break
+    else:
+        print("fail")
+        return
 
-    system.show(x)
+    x = solution.x
+    #print("solution:")
+    #print(solution.x)
+    #print(f(x))
+
+    #system.show(x)
+    F, G, D, E = system.subs(x=x)
+    print(F)
+
+    lhs = compose(SWAP, F)
+    print("commutative:", numpy.allclose(lhs, F))
+    lhs = compose(D, SWAP)
+    print("cocommutative:", numpy.allclose(lhs, D))
 
 
 if __name__ == "__main__":
