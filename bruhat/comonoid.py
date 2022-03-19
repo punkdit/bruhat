@@ -5,7 +5,8 @@ on a 2d vector space.
 """
 
 import numpy
-from numpy import dot, array, empty, alltrue
+from numpy import dot, array, empty, alltrue, exp
+from numpy.linalg import norm
 
 def compose(first, second):
     return numpy.dot(second, first)
@@ -87,18 +88,19 @@ class System(object):
         #print("slns = solve(eqs, vs, solution_dict=True)")
         print("slns = solve(eqs, vs)")
 
-    def py_func(self):
+    def py_func(self, verbose=False):
         arg = ",".join(str(v) for v in self.vs)
         #lines = ["def f(%s):"%arg]
         lines = ["def f(x):"]
         lines.append("  %s = x" % (arg,))
         lines.append("  value = [")
         for eq in self.eqs:
-            lines.append("    %s,"%(eq,))
+                lines.append("    %s,"%(eq,))
         lines.append("  ]")
         lines.append("  return value")
         code = '\n'.join(lines)
-        #print(code)
+        if verbose:
+            print(code)
         ns = {}
         exec(code, ns, ns)
         return ns['f']
@@ -113,6 +115,46 @@ class System(object):
             if eq != 0:
                 return False
         return True
+
+    def root(self, trials=10, scale=1., method="lm"):
+        from scipy.optimize import root
+        n = len(self.vs)
+        f = self.py_func()
+        for trial in range(trials):
+            x0 = numpy.random.normal(size=n)*scale
+            solution = root(f, x0, method=method, tol=1e-7)
+            if solution.success:
+                break
+        else:
+            return None
+        x = solution.x
+        values = self.subs(x=x)
+        return values
+
+    def minimize(self, trials=10, scale=1, method=None, exclude=[], sigma=1000):
+        from scipy.optimize import minimize
+        n = len(self.vs)
+        f = self.py_func()
+        def f1(x):
+            values = f(x)
+            #result = sum([abs(v) for v in values])
+            result = sum([v**2 for v in values])
+            for v in exclude:
+                r = sigma*(norm(v-x)**2)
+                #print(x, exp(-r))
+                result += exp(-r)
+            return result
+        for trial in range(trials):
+            x0 = numpy.random.normal(size=n)*scale
+            solution = minimize(f1, x0, tol=1e-7, method=method)
+            if solution.success and solution.fun < 1e-5:
+                break
+        else:
+            return None
+        #print(solution)
+        x = solution.x
+        values = self.subs(x=x)
+        return values
 
     def solve(self):
     
@@ -135,37 +177,12 @@ class System(object):
         return result
 
         
-dim = argv.get("dim", 2)
-
-dim2 = dim**2
-
-I = empty((dim, dim), dtype=float)
-I[:] = 0
-for i in range(dim):
-    I[i, i] = 1
-#print(I)
-
-SWAP = empty((dim, dim, dim, dim), dtype=float)
-SWAP[:] = 0
-for i in range(dim):
-  for j in range(dim):
-    SWAP[i, j, j, i] = 1
-SWAP.shape = dim2, dim2
-#print(SWAP)
-
-if dim==2:
-    lhs = array([
-        [1, 0, 0, 0],
-        [0, 0, 1, 0],
-        [0, 1, 0, 0],
-        [0, 0, 0, 1],
-    ], dtype=object)
-    assert alltrue(lhs==SWAP)
-
-assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
-
-
 def test():
+    dim = 2
+    I = empty((dim, dim), dtype=object)
+    I[:] = 0
+    for i in range(dim):
+        I[i, i] = 1
     system = System()
     #M = system.array(2, 4, "M")
     M = array([
@@ -192,12 +209,41 @@ def test():
 
 def main():
 
+    dim = argv.get("dim", 3)
+    dim2 = dim**2
+    
+    I = empty((dim, dim), dtype=float)
+    I[:] = 0
+    for i in range(dim):
+        I[i, i] = 1
+    #print(I)
+    
+    SWAP = empty((dim, dim, dim, dim), dtype=float)
+    SWAP[:] = 0
+    for i in range(dim):
+      for j in range(dim):
+        SWAP[i, j, j, i] = 1
+    SWAP.shape = dim2, dim2
+    #print(SWAP)
+    
+    if dim==2:
+        lhs = array([
+            [1, 0, 0, 0],
+            [0, 0, 1, 0],
+            [0, 1, 0, 0],
+            [0, 0, 0, 1],
+        ], dtype=object)
+        assert alltrue(lhs==SWAP)
+    
+    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    
+    # -----------------------------------------------------------
     # Commutative special Frobenius algebra
 
     # TODO: find dependancies between these various axioms
     # can we force inequalities somehow? many axioms
     # get satisfied seemingly by accident in root() below .
-    
+
     system = System()
     
     F = system.array(dim, dim**2, "F") # mul
@@ -206,8 +252,11 @@ def main():
     D = system.array(dim**2, dim, "D") # comul
     E = system.array(1, dim, "E") # counit
 
-    for item in system.items:
-        print(item)
+    #vs = [system.array(dim, 1) for i in range(dim)]
+    #ws = [system.array(1, dim) for i in range(dim)]
+
+    #for item in system.items:
+    #    print(item)
     
     IF = tensor(I, F)
     FI = tensor(F, I)
@@ -220,7 +269,7 @@ def main():
     
     IE = tensor(I, E)
     EI = tensor(E, I)
-    
+
     # unit
     system.add(compose(IG, F), I)
     system.add(compose(GI, F), I)
@@ -229,7 +278,9 @@ def main():
     system.add(compose(FI, F), compose(IF, F))
     
     # commutative
-    system.add(F, compose(SWAP, F))
+    commutative = argv.get("commutative", True)
+    if commutative:
+        system.add(F, compose(SWAP, F))
     
     # counit 
     system.add(compose(D, IE), I)
@@ -239,7 +290,7 @@ def main():
     system.add(compose(D, DI), compose(D, ID))
     
     # cocommutative
-#    system.add(D, compose(D, SWAP))
+    #system.add(D, compose(D, SWAP))
     
     # Frobenius
     system.add(compose(DI, IF), compose(F, D))
@@ -247,40 +298,112 @@ def main():
     
     # special
     system.add(compose(D, F), I)
+
+    #for (v, w) in zip(vs, ws):
+    #    system.add(compose(v, D), tensor(v, v))
+    #    system.add(compose(v, w), numpy.array([[1.]]))
     
-    #system.sage_dump()
     f = system.py_func()
 
-    n = len(system.vs)
-    x0 = numpy.random.normal(size=n)
-    from scipy.optimize import root
-    for trial in range(5):
-        print("solving...")
-        solution = root(f, x0, method="lm", tol=1e-4)
-        if solution.success:
-            break
-    else:
-        print("fail")
-        return
+    trials = argv.get("trials", 100)
+    _seed = argv.get("seed")
+    if _seed is not None:
+        print("seed:", _seed)
+        numpy.random.seed(_seed)
 
-    x = solution.x
-    #print("solution:")
-    #print(solution.x)
-    #print(f(x))
+    #for trial in range(trials):
+    while 1:
 
-    #system.show(x)
-    F, G, D, E = system.subs(x=x)
-    print(F)
+        print(".", end="", flush=True)
+        values = system.root()
+        if values is None:
+            continue
+        F, G, D, E = values[:4]
 
-    lhs = compose(SWAP, F)
-    print("commutative:", numpy.allclose(lhs, F))
-    lhs = compose(D, SWAP)
-    print("cocommutative:", numpy.allclose(lhs, D))
+        lhs = compose(SWAP, F)
+        commutative = numpy.allclose(lhs, F)
+        lhs = compose(D, SWAP)
+        cocommutative = numpy.allclose(lhs, D)
+
+        if commutative != cocommutative:
+            lhs = compose(SWAP, F)
+            print("commutative:", commutative)
+            print(lhs)
+            print(F)
+            lhs = compose(D, SWAP)
+            print(lhs)
+            print(D)
+        
+        assert commutative == cocommutative
+
+        ##break
+        #if numpy.min(D) < 1e-4:
+        #    continue
+        break
+
+    #print(F)
+    #print(D)
+
+    #A = dot(tensor(dot(E, F), I), tensor(I, dot(D, G)))
+    #A = tensor(I, dot(D, G))
+    A = dot(E, F)
+    A.shape = (dim, dim)
+    print("A =")
+    print(A)
+    vals = numpy.linalg.eig(A)[0]
+    print("vals:", vals)
+
+    if 0:
+        # Fail....
+        D = numpy.array(
+        [[ 0.85224201, 0.17622825],
+         [-0.13028314, 0.85671068],
+         [-0.13028314, 0.85671068],
+         [-0.63335449,-0.10855929]]
+        )
+
+    print("\nminimize...")
+    system = System()
+    v = system.array(dim, 1)
+    system.add(compose(v, D), tensor(v, v))
+    #system.py_func(True)
+    found = []
+    trials = 0
+    exclude = [numpy.zeros(dim)]
+    exclude = []
+    #while trials < 1000:
+    while len(found) < dim and trials<1000:
+        trials += 1
+        values = system.root(scale=10)
+        if values is None:
+            values = system.minimize(scale=10, method="TNC", exclude=exclude, sigma=3000)
+        if values is None:
+            continue
+        v = values[0]
+        v = v.transpose()[0]
+        #print(v)
+        if norm(v) < 1e-2:
+            continue
+        for w in found:
+            if norm(v-w) < 1e-2:
+                break
+        else:
+            found.append(v)
+            print("found:", len(found))
+            print(v)
+            exclude.append(v)
+
+    #for v in found:
+    #    print(v.transpose())
+
 
 
 if __name__ == "__main__":
 
-    main()
+    if argv.test:
+        test()
+    else:
+        main()
 
 
 
