@@ -116,15 +116,16 @@ class System(object):
                 return False
         return True
 
-    def root(self, trials=10, scale=1., method="lm"):
+    def root(self, trials=1, scale=1., method="lm", tol=1e-6):
         from scipy.optimize import root
         n = len(self.vs)
         f = self.py_func()
         for trial in range(trials):
             x0 = numpy.random.normal(size=n)*scale
-            solution = root(f, x0, method=method, tol=1e-7)
+            solution = root(f, x0, method=method, tol=tol, options={"maxiter":100000})
             if solution.success:
                 break
+            #print(solution)
         else:
             return None
         x = solution.x
@@ -238,11 +239,7 @@ def main():
     assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
     
     # -----------------------------------------------------------
-    # Commutative special Frobenius algebra
-
-    # TODO: find dependancies between these various axioms
-    # can we force inequalities somehow? many axioms
-    # get satisfied seemingly by accident in root() below .
+    # Build some Frobenius algebra's ... find the copyable states
 
     system = System()
     
@@ -251,9 +248,6 @@ def main():
     
     D = system.array(dim**2, dim, "D") # comul
     E = system.array(1, dim, "E") # counit
-
-    #vs = [system.array(dim, 1) for i in range(dim)]
-    #ws = [system.array(1, dim) for i in range(dim)]
 
     #for item in system.items:
     #    print(item)
@@ -297,12 +291,10 @@ def main():
     system.add(compose(ID, FI), compose(F, D))
     
     # special
-    system.add(compose(D, F), I)
+    special = argv.get("special", True)
+    if special:
+        system.add(compose(D, F), I)
 
-    #for (v, w) in zip(vs, ws):
-    #    system.add(compose(v, D), tensor(v, v))
-    #    system.add(compose(v, w), numpy.array([[1.]]))
-    
     f = system.py_func()
 
     trials = argv.get("trials", 100)
@@ -321,15 +313,16 @@ def main():
         F, G, D, E = values[:4]
 
         lhs = compose(SWAP, F)
-        commutative = numpy.allclose(lhs, F)
+        commutative = numpy.allclose(lhs, F, atol=1e-8)
         lhs = compose(D, SWAP)
-        cocommutative = numpy.allclose(lhs, D)
+        cocommutative = numpy.allclose(lhs, D, atol=1e-8)
 
         if commutative != cocommutative:
             lhs = compose(SWAP, F)
-            print("commutative:", commutative)
+            print("\ncommutative:", commutative)
             print(lhs)
             print(F)
+            print("\ncocommutative:", cocommutative)
             lhs = compose(D, SWAP)
             print(lhs)
             print(D)
@@ -339,6 +332,7 @@ def main():
         ##break
         #if numpy.min(D) < 1e-4:
         #    continue
+
         break
 
     #print(F)
@@ -353,49 +347,66 @@ def main():
     vals = numpy.linalg.eig(A)[0]
     print("vals:", vals)
 
-    if 0:
-        # Fail....
-        D = numpy.array(
-        [[ 0.85224201, 0.17622825],
-         [-0.13028314, 0.85671068],
-         [-0.13028314, 0.85671068],
-         [-0.63335449,-0.10855929]]
-        )
+    def find_copyable(D):
+        #print("\nminimize...")
+        system = System()
+        v = system.array(dim, 1)
+        system.add(compose(v, D), tensor(v, v))
+        #system.py_func(True)
+        found = []
+        trials = 0
+        exclude = [numpy.zeros(dim)]
+        exclude = []
+        #while trials < 1000:
+        while len(found) < dim and trials<1000:
+            trials += 1
+            values = system.root(scale=10)
+            if values is None:
+                values = system.minimize(scale=10, method="TNC", exclude=exclude, sigma=3000)
+            if values is None:
+                continue
+            v = values[0]
+            v = v.transpose()[0]
+            #print(v)
+            if norm(v) < 1e-2:
+                continue
+            for w in found:
+                if norm(v-w) < 1e-2:
+                    break
+            else:
+                found.append(v)
+                print("found:", len(found))
+                print(v)
+                exclude.append(v)
+        print()
+        g = numpy.array(found).transpose()
+        return g
 
-    print("\nminimize...")
-    system = System()
-    v = system.array(dim, 1)
-    system.add(compose(v, D), tensor(v, v))
-    #system.py_func(True)
-    found = []
-    trials = 0
-    exclude = [numpy.zeros(dim)]
-    exclude = []
-    #while trials < 1000:
-    while len(found) < dim and trials<1000:
-        trials += 1
-        values = system.root(scale=10)
-        if values is None:
-            values = system.minimize(scale=10, method="TNC", exclude=exclude, sigma=3000)
-        if values is None:
-            continue
-        v = values[0]
-        v = v.transpose()[0]
-        #print(v)
-        if norm(v) < 1e-2:
-            continue
-        for w in found:
-            if norm(v-w) < 1e-2:
-                break
-        else:
-            found.append(v)
-            print("found:", len(found))
-            print(v)
-            exclude.append(v)
+    g = find_copyable(D)
 
-    #for v in found:
-    #    print(v.transpose())
+    if g.shape == (dim,dim) and dim==3:
+        # Check the Frobenius structure is invariant if
+        # we swap basis elements around...
+        print(D)
+        print(g)
+        
+        gi = numpy.linalg.inv(g)
+        P = numpy.array([[1,0,0],[0,0,1],[0,1,0]])
+        Q = dot(g, dot(P, gi))
+        Qi = numpy.linalg.inv(Q)
+        QQ = tensor(Q, Q)
+        QQi = tensor(Qi, Qi)
+    
+        D1 = dot(QQ, dot(D, Qi))
+        print(D1)
+    
+        g1 = find_copyable(D1)
+        print(g1)
 
+        assert numpy.allclose(D, D1, rtol=1e-6)
+
+        F1 = dot(Q, dot(F, QQi))
+        assert numpy.allclose(F, F1, rtol=1e-6)
 
 
 if __name__ == "__main__":
