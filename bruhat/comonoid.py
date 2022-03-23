@@ -39,14 +39,14 @@ class System(object):
         self.items.append(A)
         return A
 
-    def subs(self, values=None, x=None):
+    def subs(self, values=None, x=None, dtype=float):
         if values is None:
             values = dict((str(v), xi) for (v, xi) in zip(self.vs, x))
         items = [A.copy() for A in self.items]
         for i, A in enumerate(items):
             for idx in numpy.ndindex(A.shape):
                 A[idx] = A[idx].subs(values)
-        items = [A.astype(float) for A in items]
+        items = [A.astype(dtype) for A in items]
         return items
 
     def show(self, x):
@@ -409,9 +409,214 @@ def main():
         assert numpy.allclose(F, F1, rtol=1e-6)
 
 
+# -----------------------------------------------------------------------------
+#
+#
+
+from bruhat.util import cross
+
+scalar = numpy.int64 # ?
+
+
+class Matrix(object):
+    def __init__(self, p, a):
+        a = numpy.array(a, dtype=scalar)
+        a %= p
+        self.a = a
+        self.shape = a.shape
+
+    @classmethod
+    def zeros(self, p, shape):
+        a = numpy.zeros(shape, dtype=scalar)
+        return Matrix(p, a)
+
+    def __add__(self, other):
+        assert self.p == other.p
+        a = self.a + other.a
+        return Matrix(self.p, a)
+
+    def __mul__(self, other):
+        assert self.p == other.p
+        a = dot(self.a, other.a)
+        return Matrix(self.p, a)
+
+    def __matmul__(self, other):
+        assert self.p == other.p
+        a = kron(self.a, other.a)
+        return Matrix(self.p, a)
+
+
+
+def ffield():
+    "look for finite field solutions"
+
+    p = argv.get("p", 3)
+    dim = argv.get("dim", 3)
+    dim2 = dim**2
+    
+    I = empty((dim, dim), dtype=int)
+    I[:] = 0
+    for i in range(dim):
+        I[i, i] = 1
+    #print(I)
+    
+    SWAP = empty((dim, dim, dim, dim), dtype=int)
+    SWAP[:] = 0
+    for i in range(dim):
+      for j in range(dim):
+        SWAP[i, j, j, i] = 1
+    SWAP.shape = dim2, dim2
+    #print(SWAP)
+    
+    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    
+    # -----------------------------------------------------------
+    # Build some Frobenius algebra's ... find the copyable states
+
+    system = System()
+    
+    F = system.array(dim, dim**2, "F") # mul
+    G = system.array(dim, 1, "G") # unit
+    
+    D = system.array(dim**2, dim, "D") # comul
+    E = system.array(1, dim, "E") # counit
+
+    #for item in system.items:
+    #    print(item)
+    
+    IF = tensor(I, F)
+    FI = tensor(F, I)
+    
+    IG = tensor(I, G)
+    GI = tensor(G, I)
+    
+    ID = tensor(I, D)
+    DI = tensor(D, I)
+    
+    IE = tensor(I, E)
+    EI = tensor(E, I)
+
+    # unit
+    system.add(compose(IG, F), I)
+    system.add(compose(GI, F), I)
+    
+    # _assoc
+    system.add(compose(FI, F), compose(IF, F))
+    
+    # commutative
+    commutative = argv.get("commutative", True)
+    if commutative:
+        system.add(F, compose(SWAP, F))
+    
+    # counit 
+    system.add(compose(D, IE), I)
+    system.add(compose(D, EI), I)
+    
+    # _coassoc
+    system.add(compose(D, DI), compose(D, ID))
+    
+    # cocommutative
+    #system.add(D, compose(D, SWAP))
+    
+    # Frobenius
+    system.add(compose(DI, IF), compose(F, D))
+    system.add(compose(ID, FI), compose(F, D))
+    
+    # special
+    special = argv.get("special", True)
+    if special:
+        system.add(compose(D, F), I)
+
+    import z3
+
+    def all_smt(s, initial_terms):
+        def block_term(s, m, t):
+            s.add(t != m.eval(t, model_completion=True))
+        def fix_term(s, m, t):
+            s.add(t == m.eval(t, model_completion=True))
+        def all_smt_rec(terms):
+            if z3.sat == s.check():
+               m = s.model()
+               yield m
+               for i in range(len(terms)):
+                   s.push()
+                   block_term(s, m, terms[i])
+                   for j in range(i):
+                       fix_term(s, m, terms[j])
+                   yield from all_smt_rec(terms[i:])
+                   s.pop()
+        yield from all_smt_rec(list(initial_terms))
+
+    def block_model(s):
+        m = s.model()
+        s.add(z3.Or([f() != m[f] for f in m.decls() if f.arity() == 0]))
+
+    ns = {}
+    clauses = []
+    for v in system.vs:
+        v = str(v)
+        iv = z3.Int(v)
+        ns[v] = iv
+        clauses.append(iv < p)
+        clauses.append(0 <= iv)
+    print(ns)
+
+    for eq in system.eqs:
+        eq = eval(str(eq), ns) % p == 0
+        clauses.append(eq)
+
+    solver = z3.Solver()
+
+    for c in clauses:
+        solver.add(c)
+
+#    print("solve...")
+#    result = solver.check()
+#    assert result == z3.sat, result
+#    print("done.")
+
+    #for model in all_smt(solver, []):
+
+    while solver.check() == z3.sat:
+        model = solver.model()
+
+        values = {}
+        for d in model:
+            #print(d, model[d])
+            values[str(d)] = int(str(model[d]))
+        print(values)
+    
+        items = []
+        for A in system.items:
+            B = numpy.zeros(A.shape, int)
+            for idx in numpy.ndindex(A.shape):
+                B[idx] = values[str(A[idx])]
+            items.append(B)
+    
+        F, G, D, E = items
+        print(F)
+    
+        for vals in cross([tuple(range(dim))]*dim):
+            v = numpy.array(vals)
+            v.shape = (dim,1)
+            if v.sum() == 0:
+                continue
+            lhs = dot(D, v)
+            rhs = tensor(v, v)
+            if numpy.allclose(lhs, rhs):
+                print(v.transpose())
+    
+        block_model(solver)
+        print()
+
+    print("done")
+
+
 if __name__ == "__main__":
 
-    if argv.test:
+    if argv.ffield:
+        ffield()
+    elif argv.test:
         test()
     else:
         main()
