@@ -5,7 +5,7 @@ on a 2d vector space.
 """
 
 import numpy
-from numpy import dot, array, empty, alltrue, exp
+from numpy import dot, array, empty, alltrue, allclose, exp, zeros, kron
 from numpy.linalg import norm
 
 def compose(first, second):
@@ -49,7 +49,7 @@ class System(object):
         items = [A.astype(dtype) for A in items]
         return items
 
-    def show(self, x):
+    def doshow(self, x):
         assert len(x) == len(self.vs)
         ns = dict((str(v), xi) for (v, xi) in zip(self.vs, x))
         for item in self.subs(ns):
@@ -116,16 +116,16 @@ class System(object):
                 return False
         return True
 
-    def root(self, trials=1, scale=1., method="lm", tol=1e-6):
+    def root(self, trials=1, scale=1., method="lm", tol=1e-6, maxiter=1000000):
         from scipy.optimize import root
         n = len(self.vs)
         f = self.py_func()
         for trial in range(trials):
             x0 = numpy.random.normal(size=n)*scale
-            solution = root(f, x0, method=method, tol=tol, options={"maxiter":100000})
+            solution = root(f, x0, method=method, tol=tol, options={"maxiter":maxiter})
             if solution.success:
                 break
-            #print(solution)
+            print(solution)
         else:
             return None
         x = solution.x
@@ -178,7 +178,7 @@ class System(object):
         return result
 
         
-def test():
+def test_sympy():
     dim = 2
     I = empty((dim, dim), dtype=object)
     I[:] = 0
@@ -208,17 +208,43 @@ def test():
     print(M1)
 
 
-def main():
-
-    dim = argv.get("dim", 3)
-    dim2 = dim**2
-    
+def test():
+    dim = 2
     I = empty((dim, dim), dtype=float)
     I[:] = 0
     for i in range(dim):
         I[i, i] = 1
-    #print(I)
+    #M = system.array(2, 4, "M")
+    M = array([
+        [1, 0, 0, 0],
+        [0, 0, 0, 1],
+    ], dtype=float)
+
+    system = System()
+    G = system.array(2, 2, "G")
+    Gi = system.array(2, 2, "Gi")
+    GG = tensor(G, G)
     
+    system.add(compose(G, Gi), I)
+    #system.eqs.append(G[0,0]*G[1,1] - G[0,1]*G[1,0]-1) # SL(2)
+    system.py_func(verbose=True)
+    values = system.minimize()
+    
+    assert values is not None
+    G, Gi = values
+    print(compose(G, Gi))
+
+
+def shortstr(F):
+    s = str(F)
+    s = s.replace(". ", "  ")
+    s = s.replace(".]", " ]")
+    s = s.replace(" 0 ", " . ")
+    return s
+
+
+def get_swap(dim):
+    dim2 = dim**2
     SWAP = empty((dim, dim, dim, dim), dtype=float)
     SWAP[:] = 0
     for i in range(dim):
@@ -226,6 +252,118 @@ def main():
         SWAP[i, j, j, i] = 1
     SWAP.shape = dim2, dim2
     #print(SWAP)
+    return SWAP
+
+
+def get_mul(dim):
+    F = zeros((dim, dim**2))
+    for i in range(dim):
+        F[i, i*dim + i] = 1
+    return F
+
+def get_comul(dim):
+    F = zeros((dim**2, dim))
+    for i in range(dim):
+        F[i*dim + i, i] = 1
+    return F
+
+def got_comul(dim):
+    F = zeros((dim**2, dim))
+    for i in range(dim):
+        F[i*dim + i, i] = 1
+    return F
+
+def get_unit(dim):
+    F = zeros((dim, 1))
+    F[:] = 1.
+    return F
+
+def get_counit(dim):
+    F = zeros((1, dim))
+    F[:] = 1.
+    return F
+
+def get_identity(dim):
+    I = empty((dim, dim), dtype=float)
+    I[:] = 0
+    for i in range(dim):
+        I[i, i] = 1
+    return I
+
+def test_symplectic():
+
+    n = argv.get("n", 2)
+
+    F = zeros((2*n, (2*n)**2), dtype=float)
+    for i in range(n):
+        F[i, i*2*n + i+n] = 1
+        F[i+n, (i+n)*2*n + i ] = -1
+#    print(F)
+
+    for i in range(2*n):
+      for j in range(2*n):
+        a = zeros((2*n,))
+        b = zeros((2*n,))
+        a[i] = 1
+        b[j] = 1
+        u = kron(a, b)
+        v = dot(F, u)
+        #print(i, j, v)
+
+    swap = get_swap(2*n)
+    unit = get_unit(2*n)
+    unit[:n] = -1
+    mul = F
+    #counit = get_counit(2*n)
+    counit = unit.transpose()
+    copy = get_comul(2*n)
+    comul = mul.transpose()
+    I = get_identity(2*n)
+
+    print(shortstr(dot(mul, tensor(I, unit))))
+    print(shortstr(dot(mul, tensor(unit, I))))
+
+    lhs = dot(copy, mul)
+    rhs = dot(tensor(mul, I), tensor(I, copy))
+    print(allclose(lhs, rhs))
+    print(shortstr(lhs))
+    print(shortstr(rhs))
+
+    return
+
+    cup = dot(comul, unit)
+    cap = dot(counit, F)
+    print(shortstr(cap))
+    print(shortstr(dot(tensor(I, cap), tensor(cup, I))))
+
+    print(dot(F, comul))
+
+#    lhs = dot(F, tensor(F, I))
+#    rhs = dot(F, tensor(I, F))
+#    print(shortstr(lhs))
+#    print(shortstr(rhs))
+
+#    # jacobi identity ? No...
+#    IS = tensor(I, swap)
+#    SI = tensor(swap, I)
+#    FF = dot(F, tensor(I, F))
+#    A = FF
+#    B = dot(FF, dot(IS, SI))
+#    C = dot(FF, dot(SI, IS))
+#    print((A + B + C))
+
+
+def main():
+
+    dim = argv.get("dim", 3)
+    
+    I = empty((dim, dim), dtype=float)
+    I[:] = 0
+    for i in range(dim):
+        I[i, i] = 1
+    #print(I)
+    
+    SWAP = get_swap(dim)
     
     if dim==2:
         lhs = array([
@@ -272,8 +410,13 @@ def main():
     system.add(compose(FI, F), compose(IF, F))
     
     # commutative
-    commutative = argv.get("commutative", True)
-    if commutative:
+    anticomm = argv.anticomm
+    commutative = argv.get("commutative", not anticomm)
+    if anticomm:
+        #system.add(F, compose(-SWAP, F))
+        FE = compose(F, E)
+        system.add(FE, compose(-SWAP, FE))
+    elif commutative:
         system.add(F, compose(SWAP, F))
     
     # counit 
@@ -307,7 +450,7 @@ def main():
     while 1:
 
         print(".", end="", flush=True)
-        values = system.root()
+        values = system.root(maxiter=10000000)
         if values is None:
             continue
         F, G, D, E = values[:4]
@@ -527,6 +670,7 @@ def ffield():
     if special:
         system.add(compose(D, F), I)
 
+    # https://theory.stanford.edu/~nikolaj/programmingz3.html
     import z3
 
     def all_smt(s, initial_terms):
@@ -614,12 +758,16 @@ def ffield():
 
 if __name__ == "__main__":
 
-    if argv.ffield:
-        ffield()
-    elif argv.test:
-        test()
-    else:
-        main()
+    name = argv.next() or "main"
+    fn = eval(name)
+
+    print("%s()"%name)
+    fn()
+
+    print("OK")
+    print()
+
+
 
 
 

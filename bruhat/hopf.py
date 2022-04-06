@@ -94,9 +94,9 @@ def main():
 
     eq = lambda lhs, rhs : lhs.weak_eq(rhs)
 
-    assert eq(g_gg >> (g_ @ I), I) # unit
-    assert eq(g_gg >> (I @ g_), I) # unit
-    assert eq(g_gg >> (g_gg @ I), g_gg >> (I@g_gg)) # assoc
+    assert eq(g_gg >> (g_ @ I), I) # counit
+    assert eq(g_gg >> (I @ g_), I) # counit
+    assert eq(g_gg >> (g_gg @ I), g_gg >> (I@g_gg)) # coassoc
 
     assert eq(gg_g * (_g @ I), I) # unit
     assert eq(gg_g * (I @ _g), I) # unit

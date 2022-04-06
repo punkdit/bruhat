@@ -237,7 +237,10 @@ cdef class Fraction:
         return Fraction(top, bot)
 
 
-class Ring(object):
+class Type(object):
+    pass
+
+class Ring(Type):
     def __init__(self):
         self.one = Fraction(1, 1)
         self.zero = Fraction(0, 1)
