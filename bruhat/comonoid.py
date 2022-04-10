@@ -4,13 +4,19 @@ Symbolically find a cocommutative comonoid
 on a 2d vector space.
 """
 
+from functools import reduce
+
 import numpy
 from numpy import dot, array, empty, alltrue, allclose, exp, zeros, kron
 from numpy.linalg import norm
 
-def compose(first, second):
-    return numpy.dot(second, first)
-tensor = numpy.kron
+#def compose(first, second):
+    #return numpy.dot(second, first)
+def compose(*items):
+    items = reversed(items)
+    return reduce(numpy.dot, items)
+#tensor = numpy.kron
+tensor = lambda *items : reduce(numpy.kron, items)
 
 # https://docs.sympy.org/latest/modules/solvers/solvers.html
 from sympy.solvers import solve
@@ -95,7 +101,30 @@ class System(object):
         lines.append("  %s = x" % (arg,))
         lines.append("  value = [")
         for eq in self.eqs:
-                lines.append("    %s,"%(eq,))
+            lines.append("    %s,"%(eq,))
+        lines.append("  ]")
+        lines.append("  return value")
+        code = '\n'.join(lines)
+        if verbose:
+            print(code)
+        ns = {}
+        exec(code, ns, ns)
+        return ns['f']
+    
+    def py_jac(self, verbose=False):
+        arg = ",".join(str(v) for v in self.vs)
+        #lines = ["def f(%s):"%arg]
+        lines = ["def f(x):"]
+        #lines.append("  print('jac')")
+        lines.append("  %s = x" % (arg,))
+        lines.append("  value = [")
+        vs = self.vs
+        for eq in self.eqs:
+          row = []
+          for v in vs:
+            d = eq.diff(v)
+            row.append(str(d))
+          lines.append("    [%s]," % (', '.join(row)))
         lines.append("  ]")
         lines.append("  return value")
         code = '\n'.join(lines)
@@ -120,12 +149,14 @@ class System(object):
         from scipy.optimize import root
         n = len(self.vs)
         f = self.py_func()
+        jac = self.py_jac()
         for trial in range(trials):
             x0 = numpy.random.normal(size=n)*scale
-            solution = root(f, x0, method=method, tol=tol, options={"maxiter":maxiter})
+            solution = root(f, x0, jac=jac, method=method, 
+                tol=tol, options={"maxiter":maxiter})
+            #print(solution)
             if solution.success:
                 break
-            print(solution)
         else:
             return None
         x = solution.x
@@ -235,6 +266,7 @@ def test():
     print(compose(G, Gi))
 
 
+
 def shortstr(F):
     s = str(F)
     s = s.replace(". ", "  ")
@@ -289,6 +321,41 @@ def get_identity(dim):
     for i in range(dim):
         I[i, i] = 1
     return I
+
+
+def test_root():
+    dim = 4
+
+    system = System()
+    I = get_identity(dim)
+    A = system.array(dim, dim)
+    B = system.array(dim, dim)
+
+    system.add(compose(A, A), I)
+    system.add(compose(B, B), I)
+    system.add(compose(A, B), compose(B, A))
+    
+    f = system.py_func(verbose=False)
+    jac = system.py_jac(verbose=False)
+
+    from scipy.optimize import root
+    scale = 1.0
+    n = len(system.vs)
+    x0 = numpy.random.normal(size=n)*scale
+    #jac = False
+    solution = root(f, x0, jac=jac, method='lm', tol=1e-6, options={"maxiter":1000000})
+    #print("solution.nfev:", solution.nfev)
+    assert solution.success, solution
+    
+    x = solution.x
+    values = system.subs(x=x)
+    A, B = values
+    #print(A)
+    #print(B)
+    assert numpy.allclose(compose(A, A), I)
+    assert numpy.allclose(compose(B, B), I)
+    assert numpy.allclose(compose(A, B), compose(B, A))
+
 
 def test_symplectic():
 
@@ -550,6 +617,171 @@ def main():
 
         F1 = dot(Q, dot(F, QQi))
         assert numpy.allclose(F, F1, rtol=1e-6)
+
+
+def main_hopf(dim=2):
+
+    dim = argv.get("dim", dim)
+    
+    I = empty((dim, dim), dtype=float)
+    I[:] = 0
+    for i in range(dim):
+        I[i, i] = 1
+    #print(I)
+    
+    swap = get_swap(dim)
+    
+    # -----------------------------------------------------------
+    # Build some Frobenius algebra's & Hopf algebra's
+
+    system = System()
+    
+    # green spiders
+    g_gg = D = system.array(dim**2, dim, "D") # comul
+    g_   = E = system.array(1, dim, "E") # counit
+    gg_g = F = system.array(dim, dim**2, "F") # mul
+    _g   = G = system.array(dim, 1, "G") # unit
+
+    # red spiders
+    r_rr = J = system.array(dim**2, dim, "J") # comul
+    r_   = K = system.array(1, dim, "K") # counit
+    rr_r = L = system.array(dim, dim**2, "L") # mul
+    _r   = M = system.array(dim, 1, "M") # unit
+
+    r_cup = compose(_r, r_rr)
+    g_cup = compose(_g, g_gg)
+    g_cap = compose(gg_g, g_)
+    r_cap = compose(rr_r, r_)
+
+    def mk_frobenius(system, D, E, F, G):
+        ID, DI = tensor(I, D), tensor(D, I)
+        IE, EI = tensor(I, E), tensor(E, I)
+        IF, FI = tensor(I, F), tensor(F, I)
+        IG, GI = tensor(I, G), tensor(G, I)
+    
+        # unit
+        system.add(compose(IG, F), I)
+        system.add(compose(GI, F), I)
+        
+        # _assoc
+        system.add(compose(FI, F), compose(IF, F))
+        
+        # counit 
+        system.add(compose(D, IE), I)
+        system.add(compose(D, EI), I)
+        
+        # _coassoc
+        system.add(compose(D, DI), compose(D, ID))
+        
+        # Frobenius
+        system.add(compose(DI, IF), compose(F, D))
+        system.add(compose(ID, FI), compose(F, D))
+
+    mk_frobenius(system, D, E, F, G)
+    mk_frobenius(system, J, K, L, M)
+
+    #print(tensor(I, swap, I).shape)
+    #print(tensor(r_rr, r_rr).shape)
+    lhs = compose(tensor(r_rr, r_rr), tensor(I, swap, I))
+    lhs = compose(tensor(r_rr, r_rr), tensor(I, swap, I), tensor(gg_g, gg_g))
+    rhs = compose(gg_g, r_rr)
+    system.add(lhs, rhs)
+
+    system.add(compose(gg_g, r_), tensor(r_, r_))
+    system.add(compose(_g, r_rr), tensor(_g, _g))
+    system.add(compose(_g, r_), numpy.array([[1.]]))
+
+    system.add(compose(_r, r_rr, tensor(I, g_)), _g)
+    system.add(compose(_r, r_rr, tensor(g_, I)), _g)
+
+    system.add(compose(tensor(I, _r), gg_g, g_), r_)
+    system.add(compose(tensor(_r, I), gg_g, g_), r_)
+
+    inv = compose(tensor(I, r_cup), tensor(swap, I), tensor(I, g_cap))
+    if argv.inv:
+        print("inv")
+        system.add(compose(g_gg, tensor(I, inv), rr_r), compose(g_, _r))
+        system.add(compose(g_gg, tensor(inv, I), rr_r), compose(g_, _r))
+
+    print("py_func")
+
+    f = system.py_func()
+
+    trials = argv.get("trials", 100)
+    _seed = argv.get("seed")
+    if _seed is not None:
+        print("seed:", _seed)
+        numpy.random.seed(_seed)
+
+
+    values = system.root(maxiter=10000000)
+    if values is None:
+        assert 0
+
+    print()
+
+    D, E, F, G, J, K, L, M = values
+
+    g_gg = D
+    g_   = E
+    gg_g = F
+    _g   = G
+
+    r_rr = J
+    r_   = K
+    rr_r = L
+    _r   = M
+
+    print(r_rr)
+    print(rr_r)
+    print(g_gg)
+    print(gg_g)
+
+    print("commutative:")
+    print("r_rr", allclose(compose(r_rr, swap), r_rr))
+    print("g_gg", allclose(compose(g_gg, swap), g_gg))
+    print("rr_r", allclose(compose(swap, rr_r), rr_r))
+    print("gg_g", allclose(compose(swap, gg_g), gg_g))
+
+    r_cup = compose(_r, r_rr)
+    g_cup = compose(_g, g_gg)
+    g_cap = compose(gg_g, g_)
+    r_cap = compose(rr_r, r_)
+
+    assert allclose(compose(swap, g_cap), g_cap)
+    assert allclose(compose(swap, r_cap), r_cap)
+    assert allclose(compose(r_cup, swap), r_cup)
+    assert allclose(compose(g_cup, swap), g_cup)
+
+    inv = compose(tensor(I, r_cup), tensor(swap, I), tensor(I, g_cap))
+
+    return locals()
+
+    linv = compose(tensor(I, r_cup), tensor(swap, I), tensor(I, g_cap))
+    rinv = compose(tensor(r_cup, I), tensor(I, swap), tensor(g_cap, I))
+    print(allclose(linv, rinv, atol=1e-4))
+    inv = linv
+    print(inv)
+
+    lhs = compose(g_gg, tensor(I, inv), rr_r)
+    rhs = compose(g_, _r)
+    print(rhs)
+    print(lhs)
+    print(allclose(lhs, rhs, atol=1e-4))
+    lhs = compose(g_gg, tensor(inv, I), rr_r)
+    print(lhs)
+    print(allclose(lhs, rhs, atol=1e-4))
+    print()
+
+    lhs = compose(r_rr, tensor(I, inv), gg_g)
+    rhs = compose(r_, _g)
+    print(rhs)
+    print(lhs)
+    print(allclose(lhs, rhs, atol=1e-4))
+    lhs = compose(r_rr, tensor(inv, I), gg_g)
+    print(lhs)
+    print(allclose(lhs, rhs, atol=1e-4))
+    print()
 
 
 # -----------------------------------------------------------------------------
