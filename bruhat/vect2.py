@@ -1279,6 +1279,67 @@ def test_bialgebra():
 
     
 
+def test_frobeniator():
+
+    #ring = element.Z # too slow
+    class Ring(element.Type):
+        one = 1
+        zero = 0
+        @classmethod
+        def promote(cls, a):
+            return a
+    ring = Ring()
+
+    rig = Rig(ring)
+    N, K = rig.zero, rig.one
+
+    n = 2
+    n = Cell0(rig, n, "n")
+    one = Cell0(rig, 1, "i")
+    nn = n@n
+
+    I = Cell1.identity(n)
+    Unit = Cell1(n, one, [[K]]*n.n)
+    Counit = Unit.transpose
+    A = numpy.empty((nn.n, n.n), dtype=object)
+    for i in n:
+      for j in n:
+        for k in n:
+            space = K if i==j==k else N
+            A[i+j*n.n, k] = space
+    Comul = Cell1(nn, n, A)
+    #print(Comul)
+    Mul = Comul.transpose
+    #print(Mul)
+    #print((Mul << Comul).dimstr())
+
+    # unitor
+    src = Mul << (Unit @ I)
+    tgt = I
+    #print(src)
+    #print(tgt)
+    #print(src == tgt)
+    assert (src.dimstr() == tgt.dimstr())
+
+    # associator
+    src = (Comul @ I) << Comul
+    tgt = (I @ Comul) << Comul
+
+    # frobeniator
+    src = Comul << Mul
+    #print(src.dimstr())
+    tgt = (I @ Mul) << (Comul @ I)
+    #print(tgt.dimstr())
+
+    V = Cell1.rand(n, n, name="V")
+    print(V)
+    print(V.dimstr())
+    src = Comul << V
+    tgt = (V @ V) << Comul
+    print(src)
+    print(tgt)
+    #copy_V = Cell2(tgt, src, A)
+
 
 def test():
 

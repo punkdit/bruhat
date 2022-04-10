@@ -767,6 +767,22 @@ class Lin(object):
         lin = Lin(tgt, src, A)
         return lin
 
+    @staticmethod
+    def copy(src):
+        assert isinstance(src, Space)
+        n = src.n
+        tgt = src @ src
+        ring = src.ring
+        one = ring.one
+        A = elim.zeros(ring, tgt.n, src.n)
+        for i in range(n):
+         for j in range(n):
+          for k in range(n):
+            if i==j==k:
+                A[i + n*j, k] = 1
+        lin = Lin(tgt, src, A)
+        return lin
+
     def transpose(self):
         src, tgt = self.tgt, self.src
         A = self.A.transpose()

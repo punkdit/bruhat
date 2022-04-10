@@ -181,6 +181,16 @@ def main():
     #print(rr_r)
     #print(r_rr)
 
+    # unimodular
+    r_cup = _r >> r_rr
+    g_cap = gg_g >> g_
+    assert eq(r_cup >> (I @ g_), _g)
+    assert eq(r_cup >> (g_ @ I), _g)
+    assert eq((I @ _r) >> g_cap, r_)
+    assert eq((_r @ I) >> g_cap, r_)
+    assert eq(inv, (I @ r_cup) >> (swap @ I) >> (I @ g_cap))
+    assert eq(inv, (r_cup @ I) >> (I @ swap) >> (g_cap @ I))
+
     assert eq(r_rr >> rr_r, d*I)
     assert eq(g_gg >> gg_g, I) # special
 
