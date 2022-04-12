@@ -310,6 +310,24 @@ class Schreier(object):
                     words.append(w)
             bdy = _bdy
         return words
+
+    def find_words(self):
+        bdy = [0]
+        words = {0:()}
+        while bdy:
+            _bdy = []
+            for idx in bdy:
+                word = words[idx]
+                nbd = self.neighbors[idx]
+                for j, jdx in enumerate(nbd):
+                    if jdx is None:
+                        continue
+                    jdx = self.labels[jdx]
+                    if jdx not in words:
+                        _bdy.append(jdx)
+                        words[jdx] = (j,)+word
+            bdy = _bdy
+        return words
     
     def show(self):
         #    After this, the data structures contain the Schreier
