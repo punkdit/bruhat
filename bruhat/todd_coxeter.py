@@ -3,6 +3,7 @@
 """
 Build groups from presentations,
 and Schreier coset graphs using Todd-Coxeter algorithm.
+See also bruhat.o_todd_coxeter for an object oriented version.
 See also bruhat.hyperbolic
 
 
@@ -251,7 +252,6 @@ class Schreier(object):
                 if self.DEBUG:
                     self.dump()
             to_visit += 1
-            #assert len(neighbors)  < 60
             if maxsize and len(neighbors) > maxsize:
                 return False
         return True
@@ -447,6 +447,7 @@ def test():
     graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 6 # S_3
+    print(len(graph.labels))
     
     ngens = 3
     a, ai, b, bi, c, ci = range(2*ngens)
@@ -455,7 +456,8 @@ def test():
     graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 24 # S_4
-    
+    print(len(graph.labels))
+
     ngens = 4
     a, ai, b, bi, c, ci, d, di = range(2*ngens)
     rels = [ (ai, a), (bi, b), (c,ci), (d,di)]
@@ -463,6 +465,9 @@ def test():
     graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 1152 # F_4
+    print(len(graph.labels))
+    
+    return
     
     if argv.slow:
         ngens = 4
