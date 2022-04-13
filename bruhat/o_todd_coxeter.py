@@ -3,7 +3,12 @@
 """
 Object oriented version of todd_coxeter.py
 Somewhat slower...
+
+See also: https://jdbm.me/posts/2021-07-11-todd-coxeter/
+
 """
+
+import heapq
 
 from bruhat.argv import argv
 
@@ -39,6 +44,13 @@ class Word(object):
         assert other._send == other
         self._send = other
         #print("dosend", repr(self))
+
+    def __getitem__(self, idx):
+        group = self.group
+        return group.names[self.gens[idx]]
+
+    def __hash__(self):
+        return id(self)
         
     def __str__(self):
         names = self.group.names
@@ -49,8 +61,10 @@ class Word(object):
             self, self.send, ','.join(str(g) for g in self.mul))
 
     def __lt__(self, other):
-        lhs, rhs = self.gens, other.gens
-        return len(lhs)<len(rhs) or len(lhs)==len(rhs) and lhs<rhs
+        return self.group.lt_word(self, other)
+
+    def __le__(self, other):
+        return self==other or self < other
 
     def __mul__(self, other):
         assert isinstance(other, Word)
@@ -61,7 +75,7 @@ class Word(object):
                 gens = self.gens + (gen,)
                 word = Word(self.group, gens)
                 self.mul[gen] = word
-            self = word
+            self = word.send
         return self
 
     def __pow__(self, n):
@@ -90,11 +104,14 @@ class Group(object):
         #    assert str(w) != str(word)
         self.words.append(word)
 
+    def lt_word(self, lhs, rhs):
+        lhs, rhs = lhs.gens, rhs.gens
+        return len(lhs)<len(rhs) or len(lhs)==len(rhs) and lhs<rhs
+
     def follow_path(self, g, rel):
         for jdx in reversed(rel.gens):
             gen = self.gens[jdx]
             g = g*gen
-            g = g.send
         return g
 
     def unify(self, g, h):
@@ -130,9 +147,10 @@ class Group(object):
                     self.unify(h, g)
                     #assert g.send == h.send
             idx += 1
-            assert idx < 1000000
             if maxsize is not None and idx>=maxsize:
                 return False
+            else:
+                assert idx < 10000000
         return True
 
     def get(self):
@@ -140,41 +158,114 @@ class Group(object):
         return G
 
 
-def main():
 
-    G = Group(list("a"))
+class PriorityGroup(Group):
+    def __init__(self, names, lt_word=None):
+        Group.__init__(self, names)
+        if lt_word is not None:
+            self.lt_word = lt_word
+
+    def lt_word(self, lhs, rhs):
+        lhs, rhs = lhs.gens, rhs.gens
+        return len(lhs)<len(rhs) or len(lhs)==len(rhs) and lhs<rhs
+
+    def append(self, word):
+        words = self.words
+        heapq.heappush(words, word)
+
+    def build(self, rels, maxsize=None, maxcount=None):
+        I = self.I
+        for rel in rels:
+            self.unify(I, rel)
+        words = self.words
+        remain = []
+        count = 0
+        while words:
+            g = heapq.heappop(words)
+            count += 1
+            if g._send == g:
+                for rel in rels:
+                    h = self.follow_path(g, rel)
+                    self.unify(h, g)
+                if g._send == g:
+                    remain.append(g)
+                if maxsize and len(remain)>=maxsize:
+                    break
+            #if count % 10000 == 0:
+            #    print("[%d] -->" % len(remain), end="")
+            #    remain = [g for g in remain if g._send==g]
+            #    print("[%d]"%len(remain))
+            #assert len(words) < 100000
+            #if maxsize and len(words)>=maxsize:
+            #    break
+            if maxcount and maxcount <= count:
+                break
+        #else:
+        #    print("no words")
+        heapq.heapify(remain) # ?
+        self.words = remain
+        print("PriorityGroup.build: count =", count)
+
+    def filter(self, accept):
+        words = [g for g in self.words if accept(g)]
+        heapq.heapify(words)
+        self.words = words
+
+
+def test(builder):
+
+    G = builder(list("a"))
     a, = G.gens
     G.build([a*a])
-    assert len(G.get()) == 2
+    assert len(G.get()) == 2, len(G.get())
 
-    G = Group(list("ab"))
+    G = builder(list("ab"))
     a, b = G.gens
     G.build([a*a, b*b, a*b*a*b])
     assert len(G.get()) == 4, len(G.get())
 
-    G = Group("a ai b bi".split())
+    G = builder("a ai b bi".split())
     a, ai, b, bi = G.gens
     G.build([a*ai, b*bi, a*a, b*b, a*b*a*b*a*b])
     assert len(G.get()) == 6, len(G.get())
-    print(len(G.words))
 
-    G = Group("a ai b bi c ci".split())
+    G = builder("a ai b bi c ci".split())
     a, ai, b, bi, c, ci = G.gens
     G.build([
         a*ai, b*bi, c*ci, 
         a*a, b*b, c*c, 
         (a*b)**3, (a*c)**2, (b*c)**3])
     assert len(G.get()) == 24, len(G.get())
-    print(len(G.words))
 
-    G = Group("a ai b bi c ci d di".split())
+    G = builder("a ai b bi c ci d di".split())
     a, ai, b, bi, c, ci, d, di = G.gens
-    rels = [ (ai* a), (bi* b), (c*ci), (d*di)]
-    rels += [ (a*a), (b*b), (c*c), (d*d), (a*c)**2, (a*d)**2, 
+    rels = [ 
+        (ai* a), (bi* b), (c*ci), (d*di), 
+        (a*a), (b*b), (c*c), (d*d), (a*c)**2, (a*d)**2, 
         (b*d)**2, (a*b)**3, (b*c)**4, (c*d)**3 ]
     G.build(rels)
     assert len(G.get()) == 1152, len(G.get()) # F_4
-    print(len(G.words))
+
+    if argv.slow:
+        G = builder("a ai b bi c ci d di".split())
+        a, ai, b, bi, c, ci, d, di = G.gens
+        rels = [ 
+            (ai* a), (bi* b), (c*ci), (d*di),
+            (a*a), (b*b), (c*c), (d*d), 
+            (a*c)**2, (a*d)**2, (b*d)**2, (a*b)**5, (b*c)**3, (c*d)**3 ]
+        G.build(rels)
+        assert len(G.get()) == 14400 # H_4
+
+    G = builder("s si t ti".split())
+    s, si, t, ti = G.gens
+    rels = [(si* s), (s* s), (ti* t), (s*t)**3]
+    G.build(rels, maxsize=10000)
+    print(len(G.get()))
+
+
+def main():
+    #test(Group)
+    test(PriorityGroup)
 
 
 

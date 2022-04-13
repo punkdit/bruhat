@@ -467,8 +467,6 @@ def test():
     assert len(graph) == 1152 # F_4
     print(len(graph.labels))
     
-    return
-    
     if argv.slow:
         ngens = 4
         a, ai, b, bi, c, ci, d, di = range(2*ngens)
@@ -477,7 +475,9 @@ def test():
         graph = Schreier(2*ngens, rels)
         graph.build()
         assert len(graph) == 14400 # H_4
+        print(len(graph.labels))
     
+    #return
 
     # Klein Quartic
     rels = [ (ai, a), (bi, b), (a,)*3, (b,)*7, (a,b)*2 ]
