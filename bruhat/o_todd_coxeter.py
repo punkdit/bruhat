@@ -133,9 +133,12 @@ class Group(object):
                 elif hn is not None:
                     items.append((gn, hn))
 
-    def build(self, rels, maxsize=None):
+    def build(self, rels, hgens=[], maxsize=None):
         words = self.words
         #print(" ".join(str(g) for g in words))
+        I = self.I
+        for hgen in hgens:
+            self.unify(I, self.follow_path(I, hgen))
         idx = 0
         while idx < len(words):
             #print("idx =", idx)
@@ -173,10 +176,12 @@ class PriorityGroup(Group):
         words = self.words
         heapq.heappush(words, word)
 
-    def build(self, rels, maxsize=None, maxcount=None):
+    def build(self, rels, hgens=[], maxsize=None, maxcount=None):
         I = self.I
-        for rel in rels:
-            self.unify(I, rel)
+        #for rel in rels:
+        #    self.unify(I, rel)
+        for hgen in hgens:
+            self.unify(I, self.follow_path(I, hgen))
         words = self.words
         remain = []
         count = 0
@@ -260,12 +265,65 @@ def test(builder):
     s, si, t, ti = G.gens
     rels = [(si* s), (s* s), (ti* t), (s*t)**3]
     G.build(rels, maxsize=10000)
-    print(len(G.get()))
+    #print(len(G.get()))
+
+    # dodecahedron
+    G = builder("a ai b bi c ci".split())
+    a, ai, b, bi, c, ci = G.gens
+    rels = [
+        a*ai, b*bi, c*ci,
+        a*a, b*b, c*c,
+        (a*b)**3, (b*c)**5,
+        (a*c)**2,
+    ]
+    G.build(rels, maxsize=100000)
+    assert len(G.get()) == 120
+    
+    # Klein quartic
+    G = builder("a ai b bi c ci".split())
+    a, ai, b, bi, c, ci = G.gens
+    ab, bc, ac = a*b, a*c, b*c
+    rels = [
+        a*ai, b*bi, c*ci,
+        a*a, b*b, c*c,
+        ab**3, bc**7, ac**2,
+        (ab*bc*bc)**4,
+    ]
+    G.build(rels, maxsize=100000)
+    assert len(G.get()) == 336
+    
+
+    # a   b   c   d
+    # *-4-*-4-*-3-*
+    #
+    G = builder("a ai b bi c ci d di".split())
+    a, ai, b, bi, c, ci, d, di = G.gens
+    rels = [ 
+        (ai* a), (bi* b), (c*ci), (d*di),
+        (a*a), (b*b), (c*c), (d*d), 
+        (a*c)**2, (a*d)**2, (b*d)**2, (a*b)**4, (b*c)**4, (c*d)**3,
+    ]
+
+    G = builder("a ai b bi c ci".split())
+    a, ai, b, bi, c, ci,  = G.gens
+    rels = [ 
+        (ai* a), (bi* b), (c*ci), 
+        (a*a), (b*b), (c*c), 
+        (a*c)**2, (a*b)**4, (b*c)**4, 
+    ]
+
+    hrels = [
+        a*b*a*c*b*a*b*c*b*c,
+        b*a*c*b*c*b*a*b*c*a,
+    ]
+    result = G.build(rels, hrels, maxsize=100000)
+    print( len(G.get()) )
+    assert result
 
 
 def main():
-    #test(Group)
-    test(PriorityGroup)
+    test(Group)
+    #test(PriorityGroup)
 
 
 
