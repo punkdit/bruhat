@@ -50,6 +50,9 @@ class Type(object):
     def floordiv(self, a, b):
         raise TypeError("Not implemented: %s//%s for Type %s"%(a, b, self))
 
+    def conjugate(self, a):
+        raise TypeError("Not implemented for Type %s"%self)
+
     # etc...
 
 
@@ -194,6 +197,10 @@ class Element(Type):
         for i in range(n):
             p = self*p
         return p
+
+    def conjugate(self):
+        tp = self.tp
+        return tp.conjugate(self)
 
 
 class Keyed(object): # mixin, used for Type's

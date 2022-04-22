@@ -3,7 +3,7 @@
 """
 some quadratic number rings...
 
-See:
+Ref [1]
 https://www.cambridge.org/core/journals/canadian-journal-of-mathematics/article/quadratic-integers-and-coxeter-groups/CF262D475903A0104145D1294DA80EF9
 Quadratic Integers and Coxeter Groups
 1999 Norman W. Johnson and Asia Ivić Weiss
@@ -14,6 +14,7 @@ Quadratic Integers and Coxeter Groups
 from functools import total_ordering
 
 
+from bruhat.action import Perm, Group, burnside
 from bruhat.element import GenericElement, Ring
 from bruhat.lin import Space, Lin
 
@@ -75,6 +76,11 @@ class NumberRing(Ring):
         a, b = a.value, b.value
         return Number((a[0]%b[0], a[1]%b[1]), self)
 
+    def conjugate(self, element):
+        assert element.tp == self
+        a, b = element.value
+        return Number((a, -b), self)
+
     def i_find(self):
         yield self.zero
         one, i = self.one, self.i
@@ -113,6 +119,7 @@ class Number(GenericElement):
         else:
             s = "(%d+%d*i)"%(a, b)
             s = s.replace("+-", "-")
+        s = s.replace("-1*i", "-i")
         return s
 
     # choose some total_ordering ...
@@ -248,6 +255,13 @@ class QuotientRing(Ring):
         a = GenericElement(value, self)
         return a
 
+    def conjugate(self, element):
+        ring, ideal = self.ring, self.ideal
+        value = ring.conjugate(element.value)
+        value = ideal.reduce(value)
+        element = GenericElement(value, self)
+        return element
+
     def get_gl(self, V):
         assert V.n == 2, "todo.."
         lins = []
@@ -296,11 +310,163 @@ def mulclose(gen, verbose=False, maxsize=None):
     return ops
 
 
+def cayley(elements):
+    "build the regular permutation representation"
+    elements = list(elements)
+    items = list(range(len(elements)))
+    perms = []
+    for i, e in enumerate(elements):
+        perm = {}
+        for j, f in enumerate(elements):
+            g = e*f
+            k = elements.index(g)
+            perm[j] = k
+        perm = Perm(perm, items)
+        perms.append(perm)
+    G = Group(perms, items)
+    return G
+
+
+
+
+class Mobius(object):
+    """ 
+    Mobius transform (& conjugate's) over some ring...
+    """
+    def __init__(self, ring, a=1, b=0, c=0, d=1, conjugate=False):
+        assert isinstance(ring, Ring)
+        self.ring = ring
+        self.a = ring.promote(a)
+        self.b = ring.promote(b)
+        self.c = ring.promote(c)
+        self.d = ring.promote(d)
+        assert self.a is not None, repr(a)
+        assert self.b is not None, repr(b)
+        assert self.c is not None, repr(c)
+        assert self.d is not None, repr(d)
+        self.conjugate = conjugate
+
+    @property
+    def det(self):
+        a, b, c, d = (self.a, self.b, self.c, self.d)
+        return a*d - b*c
+
+    @property
+    def trace(self):
+        return self.a + self.d
+
+    def __eq__(g, h):
+        if g.conjugate != h.conjugate:
+            return False
+        if g.a==h.a and g.b==h.b and g.c==h.c and g.d==h.d:
+            return True
+        i = g.ring.i
+        for r in [-1, i, -i]:
+            if g.a==r*h.a and g.b==r*h.b and g.c==r*h.c and g.d==r*h.d:
+                return True
+        # XXX do this properly...
+        return False
+        assert 0, "todo"
+
+    def __str__(self):
+        flds = (self.a, self.b, self.c, self.d)
+        s = "<[[%s %s]\n  [%s %s]]>"%flds
+        if self.conjugate:
+            s = "*"+s
+        return s
+    __repr__ = __str__
+
+    def __mul__(g, h):
+        """
+        [[a b]  * [[a b]
+         [c d]]    [c d]]
+        """
+        # See ref. [1], eq (28)
+        assert g.ring == h.ring
+        conjugate = (g.conjugate != h.conjugate)
+        if g.conjugate == False:
+            a = g.a*h.a + g.b*h.c 
+            b = g.a*h.b + g.b*h.d 
+            c = g.c*h.a + g.d*h.c 
+            d = g.c*h.b + g.d*h.d 
+        else:
+            a = g.a*h.a.conjugate() + g.b*h.c.conjugate() 
+            b = g.a*h.b.conjugate() + g.b*h.d.conjugate() 
+            c = g.c*h.a.conjugate() + g.d*h.c.conjugate() 
+            d = g.c*h.b.conjugate() + g.d*h.d.conjugate() 
+        return Mobius(g.ring, a, b, c, d, conjugate)
+
+    def __getitem__(self, idx):
+        return (self.a, self.b, self.c, self.d)[idx]
+
+    def inv(self):
+        a, b, c, d = (self.a, self.b, self.c, self.d)
+        det = a*d - b*c
+        return Mobius(self.ring, d/det, -b/det, -c/det, a/det, self.conjugate)
+    __invert__ = inv
+
+    @classmethod
+    def conjugate(cls):
+        return Mobius(self.ring, 1, 0, 0, 1, True)
+
+#    def __call__(self, top, bot):
+#        a, b, c, d = (self.a, self.b, self.c, self.d)
+#        if z is None: # infinity
+#            top, bot = a, c
+#            if bot == 0:
+#                return None # infinity
+#            return top / bot
+#        z = self.ring.promote(z)
+#        if self.conjugate:
+#            z = z.conjugate()
+#        top, bot = (a*z + b), (c*z + d)
+#        if abs(bot) < EPSILON:
+#            return None # infinity
+#        w = top / bot
+#        return w
+
+#    @classmethod
+#    def _send(cls, p, q, r):
+#        # [1] pg 93
+#        top, bot = q-r, q-p
+#        g = Mobius(top, -p*top, bot, -r*bot)
+#        return g
+#
+#    @classmethod
+#    def send(cls, p0, q0, r0, p1, q1, r1):
+#        "Mobius transforms are triply transitive"
+#        g = cls._send(p0, q0, r0)
+#        h = cls._send(p1, q1, r1)
+#        return (~h)*g
+
+    def __pow__(g, e):
+        if e < 0:
+            return (~g).__pow__(-e) # recurse
+        op = Mobius()
+        for i in range(e):
+            op = g*op
+        return op
+
+    def order(g, maxorder=999):
+        I = Mobius(g.ring)
+        h = g
+        count = 1
+        while h != I:
+            h = g*h
+            assert h != g
+            count += 1
+            if count >= maxorder:
+                #assert 0, "infinite order?"
+                return None
+        return count
+
+
 
 def main():
 
     # ----------------------------
     # Gaussian integers
+
     R = NumberRing((-1, 0))
     one = R.one
     i = R.i
@@ -318,6 +484,24 @@ def main():
         items.append(i.__next__())
     items.sort()
     #print(' '.join(str(x) for x in items))
+
+    i = R.i
+    I = Mobius(R)
+    a = Mobius(R, 1, 0, 0, 1, True)
+    b = Mobius(R, i, 0, 0, 1, True)
+    c = Mobius(R, -1, 0, 1, 1, True)
+    d = Mobius(R, 0, 1, 1, 0, True)
+    gens = [a, b, c, d]
+
+    # Coxeter group: a--4--b--4--c--3--d
+    for g in gens:
+        assert g.order() == 2
+    assert (a*b).order() == 4
+    assert (a*c).order() == 2
+    assert (a*d).order() == 2
+    assert (b*c).order() == 4
+    #assert (b*d).order() == 2 # == 4 not projective XXX
+    assert (c*d).order() == 3
 
     # ----------------------------
     # Eisenstein integers
@@ -366,18 +550,37 @@ def main():
     G = mulclose(gen)
     assert len(G) == 120
 
+    i = S.i
+    I = Mobius(S)
+    a = Mobius(S, 1, 0, 0, 1, True)
+    b = Mobius(S, i, 0, 0, 1, True)
+    c = Mobius(S, -1, 0, 1, 1, True)
+    d = Mobius(S, 0, 1, 1, 0, True)
+    gens = [a*b, b*c, c*d]
+
+#    for g in gens:
+#        print(g)
+#        print(g.order())
+
+    a = Mobius(S, -i, 0, 0, 1)
+    b = Mobius(S, -i, 0, i, 1)
+    c = Mobius(S, 1, 1, -1, 0)
+
+    gens = [a, b, c]
+    assert a.order() == 4
+    assert b.order() == 4
+    assert c.order() == 3
+    
+    G = mulclose(gens)
+    print(len(G))
+    G = cayley(G)
+
+    burnside(G)
 
 
 if __name__ == "__main__":
 
     main()
-
-
-
-
-
-
-
 
 
 
