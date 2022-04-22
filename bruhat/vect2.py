@@ -18,7 +18,7 @@ import numpy
 
 from bruhat import element
 from bruhat import elim
-from bruhat.chain import Space, Lin, AddSpace, MulSpace
+from bruhat.lin import Space, Lin, AddSpace, MulSpace
 from bruhat.argv import argv
 
 def array(A, cols=None):
@@ -139,7 +139,7 @@ class Cell0(object):
 
 #    # __eq__ is object identity.
 #    # __add__, __matmul__ for (bi-)monoidal structure
-#    # See: chain.Space 
+#    # See: lin.Space 
 #    # XXX i think this is silly... should at least make __add__ strict
 #
 #    def __add__(self, other):

@@ -2,6 +2,12 @@
 
 """
 some quadratic number rings...
+
+See:
+https://www.cambridge.org/core/journals/canadian-journal-of-mathematics/article/quadratic-integers-and-coxeter-groups/CF262D475903A0104145D1294DA80EF9
+Quadratic Integers and Coxeter Groups
+1999 Norman W. Johnson and Asia Ivić Weiss
+
 """
 
 
@@ -9,6 +15,11 @@ from functools import total_ordering
 
 
 from bruhat.element import GenericElement, Ring
+from bruhat.lin import Space, Lin
+
+
+
+
 
 class NumberRing(Ring):
     def __init__(self, reduct=(-1, 0)):
@@ -97,8 +108,11 @@ class Number(GenericElement):
         a, b = self.value
         if b==0:
             s = str(a)
+        elif a==0:
+            s = "%d*i"%b
         else:
             s = "(%d+%d*i)"%(a, b)
+            s = s.replace("+-", "-")
         return s
 
     # choose some total_ordering ...
@@ -176,6 +190,22 @@ class QuotientRing(Ring):
         self.zero = GenericElement(ring.zero, self) # wrapped
         self.i = GenericElement(ring.i, self) # wrapped
 
+        # let's hope it's finite and not too big.
+        self.items = self._get_items()
+
+    def _get_items(self, N=5):
+        one, i = self.one, self.i
+        items = set()
+        for i in range(-N, N):
+          for j in range(-N, N):
+            items.add(i*one + j*i)
+        items = list(items)
+        items.sort(key=str)
+        return items
+
+    def __getitem__(self, i):
+        return self.items[i]
+
     def promote(self, a):
         ring = self.ring
         if isinstance(a, GenericElement):
@@ -218,7 +248,52 @@ class QuotientRing(Ring):
         a = GenericElement(value, self)
         return a
 
+    def get_gl(self, V):
+        assert V.n == 2, "todo.."
+        lins = []
+        for a in self:
+         for b in self:
+          for c in self:
+           for d in self:
+               if a*d-b*c != 0:
+                   f = Lin(V, V, [[a, b], [c, d]])
+                   lins.append(f)
+        return lins
 
+    def get_sl(self, V):
+        assert V.n == 2, "todo.."
+        lins = []
+        for a in self:
+         for b in self:
+          for c in self:
+           for d in self:
+               if a*d-b*c == 1:
+                   f = Lin(V, V, [[a, b], [c, d]])
+                   lins.append(f)
+        return lins
+
+
+# does not need hashable operators
+def mulclose(gen, verbose=False, maxsize=None):
+    ops = list(gen)
+    bdy = gen
+    while bdy:
+        _bdy = []
+        for g in bdy:
+            for h in gen:
+                k = g*h
+                for j in ops:
+                    if j==k:
+                        break
+                else:
+                    ops.append(k)
+                    _bdy.append(k)
+        bdy = _bdy
+        if verbose:
+            print("mulclose:", len(ops))
+        if maxsize and len(ops) >= maxsize:
+            break
+    return ops
 
 
 
@@ -268,18 +343,28 @@ def main():
     I = Ideal(R, 2-R.i)
     S = R/I
 
-    one, i = S.one, S.i
+    zero, one, i = S.zero, S.one, S.i
     
     assert 1+i != 0
     assert 2-i == 0
     assert 2+i != 0
     assert 1-i == 2+i
 
-    items = set()
-    for i in range(-5, 5):
-      for j in range(-5, 5):
-        items.add(i*one + j*i)
-    assert len(items) == 5
+    V = Space(S, 2)
+    SL = S.get_sl(V)
+    GL = S.get_gl(V)
+
+    def lin(a, b, c, d):
+        a = S.promote(a)
+        b = S.promote(b)
+        c = S.promote(c)
+        d = S.promote(d)
+        return Lin(V, V, [[a, b], [c, d]])
+        
+    # generators for SL
+    gen = lin(0, 1, -1, 0), lin(1, 0, 1, 1), lin(1, 0, i, 1)
+    G = mulclose(gen)
+    assert len(G) == 120
 
 
 
