@@ -2469,7 +2469,7 @@ def burnside(G, Hs=None):
             else:
                 print("    %s -> %s;" % (src, tgt))
         print("}")
-        return
+        #return
 
     if 0:
         # We don't need to do this again: isomorphic homs all

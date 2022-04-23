@@ -14,10 +14,11 @@ Quadratic Integers and Coxeter Groups
 from functools import total_ordering
 
 
-from bruhat.action import Perm, Group, burnside
+#from bruhat.action import Perm, Group, burnside
+from bruhat.gset import Perm, Group
 from bruhat.element import GenericElement, Ring
 from bruhat.lin import Space, Lin
-
+from argv import argv
 
 
 
@@ -114,12 +115,15 @@ class Number(GenericElement):
         a, b = self.value
         if b==0:
             s = str(a)
+        elif a==0 and b==1:
+            s = "i"
+        elif a==0 and b==-1:
+            s = "-i"
         elif a==0:
             s = "%d*i"%b
         else:
             s = "(%d+%d*i)"%(a, b)
             s = s.replace("+-", "-")
-        s = s.replace("-1*i", "-i")
         return s
 
     # choose some total_ordering ...
@@ -149,6 +153,8 @@ class Ideal(object):
     "_principle ideal"
     def __init__(self, ring, a):
         assert isinstance(ring, NumberRing)
+        a = ring.promote(a)
+        assert a is not None
         assert a.tp == ring
         self.ring = ring
         #assert a.value[0]>0 and a.value[1]>0
@@ -287,46 +293,6 @@ class QuotientRing(Ring):
         return lins
 
 
-# does not need hashable operators
-def mulclose(gen, verbose=False, maxsize=None):
-    ops = list(gen)
-    bdy = gen
-    while bdy:
-        _bdy = []
-        for g in bdy:
-            for h in gen:
-                k = g*h
-                for j in ops:
-                    if j==k:
-                        break
-                else:
-                    ops.append(k)
-                    _bdy.append(k)
-        bdy = _bdy
-        if verbose:
-            print("mulclose:", len(ops))
-        if maxsize and len(ops) >= maxsize:
-            break
-    return ops
-
-
-def cayley(elements):
-    "build the regular permutation representation"
-    elements = list(elements)
-    items = list(range(len(elements)))
-    perms = []
-    for i, e in enumerate(elements):
-        perm = {}
-        for j, f in enumerate(elements):
-            g = e*f
-            k = elements.index(g)
-            perm[j] = k
-        perm = Perm(perm, items)
-        perms.append(perm)
-    G = Group(perms, items)
-    return G
-
-
 
 
 class Mobius(object):
@@ -345,6 +311,7 @@ class Mobius(object):
         assert self.c is not None, repr(c)
         assert self.d is not None, repr(d)
         self.conjugate = conjugate
+        self._key = None
 
     @property
     def det(self):
@@ -355,7 +322,26 @@ class Mobius(object):
     def trace(self):
         return self.a + self.d
 
+    def key(self):
+        if self._key:
+            return self._key
+        a, b, c, d = (self.a, self.b, self.c, self.d)
+        key = []
+        i = self.ring.i
+        for r in [1, i, -1, -i]:
+            item = str((r*a, r*b, r*c, r*d))
+            key.append(item)
+        key.sort()
+        key.append(self.conjugate)
+        key = tuple(key)
+        self._key = key
+        return key
+
+    def __hash__(self):
+        return hash(self.key())
+
     def __eq__(g, h):
+        return g.key() == h.key()
         if g.conjugate != h.conjugate:
             return False
         if g.a==h.a and g.b==h.b and g.c==h.c and g.d==h.d:
@@ -460,6 +446,58 @@ class Mobius(object):
                 return None
         return count
 
+# does not need hashable operators
+def mulclose(gen, verbose=False, maxsize=None):
+    ops = list(gen)
+    bdy = gen
+    while bdy:
+        _bdy = []
+        for g in bdy:
+            for h in gen:
+                k = g*h
+                for j in ops:
+                    if j==k:
+                        break
+                else:
+                    ops.append(k)
+                    _bdy.append(k)
+        bdy = _bdy
+        if verbose:
+            print("mulclose:", len(ops))
+        if maxsize and len(ops) >= maxsize:
+            break
+    return ops
+
+
+def cayley(elements):
+    "build the regular permutation representation"
+    elements = list(elements)
+    lookup = dict((g, idx) for (idx, g) in enumerate(elements))
+    assert len(lookup)==len(elements)
+    perms = []
+    for e in elements:
+        perm = []
+        for f in elements:
+            g = e*f
+            k = lookup[g]
+            perm.append(k)
+        assert len(set(perm)) == len(perm)
+        perm = Perm(perm)
+        perms.append(perm)
+    G = Group(perms)
+    hom = dict(zip(elements, G))
+    #for g in elements:
+    #  for h in elements:
+    #    gh = g*h
+    #    if hom[gh] == hom[g]*hom[h]:
+    #        continue
+    #    print(g)
+    #    print(h)
+    #    print(gh)
+    #    assert 0
+    return G, hom
+
+
 
 
 def main():
@@ -485,6 +523,7 @@ def main():
     items.sort()
     #print(' '.join(str(x) for x in items))
 
+    # reflection group
     i = R.i
     I = Mobius(R)
     a = Mobius(R, 1, 0, 0, 1, True)
@@ -493,15 +532,33 @@ def main():
     d = Mobius(R, 0, 1, 1, 0, True)
     gens = [a, b, c, d]
 
-    # Coxeter group: a--4--b--4--c--3--d
+    if 0:
+        # yes, works...
+        G = mulclose(gens, maxsize=100)
+        for f in G:
+         for g in G:
+          for h in G:
+            assert f*(g*h) == (f*g)*h
+        return
+
+    # Coxeter reflection group: a--4--b--4--c--3--d
     for g in gens:
         assert g.order() == 2
     assert (a*b).order() == 4
     assert (a*c).order() == 2
     assert (a*d).order() == 2
     assert (b*c).order() == 4
-    #assert (b*d).order() == 2 # == 4 not projective XXX
+    assert (b*d).order() == 2
     assert (c*d).order() == 3
+
+    # rotation group
+    a = Mobius(R, -i, 0, 0, 1)
+    b = Mobius(R, -i, 0, i, 1)
+    c = Mobius(R, 1, 1, -1, 0)
+
+    assert a.order() == 4
+    assert b.order() == 4
+    assert c.order() == 3
 
     # ----------------------------
     # Eisenstein integers
@@ -552,16 +609,56 @@ def main():
 
     i = S.i
     I = Mobius(S)
-    a = Mobius(S, 1, 0, 0, 1, True)
-    b = Mobius(S, i, 0, 0, 1, True)
-    c = Mobius(S, -1, 0, 1, 1, True)
-    d = Mobius(S, 0, 1, 1, 0, True)
-    gens = [a*b, b*c, c*d]
 
-#    for g in gens:
-#        print(g)
-#        print(g.order())
+    if 0:
+        # This just does not work over S
+        a = Mobius(S, 1, 0, 0, 1, True)
+        b = Mobius(S, i, 0, 0, 1, True)
+        c = Mobius(S, -1, 0, 1, 1, True)
+        d = Mobius(S, 0, 1, 1, 0, True)
+        gens = [a, b, c, d]
+        G = mulclose(gens)
+        inv = {}
+        for g in G:
+          for h in G:
+            if g*h == I:
+                inv[g] = h
+                inv[h] = g
+            assert (g==h) == (hash(g)==hash(h))
+            for f in G:
+                print(g)
+                print(h)
+                print(f)
+                assert (g*h)*f == g*(h*f)
+                print()
+        assert len(G) == 240
+        return
+    
+        G, hom = cayley(G)
+        assert len(G) == 240
+        G.do_check()
+    
+        return
 
+        # rotation group
+        gens = [a*b, b*c, c*d]
+
+
+def test_gaussian():
+    # ----------------------------
+
+    from bruhat.action import mulclose
+
+    R = NumberRing((-1, 0))
+    z = 2+3*R.i # |G| = 2184
+    z = 3*R.one # |G| = 720
+    z = 2+1*R.i # |G| = 120
+    #z = -1+R.i # fail
+    I = Ideal(R, z)
+    S = R/I
+
+    zero, one, i = S.zero, S.one, S.i
+    
     a = Mobius(S, -i, 0, 0, 1)
     b = Mobius(S, -i, 0, i, 1)
     c = Mobius(S, 1, 1, -1, 0)
@@ -570,17 +667,50 @@ def main():
     assert a.order() == 4
     assert b.order() == 4
     assert c.order() == 3
+
+    #print((a*b).order()) # == 2
+    #print((b*a).order()) # == 2
     
     G = mulclose(gens)
+    #assert len(G) == 120, len(G)
     print(len(G))
-    G = cayley(G)
+    #a, b, c = G[:3]
+    #assert a.order() == 4
+    #assert b.order() == 4
+    #assert c.order() == 3
 
-    burnside(G)
+    G, hom = cayley(G)
+    a, b, c = hom[a], hom[b], hom[c]
+    assert a.order() == 4
+    assert b.order() == 4
+    assert c.order() == 3
+
+    H = Group.generate([a, b])
+    print(len(H), len(G)//len(H))
+
+    if argv.cayley_graph:
+        import string
+        names = dict(zip(H, string.ascii_lowercase[:len(H)]))
+        f = open("cayley_graph.dot", "w")
+        print("digraph\n{\n", file=f)
+        for g in H:
+            print("    %s -> %s [color=red];"% (names[g], names[a*g]), file=f)
+            print("    %s -> %s [color=green];"% (names[g], names[b*g]), file=f)
+        print("}", file=f)
+        f.close()
+
+    #H = Group.generate([c])
+    #o_edges = G.left_cosets(H)
+    #print(len(o_edges))
+
+    if argv.burnside:
+        burnside(G)
 
 
 if __name__ == "__main__":
 
     main()
+    test_gaussian()
 
 
 
