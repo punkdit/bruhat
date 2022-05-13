@@ -577,7 +577,10 @@ class Group(object):
 
     def subgroups(self, verbose=False):
         if self._subgroups is not None:
-            return list(self._subgroups)
+            #return list(self._subgroups)
+            for H in self._subgroups:
+                yield H
+            return
         I = self.identity
         trivial = Group([I])
         cyclic = self.cyclic_subgroups()
@@ -587,6 +590,8 @@ class Group(object):
         items = set(cyclic)
         items.add(trivial)
         items.add(self)
+        for H in items:
+            yield H
         bdy = set(G for G in cyclic if len(G)<n)
         while bdy:
             _bdy = set()
@@ -602,6 +607,7 @@ class Group(object):
                     perms = mulclose(perms)
                     K = Group(perms)
                     if K not in items:
+                        yield K
                         _bdy.add(K)
                         items.add(K)
                         if verbose:
@@ -615,9 +621,28 @@ class Group(object):
         if verbose:
             print()
         items = list(items)
-        items.sort(key = len)
+        #items.sort(key = len)
         self._subgroups = items
-        return list(items)
+        #return list(items)
+
+    def conjugate(G, g):
+        gi = ~g
+        perms = [g*h*gi for h in G]
+        return Group(perms)
+
+    def is_normal(G, H):
+        for g in G:
+            if H.conjugate(g) != H:
+                return False
+        return True
+
+    def is_simple(G):
+        for H in G.subgroups():
+            if len(H)==1 or len(H)==len(G):
+                continue
+            if G.is_normal(H):
+                return False
+        return True
 
     def intersect(G, H):
         G = set(G.lookup.keys())
@@ -1298,6 +1323,7 @@ def test_subgroups():
     assert len(G.cyclic_subgroups()) == 6 # 1, 2, 3, 4, 6, 12
 
     G = Group.symmetric(4)
+    assert not G.is_simple()
 
     orders = []
     for H in G.subgroups():
@@ -1311,6 +1337,11 @@ def test_subgroups():
     assert orders.count(3) == 4
     assert orders.count(2) == 6+3
     assert orders.count(1) == 1
+
+    G = Group.cyclic(6)
+    for H in G.subgroups():
+        assert G.is_normal(H)
+    assert not G.is_simple()
 
     print("OK")
 
@@ -1449,7 +1480,7 @@ def main():
 
 def test():
     test_set()
-    test_gset()
+    #test_gset()
     test_subgroups()
     test_homology()
 

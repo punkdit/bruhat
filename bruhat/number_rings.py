@@ -262,6 +262,7 @@ class QuotientRing(Ring):
         return a
 
     def conjugate(self, element):
+        assert 0, "don't do this...!"
         ring, ideal = self.ring, self.ideal
         value = ring.conjugate(element.value)
         value = ideal.reduce(value)
@@ -685,10 +686,10 @@ def test_gaussian():
     assert b.order() == 4
     assert c.order() == 3
 
-    H = Group.generate([a, b])
-    print(len(H), len(G)//len(H))
+    def make_cayley(a, b):
+        H = Group.generate([a, b])
+        print(len(H), len(G)//len(H))
 
-    if argv.cayley_graph:
         import string
         names = dict(zip(H, string.ascii_lowercase[:len(H)]))
         f = open("cayley_graph.dot", "w")
@@ -699,12 +700,27 @@ def test_gaussian():
         print("}", file=f)
         f.close()
 
+    if argv.cayley_graph:
+        #make_cayley(a, b)
+        make_cayley(c, b)
+
+    if 0:
+        H = Group.generate([b, c])
+        gset = G.action_subgroup(H)
+        print(gset.get_orbits())
+
     #H = Group.generate([c])
     #o_edges = G.left_cosets(H)
     #print(len(o_edges))
 
     if argv.burnside:
         burnside(G)
+
+    for H in G.subgroups():
+        if len(H)==60:
+            assert H.is_simple()
+            break
+
 
 
 if __name__ == "__main__":

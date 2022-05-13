@@ -14,12 +14,6 @@ from functools import reduce
 from operator import mul
 import cmath
 
-from huygens import config
-config(text="pdflatex", latex_header=r"""
-\usepackage{amsmath}
-\usepackage{amssymb}
-""")
-
 from huygens.namespace import *
 
 from bruhat.mobius import Mobius, mktriangle, mulclose, d_poincare
@@ -154,12 +148,13 @@ class LineGeodesic(Geodesic):
 
 class Disc(object):
 
-    def __init__(self, cvs=None, z_center=1j):
+    def __init__(self, cvs=None, z_center=1j, scale=5.0, bg=white):
         self.g_center = Mobius.cayley(z_center) * ~Mobius.cayley()
         if cvs is None:
             cvs = Canvas()
-        cvs.append(Scale(5.0))
-        cvs.fill(path.rect(-1, -1, 2, 2), [white])
+        cvs.append(Scale(scale))
+        if bg is not None:
+            cvs.fill(path.rect(-1, -1, 2, 2), [bg])
         self.cvs = cvs
 
     def show_fixed(self, g):
@@ -840,6 +835,12 @@ def main_bring():
 
 
 if __name__ == "__main__":
+    from huygens import config
+    config(text="pdflatex", latex_header=r"""
+    \usepackage{amsmath}
+    \usepackage{amssymb}
+    """)
+
     from bruhat.argv import argv
     name = argv.next() or "main"
     fn = eval(name)
