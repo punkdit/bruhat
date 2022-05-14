@@ -580,6 +580,16 @@ def main():
     assert i * (1+i) == -2
 
     # ----------------------------
+    # Golden (Fibonacci) integers
+    R = NumberRing((1, 1))
+    one = R.one
+    i = R.i
+
+    assert i**2 == i + 1
+    assert i**3 == 2*i + 1
+    assert i**4 == 3*i + 2
+
+    # ----------------------------
 
     R = NumberRing((-1, 0))
     I = Ideal(R, 2-R.i)
