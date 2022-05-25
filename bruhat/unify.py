@@ -2,9 +2,15 @@
 
 """
 Minimal theorem proving using term unification...
+
+Failures:
+    tried to use __eq__ for Expr's to denote boolean equality Op( ),
+    but == operator precedence is too low, it's impossible to
+    get this right "a==b & b==c" it get's turned into a chain of
+    equality tests: "a==(b&b)==c" and then "a==b&b and b&b==c" which
+    cannot be overloaded because of the "and".
 """
 
-from argv import argv
 
 
 
@@ -22,17 +28,20 @@ class Expr(object):
         if isinstance(other, Sequent):
             return Sequent([self]) == other # yikes
         assert isinstance(other, Expr)
-        return Op.eq(self, other)
+        return eq(self, other)
 
     def __eq__(self, other):
-        assert 0, "fail"
+        return self.key == other.key
+
+    def __hash__(self):
+        return hash(self.key)
 
     def __mul__(self, other):
-        return Op.mul(self, other)
+        return mul(self, other)
 
-    def then(self, other):
+    def then(self, other, comment=""):
         assert isinstance(other, Expr)
-        return Sequent([self], other)
+        return Sequent([self], other, comment)
 
     @staticmethod
     def unify(lhs, rhs, depth=0):
@@ -93,8 +102,8 @@ class Op(object):
         assert len(args) == self.arity, "%s%s fail" % (self, args)
         return Apply(self, *args)
 
-Op.eq = Op("==", 2, True)
-Op.mul = Op("*", 2, True)
+eq = Op("==", 2, True)
+mul = Op("*", 2, True)
 
 
 class Apply(Expr):
@@ -109,9 +118,10 @@ class Apply(Expr):
         op = self.op
         if op.arity==0:
             return op.name
-        elif op.infix:
-            assert op.arity == 2
+        elif op.arity==2 and op.infix:
             s = "(%s%s%s)"%(self.args[0], op, self.args[1])
+        elif op.arity==1 and op.infix:
+            s = "%s.%s"%(self.args[0], op,)
         else:
             s = "%s(%s)"%(op, ', '.join(str(a) for a in self.args))
         return s
@@ -120,10 +130,10 @@ class Apply(Expr):
     def __eq__(self, other):
         assert 0
 
-    def getvars(self):
+    def all_vars(self):
         vs = set()
         for arg in self.args:
-            vs.update(arg.getvars())
+            vs.update(arg.all_vars())
         return vs
 
     def find(self, v):
@@ -139,35 +149,13 @@ class Apply(Expr):
         return op(*args)
 
 
-class Type(object):
-    def __init__(self, name):
-        self.name = name
-        self.has = Op("%s.has"%name, 1) # unary Op, membership
-        self.ns = {} # _namespace
-
-    def __str__(self):
-        return self.name
-
-    def __getattr__(self, name):
-        assert name[:2] != "__", name
-        ns = self.ns
-        v = ns.get(name)
-        if v is None:
-            v = Variable(name)
-            ns[name] = v
-        return v
-
-    def const(self, name):
-        return Op(name, 0)()
-
-
 class Variable(Expr):
-    unopcache = {} # 
-    def __init__(self, name, tp=None):
+    def __init__(self, name, tp):
         assert type(name) is str
         self.name = name
         self.tp = tp
-        key = name
+        #key = (tp, name) # we don't need to be this strict.. ??
+        key = name 
         Expr.__init__(self, key)
 
     def __str__(self):
@@ -176,20 +164,10 @@ class Variable(Expr):
 
     def __getattr__(self, name):
         assert name[:2] != "__", name
-        op = self.unopcache.get(name)
-        if op is None:
-            op = Op(name, 1)
-            self.unopcache[name] = op
+        op = self.tp.get_op(name, 1, infix=True, partial=True)
         return op(self)
 
-#    def __eq__(self, other):
-#        assert isinstance(other, Expr)
-#        if self.tp is None:
-#            assert 0
-#            return NotImplemented
-#        return self.tp.eq(other)
-
-    def getvars(self):
+    def all_vars(self):
         return {self.name}
 
     def find(self, v):
@@ -201,7 +179,7 @@ class Variable(Expr):
 
 
 class Sequent(object):
-    def __init__(self, items=[], rhs=None):
+    def __init__(self, items=[], rhs=None, comment=""):
         # XXX use another class when rhs is None ???
         assert rhs is None or isinstance(rhs, Expr)
         for expr in items:
@@ -214,6 +192,7 @@ class Sequent(object):
         items = tuple(items)
         rhs = rhs.key if rhs is not None else None
         self.key = (items, rhs)
+        self.comment = comment
 
     def __and__(self, other):
         assert self.rhs is None
@@ -223,23 +202,23 @@ class Sequent(object):
         assert isinstance(other, Expr)
         return Sequent(self.items + [other])
 
-    def then(self, other):
+    def then(self, other, comment=""):
         assert isinstance(other, Expr)
         assert self.rhs is None, str(self)
-        return Sequent(self.items, other)
+        return Sequent(self.items, other, comment)
 
-    def __eq__(self, other):
-        # Crazy hack to get __eq__ to re-associate !
-        # See: https://docs.python.org/3/reference/expressions.html#operator-precedence
-        if isinstance(other, Expr):
-            other = Sequent([other])
-        assert self.rhs is None
-        assert other.rhs is None
-        lhs = self.items
-        rhs = other.items
-        assert len(lhs)
-        assert len(rhs)
-        return Sequent(lhs[:-1] + [lhs[-1]==rhs[0]] + rhs[1:])
+#    def __eq__(self, other):
+#        # Crazy hack to get __eq__ to re-associate !
+#        # See: https://docs.python.org/3/reference/expressions.html#operator-precedence
+#        if isinstance(other, Expr):
+#            other = Sequent([other])
+#        assert self.rhs is None
+#        assert other.rhs is None
+#        lhs = self.items
+#        rhs = other.items
+#        assert len(lhs)
+#        assert len(rhs)
+#        return Sequent(lhs[:-1] + [lhs[-1]==rhs[0]] + rhs[1:])
 
     #def __hash__(self):
     #    return hash(self.key)
@@ -247,44 +226,87 @@ class Sequent(object):
     def __str__(self):
         items = ','.join(str(e) for e in self.items)
         s = "%s ⊢ %s"%(items, self.rhs)
+        if self.comment:
+            s = s + " # " + self.comment
         return s
 
+yes = Sequent()
+always = yes.then
 
-#class Type(object):
-#    def __init__(self, seqs=[]):
-#        self.seqs = list(seqs)
-#        has = Op("has", 1)
-#        eq = Op("eq", 2)
-#        a, b, c = [Variable(v) for v in 'abc']
-#        self.append( Sequent([has(a)], eq(a, a)) )
-#        self.append( Sequent([has(a), has(b), eq(a, b)], eq(b, a)) )
-#        self.append( Sequent([has(a), has(b), has(c), eq(a, b), eq(b, c)], eq(a, c)) )
-#        self.has = has
-#        self.eq = eq
-#
-##    def has(self, var):
-##        return self.op(var)
-#
-#    def append(self, seq):
-#        self.seqs.append(seq)
-#
-#
-#class Monoid(Type):
-#    def __init__(self):
-#        Type.__init__(self)
-#        mul = Op("mul", 2)
-#        one = Op("one", 0)()
-#        has = self.has
-#        eq = self.eq
-#        f, g, h = [Variable(v) for v in 'fgh']
-#        self.append( Sequent([], has(one)) )
-#        self.append( Sequent([has(f), has(g)], has(mul(f, g))) )
-#        self.append( Sequent([has(f), has(g), has(h)], eq( mul(f, mul(g, h)), mul(mul(f, g), h))) )
-#        self.append( Sequent([has(f)], eq(f, mul(1, f))) )
-#        self.append( Sequent([has(f)], eq(f, mul(f, 1))) )
-#    
 
-        
+class Type(object):
+    def __init__(self, name):
+        self.name = name
+        self.has = Op("%s.has"%name, 1) # unary Op, membership
+        self.vars = {} # _namespace for Variable's
+        self.ops = {}
+        self.axioms = []
+        self.add_equality()
+
+    def add(self, seq):
+        self.axioms.append(seq)
+
+    def add_equality(tp):
+        a, b, c = tp.a, tp.b, tp.c
+        tp.add( tp.has(a).then(a.eq(a), "(eq-reflexive)") )
+        tp.add( (tp.has(a) & tp.has(b) & a.eq(b)).then(b.eq(a), "(eq-symmetric)") )
+        tp.add( (tp.has(a) & tp.has(b) & tp.has(c) & a.eq(b) & b.eq(c)).then(a.eq(c), "(eq-transitive)") )
+
+    def add_extensive(self, op):
+        if op.arity==0:
+            return # these are already extensive 
+        # extensivity of eq
+        lhs = yes
+        us = [self.get_var("u_%d"%i) for i in range(op.arity)]
+        vs = [self.get_var("v_%d"%i) for i in range(op.arity)]
+        for u,v in zip(us, vs):
+            lhs = lhs & self.has(v) & self.has(u) & eq(u, v)
+        self.add( lhs.then( eq(op(*vs), op(*us)), "(%s-eq-extensive)"%op.name ) )
+
+    def add_op(self, op, partial=False):
+        assert isinstance(op, Op)
+
+        if not partial:
+            vs = [self.get_var("v_%d"%i) for i in range(op.arity)]
+            lhs = yes
+            for v in vs:
+                lhs = lhs & self.has(v)
+            self.add( lhs.then( self.has(op(*vs)), "(%s-endo)"%op.name ) )
+        self.add_extensive(op)
+
+    def __str__(self):
+        return self.name
+
+    def get_var(self, name):
+        assert name[:2] != "__", name
+        ns = self.vars
+        v = ns.get(name)
+        if v is None:
+            v = Variable(name, self)
+            ns[name] = v
+        return v
+    __getattr__ = get_var
+
+    def get_op(self, name, arity=0, infix=False, partial=False):
+        ops = self.ops
+        if name in ops:
+            op = ops[name]
+            assert op.arity == arity
+            return op
+        op = Op(name, arity, infix)
+        ops[name] = op
+        self.add_op(op, partial)
+        return op
+
+    def const(self, name):
+        op = self.get_op(name)
+        return op()
+
+    def dump(self):
+        print("%s:"%self.name)
+        for seq in self.axioms:
+            print("\t%s"%seq)
+
 
 def main():
 
@@ -294,6 +316,8 @@ def main():
 
     w, x, y, z = tp.w, tp.x, tp.y, tp.z
 
+    assert repr(w) == 'w'
+
     f = Op("f", 3)
     g = Op("g", 1)
 
@@ -301,10 +325,10 @@ def main():
     rhs = f(x, y, w)
 
     assert str(lhs) == "f(x, y, g(z))"
-    assert lhs.getvars() == set("xyz")
+    assert lhs.all_vars() == set("xyz")
 
     send = Expr.unify(lhs, rhs)
-    assert str(send) == "{'w': g(z)}"
+    assert str(send) == "{'w': g(z)}", str(send)
 
     send = Expr.unify(x, g(x))
     assert send is None
@@ -316,17 +340,10 @@ def main():
 
     # ----------------------------------------
 
-    eq = Op.eq
-    yes = Sequent()
-
     # ----------------------------------------
     # Equality 
 
     tp = Type("T")
-    a, b, c = tp.a, tp.b, tp.c
-    seq = tp.has(a).then(a.eq(a))
-    seq = (tp.has(a) & tp.has(b) & a.eq(b)).then(b.eq(a))
-    seq = (tp.has(a) & tp.has(b) & tp.has(c) & a.eq(b) & b.eq(c)).then(a.eq(c))
 
     # ----------------------------------------
     # Monoid 
@@ -334,19 +351,26 @@ def main():
     tp = Type("M")
     f, g, h = tp.f, tp.g, tp.h
     one = tp.const("1")
-    print( yes.then( tp.has(one) ) )
-    print( (tp.has(f) & tp.has(g)).then( tp.has( f*g ) ) )
-    print( (tp.has(f) & tp.has(g) & tp.has(h) ).then( eq( (f*g)*h, f*(g*h) ) ) )
-    print( tp.has(f).then( (f*one).eq(f) ) )
-    print( tp.has(f).then( (one*f).eq(f) ) )
+    tp.add_op(mul)
+    tp.dump()
+
+    if 0:
+        print( yes.then( tp.has(one) ) )
+        print( (tp.has(f) & tp.has(g)).then( tp.has( f*g ) ) )
+        print( (tp.has(f) & tp.has(g) & tp.has(h) ).then( eq( (f*g)*h, f*(g*h) ) ) )
+        print( tp.has(f).then( (f*one).eq(f) ) )
+        print( tp.has(f).then( (one*f).eq(f) ) )
     
     # ----------------------------------------
     # Category ... 
 
     tp = Type("C")
     A, B, C = tp.A, tp.B, tp.C
-    print( tp.has(A).then( tp.has( A.src ) ) )
-    print( (tp.has(A) & tp.has(B) & A.tgt.eq(B.src) ).then( tp.has( B*A ) ) )
+    tp.add( tp.has(A).then( tp.has( A.src ) ) )
+    tp.add( (tp.has(A) & tp.has(B) & A.tgt.eq(B.src) ).then( tp.has( B*A ) ) )
+    tp.add_extensive(mul) # composition is extensive while also being a partial function...
+
+    tp.dump()
 
     # etc.
 
