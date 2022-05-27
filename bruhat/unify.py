@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Minimal theorem proving using term unification...
+Minimal theorem _proving using term unification...
 
 Failures:
     tried to use __eq__ for Expr's to denote boolean equality Op( ),
@@ -11,7 +11,7 @@ Failures:
     cannot be overloaded because of the "and".
 """
 
-
+import heapq
 from random import randint
 from string import ascii_letters
 
@@ -80,45 +80,33 @@ class Expr(object):
         return Sequent([self], other, comment)
 
     @staticmethod
-    def unify(lhs, rhs, depth=0):
+    def unify(lhs, rhs, send={}, depth=0):
         indent = "  "*depth
-        #print(indent+"unify:", lhs, "&", rhs)
-        if lhs==rhs:
-            #print(indent, "<== {}")
-            return {}
+#        print(indent+"unify:", lhs, "&", rhs)
+        if send:
+            lhs = lhs.subs(send)
+            rhs = rhs.subs(send)
+        if isinstance(rhs, Variable):
+            lhs, rhs = rhs, lhs
         if isinstance(lhs, Variable):
             if lhs!=rhs and rhs.find(lhs):
-                return None # fail
-            #print(indent, "<== {%s : %s}"%(lhs, rhs))
-            return {lhs : rhs}
-        elif isinstance(rhs, Variable):
-            if lhs!=rhs and lhs.find(rhs):
-                return None # fail
-            #print(indent, "<== {%s : %s}"%(rhs, lhs))
-            return {rhs : lhs}
+                return None # fail (recursive)
+#            print(indent, "<== {%s : %s}"%(lhs, rhs))
+            assert lhs not in send
+            if lhs != rhs:
+                send = dict(send)
+                for k,v in list(send.items()):
+                    send[k] = v.subs({lhs:rhs})
+                send[lhs] = rhs
+            return send
         assert isinstance(lhs, Apply)
         assert isinstance(rhs, Apply)
         if lhs.op != rhs.op:
             return None # fail
-        send = {}
         for left, right in zip(lhs.args, rhs.args):
-            _send = Expr.unify(left, right, depth+1)
-            if _send is None:
+            send = Expr.unify(left, right, send, depth=depth+1)
+            if send is None:
                 return None # fail
-            for _k,_v in _send.items():
-                v = send.get(_k)
-                if v is _v:
-                    continue # agreement
-                assert _v is not None
-                if v is not None and v == _v:
-                    continue # agreement
-                elif v is not None: # collision
-                    return None # fail
-                # update send dict
-                for (k,v) in list(send.items()):
-                    send[k] = v.subs({_k : _v})
-                # add new key:value pair
-                send[_k] = _v
         return send
 
 
@@ -176,7 +164,7 @@ class Apply(Expr):
                 return True
         return False
 
-#    def match(self, other, iso=False):
+#    def specialize(self, other, iso=False):
 #        # can we substitute into self to get other?
 #        if isinstance(other, Variable):
 #            return None # fail
@@ -185,7 +173,7 @@ class Apply(Expr):
 #            return None # fail
 #        send = {}
 #        for l,r in zip(self.args, other.args):
-#            _send = l.match(r, iso)
+#            _send = l.specialize(r, iso)
 #            if _send is None:
 #                return None # fail
 #            for (_k,_v) in _send.items():
@@ -194,21 +182,21 @@ class Apply(Expr):
 #                send[_k] = _v
 #        return send
 
-    def match(self, other, send={}, iso=False):
+    def specialize(self, other, send={}, iso=False):
         # can we substitute into self to get other?
         if isinstance(other, Variable):
             return None # fail
-        assert isinstance(other, Apply)
+        assert isinstance(other, Apply), type(other)
         if other.op != self.op:
             return None # fail
         for l,r in zip(self.args, other.args):
-            send = l.match(r, send, iso)
+            send = l.specialize(r, send, iso)
             if send is None:
                 return None # fail
         return send
 
 #    def equiv(self, other):
-#        # reversible match
+#        # reversible specialize
         
 
     def subs(self, send):
@@ -244,12 +232,12 @@ class Variable(Expr):
     def subs(self, send):
         return send.get(self, self)
 
-#    def match(self, other, iso=False):
+#    def specialize(self, other, iso=False):
 #        # can we substitute into self to get other? 
 #        if not iso or isinstance(other, Variable):
 #            return {self:other}
 
-    def match(self, other, send={}, iso=False):
+    def specialize(self, other, send={}, iso=False):
         # can we substitute into self to get other? 
         if not iso or isinstance(other, Variable):
             value = send.get(self)
@@ -261,7 +249,7 @@ class Variable(Expr):
                 return send
 
 #    def equiv(self, other):
-#        # reversible match
+#        # reversible specialize
 #        if isinstance(other, Variable):
 #            return {self : other}
 
@@ -270,7 +258,7 @@ class Variable(Expr):
 
 
 class Sequent(object):
-    def __init__(self, src=[], tgt=None, comment=None):
+    def __init__(self, src=[], tgt=None, comment=None, parent=None):
         # XXX use another class when tgt is None ???
         assert tgt is None or isinstance(tgt, Expr)
         uniqsrc = set()
@@ -288,6 +276,7 @@ class Sequent(object):
         self.uniqsrc = uniqsrc
         self.key = (uniqsrc, tgt)
         self.comment = comment
+        self.parent = parent
 
     def __eq__(self, other):
         return self.key == other.key
@@ -300,20 +289,21 @@ class Sequent(object):
         #print("\t%s"%(self,))
         #print("\t%s"%(other,))
         if len(self.uniqsrc) != len(other.uniqsrc):
-            return False
-        subs = self.tgt.match(other.tgt, iso=True)
+            return 
+        assert other.tgt is not None
+        subs = self.tgt.specialize(other.tgt, iso=True)
         if subs is None:
-            return False
+            return 
         n = len(self.uniqsrc)
         items = list(range(n))
         #print("weak_eq", subs)
-        for perm in all_perms(items):
+        for perm in all_perms(items): # XXX slow & stupid, fix me
             #print("\t", perm)
             _subs = dict(subs)
             for i,j in enumerate(perm):
                 lhs, rhs = self.uniqsrc[i], other.uniqsrc[j]
-                _subs = lhs.match(rhs, _subs, iso=True)
-                #print("weak_eq: match", lhs, rhs, _subs)
+                _subs = lhs.specialize(rhs, _subs, iso=True)
+                #print("weak_eq: specialize", lhs, rhs, _subs)
                 if _subs is None:
                     break
             else:
@@ -371,7 +361,7 @@ class Sequent(object):
         seq = self.subs(send)
         return seq
 
-    def deduce(left, right, comment=None):
+    def deduce(left, right, comment=None, verbose=False):
         tp = left.tgt.tp
         lvars = left.all_vars()
         rvars = right.all_vars()
@@ -383,9 +373,9 @@ class Sequent(object):
             rsend[v] = tp.get_var(v.name + "_r")
         left = left.subs(lsend)
         right = right.subs(rsend)
-        #print("deduce")
-        #print("\t%s"%(left,))
-        #print("\t%s"%(right,))
+#        print("deduce")
+#        print("\t%s"%(left,))
+#        print("\t%s"%(right,))
         lvars = left.all_vars()
         rvars = right.all_vars()
         assert not (lvars & rvars), "TODO"
@@ -393,9 +383,10 @@ class Sequent(object):
             send = Expr.unify(left.tgt, expr)
             if send is None:
                 continue
+#            print("\tunify %s & %s ==> %s" % (left.tgt, expr, send))
             src = [e.subs(send) for e in left.src + right.src[:i] + right.src[i+1:]]
             tgt = right.tgt.subs(send)
-            seq = Sequent(src, tgt, comment)
+            seq = Sequent(src, tgt, comment, parent=(left, right))
             seq = seq.rename()
             yield seq
 
@@ -431,31 +422,35 @@ class Theory(object):
         #tp.has = tp.add_op("%s.has"%tp.name, 1)
         tp.has = Op(tp, "%s.has"%tp.name, 1, False)
         tp.eq = Op(tp, "==", 2)
-        tp.add( tp.has(a).then(a.eq(a), "(eq-reflexive)") )
-        tp.add( (tp.has(a) & tp.has(b) & a.eq(b)).then(b.eq(a), "(eq-symmetric)") )
-        tp.add( (tp.has(a) & tp.has(b) & tp.has(c) & a.eq(b) & b.eq(c)).then(a.eq(c), "(eq-transitive)") )
+        #tp.add( tp.has(a).then(a.eq(a), "(eq-reflexive)") )
+        #tp.add( (tp.has(a) & tp.has(b) & a.eq(b)).then(b.eq(a), "(eq-symmetric)") )
+        #tp.add( (tp.has(a) & tp.has(b) & tp.has(c) & a.eq(b) & b.eq(c)).then(a.eq(c), "(eq-transitive)") )
+        tp.add( yes.then(a.eq(a), "(eq-reflexive)") )
+        tp.add( a.eq(b).then(b.eq(a), "(eq-symmetric)") )
+        tp.add( (a.eq(b) & b.eq(c)).then(a.eq(c), "(eq-transitive)") )
 
     def add_extensive(self, op):
         if op.arity==0:
             return # these are already extensive 
         # extensivity of eq
         lhs = yes
-        us = [self.get_var("u_%d"%i) for i in range(op.arity)]
-        vs = [self.get_var("v_%d"%i) for i in range(op.arity)]
+        us = [self.get_var(ascii_letters[i]+"0") for i in range(op.arity)]
+        vs = [self.get_var(ascii_letters[i]+"1") for i in range(op.arity)]
         for u,v in zip(us, vs):
-            lhs = lhs & self.has(v) & self.has(u) & self.eq(u, v)
+            #lhs = lhs & self.has(v) & self.has(u) & self.eq(u, v)
+            lhs = lhs & self.eq(u, v)
         self.add( lhs.then( self.eq(op(*vs), op(*us)), "(%s-eq-extensive)"%op.name ) )
 
     def add_op(self, name, arity=0, infix=True, partial=False):
         assert name not in self.ops
         op = Op(self, name, arity, infix)
         self.ops[name] = op
-        if not partial:
-            vs = [self.get_var("v_%d"%i) for i in range(op.arity)]
-            lhs = yes
-            for v in vs:
-                lhs = lhs & self.has(v)
-            self.add( lhs.then( self.has(op(*vs)), "(%s-endo)"%op.name ) )
+        #if not partial:
+        #    vs = [self.get_var(ascii_letters[i]) for i in range(op.arity)]
+        #    lhs = yes
+        #    for v in vs:
+        #        lhs = lhs & self.has(v)
+        #    self.add( lhs.then( self.has(op(*vs)), "(%s-endo)"%op.name ) )
         self.add_extensive(op)
         return op
 
@@ -480,16 +475,16 @@ class Theory(object):
         op = self.ops[name]
         return op
 
-    def deduce(self, idx, jdx):
+    def deduce(self, idx, jdx, verbose=False):
         left = self[idx]
         right = self[jdx]
         comment = "[%s] & [%s]"%(idx, jdx)
-        return left.deduce(right, comment)
+        return left.deduce(right, comment, verbose=verbose)
 
-    def prove(self, goal):
+    def doprove(self, goal):
         print("goal:", goal)
         for i, seq in enumerate(self):
-            send = seq.tgt.match(goal.tgt)
+            send = seq.tgt.specialize(goal.tgt)
             if send is None:
                 continue
             print("\tsubgoal:", seq)
@@ -503,7 +498,7 @@ class Theory(object):
             print("[%d]\t%s"%(idx, seq))
 
 
-def main():
+def test():
 
     # ----------------------------------------
 
@@ -521,10 +516,10 @@ def main():
 
     assert str(lhs) == "f(x, y, g(z))", str(lhs)
     assert lhs.all_vars() == {x, y, z}
-    assert not lhs.match(rhs)
-    assert rhs.match(lhs) == {x:x, y:y, w:g(z)}
-    assert not lhs.match(rhs, iso=True)
-    assert not rhs.match(lhs, iso=True)
+    assert not lhs.specialize(rhs)
+    assert rhs.specialize(lhs) == {x:x, y:y, w:g(z)}
+    assert not lhs.specialize(rhs, iso=True)
+    assert not rhs.specialize(lhs, iso=True)
 
     send = Expr.unify(lhs, rhs)
     assert str(send) == "{w: g(z)}", str(send)
@@ -535,9 +530,23 @@ def main():
     lhs = f(x, y, z)
     rhs = f(y, x, w)
 
-    assert str(Expr.unify(lhs, rhs)) == "{x: x, y: x, z: w}"
+    send = Expr.unify(lhs, rhs)
+    assert send == {y: x, w: z}, send
 
-    assert lhs.match(rhs, iso=True) == {x:y, y:x, z:w}
+    assert lhs.specialize(rhs, iso=True) == {x:y, y:x, z:w}
+
+    # ----------------------------------------
+
+    # unify (a_l==(a_l*1)) & (1==a_r) ==> {a_l: 1, a_r: (a_l*1)}
+    a_l, a_r = tp.a_l, tp.a_r
+    eq = tp.eq
+    one = tp.const("1")
+    tp.add_op("*", 2)
+
+    lhs = eq(a_l, a_l*one)
+    rhs = eq(one, a_r)
+    send = Expr.unify(lhs, rhs)
+    assert send == {a_l:one, a_r:one*one}
 
     # ----------------------------------------
 
@@ -546,38 +555,166 @@ def main():
 
     tp = Theory("T")
     #tp.dump()
+
     for seq in tp:
         other = seq.subs( {tp.a : tp.z} )
         send = seq.weak_eq(other)
         assert send and send[tp.a] == tp.z
+        for _seq in tp:
+            send = seq.weak_eq(_seq)
+            assert (_seq==seq) == (send is not None)
 
-    return
 
+class Prover(object):
+    def __init__(self, tp):
+        self.tp = tp
+    
+class Pair(object):
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+        self.n = left.size() + right.size()
+
+    def __lt__(self, other):
+        return self.n < other.n
+
+
+def deduce(tp, tgt, maxsize=1000):
+    print("="*79)
+    print("deduce: tgt = %s" % tgt)
+    found = set(tp.seqs)
+    table = list(tp.seqs)
+    n = len(table)
+    pairs = [Pair(left, right) for left in table for right in table]
+    heapq.heapify(pairs)
+    while 1:
+        #print("deduce:", len(found))
+        pair = heapq.heappop(pairs)
+        a, b = pair.left, pair.right
+        for c in a.deduce(b):
+            if c in found:
+                continue
+            print("deduce:", c)
+            c.parent = (a, b)
+            if c.weak_eq(tgt):
+                print("found !")
+                return c
+            found.add(c)
+            n = len(table)
+            table.append(c)
+            for i in range(n):
+                heapq.heappush(pairs, Pair(table[i], c))
+                heapq.heappush(pairs, Pair(c, table[i]))
+            if len(found) > maxsize:
+                assert 0, "maxsize reached"
+                return 
+
+
+def show_tree(seq, indent=0):
+    print("  "*indent + str(seq))
+    parent = seq.parent
+    if parent:
+        show_tree(parent[0], indent+1)
+        show_tree(parent[1], indent+1)
+
+
+def test_monoid_0():
     # ----------------------------------------
     # Monoid 
 
     tp = Theory("M")
-    f, g, h = tp.f, tp.g, tp.h
     one = tp.const("1")
     tp.add_op("*", 2)
+    eq = tp.eq
+    has = tp.has
+
+    a, b, c = tp.a, tp.b, tp.c
+    tp.add( (has(a) & has(b) & has(c)).then( eq(a*(b*c), (a*b)*c ), "_assoc" ) )
+    tp.add( (has(a)).then( eq(a*one, a) ) )
+    tp.add( (has(a)).then( eq(one*a, a) ) )
+
+#    _one = tp.const("_1")
+#    tp.add( (has(a)).then( eq(a*_one, a) ) )
+#    tp.add( (has(a)).then( eq(_one*a, a) ) )
 
     #seq = tp.deduce(3, 4)
     #seq = tp.deduce(3, 6)
 
-    #tp.dump()
+    tp.dump()
+
+#    lhs = has(a).then(eq(a, a*one))
+#    rhs = (has(a) & eq(one, a)).then(eq(one, a))
+#    for seq in lhs.deduce(rhs):
+#        show_tree(seq)
+#        print("fail")
+#    return
+
+    #tgt = always(eq(one, _one))
+    tgt = has(a).then( eq(one*a, a*one) )
+
+    seq = deduce(tp, has(a).then( has(a*one) ) )
+    tp.add(seq)
+    seq = deduce(tp, has(a).then( has(one*a) ) )
+    tp.add(seq)
+
+    tgt = has(a).then( eq(one*a, a*one) )
+    seq = deduce(tp, tgt, 100)
+    show_tree(seq)
+    
+#    for i in range(5):
+#        idx = randint(0, len(tp)-1)
+#        jdx = randint(0, len(tp)-1)
+#        print("deduce", idx, jdx)
+#        for seq in tp.deduce(idx, jdx):
+#            print("==>", seq)
+#            print("==>", seq.size())
+
+
+def test_monoid():
+    # ----------------------------------------
+    # Monoid 
+
+    tp = Theory("M")
+    one = tp.const("1")
+    tp.add_op("*", 2)
+    eq = tp.eq
+    has = tp.has
+
+    a, b, c = tp.a, tp.b, tp.c
+    tp.add( always( eq(a*(b*c), (a*b)*c ), "_assoc" ) )
+    tp.add( always( eq(a*one, a) ) )
+    tp.add( always( eq(one*a, a) ) )
+
+    tp.dump()
+
+    #tgt = always(eq(one, _one))
+    #tgt = always( eq(one*a, a*one) )
+
+    tgt = always( eq(one*a, a*one) )
+    seq = deduce(tp, tgt, 100)
+    assert seq is not None
+    #show_tree(seq)
+    tp.add(seq)
+
+    # uniq identity
+    _one = tp.const("_1")
+    tp.add( always( eq(a*_one, a) ) )
+    tp.add( always( eq(_one*a, a) ) )
+
+    tgt = always( eq(_one*a, a*_one) )
+    seq = deduce(tp, tgt, 1000)
+    assert seq is not None
+    #show_tree(seq)
+    tp.add(seq)
 
     return
 
-    found = set(tp.seqs)
-    
-    for i in range(5):
-        idx = randint(0, len(tp)-1)
-        jdx = randint(0, len(tp)-1)
-        print("deduce", idx, jdx)
-        for seq in tp.deduce(idx, jdx):
-            print("==>", seq)
-            print("==>", seq.size())
+    tgt = always( eq(one, _one) )
+    seq = deduce(tp, tgt, 4000)
+    assert seq is not None
+    show_tree(seq)
 
+    
 
 def test_freyd_scedrov():
 
@@ -611,13 +748,15 @@ def test_freyd_scedrov():
     # yikes...
     goal = tp.has(f).then(eq(f.tgt.tgt, f.tgt))
     #goal = (tp.has(f) & tp.has(g) & tp.has(h) & tp.has(f*g) & tp.has(g*h)).then(tp.has(f*(g*h)))
-    tp.prove(goal)
+    tp.doprove(goal)
 
 
     
 
 
 if __name__ == "__main__":
+
+    test()
 
     from argv import argv
 
