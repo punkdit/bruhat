@@ -12,6 +12,10 @@ Failures:
 """
 
 
+from random import randint
+from string import ascii_letters
+
+from bruhat.util import all_perms
 
 
 class Expr(object):
@@ -23,6 +27,8 @@ class Expr(object):
         self.key = key
 
     def __eq__(self, other):
+        if other is None:
+            return False
         return self.key == other.key
 
     def __hash__(self):
@@ -77,19 +83,19 @@ class Expr(object):
     def unify(lhs, rhs, depth=0):
         indent = "  "*depth
         #print(indent+"unify:", lhs, "&", rhs)
-        if lhs.key==rhs.key:
+        if lhs==rhs:
             #print(indent, "<== {}")
             return {}
         if isinstance(lhs, Variable):
-            if lhs.key!=rhs.key and rhs.find(lhs):
+            if lhs!=rhs and rhs.find(lhs):
                 return None # fail
             #print(indent, "<== {%s : %s}"%(lhs, rhs))
-            return {lhs.key : rhs}
+            return {lhs : rhs}
         elif isinstance(rhs, Variable):
-            if lhs.key!=rhs.key and lhs.find(rhs):
+            if lhs!=rhs and lhs.find(rhs):
                 return None # fail
             #print(indent, "<== {%s : %s}"%(rhs, lhs))
-            return {rhs.key : lhs}
+            return {rhs : lhs}
         assert isinstance(lhs, Apply)
         assert isinstance(rhs, Apply)
         if lhs.op != rhs.op:
@@ -104,7 +110,7 @@ class Expr(object):
                 if v is _v:
                     continue # agreement
                 assert _v is not None
-                if v is not None and v.key == _v.key:
+                if v is not None and v == _v:
                     continue # agreement
                 elif v is not None: # collision
                     return None # fail
@@ -141,7 +147,7 @@ class Apply(Expr):
         assert len(args) == op.arity
         self.op = op
         self.args = args
-        key = (op.name,)+tuple(arg.key for arg in args)
+        key = (op.name,)+tuple(arg for arg in args)
         Expr.__init__(self, op.tp, key)
 
     def __str__(self):
@@ -157,9 +163,6 @@ class Apply(Expr):
         return s
     __repr__ = __str__
 
-    def __eq__(self, other):
-        assert 0
-
     def all_vars(self):
         vs = set()
         for arg in self.args:
@@ -173,10 +176,49 @@ class Apply(Expr):
                 return True
         return False
 
+#    def match(self, other, iso=False):
+#        # can we substitute into self to get other?
+#        if isinstance(other, Variable):
+#            return None # fail
+#        assert isinstance(other, Apply)
+#        if other.op != self.op:
+#            return None # fail
+#        send = {}
+#        for l,r in zip(self.args, other.args):
+#            _send = l.match(r, iso)
+#            if _send is None:
+#                return None # fail
+#            for (_k,_v) in _send.items():
+#                if _k in send and send[_k] != _v:
+#                    return None # collision; fail
+#                send[_k] = _v
+#        return send
+
+    def match(self, other, send={}, iso=False):
+        # can we substitute into self to get other?
+        if isinstance(other, Variable):
+            return None # fail
+        assert isinstance(other, Apply)
+        if other.op != self.op:
+            return None # fail
+        for l,r in zip(self.args, other.args):
+            send = l.match(r, send, iso)
+            if send is None:
+                return None # fail
+        return send
+
+#    def equiv(self, other):
+#        # reversible match
+        
+
     def subs(self, send):
         op = self.op
         args = [arg.subs(send) for arg in self.args]
         return op(*args)
+
+
+    def size(self):
+        return 1 + sum([e.size() for e in self.args], 0)
 
 
 class Variable(Expr):
@@ -193,31 +235,92 @@ class Variable(Expr):
     __repr__ = __str__
 
     def all_vars(self):
-        return {self.name}
+        return {self}
 
     def find(self, v):
         assert isinstance(v, Variable)
         return self is v
 
     def subs(self, send):
-        return send.get(self.name, self)
+        return send.get(self, self)
+
+#    def match(self, other, iso=False):
+#        # can we substitute into self to get other? 
+#        if not iso or isinstance(other, Variable):
+#            return {self:other}
+
+    def match(self, other, send={}, iso=False):
+        # can we substitute into self to get other? 
+        if not iso or isinstance(other, Variable):
+            value = send.get(self)
+            if value == other:
+                return send
+            if value is None:
+                send = dict(send)
+                send[self] = other
+                return send
+
+#    def equiv(self, other):
+#        # reversible match
+#        if isinstance(other, Variable):
+#            return {self : other}
+
+    def size(self):
+        return 1
 
 
 class Sequent(object):
-    def __init__(self, src=[], tgt=None, comment=""):
+    def __init__(self, src=[], tgt=None, comment=None):
         # XXX use another class when tgt is None ???
         assert tgt is None or isinstance(tgt, Expr)
+        uniqsrc = set()
+        self.src = [] # maintain the given order
         for expr in src:
             assert isinstance(expr, Expr)
-        self.src = list(src) # maintain the order given
+            if expr not in uniqsrc:
+                self.src.append(expr)
+                uniqsrc.add(expr)
         self.tgt = tgt
         # now build a canonical form:
-        src = list(set(item.key for item in src)) # uniq
-        src.sort(key=str) # ordered
-        src = tuple(src)
-        tgt = tgt.key if tgt is not None else None
-        self.key = (src, tgt)
+        uniqsrc = list(uniqsrc)
+        uniqsrc.sort(key=str) # ordered
+        uniqsrc = tuple(uniqsrc)
+        self.uniqsrc = uniqsrc
+        self.key = (uniqsrc, tgt)
         self.comment = comment
+
+    def __eq__(self, other):
+        return self.key == other.key
+
+    def __hash__(self):
+        return hash(self.key)
+
+    def weak_eq(self, other):
+        #print("weak_eq:")
+        #print("\t%s"%(self,))
+        #print("\t%s"%(other,))
+        if len(self.uniqsrc) != len(other.uniqsrc):
+            return False
+        subs = self.tgt.match(other.tgt, iso=True)
+        if subs is None:
+            return False
+        n = len(self.uniqsrc)
+        items = list(range(n))
+        #print("weak_eq", subs)
+        for perm in all_perms(items):
+            #print("\t", perm)
+            _subs = dict(subs)
+            for i,j in enumerate(perm):
+                lhs, rhs = self.uniqsrc[i], other.uniqsrc[j]
+                _subs = lhs.match(rhs, _subs, iso=True)
+                #print("weak_eq: match", lhs, rhs, _subs)
+                if _subs is None:
+                    break
+            else:
+                return _subs
+
+    def size(self):
+        return sum(e.size() for e in self.src) + self.tgt.size()
 
     def __and__(self, other):
         assert self.tgt is None
@@ -240,6 +343,11 @@ class Sequent(object):
             vs.update(self.tgt.all_vars())
         return vs
 
+    def subs(self, send, comment=None):
+        if comment is None:
+            comment = self.comment
+        return Sequent([e.subs(send) for e in self.src], self.tgt.subs(send), comment)
+
     #def __hash__(self):
     #    return hash(self.key)
 
@@ -249,6 +357,48 @@ class Sequent(object):
         if self.comment:
             s = s + " # " + self.comment
         return s
+
+    def rename(self):
+        vs = self.all_vars()
+        if not vs:
+            return self
+        tp = self.tgt.tp
+        vs = list(vs)
+        vs.sort(key = str)
+        send = {}
+        for i,v in enumerate(vs):
+            send[v] = tp.get_var(ascii_letters[i])
+        seq = self.subs(send)
+        return seq
+
+    def deduce(left, right, comment=None):
+        tp = left.tgt.tp
+        lvars = left.all_vars()
+        rvars = right.all_vars()
+        ivars = lvars & rvars
+        lsend = {}
+        rsend = {}
+        for v in ivars:
+            lsend[v] = tp.get_var(v.name + "_l")
+            rsend[v] = tp.get_var(v.name + "_r")
+        left = left.subs(lsend)
+        right = right.subs(rsend)
+        #print("deduce")
+        #print("\t%s"%(left,))
+        #print("\t%s"%(right,))
+        lvars = left.all_vars()
+        rvars = right.all_vars()
+        assert not (lvars & rvars), "TODO"
+        for i, expr in enumerate(right.src):
+            send = Expr.unify(left.tgt, expr)
+            if send is None:
+                continue
+            src = [e.subs(send) for e in left.src + right.src[:i] + right.src[i+1:]]
+            tgt = right.tgt.subs(send)
+            seq = Sequent(src, tgt, comment)
+            seq = seq.rename()
+            yield seq
+
 
 yes = Sequent()
 always = yes.then
@@ -260,23 +410,21 @@ class Theory(object):
         self.vars = {} # _namespace for Variable's
         self.ops = {}
         self.seqs = []
-
-#        self.has = Op(self, "%s.has"%name, 1) # unary Op, membership
-#        self.eq = Op(self, "==", 2, True)
-#        self.mul = Op(self, "*", 2, True)
-##        self.add = Op(self, "+", 2, True)
-#        self.tensor = Op(self, "@", 2, True)
-#        self.lshift = Op(self, "<<", 2, True)
-#        self.rshift = Op(self, ">>", 2, True)
-
+        self.found = set()
         self.add_equality()
 
     def add(self, seq):
         assert isinstance(seq, Sequent)
+        if seq in self.found:
+            return
         self.seqs.append(seq)
+        self.found.add(seq)
 
     def __getitem__(self, idx):
         return self.seqs[idx]
+
+    def __len__(self):
+        return len(self.seqs)
 
     def add_equality(tp):
         a, b, c = tp.a, tp.b, tp.c
@@ -332,32 +480,22 @@ class Theory(object):
         op = self.ops[name]
         return op
 
-#    def get_op(self, name, arity=0, infix=False, partial=False):
-#        ops = self.ops
-#        if name in ops:
-#            op = ops[name]
-#            assert op.arity == arity
-#            return op
-#        op = Op(self, name, arity, infix)
-#        ops[name] = op
-#        self.add_op(op, partial)
-#        return op
-
     def deduce(self, idx, jdx):
         left = self[idx]
         right = self[jdx]
-        lvars = left.all_vars()
-        rvars = right.all_vars()
-        assert not (lvars & rvars), "TODO"
-        for i, expr in enumerate(right.src):
-            send = Expr.unify(left.tgt, expr)
+        comment = "[%s] & [%s]"%(idx, jdx)
+        return left.deduce(right, comment)
+
+    def prove(self, goal):
+        print("goal:", goal)
+        for i, seq in enumerate(self):
+            send = seq.tgt.match(goal.tgt)
             if send is None:
                 continue
-            src = [e.subs(send) for e in left.src + right.src[:i] + right.src[i+1:]]
-            tgt = right.tgt.subs(send)
-            seq = Sequent(src, tgt, "[%s] & [%s]"%(idx, jdx))
-            self.add(seq)
-            return seq
+            print("\tsubgoal:", seq)
+            print("\t", send)
+            print("\tsubgoal:", seq.subs(send, "from [%d]"%i))
+            print()
 
     def dump(self):
         print("%s:"%self.name)
@@ -382,10 +520,14 @@ def main():
     rhs = f(x, y, w)
 
     assert str(lhs) == "f(x, y, g(z))", str(lhs)
-    assert lhs.all_vars() == set("xyz")
+    assert lhs.all_vars() == {x, y, z}
+    assert not lhs.match(rhs)
+    assert rhs.match(lhs) == {x:x, y:y, w:g(z)}
+    assert not lhs.match(rhs, iso=True)
+    assert not rhs.match(lhs, iso=True)
 
     send = Expr.unify(lhs, rhs)
-    assert str(send) == "{'w': g(z)}", str(send)
+    assert str(send) == "{w: g(z)}", str(send)
 
     send = Expr.unify(x, g(x))
     assert send is None
@@ -393,7 +535,9 @@ def main():
     lhs = f(x, y, z)
     rhs = f(y, x, w)
 
-    assert str(Expr.unify(lhs, rhs)) == "{'x': x, 'y': x, 'z': w}"
+    assert str(Expr.unify(lhs, rhs)) == "{x: x, y: x, z: w}"
+
+    assert lhs.match(rhs, iso=True) == {x:y, y:x, z:w}
 
     # ----------------------------------------
 
@@ -401,6 +545,13 @@ def main():
     # Equality 
 
     tp = Theory("T")
+    #tp.dump()
+    for seq in tp:
+        other = seq.subs( {tp.a : tp.z} )
+        send = seq.weak_eq(other)
+        assert send and send[tp.a] == tp.z
+
+    return
 
     # ----------------------------------------
     # Monoid 
@@ -410,36 +561,57 @@ def main():
     one = tp.const("1")
     tp.add_op("*", 2)
 
-    seq = tp.deduce(3, 4)
-    seq = tp.deduce(3, 6)
+    #seq = tp.deduce(3, 4)
+    #seq = tp.deduce(3, 6)
 
-    tp.dump()
+    #tp.dump()
+
+    return
+
+    found = set(tp.seqs)
+    
+    for i in range(5):
+        idx = randint(0, len(tp)-1)
+        jdx = randint(0, len(tp)-1)
+        print("deduce", idx, jdx)
+        for seq in tp.deduce(idx, jdx):
+            print("==>", seq)
+            print("==>", seq.size())
+
+
+def test_freyd_scedrov():
 
     # ----------------------------------------
     # Category, see Freyd-Scedrov 
 
     tp = Theory("C")
-    tp.add_op("*", 2)
+    tp.add_op("*", 2, partial=True)
     tp.add_op("src", 1)
     tp.add_op("tgt", 1)
     eq = tp.eq
 
-    A, B, C = tp.A, tp.B, tp.C
-    tp.add( tp.has(A).then( tp.has( A.src ) ) )
-    tp.add( tp.has(A).then( tp.has( A.tgt ) ) )
-    tp.add( (tp.has(A) & tp.has(B) & A.src.eq(B.tgt) ).then( tp.has( A*B ) ) )
-    tp.add( (tp.has(A) & tp.has(B) & tp.has(A*B) ).then( A.src.eq(B.tgt) ) )
-    tp.add( tp.has(A).then( eq( A.src.tgt, A.src ) ) )
-    tp.add( tp.has(A).then( eq( A.tgt.src, A.tgt ) ) )
-    tp.add( tp.has(A).then( eq( A.tgt*A, A ) ) )
-    tp.add( tp.has(A).then( eq( A*A.src, A ) ) )
-    tp.add( (tp.has(A) & tp.has(B) & tp.has(A*B) ).then(
-        eq( (A*B).tgt, (A*B.tgt).tgt )) )
-    tp.add( (tp.has(A) & tp.has(B) & tp.has(A*B) ).then(
-        eq( (A*B).src, (A.src*B).src )) )
-
-
+    f, g, h = tp.f, tp.g, tp.h
+    for seq in [
+        tp.has(f).then( tp.has( f.src ) ),
+        tp.has(f).then( tp.has( f.tgt ) ),
+        (tp.has(f) & tp.has(g) & f.src.eq(g.tgt) ).then( tp.has( f*g ) ),
+        (tp.has(f) & tp.has(g) & tp.has(f*g) ).then( f.src.eq(g.tgt) ),
+        tp.has(f).then( eq( f.src.tgt, f.src ) ),
+        tp.has(f).then( eq( f.tgt.src, f.tgt ) ),
+        tp.has(f).then( eq( f.tgt*f, f ) ),
+        tp.has(f).then( eq( f*f.src, f ) ),
+        (tp.has(f) & tp.has(g) & tp.has(f*g) ).then( eq( (f*g).tgt, (f*g.tgt).tgt )),
+        (tp.has(f) & tp.has(g) & tp.has(f*g) ).then( eq( (f*g).src, (f.src*g).src )),
+        (tp.has(f) & tp.has(g) & tp.has(h) & tp.has(f*g) & tp.has(g*h) ).then( eq( f*(g*h), (f*g)*h ), "_assoc" ),
+    ]:
+        tp.add(seq)
+    
     tp.dump()
+
+    # yikes...
+    goal = tp.has(f).then(eq(f.tgt.tgt, f.tgt))
+    #goal = (tp.has(f) & tp.has(g) & tp.has(h) & tp.has(f*g) & tp.has(g*h)).then(tp.has(f*(g*h)))
+    tp.prove(goal)
 
 
     
@@ -447,7 +619,11 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    from argv import argv
+
+    name = argv.next() or "main"
+    fn = eval(name)
+    fn()
 
     print("OK\n")
 
