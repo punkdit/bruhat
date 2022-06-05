@@ -127,16 +127,17 @@ class Op(object):
     def __call__(self, *args):
         #print("Op.__call__", self, args)
         assert len(args) == self.arity, "%s%s fail" % (self, args)
-        return Apply(self, *args)
+        return Apply(self, args)
 
 
 class Apply(Expr):
-    def __init__(self, op, *args):
+    def __init__(self, op, args):
         assert len(args) == op.arity
         self.op = op
         self.args = args
-        key = (op.name,)+tuple(arg for arg in args)
+        key = (op.name,)+args
         Expr.__init__(self, op.tp, key)
+        self.size = sum([arg.size for arg in args], 1)
 
     def __str__(self):
         op = self.op
@@ -195,21 +196,14 @@ class Apply(Expr):
                 return None # fail
         return send
 
-#    def equiv(self, other):
-#        # reversible specialize
-        
-
-    def subs(self, send):
+    def subs(self, send): # hotspot 
         op = self.op
         args = [arg.subs(send) for arg in self.args]
         return op(*args)
 
 
-    def size(self):
-        return 1 + sum([e.size() for e in self.args], 0)
-
-
 class Variable(Expr):
+    size = 1
     def __init__(self, tp, name):
         assert type(name) is str
         self.name = name
@@ -253,9 +247,6 @@ class Variable(Expr):
 #        if isinstance(other, Variable):
 #            return {self : other}
 
-    def size(self):
-        return 1
-
 
 class Sequent(object):
     def __init__(self, src=[], tgt=None, comment=None, parent=None):
@@ -263,11 +254,15 @@ class Sequent(object):
         assert tgt is None or isinstance(tgt, Expr)
         uniqsrc = set()
         self.src = [] # maintain the given order
+        size = 0
         for expr in src:
             assert isinstance(expr, Expr)
             if expr not in uniqsrc:
                 self.src.append(expr)
                 uniqsrc.add(expr)
+                size += expr.size
+        if tgt is not None:
+            size += tgt.size
         self.tgt = tgt
         # now build a canonical form:
         uniqsrc = list(uniqsrc)
@@ -277,6 +272,7 @@ class Sequent(object):
         self.key = (uniqsrc, tgt)
         self.comment = comment
         self.parent = parent
+        self.size = size
 
     def __eq__(self, other):
         return self.key == other.key
@@ -309,9 +305,6 @@ class Sequent(object):
             else:
                 return _subs
 
-    def size(self):
-        return sum(e.size() for e in self.src) + self.tgt.size()
-
     def __and__(self, other):
         assert self.tgt is None
         if isinstance(other, Sequent):
@@ -331,6 +324,12 @@ class Sequent(object):
             vs.update(e.all_vars())
         if self.tgt is not None:
             vs.update(self.tgt.all_vars())
+        return vs
+
+    def src_vars(self):
+        vs = set()
+        for e in self.src:
+            vs.update(e.all_vars())
         return vs
 
     def subs(self, send, comment=None):
@@ -361,24 +360,38 @@ class Sequent(object):
         seq = self.subs(send)
         return seq
 
-    def deduce(left, right, comment=None, verbose=False):
-        tp = left.tgt.tp
+    def can_deduce(left, right):
+        left = left.tgt
         lvars = left.all_vars()
         rvars = right.all_vars()
         ivars = lvars & rvars
-        lsend = {}
-        rsend = {}
-        for v in ivars:
-            lsend[v] = tp.get_var(v.name + "_l")
-            rsend[v] = tp.get_var(v.name + "_r")
-        left = left.subs(lsend)
-        right = right.subs(rsend)
+        if ivars:
+            tp = left.tp
+            send = {v:tp.get_var(v.name+"_l") for v in ivars}
+            left = left.subs(send)
+        for i, expr in enumerate(right.src):
+            send = Expr.unify(left, expr)
+            if send is not None:
+                return True
+
+    def deduce(left, right, comment=None, verbose=False): # hotspot
+        tp = left.tgt.tp
+        lvars = left.all_vars()
+        rvars = right.all_vars()
+        if (lvars & rvars):
+            ivars = lvars & rvars
+            lsend = {}
+            rsend = {}
+            for v in ivars:
+                lsend[v] = tp.get_var(v.name + "_l")
+                rsend[v] = tp.get_var(v.name + "_r")
+            left = left.subs(lsend)
+            right = right.subs(rsend)
+            lvars = left.all_vars()
+            rvars = right.all_vars()
 #        print("deduce")
 #        print("\t%s"%(left,))
 #        print("\t%s"%(right,))
-        lvars = left.all_vars()
-        rvars = right.all_vars()
-        assert not (lvars & rvars), "TODO"
         for i, expr in enumerate(right.src):
             send = Expr.unify(left.tgt, expr)
             if send is None:
@@ -573,45 +586,57 @@ class Pair(object):
     def __init__(self, left, right):
         self.left = left
         self.right = right
-        self.n = left.size() + right.size()
+        self.n = left.size + right.size
 
     def __lt__(self, other):
         return self.n < other.n
 
 
-def deduce(tp, tgt, maxsize=1000):
-    print("="*79)
-    print("deduce: tgt = %s" % tgt)
+def search(tp, tgt, maxsize=1000, verbose=False):
+    if verbose:
+        print("="*79)
+        print("search: tgt = %s" % tgt)
     found = set(tp.seqs)
     table = list(tp.seqs)
     n = len(table)
     pairs = [Pair(left, right) for left in table for right in table]
     heapq.heapify(pairs)
+    count = 0
     while 1:
-        #print("deduce:", len(found))
+        count += 1
+        if count % 1000 == 0:
+            print("heap=%d, found=%d" % (len(pairs), len(found)))
+        #print("search:", len(found))
         pair = heapq.heappop(pairs)
         a, b = pair.left, pair.right
         for c in a.deduce(b):
             if c in found:
                 continue
-            print("deduce:", c)
-            c.parent = (a, b)
+            if c.src and not c.src_vars():
+                # don't need these... ?
+                continue 
+            if verbose:
+                print("search:", c)
             if c.weak_eq(tgt):
-                print("found !")
                 return c
             found.add(c)
             n = len(table)
             table.append(c)
             for i in range(n):
-                heapq.heappush(pairs, Pair(table[i], c))
-                heapq.heappush(pairs, Pair(c, table[i]))
+                for (lhs, rhs) in [(table[i], c), (c, table[i])]:
+                    if lhs.can_deduce(rhs):
+                        heapq.heappush(pairs, Pair(lhs, rhs))
+                #heapq.heappush(pairs, Pair(table[i], c))
+                #heapq.heappush(pairs, Pair(c, table[i]))
             if len(found) > maxsize:
-                assert 0, "maxsize reached"
+                #assert 0, "maxsize reached"
                 return 
 
 
 def show_tree(seq, indent=0):
     print("  "*indent + str(seq))
+    if seq is None:
+        return
     parent = seq.parent
     if parent:
         show_tree(parent[0], indent+1)
@@ -652,13 +677,13 @@ def test_monoid_0():
     #tgt = always(eq(one, _one))
     tgt = has(a).then( eq(one*a, a*one) )
 
-    seq = deduce(tp, has(a).then( has(a*one) ) )
+    seq = search(tp, has(a).then( has(a*one) ) )
     tp.add(seq)
-    seq = deduce(tp, has(a).then( has(one*a) ) )
+    seq = search(tp, has(a).then( has(one*a) ) )
     tp.add(seq)
 
     tgt = has(a).then( eq(one*a, a*one) )
-    seq = deduce(tp, tgt, 100)
+    seq = search(tp, tgt, 100)
     show_tree(seq)
     
 #    for i in range(5):
@@ -667,7 +692,7 @@ def test_monoid_0():
 #        print("deduce", idx, jdx)
 #        for seq in tp.deduce(idx, jdx):
 #            print("==>", seq)
-#            print("==>", seq.size())
+#            print("==>", seq.size)
 
 
 def test_monoid():
@@ -691,7 +716,7 @@ def test_monoid():
     #tgt = always( eq(one*a, a*one) )
 
     tgt = always( eq(one*a, a*one) )
-    seq = deduce(tp, tgt, 100)
+    seq = search(tp, tgt, 100)
     assert seq is not None
     #show_tree(seq)
     tp.add(seq)
@@ -702,16 +727,17 @@ def test_monoid():
     tp.add( always( eq(_one*a, a) ) )
 
     tgt = always( eq(_one*a, a*_one) )
-    seq = deduce(tp, tgt, 1000)
+    seq = search(tp, tgt, 1000)
     assert seq is not None
     #show_tree(seq)
     tp.add(seq)
 
-    return
+    #return
 
     tgt = always( eq(one, _one) )
-    seq = deduce(tp, tgt, 4000)
-    assert seq is not None
+    tgt = always( eq(one*_one, _one) )
+
+    seq = search(tp, tgt, 4000, verbose=True)
     show_tree(seq)
 
     
@@ -759,10 +785,14 @@ if __name__ == "__main__":
     test()
 
     from argv import argv
-
     name = argv.next() or "main"
-    fn = eval(name)
-    fn()
+
+    if argv.profile:
+        import cProfile as profile
+        profile.run("%s()"%name)
+    else:
+        fn = eval(name)
+        fn()
 
     print("OK\n")
 
