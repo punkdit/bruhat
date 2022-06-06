@@ -42,8 +42,8 @@ The three directions:
 
 atributes:
               pip_x  pip_y  pip_z
-    -ve dir:  left   back   bot
-    +ve dir:  right  front  top
+    -ve dir:  left   front  bot
+    +ve dir:  right  back   top
 
 """
 
@@ -73,7 +73,7 @@ class Atom(object):
             return 0
         assert 0, "not found"
 
-    def traverse(self, cb, depth=0):
+    def traverse(self, cb, depth=0, full=True):
         cb(self, depth)
 
 
@@ -107,10 +107,10 @@ class Compound(object):
             child.visit(callback, **kw)
         Atom.visit(self, callback, **kw)
 
-    def traverse(self, cb, depth=0):
-        Atom.traverse(self, cb, depth)
+    def traverse(self, cb, depth=0, full=True):
+        Atom.traverse(self, cb, depth, full)
         for cell in self.cells:
-            cell.traverse(cb, depth+1)
+            cell.traverse(cb, depth+1, full)
 
     def str(self, depth=0):
         lines = [Atom.str(self, depth)]
@@ -126,8 +126,9 @@ def setop(cls, opname, parent):
 def dbg_constrain(self, depth):
     print("  "*depth, "%s.on_constrain"%(self.__class__.__name__))
 
-class Render(Listener):
 
+
+class Render(Listener):
     @property
     def depth(self):
         return self.back + self.front
@@ -155,11 +156,30 @@ class Render(Listener):
         pip_x = getattr(self, "pip_x", None)
         pip_y = getattr(self, "pip_y", None)
         pip_z = getattr(self, "pip_z", None)
-        pip_x = "%.2f"%pip_x if pip_x is not None else "--"
-        pip_y = "%.2f"%pip_y if pip_y is not None else "--"
-        pip_z = "%.2f"%pip_z if pip_z is not None else "--"
-        return "%s(pip_x=%s, pip_y=%s, pip_z=%s)"%(
-            "  "*depth + self.__class__.__name__, pip_x, pip_y, pip_z)
+        if pip_x is None:
+            return "  "*depth + self.__class__.__name__
+        #pip_x = "%.2f"%pip_x if pip_x is not None else "--"
+        #pip_y = "%.2f"%pip_y if pip_y is not None else "--"
+        #pip_z = "%.2f"%pip_z if pip_z is not None else "--"
+        x0, x1 = pip_x - self.left, pip_x + self.right
+        y0, y1 = pip_y - self.front, pip_y + self.back
+        z0, z1 = pip_z - self.left, pip_z + self.right
+        return "%s([%.2f:%.2f],[%.2f:%.2f],[%.2f:%.2f])"%(
+            "  "*depth + self.__class__.__name__, 
+            x0, x1, y0, y1, z0, z1)
+
+    def dump(self, full=True):
+        found = {}
+        def callback(cell, depth):
+            s = Render.pstr(cell, depth)
+            s = "%4d:"%self.lno + s
+            if cell in found:
+                s += " " + str(found[cell])
+            else:
+                found[cell] = self.lno
+            print(s)
+            self.lno += 1
+        self.traverse(callback, full=full)
 
     def on_constrain(self, system, depth, verbose=False):
         if verbose:
@@ -197,17 +217,7 @@ class Render(Listener):
         system.solve()
         self.did_layout = system
         self.lno = 0
-        found = {}
-        def callback(cell, depth):
-            s = Render.pstr(cell, depth)
-            s = "%4d"%self.lno + s
-            if cell in found:
-                s += " " + str(found[cell])
-            else:
-                found[cell] = self.lno
-            print(s)
-            self.lno += 1
-        self.traverse(callback)
+        self.dump(full=False)
         return system
 
     def save_dbg(self, name):
@@ -324,7 +334,7 @@ class _DCell0(DCell0, _Compound, _Cell0):
         for cell in self.cells:
             add(self.pip_x == cell.pip_x) # _align
             add(self.pip_z == cell.pip_z) # _align
-            add(cell.pip_y == y + cell.front, self.weight) # soft equal
+            add(cell.pip_y - cell.front == y, self.weight) # soft equal
             add(cell.depth == w*self.depth, self.weight) # soft equal
             y += cell.depth
         #add(self.pip_y + self.back == y, self.weight) # should be hard equal?
@@ -380,10 +390,11 @@ class Cell1(Atom):
     def npaths(self):
         return len(list(self.get_paths()))
 
-    def traverse(self, callback, depth=0):
-        Atom.traverse(self, callback, depth)
-        self.tgt.traverse(callback, depth+1)
-        self.src.traverse(callback, depth+1)
+    def traverse(self, callback, depth=0, full=True):
+        Atom.traverse(self, callback, depth, full)
+        if full:
+            self.tgt.traverse(callback, depth+1, full)
+            self.src.traverse(callback, depth+1, full)
 
 
 class _Cell1(Cell1, Render):
@@ -520,12 +531,13 @@ class DCell1(Compound, Cell1):
         cells = [cell.extrude(show_pip=show_pip, **kw) for cell in self.cells]
         return DCell2(cells, show_pip=show_pip, **kw)
 
-    def traverse(self, callback, depth=0):
-        Atom.traverse(self, callback, depth)
-        self.tgt.traverse(callback, depth+1)
-        self.src.traverse(callback, depth+1)
+    def traverse(self, callback, depth=0, full=True):
+        Atom.traverse(self, callback, depth, full)
+        if full:
+            self.tgt.traverse(callback, depth+1, full)
+            self.src.traverse(callback, depth+1, full)
         for cell in self.cells:
-            cell.traverse(callback, depth+1)
+            cell.traverse(callback, depth+1, full)
 
 class _DCell1(DCell1, _Compound, _Cell1):
 
@@ -573,7 +585,7 @@ class _DCell1(DCell1, _Compound, _Cell1):
             #    cvs.stroke(path.line(pip_x, pip_y, cell.pip_x, cell.pip_y))
             #for cell in self.src:
             #    cvs.stroke(path.line(pip_x, pip_y, cell.pip_x, cell.pip_y))
-            print("DCell1.dbg_render")
+            #print("DCell1.dbg_render")
             cvs.stroke(path.rect(
                 pip_x - self.left, pip_y - self.front, self.width, self.depth),
                 [color.rgba(0,0,0,1.0)]+ns.st_THIck+ns.st_round)
@@ -616,12 +628,13 @@ class HCell1(Compound, Cell1):
         cells = [cell.extrude(show_pip=show_pip, **kw) for cell in self.cells]
         return HCell2(cells, show_pip=show_pip, **kw)
 
-    def traverse(self, callback, depth=0):
-        Atom.traverse(self, callback, depth)
-        self.tgt.traverse(callback, depth+1)
-        self.src.traverse(callback, depth+1)
+    def traverse(self, callback, depth=0, full=True):
+        Atom.traverse(self, callback, depth, full)
+        if full:
+            self.tgt.traverse(callback, depth+1, full)
+            self.src.traverse(callback, depth+1, full)
         for cell in self.cells:
-            cell.traverse(callback, depth+1)
+            cell.traverse(callback, depth+1, full)
 
 
 class _HCell1(HCell1, _Compound, _Cell1):
@@ -864,10 +877,11 @@ class Cell2(Atom):
         tgt, src = self.src, self.tgt
         return Cell2(tgt, src)
 
-    def traverse(self, callback, depth=0):
-        Atom.traverse(self, callback, depth)
-        self.tgt.traverse(callback, depth+1)
-        self.src.traverse(callback, depth+1)
+    def traverse(self, callback, depth=0, full=True):
+        Atom.traverse(self, callback, depth, full)
+        if full:
+            self.tgt.traverse(callback, depth+1, full)
+            self.src.traverse(callback, depth+1, full)
 
     def layout(self, *args, **kw):
         cell = self.deepcopy()
@@ -1089,12 +1103,13 @@ class DCell2(Compound, Cell2):
         cells = [cell.vflip() for cell in self.cells]
         return DCell2(cells)
 
-    def traverse(self, callback, depth=0):
-        Atom.traverse(self, callback, depth)
-        self.tgt.traverse(callback, depth+1)
-        self.src.traverse(callback, depth+1)
+    def traverse(self, callback, depth=0, full=True):
+        Atom.traverse(self, callback, depth, full)
+        if full:
+            self.tgt.traverse(callback, depth+1, full)
+            self.src.traverse(callback, depth+1, full)
         for cell in self.cells:
-            cell.traverse(callback, depth+1)
+            cell.traverse(callback, depth+1, full)
 
 class _DCell2(DCell2, _Compound, _Cell2):
     bdy = _DCell1
@@ -1107,14 +1122,23 @@ class _DCell2(DCell2, _Compound, _Cell2):
         y = self.pip_y - self.front
         w = 1./self.dunits
         for cell in self.cells:
-            add(self.width == cell.width) # fit width
-            add(self.height == cell.height) # fit width
-            add(cell.pip_x == self.pip_x) # _align pip_x
-            add(cell.pip_z == self.pip_z) # _align pip_z
+            # we don't care if the pip's are aligned, only the left/right bdy
+            #add(self.width == cell.width) # fit width
+            #add(cell.pip_x == self.pip_x) # _align pip_x
+            add(cell.pip_x - cell.left == self.pip_x - self.left)
+            add(cell.pip_x + cell.right == self.pip_x + self.right)
+
+            # we don't care if the pip's are aligned, only the top/bot bdy
+            #add(self.height == cell.height) # fit width
+            #add(cell.pip_z == self.pip_z) # _align pip_z
+            add(cell.pip_z - cell.bot == self.pip_z - self.bot)
+            add(cell.pip_z + cell.top == self.pip_z + self.top)
+
             add(cell.pip_y - cell.front == y)
-            add(cell.depth == w*cell.dunits*self.depth, self.weight)
+            add(cell.depth == w*cell.dunits*self.depth, self.weight) # soft
             y += cell.depth
-        add(self.pip_y + self.back == y, self.weight)
+        #add(self.pip_y + self.back == y, self.weight)
+        add(self.pip_y + self.back == y) # don't be a softy!
 
     def render(self, view):
         #Shape.render(self, view)
@@ -1160,12 +1184,13 @@ class HCell2(Compound, Cell2):
         cells = [cell.vflip() for cell in self.cells]
         return HCell2(cells)
 
-    def traverse(self, callback, depth=0):
-        Atom.traverse(self, callback, depth)
-        self.tgt.traverse(callback, depth+1)
-        self.src.traverse(callback, depth+1)
+    def traverse(self, callback, depth=0, full=True):
+        Atom.traverse(self, callback, depth, full)
+        if full:
+            self.tgt.traverse(callback, depth+1, full)
+            self.src.traverse(callback, depth+1, full)
         for cell in self.cells:
-            cell.traverse(callback, depth+1)
+            cell.traverse(callback, depth+1, full)
 
 
 class _HCell2(HCell2, _Compound, _Cell2):
@@ -1192,7 +1217,7 @@ class _HCell2(HCell2, _Compound, _Cell2):
 
             add(cell.pip_x == cell.left + x)
             add(cell.width == w*cell.hunits*self.width, self.weight) # soft equal
-            x += cell.width
+            x += cell.width #+ 0.2
 
         #add(self.pip_x + self.right == x, self.weight)
         add(self.pip_x + self.right == x) # hard equal
@@ -1253,12 +1278,13 @@ class VCell2(Compound, Cell2):
         cells = [cell.vflip() for cell in reversed(self.cells)]
         return VCell2(cells)
 
-    def traverse(self, callback, depth=0):
-        Atom.traverse(self, callback, depth)
-        self.tgt.traverse(callback, depth+1)
-        self.src.traverse(callback, depth+1)
+    def traverse(self, callback, depth=0, full=True):
+        Atom.traverse(self, callback, depth, full)
+        if full:
+            self.tgt.traverse(callback, depth+1, full)
+            self.src.traverse(callback, depth+1, full)
         for cell in self.cells:
-            cell.traverse(callback, depth+1)
+            cell.traverse(callback, depth+1, full)
 
 
 class _VCell2(VCell2, _Compound, _Cell2):
