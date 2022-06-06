@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 """
+
 render 2-morphisms in a bicategory using sheet/string diagrams.
 
 previous version: huygens/cell.py
+
+WARNING: this code is bonkers, but does work sometimes.
 
 """
 
@@ -75,6 +78,11 @@ class Atom(object):
 
     def traverse(self, cb, depth=0, full=True):
         cb(self, depth)
+
+    def __call__(self, **kw):
+        self = self.deepcopy() # **kw for deepcopy ?
+        self.__dict__.update(kw)
+        return self
 
 
 class Compound(object):
@@ -169,6 +177,7 @@ class Render(Listener):
             x0, x1, y0, y1, z0, z1)
 
     def dump(self, full=True):
+        self.lno = 0
         found = {}
         def callback(cell, depth):
             s = Render.pstr(cell, depth)
@@ -216,8 +225,7 @@ class Render(Listener):
         system = self.constrain(*args, verbose=verbose, **kw)
         system.solve()
         self.did_layout = system
-        self.lno = 0
-        self.dump(full=False)
+        #self.dump(full=False)
         return system
 
     def save_dbg(self, name):
@@ -287,6 +295,14 @@ class Cell0(Atom):
 
 
 class _Cell0(Cell0, Render):
+
+    def eq_constrain(self, other, system):
+        add = system.add
+        for attr in "pip_x pip_y pip_z front back".split():
+            lhs = getattr(self, attr)
+            rhs = getattr(other, attr)
+            add(lhs == rhs)
+
     def on_constrain(self, system, depth, verbose=False):
         if verbose:
             dbg_constrain(self, depth)
@@ -359,6 +375,7 @@ class Cell1(Atom):
     color = black
     show_pip = True
     pip_radius = 0.3
+    pip_cvs = None
 
     def __init__(self, tgt, src, name=None, weight=1.0, **kw):
         assert isinstance(tgt, Cell0)
@@ -374,9 +391,10 @@ class Cell1(Atom):
         tgt = self.tgt.deepcopy()
         src = self.src.deepcopy()
         kw = {}
-        kw["show_pip"] = self.show_pip
         kw["color"] = self.color
-        #kw["stroke"] = self.stroke
+        kw["show_pip"] = self.show_pip
+        kw["pip_radius"] = self.pip_radius
+        kw["pip_cvs"] = self.pip_cvs
         cell = _Cell1(tgt, src, self.name, self.weight, **kw)
         check_renderable(cell)
         return cell
@@ -437,7 +455,8 @@ class _Cell1(Cell1, Render):
     
         for (left,right) in zip(lhs, rhs):
             if len(left)!=len(right):
-                tgt.fail_match(src)
+                tgt.fail_match(src, 
+                    "tgt path len %d != src path len %d"%(len(left), len(right)))
             for (l,r) in zip(left, right):
                 if l in send:
                     if send[l] != r:
@@ -449,6 +468,15 @@ class _Cell1(Cell1, Render):
                     tgt.fail_match(src)
                 if isinstance(l, Cell1):
                     yield (l,r)
+
+    def eq_constrain(self, other, system):
+        add = system.add
+        for attr in "pip_x pip_y pip_z front back left right".split():
+            lhs = getattr(self, attr)
+            rhs = getattr(other, attr)
+            add(lhs == rhs)
+        self.tgt.eq_constrain(other.tgt, system)
+        self.src.eq_constrain(other.src, system)
 
     def on_constrain(self, system, depth, verbose=False):
         if verbose:
@@ -463,25 +491,26 @@ class _Cell1(Cell1, Render):
         system.add(back == front, self.weight) # soft equal
         system.add(left == right, self.weight) # soft equal
 
+        # keep the pip inside !
+        system.add(self.front >= 0)
+        system.add(self.back >= 0)
+        #system.add(self.left >= 0) # doesn't seem to be needed
+        #system.add(self.right >= 0) # doesn't seem to be needed
+
         if self.__class__ != _Cell1: # bit of a hack
             return # < --------- return
 
+        # now we constrain the _Cell0 src & tgt
         tgt, src = self.tgt, self.src
         tgt.on_constrain(system, depth, verbose)
         src.on_constrain(system, depth, verbose)
         add = system.add
-        add(tgt.pip_x == self.pip_x - self.left)
-        add(src.pip_x == self.pip_x + self.right)
+        add(tgt.pip_x == self.pip_x - self.left) # tgt to the left
+        add(src.pip_x == self.pip_x + self.right) # src to the right
         for cell in [tgt, src]:
             add(cell.pip_z == self.pip_z) # hard equal
             add(cell.pip_y - cell.front == self.pip_y - self.front)
             add(cell.pip_y + cell.back == self.pip_y + self.back)
-        #add(tgt.pip_z == self.pip_z)
-        #add(src.pip_z == self.pip_z)
-        #add(tgt.pip_y == self.pip_y)
-        #add(src.pip_y == self.pip_y)
-        #add(tgt.depth == self.depth)
-        #add(src.depth == self.depth)
 
     def dbg_render(self, bg):
         from huygens import namespace as ns
@@ -539,6 +568,7 @@ class DCell1(Compound, Cell1):
         for cell in self.cells:
             cell.traverse(callback, depth+1, full)
 
+
 class _DCell1(DCell1, _Compound, _Cell1):
 
     def get_paths(self):
@@ -573,7 +603,7 @@ class _DCell1(DCell1, _Compound, _Cell1):
     def dbg_render(self, bg):
         from huygens import namespace as ns
         cvs = Canvas()
-        if hasattr(self, "pip_x"):
+        if 0 and hasattr(self, "pip_x"):
             pip_x, pip_y, pip_z = self.pip_x, self.pip_y, self.pip_z
             tx = Transform(
                 xx=1.0, yx=0.0,
@@ -852,9 +882,11 @@ class Cell2(Atom):
 
     def deepcopy(self):
         kw = {}
-        kw["show_pip"] = self.show_pip
         kw["color"] = self.color
-        #kw["stroke"] = self.stroke
+        kw["show_pip"] = self.show_pip
+        kw["pip_radius"] = self.pip_radius
+        kw["cone"] = self.cone
+        kw["pip_cvs"] = self.pip_cvs
         tgt = self.tgt.deepcopy()
         src = self.src.deepcopy()
         cell = _Cell2(tgt, src, **kw)
@@ -972,7 +1004,9 @@ class _Cell2(Cell2, Render):
             if color is not None:
                 view.add_curve(*line, lw=0.2, stroke=color)
                 # show spider (1-cell) pip
-                if self.show_pip:
+                if self.pip_cvs is not None:
+                    view.add_cvs(Mat(pip1), self.pip_cvs)
+                elif self.show_pip:
                     view.add_circle(pip1, self.pip_radius, fill=color)
 
             tgt, src = self.tgt, self.src
@@ -1058,6 +1092,60 @@ class _Cell2(Cell2, Render):
             view.add_cvs(Mat(pip2), self.pip_cvs)
         elif self.color is not None and self.show_pip:
             view.add_circle(Mat(pip2), self.pip_radius, fill=self.color, address=self)
+
+    def render_boundary(self, view, src=True, tgt=True):
+        (x0, y0, z0, x1, y1, z1) = self.rect
+        x01 = conv(x0, x1)
+        y01 = conv(y0, y1)
+        z01 = conv(z0, z1)
+
+        pip2 = Mat(self.pip)
+        cone = 1. - self.cone
+        cone = max(PIP, cone)
+
+        def seg_over(v1, v2):
+            v12 = Mat([v1[0], v1[1], v2[2]]) # a point over v1
+            line = Segment(v1, v1 + cone*(v12-v1), v2 + cone*(v12-v2), v2)
+            return line
+
+        def callback(self):
+            assert self.__class__ == _Cell1
+            color = self.color
+            pip1 = Mat(self.pip)
+
+            line = seg_over(pip1, pip2)
+            if color is not None:
+                #view.add_curve(*line, lw=0.2, stroke=color)
+                # show spider (1-cell) pip
+                if self.show_pip:
+                    view.add_circle(pip1, self.pip_radius, fill=color)
+
+            tgt, src = self.tgt, self.src
+            for cell in tgt:
+                v = Mat(cell.pip)
+                vpip1 = Mat([conv(v[0], pip1[0]), v[1], v[2]])
+                leg = Segment(v, conv(v, vpip1), vpip1, pip1) # spider leg
+                view.add_curve(*leg, stroke=cell.stroke)
+
+            for cell in src:
+                v = Mat(cell.pip)
+                vpip1 = Mat([conv(v[0], pip1[0]), v[1], v[2]])
+                leg = Segment(v, conv(v, vpip1), vpip1, pip1)
+                view.add_curve(*leg, stroke=cell.stroke)
+
+        if tgt:
+            z = z1
+            self.tgt.visit(callback, instance=_Cell1)
+
+        if src:
+            z = z0
+            self.src.visit(callback, instance=_Cell1)
+
+    def render_src(self, view):
+        self.render_boundary(view, src=True, tgt=False)
+
+    def render_tgt(self, view):
+        self.render_boundary(view, src=False, tgt=True)
 
     def dbg_render(self, cvs):
         self.tgt.dbg_render(cvs)
@@ -1208,20 +1296,19 @@ class _HCell2(HCell2, _Compound, _Cell2):
         for cell in self.cells:
             add(cell.pip_y-cell.front == self.pip_y-self.front)
             add(cell.pip_y+cell.back == self.pip_y+self.back)
-            add(cell.pip_y == self.pip_y)
+            #add(cell.pip_y == self.pip_y)
 
-            #add(cell.pip_z+cell.top == self.pip_z+cell.top) 
-            #add(cell.pip_z-cell.bot == self.pip_z-cell.bot) 
-            add(cell.pip_z == self.pip_z)
-            add(self.height == cell.height) # fit height
+            add(cell.pip_z+cell.top == self.pip_z+self.top) 
+            add(cell.pip_z-cell.bot == self.pip_z-self.bot) 
+            #add(cell.pip_z == self.pip_z)
+            #add(self.height == cell.height) # fit height
 
             add(cell.pip_x == cell.left + x)
             add(cell.width == w*cell.hunits*self.width, self.weight) # soft equal
-            x += cell.width #+ 0.2
+            x += cell.width
 
         #add(self.pip_x + self.right == x, self.weight)
         add(self.pip_x + self.right == x) # hard equal
-        #add(cell.pip_x + cell.right == x) # hard equal.. redundant ?
 
         i = 0
         while i+1 < len(self):
@@ -1315,8 +1402,9 @@ class _VCell2(VCell2, _Compound, _Cell2):
             src, tgt = src.tgt, tgt.src # Cell1's
             for (t, s) in tgt.match(src):
                 # t, s are Cell1's
-                add(s.pip_x == t.pip_x) # hard equal
-                add(s.pip_y == t.pip_y) # hard equal
+                #add(s.pip_x == t.pip_x) # hard equal
+                #add(s.pip_y == t.pip_y) # hard equal
+                s.eq_constrain(t, system)
             i += 1
 
 
