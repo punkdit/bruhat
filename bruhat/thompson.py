@@ -8,6 +8,8 @@ https://conf.math.illinois.edu/~mobeidin/thompson.pdf
 
 from functools import total_ordering
 
+from bruhat.action import mulclose
+
 @total_ordering
 class Dyadic(object):
     """
@@ -187,6 +189,30 @@ class Tree(object):
         return items
 
 
+def all_trees(n_or_items):
+    if type(n_or_items) is int:
+        items = [Leaf() for i in range(n_or_items)]
+    else:
+        items = list(n_or_items)
+    n = len(items)
+    if n==1:
+        yield items[0]
+        return
+    elif n==2:
+        yield Pair(*items)
+        return
+    elif n==0:
+        return
+    found = set()
+    for i in range(n-1):
+        a, b = items[i:i+2]
+        trees = items[:i] + [Pair(a, b)] + items[i+2:]
+        for tree in all_trees(trees):
+            if tree not in found:
+                yield tree
+                found.add(tree)
+
+
 
 class Leaf(Tree):
     def __init__(self, name="_"):
@@ -195,6 +221,8 @@ class Leaf(Tree):
         return self.name
     def __eq__(self, other):
         return isinstance(other, Leaf)
+    def __hash__(self):
+        return 0
     def copy(self):
         return Leaf(self.name)
     def __getitem__(self, key):
@@ -211,18 +239,23 @@ class Leaf(Tree):
         if isinstance(rhs, Leaf):
             return lhs.copy()
         return rhs.copy()
-    def join(lhs, rhs, send={}, idx=0):
-        send[0] = rhs
-        idx += 1
-        return send, idx
+#    def join(lhs, rhs, send={}, idx=0):
+#        send[0] = rhs
+#        idx += 1
+#        return send, idx
     def nleaves(self):
         return 1
     def is_caret(self):
         return False
-    def send(self, key, tree, depth=0):
-        print("  "*depth+"send", self, key, tree)
+    def rewrite(self, key, tree, depth=0):
+        #print("  "*depth+"send", self, key, tree)
         assert key==(), "%s --> %s"%(key, tree)
         return tree
+    def internal_nodes(self, root=True):
+        return
+        yield
+    def reassoc(self, key):
+        assert 0
 
 class Pair(Tree):
     def __init__(self, a, b):
@@ -234,6 +267,10 @@ class Pair(Tree):
         return "(%s*%s)"%(self.a, self.b)
     def __eq__(self, other):
         return isinstance(other,Pair) and self.a==other.a and self.b==other.b
+    def __hash__(self):
+        a = self.a.__hash__()
+        b = self.b.__hash__()
+        return hash( (a, b) )
     def copy(self):
         return Pair(self.a, self.b)
     def __getitem__(self, key):
@@ -267,24 +304,50 @@ class Pair(Tree):
         a = lhs.a.sup(rhs.a)
         b = lhs.b.sup(rhs.b)
         return Pair(a, b)
-    def join(lhs, rhs, send={}, idx=0):
-        #la, lb = lhs.a, lhs.b
-        #ra, rb = rhs.a, rhs.b
-        #???
-        return send, idx
+#    def join(lhs, rhs, send={}, idx=0):
+#        #la, lb = lhs.a, lhs.b
+#        #ra, rb = rhs.a, rhs.b
+#        #???
+#        return send, idx
     def nleaves(self):
         return self.a.nleaves() + self.b.nleaves()
     def is_caret(self):
         return self.a.__class__ is Leaf and self.b.__class__ is Leaf
-    def send(self, key, tree, depth=0):
+    def rewrite(self, key, tree, depth=0):
         #print("  "*depth+"send", self, key, tree)
         assert self[key]
         if key==():
             return tree
         head, tail = key[0], key[1:]
         children = [self.a, self.b]
-        children[head] = children[head].send(tail, tree, depth+1)
+        children[head] = children[head].rewrite(tail, tree, depth+1)
         return Pair(*children)
+    def internal_nodes(self, root=True):
+        if type(self.a) is Pair:
+            for k in self.a.internal_nodes(False):
+                yield (0,)+k
+        if type(self.b) is Pair:
+            for k in self.b.internal_nodes(False):
+                yield (1,)+k
+        if not root:
+            yield ()
+    def reassoc(self, key):
+        assert len(key)
+        child = self[key]
+        tail, idx = key[:-1], key[-1]
+        parent = self[tail]
+        if idx == 0:
+            a = child[0,]
+            b = child[1,]
+            c = parent[(1-idx,)]
+            tree = Pair(a, Pair(b, c))
+        else:
+            a = parent[(1-idx,)]
+            b = child[0,]
+            c = child[1,]
+            tree = Pair(Pair(a, b), c)
+        tree = self.rewrite(tail, tree)
+        return tree
 
 
 def cancel_carets(lhs, rhs):
@@ -297,8 +360,8 @@ def cancel_carets(lhs, rhs):
         if not items:
             break
         i = min(items) # deterministic
-        lhs = lhs.send( l[i], Leaf() ) # remove caret
-        rhs = rhs.send( r[i], Leaf() ) # remove caret
+        lhs = lhs.rewrite( l[i], Leaf() ) # remove caret
+        rhs = rhs.rewrite( r[i], Leaf() ) # remove caret
     return lhs, rhs
     
 
@@ -315,6 +378,8 @@ class Assoc(object):
         return "%s<--%s"%(self.tgt, self.src)
     def __eq__(self, other):
         return self.tgt == other.tgt and self.src == other.src
+    def __hash__(self):
+        return hash( (self.tgt.__hash__(), self.src.__hash__() ) )
     def __mul__(l, r):
         # l.tgt <--- l.src == r.tgt <--- r.src
         ltgt = l.tgt.to_expr("l")
@@ -360,6 +425,7 @@ def test():
 
     assert str(Interval(b, a)) == "[1/2, 7/1]"
 
+
 def test_tree():
     x = Leaf()
     lhs = x*(x*x)
@@ -373,12 +439,8 @@ def test_tree():
 
     lhs, rhs = x*((x*x)*x), (x*x)*x
     ks = lhs.keys()
-    #ks.sort()
     assert ks == [(0,), (1, 0, 0), (1, 0, 1), (1, 0), (1, 1), (1,), ()]
-
     assert lhs.find_carets() == {3: (1,0)}
-
-    
 
     s = ((x*x)*x)*x
     t = (x*x)*(x*x)
@@ -388,6 +450,26 @@ def test_tree():
     t, s = cancel_carets(t, s)
     assert t == x*(x*x), t
     assert s == (x*x)*x, s
+
+    assert s.reassoc((0,)) == t
+    assert t.reassoc((1,)) == s
+
+    tree = s*s
+    assert list(tree.internal_nodes()) == [(0, 0), (0,), (1, 0), (1,)]
+
+    catalan = [1, 1, 2, 5, 14, 42, 132]
+    for i in range(7):
+        n = i+1
+        trees = list(all_trees(n))
+        assert len(trees) == catalan[i]
+        for tree in trees:
+            assert tree.nleaves() == n
+            keys = list(tree.internal_nodes())
+            assert len(keys) == max(0, n-2), (n, len(keys))
+            for k in keys:
+                other = tree.reassoc(k)
+                assert other != tree
+                assert other in trees
 
     I = Assoc( x, x )
     assert I == I
@@ -409,6 +491,31 @@ def test_tree():
     lhs = bracket( A*~B, ~A*B*A )
     rhs = bracket( A*~B, (~A)*(~A)*B*A*A )
     assert lhs == rhs
+
+    G = mulclose([A, B, ~A, ~B], maxsize=100)
+    assert len(G) >= 100
+
+    #for g in G:
+    #    print(g.diamond_str())
+
+    for n in range(1, 6):
+        trees = list(all_trees(n))
+        found = []
+        for src in trees:
+            for k in src.internal_nodes():
+                tgt = src.reassoc(k)
+                f = Assoc(tgt, src)
+                found.append(f)
+        uniq = set(found)
+        #print(len(trees), len(found), len(set(found)))
+        assert len(uniq) == max(0, 2**(n-1) - 2) # woah !
+        uniq = list(uniq)
+        uniq.sort(key = str)
+        for f in uniq:
+            assert ~f in uniq
+            print(f)
+        print()
+
 
 
 if __name__ == "__main__":
