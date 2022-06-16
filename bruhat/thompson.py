@@ -9,6 +9,13 @@ https://conf.math.illinois.edu/~mobeidin/thompson.pdf
 from functools import total_ordering
 
 from bruhat.action import mulclose
+from bruhat import unify
+
+try:
+    from huygens.namespace import *
+except ImportError:
+    print("could not find huygens package")
+
 
 @total_ordering
 class Dyadic(object):
@@ -143,8 +150,6 @@ class Interval(object):
 #            break
 #            
 
-from bruhat import unify
-
 class Tree(object):
     tp = unify.Theory("T")
     tp.add_op("*", 2)
@@ -187,6 +192,96 @@ class Tree(object):
                 assert count>1
                 items[count] = k
         return items
+    def log_render(self, dx=1, dy=-1, depth=None):
+        if depth is None:
+            depth = self.get_depth()
+        cvs = Canvas()
+        mx = 4
+        cvs.stroke(path.circle(0, 0, 0.1), [red]) # origin
+        for key, value in self.items():
+            if isinstance(value, Leaf):
+                continue
+            W = 2**(depth-1)*dx
+            H = 2**(depth-1)*dy
+            x0, y0 = 0, 0 # find the root position of this Pair
+            for k in key:
+                y0 += H
+                W //= 2
+                x0 += W*(k-1/2)
+                H //= 2
+            m = 0
+            for i in range(depth-len(key)):
+                m += H
+                H //= 2
+            cvs.stroke(path.line( mx*x0, y0, mx*(x0-m*(1/4)), y0+m ), st_THIck)
+            cvs.stroke(path.line( mx*x0, y0, mx*(x0+m*(1/4)), y0+m ), st_THIck)
+        #print(cvs.get_bound_box())
+        #print(depth)
+        # height is 2**depth - 1
+        return cvs
+
+    def render(self, w=1, h=-1):
+        n = self.nleaves()
+        layout = {} # coordinates
+        height = (n-1)/2
+        items = list(self.items())
+        i = 0
+        count = 0
+        origin = None # origin of canvas
+
+        # First we layout the leaves.
+        while i < len(items):
+            key, tree = items[i]
+            if isinstance(tree, Pair):
+                i += 1
+                continue
+            items.pop(i)
+            layout[key] = (count*w, height*h)
+            if origin is None:
+                origin = layout[key]
+            count += 1
+        assert len(layout) == n
+
+        # Now we layout all the internal nodes of the tree,
+        # working backwards from the leaves.
+        m = h/w # slope of our lines
+        while len(items):
+            i = 0
+            while i < len(items):
+                key, tree = items[i]
+                assert isinstance(tree, Pair)
+                ka, kb = key+(0,), key+(1,)
+                if ka not in layout or kb not in layout:
+                    i += 1
+                    continue # not ready
+                items.pop(i)
+                xa, ya = layout[ka]
+                xb, yb = layout[kb]
+                assert xb>xa
+                # Yes i actually did some algebra:
+                dx = xb-xa
+                dy = yb-ya
+                b = (1/2)*(m*dx - dy)
+                c = dy/m
+                d = (1/2)*(dx-c)
+                x = xa+c+d
+                y = ya+dy+b
+                assert tree not in layout, tree
+                #print(tree, "at", x, y)
+                layout[key] = x, y
+
+        cvs = Canvas()
+        x0, y0 = origin
+        #cvs.stroke(path.circle(0,0,0.2), [red]) # show origin
+        cvs.append(Translate(-x0, -y0))
+        for key in layout:
+            if isinstance(self[key], Leaf):
+                continue
+            x0, y0 = layout[key]
+            ka, kb = key+(0,), key+(1,)
+            for (x1, y1) in [layout[ka], layout[kb]]:
+                cvs.stroke(path.line(x0, y0, x1, y1), st_THIck+st_round)
+        return cvs
 
 
 def all_trees(n_or_items):
@@ -256,6 +351,8 @@ class Leaf(Tree):
         yield
     def reassoc(self, key):
         assert 0
+    def get_depth(self):
+        return 0
 
 class Pair(Tree):
     def __init__(self, a, b):
@@ -348,6 +445,8 @@ class Pair(Tree):
             tree = Pair(Pair(a, b), c)
         tree = self.rewrite(tail, tree)
         return tree
+    def get_depth(self):
+        return 1 + max(self.a.get_depth(), self.b.get_depth())
 
 
 def cancel_carets(lhs, rhs):
@@ -517,10 +616,31 @@ def test_tree():
         print()
 
 
+def test_render():
+    x = Leaf()
+    t = ((x*x)*x)*x
+    s = ((x*x)*(x*x))
+
+    #cvs = s.render(h=-1)
+    #cvs.writePDFfile("tree.pdf")
+    #return
+
+    f = Assoc((x*x)*x, x*(x*x))
+    f = Assoc(s*t, t*s)
+    print(f)
+    f = f*f
+
+    top = f.tgt.render(h=-1)
+    bot = f.src.render(h=+1)
+    cvs = Canvas([top, Translate(0, 0), bot])
+
+    cvs.writePDFfile("tree.pdf")
+
 
 if __name__ == "__main__":
     test()
     test_tree()
+    test_render()
     print("OK\n")
 
 
