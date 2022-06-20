@@ -6,12 +6,18 @@ Implement Thompson's group F
 https://conf.math.illinois.edu/~mobeidin/thompson.pdf
 """
 
+from random import choice, seed
 from functools import total_ordering
 
 from bruhat.action import mulclose
 from bruhat import unify
 
 try:
+    from huygens import config
+    config(text="pdflatex", latex_header=r"""
+    \usepackage{amsmath}
+    \usepackage{amssymb}
+    """)
     from huygens.namespace import *
 except ImportError:
     print("could not find huygens package")
@@ -497,6 +503,12 @@ class Assoc(object):
         return Assoc(tgt, src)
     def __invert__(self):
         return Assoc(self.src, self.tgt)
+    def render(self):
+        top = self.tgt.render(h=-1)
+        bot = self.src.render(h=+1)
+        cvs = Canvas([top, bot])
+        return cvs
+    
 
 
 def bracket(g, h):
@@ -612,9 +624,32 @@ def test_tree():
         uniq.sort(key = str)
         for f in uniq:
             assert ~f in uniq
-            print(f)
-        print()
+            #print(f)
+        #print()
 
+#def make_eq(l_cvs, r_cvs, space=2.0):
+#    cvs = Canvas()
+#    l_bb = l_cvs.get_bound_box()
+#    r_bb = r_cvs.get_bound_box()
+#    lw = max(l_bb.width, space)
+#    rw = max(r_bb.width, space)
+#    cvs.insert(-0.7*lw, 0., l_cvs)
+#    cvs.insert(+0.7*rw, 0., r_cvs)
+#    bb = cvs.get_bound_box()
+#    x, y = bb.center
+#    cvs.text(x, y, r"$=$", [Scale(2.)]+st_center)
+#    return cvs
+
+def make_eq(items):
+    cvs = Canvas()
+    x = 0
+    for item in items:
+        if type(item) is str:
+            item = Canvas().text(0, 0, item, [Scale(3.)]+st_center)
+        cvs.insert(x, 0, item)
+        x += 1.1*item.get_bound_box().width + 0.4
+    return cvs
+    
 
 def test_render():
     x = Leaf()
@@ -624,17 +659,37 @@ def test_render():
     #cvs = s.render(h=-1)
     #cvs.writePDFfile("tree.pdf")
     #return
+    A = Assoc( (x*x)*x, x*(x*x) )
+    B = Assoc( x*((x*x)*x), x*(x*(x*x)) )
+    G = mulclose([A, B, ~A, ~B], maxsize=60)
 
-    f = Assoc((x*x)*x, x*(x*x))
-    f = Assoc(s*t, t*s)
-    print(f)
-    f = f*f
+    seed(2)
 
-    top = f.tgt.render(h=-1)
-    bot = f.src.render(h=+1)
-    cvs = Canvas([top, Translate(0, 0), bot])
+    question = Canvas().text(0, 0, "?", [Scale(7.)]+st_center)
+    cvs = Canvas()
+    x, y = 0, 0
+    for i in range(4):
+        f = choice(G)
+        g = choice(G)
+    
+        row = [f.render(), r"$\times$", g.render(), r"$=$", (f*g).render()]
+        #if i==0:
+        #    row[-1] = question
+        row = make_eq(row)
+        cvs.insert(x, y, row)
+        y += 1.1*row.get_bound_box().height
 
-    cvs.writePDFfile("tree.pdf")
+    bb = cvs.get_bound_box()
+    bg = Canvas()
+    m = 0.1
+    bg.fill(path.rect(bb.llx-m, bb.lly-m, bb.width+2*m, bb.height+2*m), [white])
+    cvs = bg.append(cvs)
+    if 0:
+        cvs.writePDFfile("tree-puzzle.pdf")
+        cvs.writePNGfile("tree-puzzle.png")
+    else:
+        cvs.writePDFfile("tree-soln.pdf")
+        cvs.writePNGfile("tree-soln.png")
 
 
 if __name__ == "__main__":
