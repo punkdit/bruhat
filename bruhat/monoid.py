@@ -2,6 +2,7 @@
 
 import sys, os
 
+from bruhat.util import choose
 from bruhat.argv import argv
 
 
@@ -10,7 +11,7 @@ def mulclose(els, verbose=False, maxsize=None):
     changed = True
     while changed:
         if verbose:
-            print "mulclose:", len(els)
+            print("mulclose:", len(els))
         changed = False
         _els = list(els)
         for A in _els:
@@ -25,37 +26,46 @@ def mulclose(els, verbose=False, maxsize=None):
 
 
 class Func(object):
-    def __init__(self, func, word=''):
-        self.func = dict(func)
-        self.word = word
+    def __init__(self, tgt, src, send, name=''):
+        self.send = dict(send)
+        self.tgt = list(tgt)
+        self.src = list(src)
+        self.tgt.sort()
+        self.src.sort()
+        self.name = name
 
     def __mul__(self, other):
-        func = {}
-        keys = self.func.keys()
-        for k, v in self.func.items():
-            v = other.func[v]
-            func[k] = v
-        return Func(func, self.word+other.word)
+        "multiply right to left"
+        assert self.src == other.tgt
+        send = {}
+        for k, v in other.send.items():
+            v = self.send[v]
+            send[k] = v
+        return Func(self.tgt, other.src, send, self.name+other.name)
+
+    def __repr__(self):
+        send = self.send
+        keys = list(send.keys())
+        keys.sort()
+        return "Func(%s, %s, {%s})"%(
+            self.tgt, self.src,
+            ', '.join("%s:%s"%(k, send[k]) for k in keys))
 
     def __str__(self):
-        func = self.func
-        keys = func.keys()
-        keys.sort()
-        return "Func({%s})"%(
-            ', '.join("%s:%s"%(k, func[k]) for k in keys))
+        return self.name
 
     def __eq__(self, other):
-        return self.func == other.func
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        return self.send == other.send
 
     def __ne__(self, other):
-        return self.func != other.func
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        return self.send != other.send
 
     def __hash__(self):
-        func = self.func
-        keys = func.keys()
-        keys.sort()
-        items = tuple((k, func[k]) for k in keys)
-        return hash(items)
+        return hash(self.__repr__())
 
 
 class Monoid(object):
@@ -72,8 +82,8 @@ class Monoid(object):
         return self.funcs[i]
 
     @classmethod
-    def generate(cls, funcs):
-        funcs = list(mulclose(funcs))
+    def generate(cls, funcs, *args, **kw):
+        funcs = list(mulclose(funcs, *args, **kw))
         return cls(funcs)
 
 
@@ -81,24 +91,78 @@ class Monoid(object):
 def test():
 
     n = argv.get("n", 3)
-    items = range(1, n+1)
+    items = list(range(1, n+1))
+    tgt = src = items
 
-    I = Func(dict((i, i) for i in items), "")
-    up = Func(dict((i, min(i+1, n)) for i in items), "u")
-    dn = Func(dict((i, max(i-1, 1)) for i in items), "d")
+    I = Func(tgt, src, dict((i, i) for i in items), "")
+    up = Func(tgt, src, dict((i, min(i+1, n)) for i in items), "u")
+    dn = Func(tgt, src, dict((i, max(i-1, 1)) for i in items), "d")
 
-    M = Monoid.generate([I, up, dn])
+    M = Monoid.generate([I, up, dn], maxsize=12)
+    assert len(M) == 8
 
-    print len(M)
+    # ---------------------------------------------------
 
-    for x in M:
-        print x.word,
-    print
+    X = [0, 1, 2]
+
+    M = [
+        Func(X, X, {0:0, 1:1, 2:2}, 'I'),
+        Func(X, X, {0:0, 1:0, 2:1}, 'a'),
+        Func(X, X, {0:0, 1:0, 2:2}, 'b'),
+        Func(X, X, {0:0, 1:1, 2:1}, 'c'),
+        Func(X, X, {0:1, 1:1, 2:2}, 'd'),
+        Func(X, X, {0:0, 1:2, 2:2}, 'e'),
+        Func(X, X, {0:1, 1:2, 2:2}, 'f'),
+        Func(X, X, {0:0, 1:0, 2:0}, 'g'),
+        Func(X, X, {0:1, 1:1, 2:1}, 'h'),
+        Func(X, X, {0:2, 1:2, 2:2}, 'i'),
+    ]
+
+    N = Monoid.generate(M, maxsize=100)
+    assert len(N) == len(M)
+
+    I, a, b, c, d, e, f, g, h, i = M
+    assert repr(b*a) == "Func([0, 1, 2], [0, 1, 2], {0:0, 1:0, 2:0})"
+    assert b*a == g
+    assert a*b == a
+
+    for gen in choose(M[1:], 3):
+        N = Monoid.generate(gen)
+        if len(N) == len(M)-1:
+            print([str(g) for g in gen], end=" ")
+            print(len(N))
+    
+    gens = [a, b, f]
+    show_table(M, M)
+
+
+def show_table(M, gens):
+    lookup = dict((f, f) for f in M)
+    print(" |", end="")
+    for b in M:
+        print(b, end=" ")
+    print()
+    print("-+" + "--"*len(M))
+    for b in M:
+      print(b, end="|")
+      for a in M:
+        c = lookup[a*b]
+        if a in gens and b in gens:
+            print(c, end=" ")
+        else:
+            print(" ", end=" ")
+      print()
+
+
+
+
 
 
 if __name__ == "__main__":
 
     test()
+
+    print("OK\n")
 
 
 
