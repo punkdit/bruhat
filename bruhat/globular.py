@@ -51,46 +51,32 @@ class Cell(object):
         n = lhs.n
         offset = lhs.cat.level
         assert n>=offset
-        return Pair(n-offset, lhs, rhs)
+        return lhs.cat.pair(n-offset, lhs, rhs)
 
     def __lshift__(lhs, rhs):
         assert lhs.n == rhs.n 
         n = lhs.n
         offset = lhs.cat.level-1
         assert n>=offset
-        return Pair(n-offset, lhs, rhs)
+        return lhs.cat.pair(n-offset, lhs, rhs)
 
     def __matmul__(lhs, rhs):
         assert lhs.n == rhs.n 
         n = lhs.n
         offset = lhs.cat.level-2
         assert n>=offset
-        return Pair(n-offset, lhs, rhs)
+        return lhs.cat.pair(n-offset, lhs, rhs)
 
 
 
 class Pair(Cell):
+    """
+        A composable pair of cell's.
+    """
 
-    @classmethod
-    def whisker(cls, lhs, rhs):
-        while lhs.n < rhs.n:
-            lhs = Cell(lhs, lhs)
-        while rhs.n < lhs.n:
-            rhs = Cell(rhs, rhs)
-        assert lhs.n == rhs.n
-        return (lhs, rhs)
-
-    def __new__(cls, codim, lhs, rhs):
-        assert isinstance(lhs, Cell)
-        assert isinstance(rhs, Cell)
+    def __init__(self, codim, lhs, rhs):
         cat = lhs.cat
-        assert cat == rhs.cat
-        paircache = cat.paircache
-        key = (codim, lhs, rhs)
-        if key in paircache:
-            return paircache[key]
-        ob = object.__new__(cls)
-        paircache[key] = ob
+        pair = cat.pair
         assert codim >= 0
         assert lhs.n == rhs.n, "use whisker first"
         if codim == 0:
@@ -100,29 +86,29 @@ class Pair(Cell):
         elif codim == 1:
             assert lhs.src.src == rhs.src.tgt
             # lhs.tgt.src == rhs.tgt.tgt
-            tgt = Pair(0, lhs.tgt, rhs.tgt)
-            src = Pair(0, lhs.src, rhs.src)
+            tgt = pair(0, lhs.tgt, rhs.tgt)
+            src = pair(0, lhs.src, rhs.src)
         elif codim == 2:
             assert lhs.src.src.src == rhs.src.src.tgt
             # -> lhs.tgt.src.src == rhs.tgt.src.tgt
             # -> lhs.tgt.tgt.src == rhs.tgt.tgt.tgt
-            tgt = Pair(1, lhs.tgt, rhs.tgt)
-            src = Pair(1, lhs.src, rhs.src)
+            tgt = pair(1, lhs.tgt, rhs.tgt)
+            src = pair(1, lhs.src, rhs.src)
         else:
-            tgt = Pair(codim-1, lhs.tgt, rhs.tgt)
-            src = Pair(codim-1, lhs.src, rhs.src)
-        Cell.__init__(ob, cat, tgt, src)
-        ob.codim = codim
-        ob.lhs = lhs
-        ob.rhs = rhs
-        ob.key = key
-        return ob
+            tgt = pair(codim-1, lhs.tgt, rhs.tgt)
+            src = pair(codim-1, lhs.src, rhs.src)
+        Cell.__init__(self, cat, tgt, src)
+        self.codim = codim
+        self.lhs = lhs
+        self.rhs = rhs
+        self.key = (codim, lhs, rhs)
 
-    def __init__(self, codim, lhs, rhs):
-        pass
+    def __getitem__(self, i):
+        return [self.lhs, self.rhs][i]
 
     def __str__(self):
         return "(%s *%d %s)" % (self.lhs, self.codim, self.rhs)
+
 
 
 class NCategory(object):
@@ -150,6 +136,27 @@ class NCategory(object):
         unit = Cell(self, cell, cell)
         cache[cell] = unit
         return unit
+
+    @classmethod
+    def whisker(cls, lhs, rhs):
+        while lhs.n < rhs.n:
+            lhs = Cell(lhs, lhs)
+        while rhs.n < lhs.n:
+            rhs = Cell(rhs, rhs)
+        assert lhs.n == rhs.n
+        return (lhs, rhs)
+
+    def pair(self, codim, lhs, rhs):
+        assert isinstance(lhs, Cell)
+        assert isinstance(rhs, Cell)
+        assert self == lhs.cat
+        assert self == rhs.cat
+        paircache = self.paircache
+        pair = Pair(codim, lhs, rhs)
+        if pair.key in paircache:
+            return paircache[pair.key]
+        paircache[pair.key] = pair
+        return pair
 
     def equate(self, tgt, src):
         if tgt == src:
@@ -179,6 +186,26 @@ class Category(NCategory):
         I = NCategory.unit(self, cell)
         self.equate(I, I*I)
         return I
+
+    def pair(self, codim, lhs, rhs):
+        if isinstance(rhs, Pair):
+            # reassoc to the left
+            b, c = rhs
+            pair = (lhs*b)*c
+            #self.equate(...) # do we care?
+        else:
+            pair = NCategory.pair(self, codim, lhs, rhs)
+        return pair
+
+    def iso(self, tgt, src, name=""):
+        "make an iso tgt<--src"
+        cell = self.cell(tgt, src, name)
+        inv = self.cell(src, tgt, "~"+name)
+        self.equate(self.unit(src), inv*cell)
+        self.equate(self.unit(tgt), cell*inv)
+        cell.inv = inv
+        inv.inv = cell
+        return cell
 
 
 class Bicategory(NCategory):
@@ -219,10 +246,7 @@ def main():
 
     g = cell(c, b)
     f = cell(b, a)
-    uu = Pair(0, g, f)
-
-    assert uu is Pair(0, g, f)
-    assert uu == Pair(0, g, f)
+    uu = cat.pair(0, g, f) 
 
     # -----------------------------------------
     # Test operations in a 0-category aka set
@@ -244,11 +268,13 @@ def main():
     cell = cat.cell
 
     # 0-cells
-    l, m, n = [cell(ch) for ch in 'lmn']
+    l, m, n, o, p = [cell(ch) for ch in 'lmnop']
 
     # 1-cells
     A = cell(m, l)
     B = cell(n, m)
+    C = cell(o, n)
+    D = cell(p, o)
     In = cat.unit(n)
     Im = cat.unit(m)
     Il = cat.unit(l)
@@ -262,6 +288,22 @@ def main():
     assert A*Il == A
     assert Im*A == A
     assert Im*Im == Im
+
+    assert (C*B)*A == C*(B*A)
+    cell = D*C*B*A
+    assert cell == ((D*C)*B)*A
+    assert cell == (D*C)*(B*A)
+    assert cell == D*(C*(B*A))
+    assert cell == D*((C*B)*A)
+    assert cell == (D*(C*B))*A
+
+    E = cat.iso(m, l)
+    assert E*E.inv == Im
+    assert E.inv*E == Il
+
+    print(B*E*E.inv)
+    print(B)
+    assert B*E*E.inv == B
 
     # -----------------------------------------
     # Test operations in a bicategory
@@ -283,7 +325,6 @@ def main():
     reassoc = cell(
         (C<<B)<<A,
         C<<(B<<A))
-    print(reassoc)
 
     # 2-cells
     f = cell(A1, A)
