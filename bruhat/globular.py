@@ -5,7 +5,7 @@
 bars = ["-", "=", "≡", "≣"] # ...?
 
 class Cell(object):
-    def __init__(self, cat, *args):
+    def __init__(self, cat, *args, parent=None):
         """
         call via either:
             Cell(tgt, src)
@@ -36,6 +36,10 @@ class Cell(object):
         self.src = src
         self.tgt = tgt
         self.name = name
+        self.key = self
+        self.parent = parent
+        self._unit = None
+        self._hash = None
 
     def __str__(self):
         return self.name
@@ -45,6 +49,41 @@ class Cell(object):
             return "Cell(%s, %s)"%(self.tgt, self.src)
         else:
             return "Cell(%r)"%(self.name,)
+
+    def get_root(self):
+        while self.parent is not None:
+            self = self.parent
+        return self
+
+    # WARNING:
+    # The following __hash__, __eq__ and equate is a delicate dance 
+    # !!!!!!!!
+    def __hash__(self):
+        dest = self.get_root()
+        assert self._hash is None or self._hash == dest._hash
+        value = id(dest)
+        assert dest._hash is None or dest._hash == value
+        dest._hash = value
+        self._hash = value
+        return value
+
+    def __eq__(lhs, rhs):
+        assert lhs.cat is rhs.cat
+        lhs = lhs.get_root()
+        rhs = rhs.get_root()
+        return lhs is rhs
+
+    def equate(lhs, rhs):
+        assert lhs.cat is rhs.cat
+        lhs = lhs.get_root()
+        rhs = rhs.get_root()
+        if lhs is rhs:
+            return
+        assert lhs._hash is None or rhs._hash is None
+        if rhs._hash is not None:
+            lhs.parent = rhs
+        else:
+            rhs.parent = lhs
 
     def __mul__(lhs, rhs):
         assert lhs.n == rhs.n 
@@ -67,11 +106,17 @@ class Cell(object):
         assert n>=offset
         return lhs.cat.pair(n-offset, lhs, rhs)
 
+    @property
+    def unit(self):
+        if self._unit is None:
+            self._unit = Cell(self.cat, self, self)
+        return self._unit
+
 
 
 class Pair(Cell):
     """
-        A composable pair of cell's.
+        A _composable pair of cell's.
     """
 
     def __init__(self, codim, lhs, rhs):
@@ -80,7 +125,7 @@ class Pair(Cell):
         assert codim >= 0
         assert lhs.n == rhs.n, "use whisker first"
         if codim == 0:
-            assert rhs.tgt == lhs.src, "not composable"
+            assert rhs.tgt == lhs.src, "not _composable"
             tgt = lhs.tgt
             src = rhs.src
         elif codim == 1:
@@ -121,21 +166,11 @@ class NCategory(object):
 
     def __init__(self, level=1):
         self.level = level
-        self.paircache = {} # Pair object cache
-        self.unitcache = {}
+        self.cache = {}
 
-    def cell(self, *args):
+    def Cell(self, *args):
         c = Cell(self, *args)
         return c
-
-    def unit(self, cell):
-        assert cell.cat is self
-        cache = self.unitcache
-        if cell in cache:
-            return cache[cell]
-        unit = Cell(self, cell, cell)
-        cache[cell] = unit
-        return unit
 
     @classmethod
     def whisker(cls, lhs, rhs):
@@ -151,58 +186,61 @@ class NCategory(object):
         assert isinstance(rhs, Cell)
         assert self == lhs.cat
         assert self == rhs.cat
-        paircache = self.paircache
-        pair = Pair(codim, lhs, rhs)
-        if pair.key in paircache:
-            return paircache[pair.key]
-        paircache[pair.key] = pair
+        cache = self.cache
+        #pair = Pair(codim, lhs, rhs)
+        #pair = self.find(pair)
+        key = (codim, lhs, rhs)
+        if key in cache:
+            pair = cache[key]
+        else:
+            pair = Pair(codim, lhs, rhs)
+            cache[key] = pair
         return pair
 
-    def equate(self, tgt, src):
-        if tgt == src:
-            return
-        assert isinstance(src, Pair), src
-        paircache = self.paircache
-        assert paircache[src.key] is src # do we care?
-        paircache[src.key] = tgt
-        return tgt
+    def equate(self, lhs, rhs):
+        lhs.equate(rhs)
 
 
 class Category(NCategory):
     def __init__(self):
         NCategory.__init__(self, 1)
 
-    def cell(self, *args):
-        cell = NCategory.cell(self, *args)
+    def Cell(self, *args):
+        cell = NCategory.Cell(self, *args)
         assert 0<=cell.n<=1
         if cell.n > 0:
-            src = self.unit(cell.src)
+            src = cell.src.unit
             self.equate(cell, cell*src)
-            tgt = self.unit(cell.tgt)
+            self.equate(src, src*src)
+            tgt = cell.tgt.unit
             self.equate(cell, tgt*cell)
+            self.equate(tgt, tgt*tgt)
         return cell
 
-    def unit(self, cell):
-        I = NCategory.unit(self, cell)
-        self.equate(I, I*I)
-        return I
-
     def pair(self, codim, lhs, rhs):
+        assert codim==0
+        compose = lambda lhs, rhs : NCategory.pair(self, codim, lhs, rhs)
+        pair = compose(lhs, rhs)
         if isinstance(rhs, Pair):
             # reassoc to the left
+            a = lhs
             b, c = rhs
-            pair = (lhs*b)*c
-            #self.equate(...) # do we care?
-        else:
-            pair = NCategory.pair(self, codim, lhs, rhs)
+            other = compose(a*b, c)
+            self.equate(pair, other)
+        elif isinstance(lhs, Pair):
+            # reassoc to the right
+            a, b = lhs
+            c = rhs
+            other = compose(a, b*c)
+            self.equate(pair, other)
         return pair
 
     def iso(self, tgt, src, name=""):
         "make an iso tgt<--src"
-        cell = self.cell(tgt, src, name)
-        inv = self.cell(src, tgt, "~"+name)
-        self.equate(self.unit(src), inv*cell)
-        self.equate(self.unit(tgt), cell*inv)
+        cell = self.Cell(tgt, src, name)
+        inv = self.Cell(src, tgt, "~"+name)
+        self.equate(src.unit, inv*cell)
+        self.equate(tgt.unit, cell*inv)
         cell.inv = inv
         inv.inv = cell
         return cell
@@ -228,34 +266,34 @@ class Bicategory(NCategory):
 def main():
 
     cat = NCategory(3)
-    cell = cat.cell
+    Cell = cat.Cell
 
-    a, b, c = [cell(ch) for ch in 'abc']
+    a, b, c = [Cell(ch) for ch in 'abc']
     assert str(a) == 'a'
 
-    f = cell(a, b)
-    g = cell(a, b)
-    u = cell(f, g)
+    f = Cell(a, b)
+    g = Cell(a, b)
+    u = Cell(f, g)
     assert str(u) == "((a <-- b) <== (a <-- b))"
 
     assert u==u
-    assert u != cell(f, g)
+    assert u != Cell(f, g)
 
-    u = cell(u, u)
-    u = cell(u, u)
+    u = Cell(u, u)
+    u = Cell(u, u)
 
-    g = cell(c, b)
-    f = cell(b, a)
+    g = Cell(c, b)
+    f = Cell(b, a)
     uu = cat.pair(0, g, f) 
 
     # -----------------------------------------
     # Test operations in a 0-category aka set
 
     cat = NCategory(0)
-    cell = cat.cell
+    Cell = cat.Cell
 
     # 0-cells
-    l, m, n = [cell(ch) for ch in 'lmn']
+    l, m, n = [Cell(ch) for ch in 'lmn']
 
     # there are no operations apart from ==
     assert l==l
@@ -265,23 +303,23 @@ def main():
     # Test operations in a category
 
     cat = Category()
-    cell = cat.cell
+    Cell = cat.Cell
 
     # 0-cells
-    l, m, n, o, p = [cell(ch) for ch in 'lmnop']
+    l, m, n, o, p = [Cell(ch) for ch in 'lmnop']
 
     # 1-cells
-    A = cell(m, l)
-    B = cell(n, m)
-    C = cell(o, n)
-    D = cell(p, o)
-    In = cat.unit(n)
-    Im = cat.unit(m)
-    Il = cat.unit(l)
-
-    assert In == cat.unit(n)
+    A = Cell(m, l)
+    B = Cell(n, m)
+    C = Cell(o, n)
+    D = Cell(p, o)
+    In = n.unit
+    Im = m.unit
+    Il = l.unit
 
     BA = B*A
+    assert BA == B*A
+    assert BA != A
     assert BA.src == l
     assert BA.tgt == n
 
@@ -290,7 +328,9 @@ def main():
     assert Im*Im == Im
 
     assert (C*B)*A == C*(B*A)
+
     cell = D*C*B*A
+    
     assert cell == ((D*C)*B)*A
     assert cell == (D*C)*(B*A)
     assert cell == D*(C*(B*A))
@@ -301,35 +341,37 @@ def main():
     assert E*E.inv == Im
     assert E.inv*E == Il
 
-    print(B*E*E.inv)
-    print(B)
     assert B*E*E.inv == B
+
+    # 1-cell
+    A = Cell(m, m)
+    assert A != A*A
 
     # -----------------------------------------
     # Test operations in a bicategory
 
     cat = NCategory(2)
-    cell = cat.cell
+    Cell = cat.Cell
 
     # 0-cells
-    l, m, n, o = [cell(ch) for ch in 'lmno']
+    l, m, n, o = [Cell(ch) for ch in 'lmno']
 
     # 1-cells
-    A = cell(m, l)
-    A1 = cell(m, l)
-    A2 = cell(m, l)
-    B = cell(n, m)
-    B1 = cell(n, m)
-    C = cell(o, n)
+    A = Cell(m, l)
+    A1 = Cell(m, l)
+    A2 = Cell(m, l)
+    B = Cell(n, m)
+    B1 = Cell(n, m)
+    C = Cell(o, n)
 
-    reassoc = cell(
+    reassoc = Cell(
         (C<<B)<<A,
         C<<(B<<A))
 
     # 2-cells
-    f = cell(A1, A)
-    g = cell(B1, B)
-    f1 = cell(A2, A1)
+    f = Cell(A1, A)
+    g = Cell(B1, B)
+    f1 = Cell(A2, A1)
 
     BA = B<<A
     assert BA.tgt == n
@@ -351,27 +393,27 @@ def main():
     # Test operations in a one object tricategory == monoidal bicategory
 
     cat = NCategory(3)
-    cell = cat.cell
+    Cell = cat.Cell
 
     # 0-cell
-    star = cell("*")
+    star = Cell("*")
 
     # 1-cells
-    l, m, n = [cell(star, star, ch) for ch in 'lmn']
+    l, m, n = [Cell(star, star, ch) for ch in 'lmn']
 
     # 2-cells
-    A = cell(m, l)
-    A1 = cell(m, l)
-    A2 = cell(m, l)
-    B = cell(n, m)
-    B1 = cell(n, m)
+    A = Cell(m, l)
+    A1 = Cell(m, l)
+    A2 = Cell(m, l)
+    B = Cell(n, m)
+    B1 = Cell(n, m)
 
     assert B.n == 2
 
     # 3-cells
-    f = cell(A1, A)
-    g = cell(B1, B)
-    f1 = cell(A2, A1)
+    f = Cell(A1, A)
+    g = Cell(B1, B)
+    f1 = Cell(A2, A1)
 
     # operations on 1-cell's
     mn = m@n
