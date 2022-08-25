@@ -4,12 +4,18 @@
 
 bars = ["-", "=", "≡", "≣"] # ...?
 
+
 class Cell(object):
+    """
+        These are the generating elements, 
+        out of which further expressions (Pair's) are built.
+    """
+
     def __init__(self, cat, *args, parent=None):
         """
         call via either:
-            Cell(tgt, src)
-            Cell(name)
+            Cell(cat, tgt, src)
+            Cell(cat, name)
         """
         assert isinstance(cat, NCategory), cat
         tgt = None
@@ -36,9 +42,9 @@ class Cell(object):
         self.src = src
         self.tgt = tgt
         self.name = name
-        self.key = self
+        #self.key = self
         self.parent = parent
-        self._unit = None
+        #self._unit = None
         self._hash = None
 
     def __str__(self):
@@ -58,7 +64,10 @@ class Cell(object):
     # WARNING:
     # The following __hash__, __eq__ and equate is a delicate dance 
     # !!!!!!!!
+
     def __hash__(self):
+        # Here we exhibit paranoia about hash value changing!
+        # Do not hash me before assembling into equivelances!
         dest = self.get_root()
         assert self._hash is None or self._hash == dest._hash
         value = id(dest)
@@ -90,27 +99,31 @@ class Cell(object):
         n = lhs.n
         offset = lhs.cat.level
         assert n>=offset
-        return lhs.cat.pair(n-offset, lhs, rhs)
+        return lhs.cat.Pair(n-offset, lhs, rhs)
 
     def __lshift__(lhs, rhs):
         assert lhs.n == rhs.n 
         n = lhs.n
         offset = lhs.cat.level-1
         assert n>=offset
-        return lhs.cat.pair(n-offset, lhs, rhs)
+        return lhs.cat.Pair(n-offset, lhs, rhs)
 
     def __matmul__(lhs, rhs):
         assert lhs.n == rhs.n 
         n = lhs.n
         offset = lhs.cat.level-2
         assert n>=offset
-        return lhs.cat.pair(n-offset, lhs, rhs)
+        return lhs.cat.Pair(n-offset, lhs, rhs)
 
-    @property
-    def unit(self):
-        if self._unit is None:
-            self._unit = Cell(self.cat, self, self)
-        return self._unit
+class Object(Cell):
+    def __init__(self, cat, name, parent=None):
+        self.cat = cat
+        self.n = 0
+        self.src = None
+        self.tgt = None
+        self.name = name
+        self.parent = parent
+        self._hash = None
 
 
 
@@ -121,7 +134,7 @@ class Pair(Cell):
 
     def __init__(self, codim, lhs, rhs):
         cat = lhs.cat
-        pair = cat.pair
+        pair = cat.Pair
         assert codim >= 0
         assert lhs.n == rhs.n, "use whisker first"
         if codim == 0:
@@ -146,7 +159,7 @@ class Pair(Cell):
         self.codim = codim
         self.lhs = lhs
         self.rhs = rhs
-        self.key = (codim, lhs, rhs)
+        #self.key = (codim, lhs, rhs)
 
     def __getitem__(self, i):
         return [self.lhs, self.rhs][i]
@@ -181,14 +194,12 @@ class NCategory(object):
         assert lhs.n == rhs.n
         return (lhs, rhs)
 
-    def pair(self, codim, lhs, rhs):
+    def Pair(self, codim, lhs, rhs):
         assert isinstance(lhs, Cell)
         assert isinstance(rhs, Cell)
         assert self == lhs.cat
         assert self == rhs.cat
         cache = self.cache
-        #pair = Pair(codim, lhs, rhs)
-        #pair = self.find(pair)
         key = (codim, lhs, rhs)
         if key in cache:
             pair = cache[key]
@@ -201,25 +212,43 @@ class NCategory(object):
         lhs.equate(rhs)
 
 
+class Set(NCategory):
+    def __init__(self):
+        NCategory.__init__(self, 0)
+
+
 class Category(NCategory):
     def __init__(self):
         NCategory.__init__(self, 1)
+        self.homs = {}
+
+    def Hom(self, tgt, src):
+        key = (tgt, src)
+        hom = self.homs.get(key)
+        if hom is None:
+            hom = Set()
+            self.homs[key] = hom
+        return hom
 
     def Cell(self, *args):
         cell = NCategory.Cell(self, *args)
-        assert 0<=cell.n<=1
-        if cell.n > 0:
+        if cell.n == 0:
+            cell.unit = Cell(self, cell, cell)
+            self.equate(cell.unit*cell.unit, cell.unit)
+        elif cell.n == 1:
             src = cell.src.unit
             self.equate(cell, cell*src)
             self.equate(src, src*src)
             tgt = cell.tgt.unit
             self.equate(cell, tgt*cell)
             self.equate(tgt, tgt*tgt)
+        else:
+            assert 0
         return cell
 
-    def pair(self, codim, lhs, rhs):
+    def Pair(self, codim, lhs, rhs):
         assert codim==0
-        compose = lambda lhs, rhs : NCategory.pair(self, codim, lhs, rhs)
+        compose = lambda lhs, rhs : NCategory.Pair(self, codim, lhs, rhs)
         pair = compose(lhs, rhs)
         if isinstance(rhs, Pair):
             # reassoc to the left
@@ -271,6 +300,10 @@ def main():
     a, b, c = [Cell(ch) for ch in 'abc']
     assert str(a) == 'a'
 
+    assert a==a
+    assert a != Cell("a")
+    assert a != b
+
     f = Cell(a, b)
     g = Cell(a, b)
     u = Cell(f, g)
@@ -284,7 +317,7 @@ def main():
 
     g = Cell(c, b)
     f = Cell(b, a)
-    uu = cat.pair(0, g, f) 
+    uu = cat.Pair(0, g, f) 
 
     # -----------------------------------------
     # Test operations in a 0-category aka set
@@ -293,10 +326,11 @@ def main():
     Cell = cat.Cell
 
     # 0-cells
-    l, m, n = [Cell(ch) for ch in 'lmn']
+    l, m = [Cell(ch) for ch in 'lm']
 
     # there are no operations apart from ==
     assert l==l
+    assert l!=Cell("l")
     assert l!=m
 
     # -----------------------------------------
@@ -308,6 +342,9 @@ def main():
     # 0-cells
     l, m, n, o, p = [Cell(ch) for ch in 'lmnop']
 
+    Il = l.unit
+    assert Il*Il == Il
+
     # 1-cells
     A = Cell(m, l)
     B = Cell(n, m)
@@ -315,7 +352,6 @@ def main():
     D = Cell(p, o)
     In = n.unit
     Im = m.unit
-    Il = l.unit
 
     BA = B*A
     assert BA == B*A
