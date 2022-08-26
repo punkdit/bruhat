@@ -42,9 +42,7 @@ class Cell(object):
         self.src = src
         self.tgt = tgt
         self.name = name
-        #self.key = self
         self.parent = parent
-        #self._unit = None
         self._hash = None
 
     def __str__(self):
@@ -115,6 +113,7 @@ class Cell(object):
         assert n>=offset
         return lhs.cat.Pair(n-offset, lhs, rhs)
 
+
 class Object(Cell):
     def __init__(self, cat, name, parent=None):
         self.cat = cat
@@ -159,7 +158,6 @@ class Pair(Cell):
         self.codim = codim
         self.lhs = lhs
         self.rhs = rhs
-        #self.key = (codim, lhs, rhs)
 
     def __getitem__(self, i):
         return [self.lhs, self.rhs][i]
@@ -213,13 +211,13 @@ class NCategory(object):
 
 
 class Set(NCategory):
-    def __init__(self):
-        NCategory.__init__(self, 0)
+    def __init__(self, level=0):
+        NCategory.__init__(self, level)
 
 
 class Category(NCategory):
-    def __init__(self):
-        NCategory.__init__(self, 1)
+    def __init__(self, level=1):
+        NCategory.__init__(self, level)
         self.homs = {}
 
     def Hom(self, tgt, src):
@@ -247,7 +245,7 @@ class Category(NCategory):
         return cell
 
     def Pair(self, codim, lhs, rhs):
-        assert codim==0
+        #assert codim==0
         compose = lambda lhs, rhs : NCategory.Pair(self, codim, lhs, rhs)
         pair = compose(lhs, rhs)
         if isinstance(rhs, Pair):
@@ -382,6 +380,12 @@ def main():
     # 1-cell
     A = Cell(m, m)
     assert A != A*A
+
+    # -----------------------------------------
+    # Test operations in a hom-category ...?
+
+    cat = Category(2)
+    
 
     # -----------------------------------------
     # Test operations in a bicategory
