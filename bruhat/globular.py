@@ -11,29 +11,19 @@ class Cell(object):
         out of which further expressions (Pair's) are built.
     """
 
-    def __init__(self, cat, *args, parent=None):
-        """
-        call via either:
-            Cell(cat, tgt, src)
-            Cell(cat, name)
-        """
+    def __init__(self, cat, tgt=None, src=None, name="", parent=None):
         assert isinstance(cat, NCategory), cat
-        tgt = None
-        src = None
-        if len(args)==1:
-            name = args[0]
+        assert (tgt is None) == (src is None), (tgt, src)
+        if tgt is None:
             n = 0
+            desc = name
         else:
-            assert len(args) in [2,3]
-            tgt, src = args[:2]
             assert isinstance(src, Cell), src
             assert isinstance(tgt, Cell), tgt
             n = src.n+1
             assert src.n == tgt.n
-            name = args[2] if args[2:] else ""
-            #name = "(%s <%s%s%s %s)"%(tgt.name, bars[n-1], name, bars[n-1], src.name)
-            name = "(%s <%s%s%s %s)"%(tgt, bars[n-1], name, bars[n-1], src)
-        if n>1:
+            #desc = "(%s <%s%s%s %s)"%(tgt.name, bars[n-1], name, bars[n-1], src.name)
+            desc = "(%s <%s%s%s %s)"%(tgt, bars[n-1], name, bars[n-1], src)
             # check globular conditions
             assert src.src == tgt.src
             assert src.tgt == tgt.tgt
@@ -41,12 +31,12 @@ class Cell(object):
         self.n = n
         self.src = src
         self.tgt = tgt
-        self.name = name
+        self.desc = desc
         self.parent = parent
         self._hash = None
 
     def __str__(self):
-        return self.name
+        return self.desc
 
     def __repr__(self):
         if self.tgt is not None:
@@ -95,21 +85,21 @@ class Cell(object):
     def __mul__(lhs, rhs):
         assert lhs.n == rhs.n 
         n = lhs.n
-        offset = lhs.cat.level
+        offset = lhs.cat.dim+lhs.cat.codim
         assert n>=offset
         return lhs.cat.Pair(n-offset, lhs, rhs)
 
     def __lshift__(lhs, rhs):
         assert lhs.n == rhs.n 
         n = lhs.n
-        offset = lhs.cat.level-1
+        offset = lhs.cat.dim-1+lhs.cat.codim
         assert n>=offset
         return lhs.cat.Pair(n-offset, lhs, rhs)
 
     def __matmul__(lhs, rhs):
         assert lhs.n == rhs.n 
         n = lhs.n
-        offset = lhs.cat.level-2
+        offset = lhs.cat.dim-2+lhs.cat.codim
         assert n>=offset
         return lhs.cat.Pair(n-offset, lhs, rhs)
 
@@ -159,6 +149,11 @@ class Pair(Cell):
         self.lhs = lhs
         self.rhs = rhs
 
+    # used for testing only..
+    @property
+    def key(self):
+        return (self.codim, self.lhs, self.rhs)
+
     def __getitem__(self, i):
         return [self.lhs, self.rhs][i]
 
@@ -169,34 +164,42 @@ class Pair(Cell):
 
 class NCategory(object):
     """
-    level = 0 # set
-    level = 1 # category
-    level = 2 # bicategory
-    level = 3 # tricategory
+    dim = 0 # set
+    dim = 1 # category
+    dim = 2 # bicategory
+    dim = 3 # tricategory
     """
 
-    def __init__(self, level=1):
-        self.level = level
+    def __init__(self, dim, supercat=None):
+        # I am a (the) homcat in my supercat
+        self.dim = dim
+        self.codim = 0 if supercat is None else supercat.codim+1
+        self.supercat = supercat
         self.cache = {}
 
-    def Cell(self, *args):
-        c = Cell(self, *args)
-        return c
+    def Object(self, name):
+        codim = self.codim
+        assert codim == 0
+        cell = Object(self, name)
+        return cell
+
+    def Cell(self, tgt=None, src=None, name=""):
+        assert (tgt is None) == (src is None), (tgt, src)
+        cell = Cell(self, tgt, src, name)
+        return cell
 
     @classmethod
     def whisker(cls, lhs, rhs):
         while lhs.n < rhs.n:
-            lhs = Cell(lhs, lhs)
+            lhs = self.Cell(lhs, lhs)
         while rhs.n < lhs.n:
-            rhs = Cell(rhs, rhs)
+            rhs = self.Cell(rhs, rhs)
         assert lhs.n == rhs.n
         return (lhs, rhs)
 
     def Pair(self, codim, lhs, rhs):
         assert isinstance(lhs, Cell)
         assert isinstance(rhs, Cell)
-        assert self == lhs.cat
-        assert self == rhs.cat
         cache = self.cache
         key = (codim, lhs, rhs)
         if key in cache:
@@ -211,29 +214,41 @@ class NCategory(object):
 
 
 class Set(NCategory):
-    def __init__(self, level=0):
-        NCategory.__init__(self, level)
+    def __init__(self, supercat=None):
+        NCategory.__init__(self, 0, supercat)
+
+    # put the equate method here? do we care?
 
 
 class Category(NCategory):
-    def __init__(self, level=1):
-        NCategory.__init__(self, level)
-        self.homs = {}
+    def __init__(self, supercat=None):
+        NCategory.__init__(self, 1, supercat)
+        #self.homs = {}
+        self.homcat = Set(self)
 
-    def Hom(self, tgt, src):
-        key = (tgt, src)
-        hom = self.homs.get(key)
-        if hom is None:
-            hom = Set()
-            self.homs[key] = hom
-        return hom
+#    def Hom(self, tgt, src):
+#        key = (tgt, src)
+#        hom = self.homs.get(key)
+#        if hom is None:
+#            hom = Set()
+#            self.homs[key] = hom
+#        return hom
 
-    def Cell(self, *args):
-        cell = NCategory.Cell(self, *args)
-        if cell.n == 0:
+    def Object(self, name):
+        cell = NCategory.Object(self, name)
+        return cell
+
+    def Cell(self, tgt=None, src=None, name=""):
+        assert (tgt is None) == (src is None), (tgt, src)
+        codim = self.codim
+        # TODO: I own the Object's, my homcat owns the higher Cell's
+        cell = NCategory.Cell(self, tgt, src, name)
+        if cell.n < codim:
+            assert 0, cell.n
+        elif cell.n == codim:
             cell.unit = Cell(self, cell, cell)
             self.equate(cell.unit*cell.unit, cell.unit)
-        elif cell.n == 1:
+        elif cell.n == codim+1:
             src = cell.src.unit
             self.equate(cell, cell*src)
             self.equate(src, src*src)
@@ -241,11 +256,13 @@ class Category(NCategory):
             self.equate(cell, tgt*cell)
             self.equate(tgt, tgt*tgt)
         else:
-            assert 0
+            assert 0, cell.n
         return cell
 
     def Pair(self, codim, lhs, rhs):
-        #assert codim==0
+        assert codim>=0
+        if codim > 0:
+            return self.supercat.Pair(codim, lhs, rhs)
         compose = lambda lhs, rhs : NCategory.Pair(self, codim, lhs, rhs)
         pair = compose(lhs, rhs)
         if isinstance(rhs, Pair):
@@ -274,20 +291,26 @@ class Category(NCategory):
 
 
 class Bicategory(NCategory):
-    def __init__(self):
-        NCategory.__init__(self, 2)
+    def __init__(self, supercat=None):
+        NCategory.__init__(self, 2, supercat)
 
-    #def reunit(self, A):
+        # we just bundle all the hom categories up into one python object
+        self.homcat = Category(self)
 
-    def reassoc(self, *cells):
-        n = len(cells)
-        for cell in cells:
-            assert cell.n == 0, "expected 0-cell: %s"%(cell,)
-        if n<2:
-            return None # ?
-        if n==2:
-            x, y = cells
-            
+    def Cell(self, tgt=None, src=None, name=""):
+        assert (tgt is None) == (src is None), (tgt, src)
+        # I own the Object's, my homcat owns the higher Cell's
+        codim = self.codim
+        homcat = self.homcat
+        if tgt is None:
+            assert codim == 0
+            cell = NCategory.Cell(self, tgt, src, name)
+            # this cell is an Object: make its unit 1-cell
+            cell.unit = homcat.Cell(cell, cell)
+        else:
+            cell = homcat.Cell(tgt, src, name)
+        return cell
+
 
 
 def main():
@@ -295,11 +318,11 @@ def main():
     cat = NCategory(3)
     Cell = cat.Cell
 
-    a, b, c = [Cell(ch) for ch in 'abc']
+    a, b, c = [Cell(name=ch) for ch in 'abc']
     assert str(a) == 'a'
 
     assert a==a
-    assert a != Cell("a")
+    assert a != Cell(name="a")
     assert a != b
 
     f = Cell(a, b)
@@ -324,11 +347,11 @@ def main():
     Cell = cat.Cell
 
     # 0-cells
-    l, m = [Cell(ch) for ch in 'lm']
+    l, m = [Cell(name=ch) for ch in 'lm']
 
     # there are no operations apart from ==
     assert l==l
-    assert l!=Cell("l")
+    assert l!=Cell(name="l")
     assert l!=m
 
     # -----------------------------------------
@@ -338,7 +361,7 @@ def main():
     Cell = cat.Cell
 
     # 0-cells
-    l, m, n, o, p = [Cell(ch) for ch in 'lmnop']
+    l, m, n, o, p = [Cell(name=ch) for ch in 'lmnop']
 
     Il = l.unit
     assert Il*Il == Il
@@ -382,10 +405,61 @@ def main():
     assert A != A*A
 
     # -----------------------------------------
-    # Test operations in a hom-category ...?
+    # Test operations in a Bicategory
 
-    cat = Category(2)
-    
+    cat = Bicategory()
+    Cell = cat.Cell
+
+    # 0-cells
+    l, m, n, o = [Cell(name=ch) for ch in 'lmno']
+
+    # unit 1-cells
+    u = l.unit
+    uu = u<<u
+    assert uu != u
+    w = u.unit
+    assert w*w == w
+
+    # 1-cells
+    A0 = Cell(m, l)
+    A1 = Cell(m, l)
+    A2 = Cell(m, l)
+    A3 = Cell(m, l)
+    B0 = Cell(n, m)
+    B1 = Cell(n, m)
+
+    assert A0.cat is cat.homcat
+
+    BA = B0<<A0
+    assert BA.cat is cat.homcat
+
+    u = A0.unit
+    uu = u*u
+    assert uu == u
+
+    # 2-cells
+    f0 = Cell(A1, A0)
+    f1 = Cell(A2, A1)
+    f2 = Cell(A3, A2)
+    f22 = Cell(A3, A2)
+    g0 = Cell(B1, B0)
+
+    assert f2 != f22
+    assert f2*f1 != f22*f1
+
+    gf = g0<<f0
+    assert gf is g0<<f0
+    assert gf.key in cat.cache
+
+    ff = f1*f0
+    assert ff is f1*f0
+    assert ff.key not in cat.cache
+    assert ff.key in cat.homcat.cache # this Pair lives in the homcat
+
+    assert A1.unit*f0 == f0*A0.unit
+    assert (f2*f1)*f0 == f2*(f1*f0)
+
+    #return
 
     # -----------------------------------------
     # Test operations in a bicategory
@@ -394,7 +468,7 @@ def main():
     Cell = cat.Cell
 
     # 0-cells
-    l, m, n, o = [Cell(ch) for ch in 'lmno']
+    l, m, n, o = [Cell(name=ch) for ch in 'lmno']
 
     # 1-cells
     A = Cell(m, l)
@@ -420,6 +494,7 @@ def main():
     gf = g<<f
     assert gf.tgt == (B1<<A1)
     assert gf.src == (B<<A)
+    assert gf.codim == 1
 
     ff = f1*f
     assert ff.tgt == A2
@@ -436,7 +511,7 @@ def main():
     Cell = cat.Cell
 
     # 0-cell
-    star = Cell("*")
+    star = Cell(name="*")
 
     # 1-cells
     l, m, n = [Cell(star, star, ch) for ch in 'lmn']
