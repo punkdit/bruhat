@@ -5,35 +5,45 @@
 bars = ["-", "=", "≡", "≣"] # ...?
 
 
+class NotComposable(Exception):
+    pass
+
+INDENT = "  "
+
+
 class Cell(object):
     """
         These are the generating elements, 
         out of which further expressions (Pair's) are built.
     """
 
+    inv = None # for isomorphisms
+    shape = None # for Pair's
+
     def __init__(self, cat, tgt=None, src=None, name="", parent=None):
-        assert isinstance(cat, NCategory), cat
+        assert isinstance(cat, Globular), cat
         assert (tgt is None) == (src is None), (tgt, src)
         if tgt is None:
-            n = 0
+            dim = 0
             desc = name
         else:
             assert isinstance(src, Cell), src
             assert isinstance(tgt, Cell), tgt
-            n = src.n+1
-            assert src.n == tgt.n
-            #desc = "(%s <%s%s%s %s)"%(tgt.name, bars[n-1], name, bars[n-1], src.name)
-            desc = "(%s <%s%s%s %s)"%(tgt, bars[n-1], name, bars[n-1], src)
+            dim = src.dim+1
+            assert src.dim == tgt.dim
+            #desc = "(%s <%s%s%s %s)"%(tgt.name, bars[dim-1], name, bars[dim-1], src.name)
+            desc = "(%s <%s%s%s %s)"%(tgt, bars[dim-1], name, bars[dim-1], src)
             # check globular conditions
             assert src.src == tgt.src
             assert src.tgt == tgt.tgt
         self.cat = cat
-        self.n = n
+        self.dim = dim
         self.src = src
         self.tgt = tgt
         self.desc = desc
         self.parent = parent
         self._hash = None
+        self.got_decorated = 0
 
     def __str__(self):
         return self.desc
@@ -43,6 +53,20 @@ class Cell(object):
             return "Cell(%s, %s)"%(self.tgt, self.src)
         else:
             return "Cell(%r)"%(self.name,)
+
+    def _deepstr(self, depth=0):
+        if self.tgt is None:
+            lines = [INDENT*depth + self.desc]
+        else:
+            lines = [INDENT*depth + "["]
+            lines += self.tgt._deepstr(depth+1)
+            lines += self.src._deepstr(depth+1)
+            lines += [INDENT*depth + "]"]
+        return lines
+
+    def deepstr(self):
+        lines = self._deepstr()
+        return '\n'.join(lines)
 
     def get_root(self):
         while self.parent is not None:
@@ -83,22 +107,31 @@ class Cell(object):
             rhs.parent = lhs
 
     def __mul__(lhs, rhs):
-        assert lhs.n == rhs.n 
-        n = lhs.n
+        assert lhs.dim == rhs.dim 
+        n = lhs.dim
         offset = lhs.cat.dim+lhs.cat.codim
         assert n>=offset
-        return lhs.cat.Pair(n-offset, lhs, rhs)
+        try:
+            pair = lhs.cat.Pair(n-offset, lhs, rhs)
+        except NotComposable:
+            print("__mul__: NotComposable")
+            print("lhs =")
+            print(lhs.deepstr())
+            print("rhs =")
+            print(rhs.deepstr())
+            raise
+        return pair
 
     def __lshift__(lhs, rhs):
-        assert lhs.n == rhs.n 
-        n = lhs.n
+        assert lhs.dim == rhs.dim 
+        n = lhs.dim
         offset = lhs.cat.dim-1+lhs.cat.codim
         assert n>=offset
         return lhs.cat.Pair(n-offset, lhs, rhs)
 
     def __matmul__(lhs, rhs):
-        assert lhs.n == rhs.n 
-        n = lhs.n
+        assert lhs.dim == rhs.dim 
+        n = lhs.dim
         offset = lhs.cat.dim-2+lhs.cat.codim
         assert n>=offset
         return lhs.cat.Pair(n-offset, lhs, rhs)
@@ -107,7 +140,7 @@ class Cell(object):
 class Object(Cell):
     def __init__(self, cat, name, parent=None):
         self.cat = cat
-        self.n = 0
+        self.dim = 0
         self.src = None
         self.tgt = None
         self.name = name
@@ -125,23 +158,32 @@ class Pair(Cell):
         cat = lhs.cat
         pair = cat.Pair
         assert codim >= 0
-        assert lhs.n == rhs.n, "use whisker first"
+        assert lhs.dim == rhs.dim, "use whisker first"
         if codim == 0:
-            assert rhs.tgt == lhs.src, "not _composable"
+            if rhs.tgt != lhs.src:
+                raise NotComposable("%s != %s"%(lhs.src, rhs.tgt))
             tgt = lhs.tgt
             src = rhs.src
         elif codim == 1:
-            assert lhs.src.src == rhs.src.tgt
+            if lhs.src.src != rhs.src.tgt:
+                raise NotComposable("%s != %s"%(lhs.src.src, rhs.src.tgt))
             # lhs.tgt.src == rhs.tgt.tgt
             tgt = pair(0, lhs.tgt, rhs.tgt)
             src = pair(0, lhs.src, rhs.src)
         elif codim == 2:
-            assert lhs.src.src.src == rhs.src.src.tgt
+            if lhs.src.src.src != rhs.src.src.tgt:
+                raise NotComposable("%s != %s"%(lhs.src.src.src, rhs.src.src.tgt))
             # -> lhs.tgt.src.src == rhs.tgt.src.tgt
             # -> lhs.tgt.tgt.src == rhs.tgt.tgt.tgt
             tgt = pair(1, lhs.tgt, rhs.tgt)
             src = pair(1, lhs.src, rhs.src)
         else:
+            src, tgt = lhs, rhs
+            for _ in range(codim):
+                src = src.src
+                tgt = tgt.src
+            if rhs.tgt != lhs.src:
+                raise NotComposable("%s != %s"%(lhs.src, rhs.tgt))
             tgt = pair(codim-1, lhs.tgt, rhs.tgt)
             src = pair(codim-1, lhs.src, rhs.src)
         Cell.__init__(self, cat, tgt, src)
@@ -154,15 +196,47 @@ class Pair(Cell):
     def key(self):
         return (self.codim, self.lhs, self.rhs)
 
+    @property
+    def shape(self):
+        return (self.codim, self.dim)
+
     def __getitem__(self, i):
         return [self.lhs, self.rhs][i]
 
     def __str__(self):
         return "(%s *%d %s)" % (self.lhs, self.codim, self.rhs)
 
+    def _deepstr(self, depth=0):
+        lines  = [INDENT*depth + "(" + str(self.shape)]
+        lines += self.lhs._deepstr(depth+1)
+        lines += [INDENT*depth + "*%d"%self.codim]
+        lines += self.rhs._deepstr(depth+1)
+        lines += [INDENT*depth + ")"]
+        return lines
+
+    @property
+    def identity(self):
+        cat = self.cat.supercat
+        return cat.Identity(self)
+
+    @property
+    def lunitor(self):
+        cat = self.cat.supercat
+        return cat.LeftUnitor(self)
+
+    @property
+    def runitor(self):
+        cat = self.cat.supercat
+        return cat.RightUnitor(self)
+
+    @property
+    def inv(self):
+        cat = self.cat.supercat
+        return cat.Inv(self)
 
 
-class NCategory(object):
+
+class Globular(object):
     """
     dim = 0 # set
     dim = 1 # category
@@ -174,7 +248,7 @@ class NCategory(object):
         # I am a (the) homcat in my supercat
         self.dim = dim
         self.codim = 0 if supercat is None else supercat.codim+1
-        self.supercat = supercat
+        self.supercat = supercat # meow
         self.cache = {}
 
     def Object(self, name):
@@ -190,11 +264,11 @@ class NCategory(object):
 
     @classmethod
     def whisker(cls, lhs, rhs):
-        while lhs.n < rhs.n:
+        while lhs.dim < rhs.dim:
             lhs = self.Cell(lhs, lhs)
-        while rhs.n < lhs.n:
+        while rhs.dim < lhs.dim:
             rhs = self.Cell(rhs, rhs)
-        assert lhs.n == rhs.n
+        assert lhs.dim == rhs.dim
         return (lhs, rhs)
 
     def Pair(self, codim, lhs, rhs):
@@ -213,16 +287,16 @@ class NCategory(object):
         lhs.equate(rhs)
 
 
-class Set(NCategory):
+class Set(Globular):
     def __init__(self, supercat=None):
-        NCategory.__init__(self, 0, supercat)
+        Globular.__init__(self, 0, supercat)
 
     # put the equate method here? do we care?
 
 
-class Category(NCategory):
+class Category(Globular):
     def __init__(self, supercat=None):
-        NCategory.__init__(self, 1, supercat)
+        Globular.__init__(self, 1, supercat)
         #self.homs = {}
         self.homcat = Set(self)
 
@@ -235,67 +309,144 @@ class Category(NCategory):
 #        return hom
 
     def Object(self, name):
-        cell = NCategory.Object(self, name)
+        cell = Globular.Object(self, name)
         return cell
 
-    def Cell(self, tgt=None, src=None, name=""):
-        assert (tgt is None) == (src is None), (tgt, src)
+    def decorate(self, cell):
+        assert isinstance(cell, Cell)
+        if cell.got_decorated >= self.dim:
+            return
+        cell.got_decorated = self.dim
         codim = self.codim
-        # TODO: I own the Object's, my homcat owns the higher Cell's
-        cell = NCategory.Cell(self, tgt, src, name)
-        if cell.n < codim:
-            assert 0, cell.n
-        elif cell.n == codim:
-            cell.unit = Cell(self, cell, cell)
-            self.equate(cell.unit*cell.unit, cell.unit)
-        elif cell.n == codim+1:
-            src = cell.src.unit
+        if cell.dim < codim:
+            assert 0, cell.dim
+        elif isinstance(cell, Pair):
+            pass
+        elif cell.dim == codim:
+            assert not hasattr(cell, "identity"), "wup"
+            cell.identity = Cell(self, cell, cell)
+            self.equate(cell.identity*cell.identity, cell.identity)
+        elif cell.dim == codim+1:
+            src = cell.src.identity
             self.equate(cell, cell*src)
             self.equate(src, src*src)
-            tgt = cell.tgt.unit
+            tgt = cell.tgt.identity
             self.equate(cell, tgt*cell)
             self.equate(tgt, tgt*tgt)
         else:
-            assert 0, cell.n
+            assert 0, cell.dim
+
+    def Cell(self, tgt=None, src=None, name=""):
+        assert (tgt is None) == (src is None), (tgt, src)
+        # todo: I own the Object's, my homcat owns the higher Cell's (?)
+        cell = Globular.Cell(self, tgt, src, name)
+        self.decorate(cell)
         return cell
 
     def Pair(self, codim, lhs, rhs):
         assert codim>=0
-        if codim > 0:
+        assert lhs.dim == rhs.dim
+        if self.codim + codim + 1 > lhs.dim:
             return self.supercat.Pair(codim, lhs, rhs)
-        compose = lambda lhs, rhs : NCategory.Pair(self, codim, lhs, rhs)
+        print("  Category.Pair", self.codim, codim, lhs.dim, lhs, rhs)
+        compose = lambda lhs, rhs : Globular.Pair(self, codim, lhs, rhs)
         pair = compose(lhs, rhs)
-        if isinstance(rhs, Pair):
+        if isinstance(rhs, Pair) and rhs.shape == pair.shape:
             # reassoc to the left
             a = lhs
             b, c = rhs
             other = compose(a*b, c)
             self.equate(pair, other)
-        elif isinstance(lhs, Pair):
+        elif isinstance(lhs, Pair) and lhs.shape == pair.shape:
             # reassoc to the right
             a, b = lhs
             c = rhs
-            other = compose(a, b*c)
+            bc = b*c
+            other = compose(a, bc)
             self.equate(pair, other)
+        print("  Category.Pair: shape=", pair.shape)
         return pair
 
-    def iso(self, tgt, src, name=""):
-        "make an iso tgt<--src"
+    def Iso(self, tgt, src, name=""):
+        "make an invertible tgt<--src"
         cell = self.Cell(tgt, src, name)
         inv = self.Cell(src, tgt, "~"+name)
-        self.equate(src.unit, inv*cell)
-        self.equate(tgt.unit, cell*inv)
+        self.equate(src.identity, inv*cell)
+        self.equate(tgt.identity, cell*inv)
         cell.inv = inv
         inv.inv = cell
         return cell
 
 
-class Bicategory(NCategory):
+class Bicategory(Globular):
     def __init__(self, supercat=None):
-        NCategory.__init__(self, 2, supercat)
+        Globular.__init__(self, 2, supercat)
 
         # we just bundle all the hom categories up into one python object
         self.homcat = Category(self)
+
+    def decorate(self, cell):
+        assert isinstance(cell, Cell)
+        assert self.codim == 0 # todo
+        if cell.got_decorated >= self.dim:
+            return
+        cell.got_decorated = self.dim
+        codim = self.codim
+        homcat = self.homcat
+        if cell.dim == 0:
+            # this cell is an Object: make its identity 1-cell
+            assert not hasattr(cell, "identity"), "wup"
+            identity = homcat.Cell(cell, cell)
+            cell.identity = identity
+            lunitor = homcat.Iso(identity, identity<<identity)
+            identity.lunitor = identity.runitor = lunitor
+        elif cell.dim == 1:
+            # this cell is a 1-cell, make its unit'ors
+            if cell.__class__ is Cell:
+                assert hasattr(cell, "identity"), "wup"
+                cell.lunitor = homcat.Iso(cell, cell.tgt.identity << cell, "l")
+                cell.runitor = homcat.Iso(cell, cell << cell.src.identity, "r")
+            # argh, we have to do this lazily:
+            #elif cell.shape == (0, 1):
+            #    lhs, rhs = cell
+            #    cell.lunitor = lhs.lunitor << rhs.identity
+            #    cell.runitor = lhs.identity << rhs.runitor
+            #else:
+            #    assert 0, cell
+        elif cell.dim == 2:
+            pass
+        else:
+            assert 0, cell
+
+    def Identity(self, cell):
+        assert isinstance(cell, Pair)
+        assert cell.shape == (0, 1), cell
+        lhs, rhs = cell
+        identity = lhs.identity << rhs.identity
+        return identity
+
+    def LeftUnitor(self, cell):
+        assert isinstance(cell, Pair)
+        assert cell.shape == (0, 1), cell
+        lhs, rhs = cell
+        lunitor = lhs.lunitor << rhs.identity
+        return lunitor
+
+    def RightUnitor(self, cell):
+        assert isinstance(cell, Pair)
+        assert cell.shape == (0, 1), cell
+        lhs, rhs = cell
+        runitor = lhs.identity << rhs.runitor
+        return runitor
+
+    def Inv(self, cell):
+        assert isinstance(cell, Pair)
+        assert cell.shape == (1, 2), cell
+        lhs, rhs = cell
+        inv = None
+        if lhs.inv and rhs.inv:
+            inv = lhs.inv << rhs.inv
+        return inv
 
     def Cell(self, tgt=None, src=None, name=""):
         assert (tgt is None) == (src is None), (tgt, src)
@@ -304,18 +455,203 @@ class Bicategory(NCategory):
         homcat = self.homcat
         if tgt is None:
             assert codim == 0
-            cell = NCategory.Cell(self, tgt, src, name)
-            # this cell is an Object: make its unit 1-cell
-            cell.unit = homcat.Cell(cell, cell)
+            cell = Globular.Cell(self, tgt, src, name)
         else:
+            assert codim == 0 # todo: lift this restriction
             cell = homcat.Cell(tgt, src, name)
+        self.decorate(cell)
         return cell
 
+    def Pair(self, codim, lhs, rhs):
+        print("Bicategory.Pair", self.codim, codim, lhs.dim, lhs, rhs)
+        #if codim > 0:
+        #    return self.supercat.Pair(codim, lhs, rhs)
+        compose = lambda lhs, rhs : Globular.Pair(self, codim, lhs, rhs)
+        pair = compose(lhs, rhs)
+        self.homcat.decorate(pair)
+        self.decorate(pair)
+#        if isinstance(rhs, Pair):
+#            # reassoc to the left
+#            a = lhs
+#            b, c = rhs
+#            other = compose(a<<b, c)
+#            #self.equate(pair, other)
+#        elif isinstance(lhs, Pair):
+#            # reassoc to the right
+#            a, b = lhs
+#            c = rhs
+#            other = compose(a, b<<c)
+#            #self.equate(pair, other)
+        # pair.shape == (0,1) or (1,2)
+        print("Bicategory.Pair: shape=", pair.shape)
+        #send = compose(lhs.get_root(), rhs.get_root())
+        #self.homcat.equate(pair, send)
+        return pair
 
 
-def main():
+class Tricategory(Globular):
+    def __init__(self, supercat=None):
+        Globular.__init__(self, 3, supercat)
 
-    cat = NCategory(3)
+        # we just bundle all the hom bicategories up into one python object
+        self.homcat = Bicategory(self)
+
+
+def test_category():
+
+    print("test_category")
+
+    # -----------------------------------------
+    # Test operations in a category
+
+    cat = Category()
+    Cell = cat.Cell
+
+    # 0-cells
+    l, m, n, o, p = [Cell(name=ch) for ch in 'lmnop']
+
+    Il = l.identity
+    assert Il*Il == Il
+
+    # 1-cells
+    A = Cell(m, l)
+    B = Cell(n, m)
+    C = Cell(o, n)
+    D = Cell(p, o)
+    In = n.identity
+    Im = m.identity
+
+    BA = B*A
+    assert BA == B*A
+    assert BA != A
+    assert BA.src == l
+    assert BA.tgt == n
+
+    assert A*Il == A
+    assert Im*A == A
+    assert Im*Im == Im
+
+    assert (C*B)*A == C*(B*A)
+
+    cell = D*C*B*A
+    
+    assert cell == ((D*C)*B)*A
+    assert cell == (D*C)*(B*A)
+    assert cell == D*(C*(B*A))
+    assert cell == D*((C*B)*A)
+    assert cell == (D*(C*B))*A
+
+    E = cat.Iso(m, l)
+    assert E*E.inv == Im
+    assert E.inv*E == Il
+
+    assert B*E*E.inv == B
+
+    # 1-cell
+    A = Cell(m, m)
+    assert A != A*A
+
+
+def test_bicategory():
+
+    print("test_bicategory")
+
+    # -----------------------------------------
+    # Test operations in a Bicategory
+
+    cat = Bicategory()
+    Cell = cat.Cell
+
+    # 0-cells
+    l = Cell(name="l")
+    m = Cell(name="m")
+    n = Cell(name="n")
+    o = Cell(name="o")
+
+    # identity 1-cells
+    I = l.identity
+    unitor = I.lunitor
+    assert unitor == I.runitor
+
+    i = I.identity
+    assert i*i == i
+    f = Cell(I, I)
+    assert f*i == f
+    assert i*f == f
+
+    assert i*unitor == unitor
+    II = I<<I
+    assert II.identity == i<<i
+    assert unitor*(i<<i) == unitor
+
+    assert II != I
+
+    assert II.identity
+
+
+    # 1-cells
+    A0 = Cell(m, l)
+    A1 = Cell(m, l)
+    A2 = Cell(m, l)
+    A3 = Cell(m, l)
+    B0 = Cell(n, m)
+    B1 = Cell(n, m)
+
+    assert A0.dim == 1
+
+    assert A0.cat is cat.homcat
+
+    BA = B0<<A0
+    assert BA.cat is cat.homcat
+
+    assert A0.got_decorated == 2
+    assert hasattr(A0, "identity")
+    assert hasattr(A0, "lunitor")
+    assert hasattr(A0, "runitor")
+
+    u = A0.identity
+    uu = u*u
+    assert uu == u
+
+    assert hasattr(BA, "identity")
+    assert hasattr(BA, "lunitor")
+
+    assert BA.identity == B0.identity<<A0.identity
+    assert BA.identity * BA.identity == BA.identity
+
+    # 2-cells
+    f0 = Cell(A1, A0)
+    f1 = Cell(A2, A1)
+    f2 = Cell(A3, A2)
+    f22 = Cell(A3, A2)
+    g0 = Cell(B1, B0)
+
+    assert f0.dim == 2
+
+    assert f2 != f22
+    assert f2*f1 != f22*f1
+
+    ff = f1*f0
+    assert ff is f1*f0
+    assert ff.key not in cat.cache
+    assert ff.key in cat.homcat.cache # this Pair lives in the homcat
+
+    assert A1.identity*f0 == f0*A0.identity
+    assert (f2*f1)*f0 == f2*(f1*f0)
+
+    gf = g0<<f0
+    assert gf is g0<<f0
+    assert gf.key in cat.cache
+
+    assert gf.src == B0<<A0
+    assert gf * BA.identity == gf
+
+
+def test_globular():
+
+    print("test_globular")
+
+    cat = Globular(3)
     Cell = cat.Cell
 
     a, b, c = [Cell(name=ch) for ch in 'abc']
@@ -343,7 +679,7 @@ def main():
     # -----------------------------------------
     # Test operations in a 0-category aka set
 
-    cat = NCategory(0)
+    cat = Globular(0)
     Cell = cat.Cell
 
     # 0-cells
@@ -354,121 +690,18 @@ def main():
     assert l!=Cell(name="l")
     assert l!=m
 
-    # -----------------------------------------
-    # Test operations in a category
-
-    cat = Category()
-    Cell = cat.Cell
-
-    # 0-cells
-    l, m, n, o, p = [Cell(name=ch) for ch in 'lmnop']
-
-    Il = l.unit
-    assert Il*Il == Il
-
-    # 1-cells
-    A = Cell(m, l)
-    B = Cell(n, m)
-    C = Cell(o, n)
-    D = Cell(p, o)
-    In = n.unit
-    Im = m.unit
-
-    BA = B*A
-    assert BA == B*A
-    assert BA != A
-    assert BA.src == l
-    assert BA.tgt == n
-
-    assert A*Il == A
-    assert Im*A == A
-    assert Im*Im == Im
-
-    assert (C*B)*A == C*(B*A)
-
-    cell = D*C*B*A
-    
-    assert cell == ((D*C)*B)*A
-    assert cell == (D*C)*(B*A)
-    assert cell == D*(C*(B*A))
-    assert cell == D*((C*B)*A)
-    assert cell == (D*(C*B))*A
-
-    E = cat.iso(m, l)
-    assert E*E.inv == Im
-    assert E.inv*E == Il
-
-    assert B*E*E.inv == B
-
-    # 1-cell
-    A = Cell(m, m)
-    assert A != A*A
-
-    # -----------------------------------------
-    # Test operations in a Bicategory
-
-    cat = Bicategory()
-    Cell = cat.Cell
-
-    # 0-cells
-    l, m, n, o = [Cell(name=ch) for ch in 'lmno']
-
-    # unit 1-cells
-    u = l.unit
-    uu = u<<u
-    assert uu != u
-    w = u.unit
-    assert w*w == w
-
-    # 1-cells
-    A0 = Cell(m, l)
-    A1 = Cell(m, l)
-    A2 = Cell(m, l)
-    A3 = Cell(m, l)
-    B0 = Cell(n, m)
-    B1 = Cell(n, m)
-
-    assert A0.cat is cat.homcat
-
-    BA = B0<<A0
-    assert BA.cat is cat.homcat
-
-    u = A0.unit
-    uu = u*u
-    assert uu == u
-
-    # 2-cells
-    f0 = Cell(A1, A0)
-    f1 = Cell(A2, A1)
-    f2 = Cell(A3, A2)
-    f22 = Cell(A3, A2)
-    g0 = Cell(B1, B0)
-
-    assert f2 != f22
-    assert f2*f1 != f22*f1
-
-    gf = g0<<f0
-    assert gf is g0<<f0
-    assert gf.key in cat.cache
-
-    ff = f1*f0
-    assert ff is f1*f0
-    assert ff.key not in cat.cache
-    assert ff.key in cat.homcat.cache # this Pair lives in the homcat
-
-    assert A1.unit*f0 == f0*A0.unit
-    assert (f2*f1)*f0 == f2*(f1*f0)
-
-    #return
 
     # -----------------------------------------
     # Test operations in a bicategory
 
-    cat = NCategory(2)
+    cat = Globular(2)
     Cell = cat.Cell
 
     # 0-cells
     l, m, n, o = [Cell(name=ch) for ch in 'lmno']
+
+    u = Cell(l, l)
+    uu = u<<u
 
     # 1-cells
     A = Cell(m, l)
@@ -507,7 +740,7 @@ def main():
     # -----------------------------------------
     # Test operations in a one object tricategory == monoidal bicategory
 
-    cat = NCategory(3)
+    cat = Globular(3)
     Cell = cat.Cell
 
     # 0-cell
@@ -523,7 +756,7 @@ def main():
     B = Cell(n, m)
     B1 = Cell(n, m)
 
-    assert B.n == 2
+    assert B.dim == 2
 
     # 3-cells
     f = Cell(A1, A)
@@ -561,7 +794,9 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    test_category()
+    test_bicategory()
+    test_globular()
 
     print("OK\n")
 
