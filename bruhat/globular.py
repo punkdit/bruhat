@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+from time import time
+start_time = time()
+
 # https://ncatlab.org/nlab/show/globular+set
 
 bars = ["-", "=", "≡", "≣"] # ...?
@@ -18,7 +21,6 @@ class Cell(object):
     """
 
     inv = None # for isomorphisms
-    shape = None # for Pair's
 
     def __init__(self, cat, tgt=None, src=None, name="", parent=None):
         assert isinstance(cat, Globular), cat
@@ -75,8 +77,8 @@ class Cell(object):
         return self
 
     # WARNING:
-    # The following __hash__, __eq__ and equate is a delicate dance 
-    # !!!!!!!!
+    # The following __hash__, __eq__ and equate is a delicate dance .
+    # The main requirement is to finish all calls to equate before doing any __hash__ .
 
     def __hash__(self):
         # Here we exhibit paranoia about hash value changing!
@@ -91,6 +93,8 @@ class Cell(object):
 
     def __eq__(lhs, rhs):
         assert lhs.cat is rhs.cat
+        assert lhs.src == rhs.src, "Cell's are not comparable"
+        assert lhs.tgt == rhs.tgt, "Cell's are not comparable"
         lhs = lhs.get_root()
         rhs = rhs.get_root()
         return lhs is rhs
@@ -113,6 +117,15 @@ class Cell(object):
             print("\t", self)
             self = self.parent
         print("\t", self)
+
+    @property
+    def shape(self):
+        return (self.dim,)
+
+    @property
+    def is_endo(self):
+        assert self.dim > 0, "wah?"
+        return self.src == self.tgt
 
     def __mul__(lhs, rhs):
         assert lhs.dim == rhs.dim 
@@ -262,6 +275,10 @@ class Globular(object):
         self.topcat = topcat or self
         self.cache = {} if topcat is None else None
 
+    def info(self, *msg):
+        if self.DEBUG:
+            print(*msg)
+
     def Object(self, name):
         codim = self.codim
         assert codim == 0
@@ -285,6 +302,9 @@ class Globular(object):
     def Pair(self, codim, lhs, rhs):
         assert isinstance(lhs, Cell)
         assert isinstance(rhs, Cell)
+        self.info("Globular.Pair:")
+        self.info("\t", lhs)
+        self.info("\t", rhs)
         cache = self.cache
         if cache is None:
             assert 0, "%s does not own this Pair!"%(self,)
@@ -293,16 +313,39 @@ class Globular(object):
             pair = cache[key]
         else:
             pair = Pair(codim, lhs, rhs)
-            cache[key] = pair
+            if key in cache:
+                # whoops, sometimes composing inside Pair.__init__ makes the pair!
+                # Example, the triangle equations.
+                pair = cache[key]
+            else:
+                cache[key] = pair
+            #self.extensive_equality(pair) # do we need this?
+        return pair
+
+    def extensive_equality(self, pair): # do we need this?
+        lhs, rhs = pair
+        codim = pair.codim
+        lroot = lhs.get_root()
+        rroot = rhs.get_root()
+        if lroot is not lhs:
+            other = self.Pair(codim, lroot, rhs)
+            self.equate(pair, other)
+        if rroot is not rhs:
+            other = self.Pair(codim, lhs, rroot)
+            self.equate(pair, other)
+        if lroot is not lhs and rroot is not rhs:
+            other = self.Pair(codim, lroot, rroot)
+            self.equate(pair, other)
         return pair
 
     def equate(self, lhs, rhs):
-        if self.DEBUG:
-            print("Globular.equate:")
-            print("\t", lhs)
-            print("\t", rhs)
-            if lhs == rhs:
-                print("\talready equal!")
+        self.info("Globular.equate:")
+        self.info("\t", lhs)
+        self.info("\t", rhs)
+        if lhs == rhs:
+            self.info("\talready equal!")
+        assert lhs.src == rhs.src
+        assert lhs.tgt == rhs.tgt
         lhs.equate(rhs)
         assert lhs == rhs
 
@@ -335,29 +378,20 @@ class Category(Globular):
     def decorate_pair(self, pair):
         compose = lambda lhs, rhs : Globular.Pair(self.topcat, pair.codim, lhs, rhs)
         lhs, rhs = pair
-        #print(pair.shape, self.dim, self.codim)
-        if self.DEBUG:
-            print("Category.decorate_pair", pair)
+        self.info("Category.decorate_pair", pair)
         if pair.codim + pair.dim != self.codim + self.dim:
-            if self.DEBUG:
-                print("Category.decorate_pair: bailing")
+            self.info("Category.decorate_pair: bailing")
             return
-#        print("lhs:")
-#        print(lhs.deepstr(1))
-#        print("rhs:")
-#        print(rhs.deepstr(1))
         if isinstance(rhs, Pair) and rhs.shape == pair.shape:
             # reassoc to the left
-            if self.DEBUG:
-                print("Category.decorate_pair: left reassoc")
+            self.info("Category.decorate_pair: left reassoc")
             a = lhs
             b, c = rhs
             other = compose(a*b, c)
             self.equate(pair, other)
         elif isinstance(lhs, Pair) and lhs.shape == pair.shape:
             # reassoc to the right
-            if self.DEBUG:
-                print("Category.decorate_pair: right reassoc")
+            self.info("Category.decorate_pair: right reassoc")
             a, b = lhs
             c = rhs
             bc = b*c
@@ -370,8 +404,7 @@ class Category(Globular):
 
     def decorate(self, cell):
         assert isinstance(cell, Cell)
-        if self.DEBUG:
-            print("Category.decorate", cell.is_decorated)
+        self.info("Category.decorate", cell.is_decorated)
         if cell.is_decorated >= self.dim:
             return
         cell.is_decorated = self.dim
@@ -392,6 +425,7 @@ class Category(Globular):
             self.equate(cell, tgt*cell)
             self.equate(tgt, tgt*tgt)
         else:
+            print("cell =", cell)
             assert 0, cell.dim
 
     def Cell(self, tgt=None, src=None, name=""):
@@ -406,13 +440,11 @@ class Category(Globular):
         assert lhs.dim == rhs.dim
         if self.codim + codim + 1 > lhs.dim:
             return self.supercat.Pair(codim, lhs, rhs)
-        if self.DEBUG:
-            print("  Category.Pair", self.codim, codim, lhs.dim, lhs, rhs)
+        self.info("  Category.Pair", self.codim, codim, lhs.dim, lhs, rhs)
         compose = lambda lhs, rhs : Globular.Pair(self, codim, lhs, rhs)
         pair = compose(lhs, rhs)
         self.decorate(pair)
-        if self.DEBUG:
-            print("  Category.Pair: shape=", pair.shape)
+        self.info("  Category.Pair: shape=", pair.shape)
         return pair
 
     def Iso(self, tgt, src, name=""):
@@ -434,16 +466,57 @@ class Bicategory(Globular):
         self.homcat = Category(self, self.topcat)
 
     def decorate_pair(self, pair):
-        if self.DEBUG:
-            print("Bicategory.decorate_pair", pair.dim)
-            print("Bicategory.decorate_pair", pair)
         lhs, rhs = pair
+        self.info("Bicategory.decorate_pair:")
+        self.info("\tpair.shape =", pair.shape)
+        self.info("\tlhs.shape =", lhs.shape)
+        self.info("\trhs.shape =", rhs.shape)
+        homcat = self.homcat
+        found = False
         if pair.shape == (0, 2) and lhs.shape == (1, 2) and rhs.shape == (1, 2):
-            # interchange law
+            # interchange law: 
+            # pair = (a<<b) * (c<<d)
             a, b = lhs
             c, d = rhs
-            cell = (a*c) << (b*d)
-            self.equate(pair, cell)
+            other = (a*c) << (b*d)
+            self.equate(pair, other)
+            found = True
+        if pair.shape == (1, 2) and lhs.shape == (0, 2) and rhs.shape == (0, 2):
+            # interchange law: 
+            # pair = (a*b) << (c*d)
+            a, b = lhs
+            c, d = rhs
+            other = (a<<c) * (b<<d)
+            self.equate(pair, other)
+            found = True
+        if pair.shape == (0, 1) and lhs.shape == (0, 1):
+            # reassoc to the right
+            C, B = lhs
+            A = rhs
+            other = C << (B<<A)
+            pair.reassoc = homcat.Iso(other, pair)
+            if B.is_endo and B == C.src.identity:
+                # triangle equation
+                lhs = C.runitor << A.identity
+                rhs = (C.identity << A.lunitor) * pair.reassoc
+                self.equate(lhs, rhs)
+            found = True
+        if pair.shape == (0, 1) and lhs.shape == (0, 1) and lhs.lhs.shape == (0, 1):
+            # pentagon equation
+            A = pair.rhs
+            B = pair.lhs.rhs
+            C = pair.lhs.lhs.rhs
+            D = pair.lhs.lhs.lhs
+            src = ((D<<C)<<B)<<A
+            tgt = D<<(C<<(B<<A))
+            lhs = src.reassoc 
+            lhs = lhs.tgt.reassoc * lhs
+            rhs = ((D<<C)<<B).reassoc << A.identity
+            rhs = rhs.tgt.reassoc * rhs
+            rhs = (D.identity << ((C<<B)<<A).reassoc) * rhs
+            self.equate(lhs, rhs)
+        if not found:
+            self.info("Bicategory.decorate_pair: decorate not found")
 
     def decorate(self, cell):
         assert isinstance(cell, Cell)
@@ -526,33 +599,16 @@ class Bicategory(Globular):
         return cell
 
     def Pair(self, codim, lhs, rhs):
-        if self.DEBUG:
-            print("Bicategory.Pair", self.codim, codim, lhs.dim, lhs, rhs)
+        self.info("Bicategory.Pair:")
+        self.info("\t", lhs)
+        self.info("\t", rhs)
         #if codim > 0:
         #    return self.supercat.Pair(codim, lhs, rhs)
         compose = lambda lhs, rhs : Globular.Pair(self, codim, lhs, rhs)
         pair = compose(lhs, rhs)
-        if self.DEBUG:
-            print("Bicategory.Pair", pair.is_decorated)
+        self.info("Bicategory.Pair pair.is_decorated=%s"%pair.is_decorated)
         self.homcat.decorate(pair)
         self.decorate(pair)
-#        if isinstance(rhs, Pair):
-#            # reassoc to the left
-#            a = lhs
-#            b, c = rhs
-#            other = compose(a<<b, c)
-#            #self.equate(pair, other)
-#        elif isinstance(lhs, Pair):
-#            # reassoc to the right
-#            a, b = lhs
-#            c = rhs
-#            other = compose(a, b<<c)
-#            #self.equate(pair, other)
-        # pair.shape == (0,1) or (1,2)
-        if self.DEBUG:
-            print("Bicategory.Pair: shape=", pair.shape)
-        #send = compose(lhs.get_root(), rhs.get_root())
-        #self.homcat.equate(pair, send)
         return pair
 
 
@@ -590,7 +646,7 @@ def test_category():
 
     BA = B*A
     assert BA == B*A
-    assert BA != A
+    #assert BA != A
     assert BA.src == l
     assert BA.tgt == n
 
@@ -635,6 +691,7 @@ def test_bicategory():
     m = Cell(name="m")
     n = Cell(name="n")
     o = Cell(name="o")
+    p = Cell(name="p")
 
     # identity 1-cells
     I = l.identity
@@ -658,12 +715,16 @@ def test_bicategory():
 
 
     # 1-cells
-    A0 = Cell(m, l)
-    A1 = Cell(m, l)
-    A2 = Cell(m, l)
-    A3 = Cell(m, l)
-    B0 = Cell(n, m)
-    B1 = Cell(n, m)
+    A0 = A = Cell(m, l, "A")
+    A1 = Cell(m, l, "A1")
+    A2 = Cell(m, l, "A2")
+    A3 = Cell(m, l, "A3")
+    B0 = B = Cell(n, m, "B")
+    B1 = Cell(n, m, "B1")
+    B2 = Cell(n, m, "B2")
+    B3 = Cell(n, m, "B3")
+    C = Cell(o, n, "C")
+    D = Cell(p, o, "D")
 
     assert A0.dim == 1
 
@@ -690,12 +751,19 @@ def test_bicategory():
     assert i.topcat is cat
     assert i * i == i
 
+    lhs = (B0.identity << A0.identity) * (B0.identity << A0.identity)
+    rhs = (B0.identity * B0.identity) << (A0.identity * A0.identity)
+    assert lhs == rhs
+    assert lhs == BA.identity
+
     # 2-cells
     f0 = Cell(A1, A0, "f0")
     f1 = Cell(A2, A1, "f1")
     f2 = Cell(A3, A2, "f2")
     f22 = Cell(A3, A2, "f22")
     g0 = Cell(B1, B0, "g0")
+    g1 = Cell(B2, B1, "g1")
+    g2 = Cell(B3, B2, "g2")
 
     f21 = f2*f1
     f210 = f21*f0
@@ -721,10 +789,90 @@ def test_bicategory():
     assert gf.key in cat.cache
 
     assert gf.src == B0<<A0
-    assert gf * BA.identity == gf # FAIL
+    assert gf * BA.identity == gf
+
+    lhs = (g1*g0) << (f1*f0)
+    rhs = (g1<<f1) * (g0<<f0)
+    assert lhs == rhs
+
+    g210 = g2*g1*g0
+    f210 = f2*f1*f0
+    #Globular.DEBUG = True
+    lhs = g210 << f210
+    #return
+
+    rhs = (g2<<f2) * (g1<<f1) * (g0<<f0)
+    #rhs.debug_eq()
+    #print(lhs.is_decorated)
+    #print(rhs.is_decorated)
+    assert lhs == rhs
+
+    rrhs = (g2<<f2) * ((g1<<f1) * (g0<<f0))
+    assert rhs == rrhs
+
+    # _associators
+
+    lhs = (C << B) << A
+    rhs = C << (B << A)
+    assert lhs.reassoc.src == lhs
+    assert lhs.reassoc.tgt == rhs
+    assert not hasattr(rhs, "reassoc")
+
+    cell = (D<<C) << (B<<A)
+    assert cell.reassoc
+
+    # triangle equation
+    lhs = B.runitor << A.identity
+    rhs = B.identity << A.lunitor
+    rhs = rhs * lhs.src.reassoc
+    assert lhs == rhs
+
+    # fooling around with identity's
+    I = l.identity
+    i = I.identity
+    assert I.lunitor == I.runitor
+    mul = I.lunitor
+    comul = mul.inv
+    assert comul == I.runitor.inv
+    assert mul * comul == i
+    ii = i<<i
+    assert comul * mul == ii
+    lhs = mul*(mul << i)
+    rhs = mul*(i<<mul) 
+    reassoc = ((I<<I)<<I).reassoc
+    rhs = rhs * reassoc
+    assert lhs == rhs
+    #assert (mul << i) * reassoc.inv * (i << comul) == ii # FAIL
+    #assert (i<<mul) * reassoc * (comul << i) == ii # FAIL
+
+    # pentagon equation
+    src = ((D<<C)<<B)<<A
+    tgt = D<<(C<<(B<<A))
+    lhs = src.reassoc 
+    lhs = lhs.tgt.reassoc * lhs
+    rhs = ((D<<C)<<B).reassoc << A.identity
+    rhs = rhs.tgt.reassoc * rhs
+    rhs = (D.identity << ((C<<B)<<A).reassoc) * rhs
+    assert lhs == rhs
+
+    # Eckman - Hilton
+    U = m.identity
+    u = U.identity
+    f = Cell(U, U)
+    g = Cell(U, U)
+    assert f!=g
+
+    assert f*u == f == u*f
+    assert g*u == g == u*g
+    assert f<<g == (f*u) << (u*g)
+    assert         (f*u) << (u*g) == (f<<u)*(u<<g)
+    #assert                           (f<<u)*(u<<g) == ???
+    #assert f*g == g*f
+    # not yet...
 
 
 def test_globular():
+    Globular.DEBUG = False
 
     print("test_globular")
 
@@ -876,7 +1024,7 @@ if __name__ == "__main__":
     test_bicategory()
     test_globular()
 
-    print("OK\n")
+    print("OK: ran in %.3f seconds.\n"%(time() - start_time))
 
 
 
