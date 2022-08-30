@@ -433,12 +433,27 @@ class Bicategory(Globular):
         # we just bundle all the hom categories up into one python object
         self.homcat = Category(self, self.topcat)
 
+    def decorate_pair(self, pair):
+        if self.DEBUG:
+            print("Bicategory.decorate_pair", pair.dim)
+            print("Bicategory.decorate_pair", pair)
+        lhs, rhs = pair
+        if pair.shape == (0, 2) and lhs.shape == (1, 2) and rhs.shape == (1, 2):
+            # interchange law
+            a, b = lhs
+            c, d = rhs
+            cell = (a*c) << (b*d)
+            self.equate(pair, cell)
+
     def decorate(self, cell):
         assert isinstance(cell, Cell)
         assert self.codim == 0 # todo
         if cell.is_decorated >= self.dim:
-            return
+            return # <------------ return
         cell.is_decorated = self.dim
+        if isinstance(cell, Pair):
+            self.decorate_pair(cell)
+            return # <------------ return
         codim = self.codim
         homcat = self.homcat
         if cell.dim == 0:
@@ -673,10 +688,7 @@ def test_bicategory():
 
     i = BA.identity
     assert i.topcat is cat
-    #Globular.DEBUG = True
-    i*i
-    #assert i * i == i # FAIL
-    #Globular.DEBUG = False
+    assert i * i == i
 
     # 2-cells
     f0 = Cell(A1, A0, "f0")
@@ -709,7 +721,7 @@ def test_bicategory():
     assert gf.key in cat.cache
 
     assert gf.src == B0<<A0
-    #assert gf * BA.identity == gf # FAIL
+    assert gf * BA.identity == gf # FAIL
 
 
 def test_globular():
