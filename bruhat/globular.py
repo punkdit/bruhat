@@ -37,6 +37,7 @@ class Cell(object):
             assert src.src == tgt.src
             assert src.tgt == tgt.tgt
         self.cat = cat
+        self.topcat = cat.topcat
         self.dim = dim
         self.src = src
         self.tgt = tgt
@@ -64,8 +65,8 @@ class Cell(object):
             lines += [INDENT*depth + "]"]
         return lines
 
-    def deepstr(self):
-        lines = self._deepstr()
+    def deepstr(self, depth=0):
+        lines = self._deepstr(depth)
         return '\n'.join(lines)
 
     def get_root(self):
@@ -106,13 +107,20 @@ class Cell(object):
         else:
             rhs.parent = lhs
 
+    def debug_eq(self):
+        print("debug_eq:")
+        while self.parent is not None:
+            print("\t", self)
+            self = self.parent
+        print("\t", self)
+
     def __mul__(lhs, rhs):
         assert lhs.dim == rhs.dim 
         n = lhs.dim
         offset = lhs.cat.dim+lhs.cat.codim
         assert n>=offset
         try:
-            pair = lhs.cat.Pair(n-offset, lhs, rhs)
+            pair = lhs.topcat.Pair(n-offset, lhs, rhs)
         except NotComposable:
             print("__mul__: NotComposable")
             print("lhs =")
@@ -127,14 +135,14 @@ class Cell(object):
         n = lhs.dim
         offset = lhs.cat.dim-1+lhs.cat.codim
         assert n>=offset
-        return lhs.cat.Pair(n-offset, lhs, rhs)
+        return lhs.topcat.Pair(n-offset, lhs, rhs)
 
     def __matmul__(lhs, rhs):
         assert lhs.dim == rhs.dim 
         n = lhs.dim
         offset = lhs.cat.dim-2+lhs.cat.codim
         assert n>=offset
-        return lhs.cat.Pair(n-offset, lhs, rhs)
+        return lhs.topcat.Pair(n-offset, lhs, rhs)
 
 
 class Object(Cell):
@@ -246,12 +254,13 @@ class Globular(object):
 
     DEBUG = False
 
-    def __init__(self, dim, supercat=None):
+    def __init__(self, dim, supercat=None, topcat=None):
         # I am a (the) homcat in my supercat
         self.dim = dim
         self.codim = 0 if supercat is None else supercat.codim+1
         self.supercat = supercat # meow
-        self.cache = {}
+        self.topcat = topcat or self
+        self.cache = {} if topcat is None else None
 
     def Object(self, name):
         codim = self.codim
@@ -277,6 +286,8 @@ class Globular(object):
         assert isinstance(lhs, Cell)
         assert isinstance(rhs, Cell)
         cache = self.cache
+        if cache is None:
+            assert 0, "%s does not own this Pair!"%(self,)
         key = (codim, lhs, rhs)
         if key in cache:
             pair = cache[key]
@@ -286,21 +297,28 @@ class Globular(object):
         return pair
 
     def equate(self, lhs, rhs):
+        if self.DEBUG:
+            print("Globular.equate:")
+            print("\t", lhs)
+            print("\t", rhs)
+            if lhs == rhs:
+                print("\talready equal!")
         lhs.equate(rhs)
+        assert lhs == rhs
 
 
 class Set(Globular):
-    def __init__(self, supercat=None):
-        Globular.__init__(self, 0, supercat)
+    def __init__(self, supercat=None, topcat=None):
+        Globular.__init__(self, 0, supercat, topcat)
 
     # put the equate method here? do we care?
 
 
 class Category(Globular):
-    def __init__(self, supercat=None):
-        Globular.__init__(self, 1, supercat)
+    def __init__(self, supercat=None, topcat=None):
+        Globular.__init__(self, 1, supercat, topcat)
+        self.homcat = Set(self, self.topcat)
         #self.homs = {}
-        self.homcat = Set(self)
 
 #    def Hom(self, tgt, src):
 #        key = (tgt, src)
@@ -314,8 +332,46 @@ class Category(Globular):
         cell = Globular.Object(self, name)
         return cell
 
+    def decorate_pair(self, pair):
+        compose = lambda lhs, rhs : Globular.Pair(self.topcat, pair.codim, lhs, rhs)
+        lhs, rhs = pair
+        #print(pair.shape, self.dim, self.codim)
+        if self.DEBUG:
+            print("Category.decorate_pair", pair)
+        if pair.codim + pair.dim != self.codim + self.dim:
+            if self.DEBUG:
+                print("Category.decorate_pair: bailing")
+            return
+#        print("lhs:")
+#        print(lhs.deepstr(1))
+#        print("rhs:")
+#        print(rhs.deepstr(1))
+        if isinstance(rhs, Pair) and rhs.shape == pair.shape:
+            # reassoc to the left
+            if self.DEBUG:
+                print("Category.decorate_pair: left reassoc")
+            a = lhs
+            b, c = rhs
+            other = compose(a*b, c)
+            self.equate(pair, other)
+        elif isinstance(lhs, Pair) and lhs.shape == pair.shape:
+            # reassoc to the right
+            if self.DEBUG:
+                print("Category.decorate_pair: right reassoc")
+            a, b = lhs
+            c = rhs
+            bc = b*c
+            other = compose(a, bc)
+            self.equate(pair, other)
+            assert pair == other
+            if self.DEBUG:
+                pair.debug_eq()
+                other.debug_eq()
+
     def decorate(self, cell):
         assert isinstance(cell, Cell)
+        if self.DEBUG:
+            print("Category.decorate", cell.is_decorated)
         if cell.is_decorated >= self.dim:
             return
         cell.is_decorated = self.dim
@@ -323,7 +379,7 @@ class Category(Globular):
         if cell.dim < codim:
             assert 0, cell.dim
         elif isinstance(cell, Pair):
-            pass
+            self.decorate_pair(cell)
         elif cell.dim == codim:
             assert not hasattr(cell, "identity"), "wup"
             cell.identity = Cell(self, cell, cell)
@@ -354,19 +410,7 @@ class Category(Globular):
             print("  Category.Pair", self.codim, codim, lhs.dim, lhs, rhs)
         compose = lambda lhs, rhs : Globular.Pair(self, codim, lhs, rhs)
         pair = compose(lhs, rhs)
-        if isinstance(rhs, Pair) and rhs.shape == pair.shape:
-            # reassoc to the left
-            a = lhs
-            b, c = rhs
-            other = compose(a*b, c)
-            self.equate(pair, other)
-        elif isinstance(lhs, Pair) and lhs.shape == pair.shape:
-            # reassoc to the right
-            a, b = lhs
-            c = rhs
-            bc = b*c
-            other = compose(a, bc)
-            self.equate(pair, other)
+        self.decorate(pair)
         if self.DEBUG:
             print("  Category.Pair: shape=", pair.shape)
         return pair
@@ -383,11 +427,11 @@ class Category(Globular):
 
 
 class Bicategory(Globular):
-    def __init__(self, supercat=None):
-        Globular.__init__(self, 2, supercat)
+    def __init__(self, supercat=None, topcat=None):
+        Globular.__init__(self, 2, supercat, topcat)
 
         # we just bundle all the hom categories up into one python object
-        self.homcat = Category(self)
+        self.homcat = Category(self, self.topcat)
 
     def decorate(self, cell):
         assert isinstance(cell, Cell)
@@ -473,6 +517,8 @@ class Bicategory(Globular):
         #    return self.supercat.Pair(codim, lhs, rhs)
         compose = lambda lhs, rhs : Globular.Pair(self, codim, lhs, rhs)
         pair = compose(lhs, rhs)
+        if self.DEBUG:
+            print("Bicategory.Pair", pair.is_decorated)
         self.homcat.decorate(pair)
         self.decorate(pair)
 #        if isinstance(rhs, Pair):
@@ -496,11 +542,11 @@ class Bicategory(Globular):
 
 
 class Tricategory(Globular):
-    def __init__(self, supercat=None):
-        Globular.__init__(self, 3, supercat)
+    def __init__(self, supercat=None, topcat=None):
+        Globular.__init__(self, 3, supercat, topcat)
 
         # we just bundle all the hom bicategories up into one python object
-        self.homcat = Bicategory(self)
+        self.homcat = Bicategory(self, self.topcat)
 
 
 def test_category():
@@ -566,6 +612,7 @@ def test_bicategory():
     # Test operations in a Bicategory
 
     cat = Bicategory()
+    assert cat.homcat.topcat is cat
     Cell = cat.Cell
 
     # 0-cells
@@ -625,18 +672,25 @@ def test_bicategory():
     assert BA.identity == B0.identity<<A0.identity
 
     i = BA.identity
-    Globular.DEBUG = True
+    assert i.topcat is cat
+    #Globular.DEBUG = True
     i*i
     #assert i * i == i # FAIL
-    print(i.cat)
-    Globular.DEBUG = False
+    #Globular.DEBUG = False
 
     # 2-cells
-    f0 = Cell(A1, A0)
-    f1 = Cell(A2, A1)
-    f2 = Cell(A3, A2)
-    f22 = Cell(A3, A2)
-    g0 = Cell(B1, B0)
+    f0 = Cell(A1, A0, "f0")
+    f1 = Cell(A2, A1, "f1")
+    f2 = Cell(A3, A2, "f2")
+    f22 = Cell(A3, A2, "f22")
+    g0 = Cell(B1, B0, "g0")
+
+    f21 = f2*f1
+    f210 = f21*f0
+    f10 = f1*f0
+    rhs = f2*f10
+    assert f210 is (f2*f1)*f0
+    assert f210 == f2*(f1*f0)
 
     assert f0.dim == 2
 
@@ -645,8 +699,7 @@ def test_bicategory():
 
     ff = f1*f0
     assert ff is f1*f0
-    assert ff.key not in cat.cache
-    assert ff.key in cat.homcat.cache # this Pair lives in the homcat
+    assert ff.key in cat.cache # this Pair lives in the cat
 
     assert A1.identity*f0 == f0*A0.identity
     assert (f2*f1)*f0 == f2*(f1*f0)
@@ -806,6 +859,7 @@ def test_globular():
 
 if __name__ == "__main__":
 
+    print("\n\n")
     test_category()
     test_bicategory()
     test_globular()
