@@ -105,11 +105,39 @@ class Cell(object):
         rhs = rhs.get_root()
         if lhs is rhs:
             return
+        if lhs._hash and rhs._hash:
+            print(lhs)
+            print(rhs)
+            assert 0
         assert lhs._hash is None or rhs._hash is None
         if rhs._hash is not None:
             lhs.parent = rhs
         else:
             rhs.parent = lhs
+
+#    # this won't work....
+#    def equate(lhs, rhs):
+#        assert lhs.cat is rhs.cat
+#        assert lhs.topcat is rhs.topcat
+#        lhs = lhs.get_root()
+#        rhs = rhs.get_root()
+#        if lhs is rhs:
+#            return
+#        cache = lhs.topcat.cache
+#        assert lhs in cache == lhs._hash is not None
+#        assert rhs in cache == rhs._hash is not None
+#        if lhs._hash:
+#            del cache[lhs]
+#        if rhs._hash:
+#            del cache[rhs]
+#        if rhs._hash is not None:
+#            lhs.parent = rhs
+#        else:
+#            rhs.parent = lhs
+#        if lhs._hash:
+#            del cache[lhs]
+#        if rhs._hash:
+#            del cache[rhs]
 
     def debug_eq(self):
         print("debug_eq:")
@@ -126,6 +154,11 @@ class Cell(object):
     def is_endo(self):
         assert self.dim > 0, "wah?"
         return self.src == self.tgt
+
+    @property
+    def is_identity(self):
+        assert self.dim > 0, "wah?"
+        return self.src == self.tgt and self == self.src.identity
 
     def __mul__(lhs, rhs):
         assert lhs.dim == rhs.dim 
@@ -378,7 +411,7 @@ class Category(Globular):
     def decorate_pair(self, pair):
         compose = lambda lhs, rhs : Globular.Pair(self.topcat, pair.codim, lhs, rhs)
         lhs, rhs = pair
-        self.info("Category.decorate_pair", pair)
+        self.info("Category.decorate_pair:", pair)
         if pair.codim + pair.dim != self.codim + self.dim:
             self.info("Category.decorate_pair: bailing")
             return
@@ -404,7 +437,7 @@ class Category(Globular):
 
     def decorate(self, cell):
         assert isinstance(cell, Cell)
-        self.info("Category.decorate", cell.is_decorated)
+        self.info("Category.decorate: cell.is_decorated=%d" % cell.is_decorated)
         if cell.is_decorated >= self.dim:
             return
         cell.is_decorated = self.dim
@@ -417,16 +450,23 @@ class Category(Globular):
             assert not hasattr(cell, "identity"), "wup"
             cell.identity = Cell(self, cell, cell)
             self.equate(cell.identity*cell.identity, cell.identity)
+        elif cell.dim == codim+1 and cell.is_identity:
+            assert 0, "pass!"
         elif cell.dim == codim+1:
-            src = cell.src.identity
-            self.equate(cell, cell*src)
-            self.equate(src, src*src)
-            tgt = cell.tgt.identity
-            self.equate(cell, tgt*cell)
-            self.equate(tgt, tgt*tgt)
+            if isinstance(cell, Pair) and (cell.lhs.is_identity or cell.rhs.is_identity):
+                pass
+            else:
+                src = cell.src.identity
+                self.equate(cell, cell*src)
+                self.equate(src, src*src)
+                tgt = cell.tgt.identity
+                self.equate(cell, tgt*cell)
+                self.equate(tgt, tgt*tgt)
         else:
             print("cell =", cell)
             assert 0, cell.dim
+        #if isinstance(cell, Pair):
+        #    self.decorate_pair(cell)
 
     def Cell(self, tgt=None, src=None, name=""):
         assert (tgt is None) == (src is None), (tgt, src)
@@ -465,6 +505,18 @@ class Bicategory(Globular):
         # we just bundle all the hom categories up into one python object
         self.homcat = Category(self, self.topcat)
 
+    def decorate_cell2(self, cell):
+        assert cell.dim == 2
+        self.info("Bicategory.decorate_cell2:", cell)
+
+        lhs = cell * cell.src.lunitor 
+        rhs = cell.tgt.lunitor * (cell.src.tgt.identity.identity << cell)
+        self.equate(lhs, rhs)
+        
+        lhs = cell * cell.src.runitor 
+        rhs = cell.tgt.runitor * (cell << cell.src.src.identity.identity)
+        self.equate(lhs, rhs)
+
     def decorate_pair(self, pair):
         lhs, rhs = pair
         self.info("Bicategory.decorate_pair:")
@@ -489,8 +541,22 @@ class Bicategory(Globular):
             other = (a<<c) * (b<<d)
             self.equate(pair, other)
             found = True
+        if pair.shape == (1, 2) and lhs.shape == (1, 2) \
+                and (not pair.is_endo or pair != pair.src.identity): # arfff! 
+            # naturality of reassoc
+            h, g = lhs
+            f = rhs
+            C, B = lhs.src
+            A = rhs.src
+            src = pair.src
+            assert src == ((C<<B)<<A)
+            assert src.shape == (0,1) and src.lhs.shape == (0,1)
+            assert "reassoc" in src.__dict__
+            reassoc = src.reassoc
+            self.equate(pair.tgt.reassoc * pair, (h<<(g<<f)) * src.reassoc)
         if pair.shape == (0, 1) and lhs.shape == (0, 1):
             # reassoc to the right
+            self.info("decorate_pair: pair has reassoc", pair)
             C, B = lhs
             A = rhs
             other = C << (B<<A)
@@ -515,6 +581,9 @@ class Bicategory(Globular):
             rhs = rhs.tgt.reassoc * rhs
             rhs = (D.identity << ((C<<B)<<A).reassoc) * rhs
             self.equate(lhs, rhs)
+            found = True
+        #if pair.dim == 2:
+        #    self.decorate_cell2(pair)
         if not found:
             self.info("Bicategory.decorate_pair: decorate not found")
 
@@ -550,7 +619,7 @@ class Bicategory(Globular):
             #else:
             #    assert 0, cell
         elif cell.dim == 2:
-            pass
+            self.decorate_cell2(cell)
         else:
             assert 0, cell
 
@@ -566,13 +635,16 @@ class Bicategory(Globular):
         assert cell.shape == (0, 1), cell
         lhs, rhs = cell
         lunitor = lhs.lunitor << rhs.identity
+        lunitor = lunitor * lunitor.src.reassoc.inv
         return lunitor
 
     def RightUnitor(self, cell):
         assert isinstance(cell, Pair)
         assert cell.shape == (0, 1), cell
+        reassoc = (cell<<cell.src.identity).reassoc
         lhs, rhs = cell
         runitor = lhs.identity << rhs.runitor
+        runitor = runitor * reassoc
         return runitor
 
     def Inv(self, cell):
@@ -606,7 +678,7 @@ class Bicategory(Globular):
         #    return self.supercat.Pair(codim, lhs, rhs)
         compose = lambda lhs, rhs : Globular.Pair(self, codim, lhs, rhs)
         pair = compose(lhs, rhs)
-        self.info("Bicategory.Pair pair.is_decorated=%s"%pair.is_decorated)
+        self.info("Bicategory.Pair: pair.is_decorated=%s"%pair.is_decorated)
         self.homcat.decorate(pair)
         self.decorate(pair)
         return pair
@@ -637,10 +709,10 @@ def test_category():
     assert Il*Il == Il
 
     # 1-cells
-    A = Cell(m, l)
-    B = Cell(n, m)
-    C = Cell(o, n)
-    D = Cell(p, o)
+    A = Cell(m, l, "A")
+    B = Cell(n, m, "B")
+    C = Cell(o, n, "C")
+    D = Cell(p, o, "D")
     In = n.identity
     Im = m.identity
 
@@ -656,6 +728,14 @@ def test_category():
 
     assert (C*B)*A == C*(B*A)
 
+    B*A
+    C*B
+    D*C
+    C*(B*A)
+    (C*B)*A
+    D*(C*B)
+    D*C*B
+    
     cell = D*C*B*A
     
     assert cell == ((D*C)*B)*A
@@ -683,7 +763,8 @@ def test_bicategory():
     # Test operations in a Bicategory
 
     cat = Bicategory()
-    assert cat.homcat.topcat is cat
+    homcat = cat.homcat
+    assert homcat.topcat is cat
     Cell = cat.Cell
 
     # 0-cells
@@ -692,6 +773,7 @@ def test_bicategory():
     n = Cell(name="n")
     o = Cell(name="o")
     p = Cell(name="p")
+    q = Cell(name="q")
 
     # identity 1-cells
     I = l.identity
@@ -723,8 +805,10 @@ def test_bicategory():
     B1 = Cell(n, m, "B1")
     B2 = Cell(n, m, "B2")
     B3 = Cell(n, m, "B3")
-    C = Cell(o, n, "C")
+    C0 = C = Cell(o, n, "C")
+    C1 = Cell(o, n, "C1")
     D = Cell(p, o, "D")
+    E = Cell(q, p, "E")
 
     assert A0.dim == 1
 
@@ -734,16 +818,18 @@ def test_bicategory():
     assert BA.cat is cat.homcat
 
     assert A0.is_decorated == 2
-    assert hasattr(A0, "identity")
-    assert hasattr(A0, "lunitor")
-    assert hasattr(A0, "runitor")
+    A0.identity # better than hasattr..
+    A0.lunitor
+    A0.runitor
 
     u = A0.identity
     uu = u*u
     assert uu == u
 
-    assert hasattr(BA, "identity")
-    assert hasattr(BA, "lunitor")
+    BAI = BA << A.src.identity
+    BAI.reassoc
+    BA.identity
+    BA.lunitor
 
     assert BA.identity == B0.identity<<A0.identity
 
@@ -756,14 +842,26 @@ def test_bicategory():
     assert lhs == rhs
     assert lhs == BA.identity
 
+    assert BA.lunitor.tgt == BA
+    assert BA.lunitor.src == BA.tgt.identity << BA
+    assert BA.runitor.tgt == BA
+    assert BA.runitor.src == BA << BA.src.identity
+
+    CBA = C<<BA
+    assert CBA.lunitor.tgt == CBA
+    assert CBA.lunitor.src == CBA.tgt.identity << CBA
+    assert CBA.runitor.tgt == CBA
+    assert CBA.runitor.src == CBA << CBA.src.identity
+
     # 2-cells
-    f0 = Cell(A1, A0, "f0")
+    f = f0 = Cell(A1, A0, "f0")
     f1 = Cell(A2, A1, "f1")
     f2 = Cell(A3, A2, "f2")
     f22 = Cell(A3, A2, "f22")
-    g0 = Cell(B1, B0, "g0")
+    g = g0 = Cell(B1, B0, "g0")
     g1 = Cell(B2, B1, "g1")
     g2 = Cell(B3, B2, "g2")
+    h = h0 = Cell(C1, C0, "h0")
 
     f21 = f2*f1
     f210 = f21*f0
@@ -802,16 +900,78 @@ def test_bicategory():
     #return
 
     rhs = (g2<<f2) * (g1<<f1) * (g0<<f0)
-    #rhs.debug_eq()
-    #print(lhs.is_decorated)
-    #print(rhs.is_decorated)
     assert lhs == rhs
 
     rrhs = (g2<<f2) * ((g1<<f1) * (g0<<f0))
     assert rhs == rrhs
 
-    # _associators
+    def test_identity(f):
+        assert f * f.src.identity == f
+        assert f.tgt.identity * f == f
+    test_identity(g<<f)
+    test_identity((g*g.src.lunitor)<<f)
+    test_identity((g1*g0)<<f)
 
+    def test_assoc(f2, f1, f0):
+        assert (f2*f1)*f0 == f2*(f1*f0)
+    test_assoc(f2, f1, f0)
+    test_assoc(g2<<f2, g1<<f1, g0<<f0)
+
+    def test_iso(f):
+        i = homcat.Iso(f.src, f.src)
+        assert i * i.inv == f.src.identity
+        assert f * f.src.identity == f
+        assert f * i * i.inv == f
+    test_iso(f)
+    test_iso(g<<f)
+    test_iso((g*g.src.lunitor)<<f)
+
+    #return
+
+    # naturality of unitors
+    def test_unitors(f):
+        lhs = f * f.src.lunitor 
+        rhs = f.tgt.lunitor * (f.src.tgt.identity.identity << f)
+        assert lhs == rhs
+        lhs = f * f.src.runitor 
+        rhs = f.tgt.runitor * (f << f.src.src.identity.identity)
+        assert lhs == rhs
+
+    test_unitors(f)
+    test_unitors(g)
+    #test_unitors(g<<f) # FAIL
+
+    lhs = g * g.src.lunitor 
+    rhs = g.tgt.lunitor * (g.src.tgt.identity.identity << g)
+    assert lhs == rhs
+    lhs = lhs << f
+    rhs = rhs << f
+    assert lhs == rhs
+
+    gf = g<<f
+    lhs = gf * gf.src.lunitor 
+    I = g.src.tgt.identity
+    assert gf.src.lunitor.src == I << (g.src << f.src)
+    reassoc = ((I<<g.src)<<f.src).reassoc
+    #test_assoc((g*g.src.lunitor) << f, reassoc.inv, reassoc) # Works here !!!
+    assert lhs == ((g*g.src.lunitor) << f) * reassoc.inv
+    assert reassoc.inv * reassoc == reassoc.src.identity
+    assert lhs*reassoc == ((g*g.src.lunitor) << f) * reassoc.inv * reassoc
+    test_assoc((g*g.src.lunitor) << f, reassoc.inv, reassoc) # FAIL !!!
+    assert lhs*reassoc == ((g*g.src.lunitor) << f) * (reassoc.inv * reassoc)
+    assert lhs*reassoc == ((g*g.src.lunitor) << f) * reassoc.src.identity
+    test_identity( ((g*g.src.lunitor) << f) )
+    assert lhs*reassoc == ((g*g.src.lunitor) << f)
+    assert lhs == ((g.tgt.lunitor*(I.identity << g)) << f) * reassoc.inv
+    rhs = gf.tgt.lunitor * (gf.src.tgt.identity.identity << gf)
+    #assert rhs * reassoc 
+
+    return
+    assert lhs == rhs # FAIL !!!
+
+    return
+
+    # _associators
     lhs = (C << B) << A
     rhs = C << (B << A)
     assert lhs.reassoc.src == lhs
@@ -821,11 +981,19 @@ def test_bicategory():
     cell = (D<<C) << (B<<A)
     assert cell.reassoc
 
+    # naturality of reassoc
+    hgf = (h0 << g0) << f0
+    assert hgf.tgt.reassoc * hgf == (h0<<(g0<<f0)) * hgf.src.reassoc
+
     # triangle equation
-    lhs = B.runitor << A.identity
-    rhs = B.identity << A.lunitor
-    rhs = rhs * lhs.src.reassoc
-    assert lhs == rhs
+    def test_triangle(B, A):
+        lhs = B.runitor << A.identity
+        rhs = B.identity << A.lunitor
+        rhs = rhs * lhs.src.reassoc
+        assert lhs == rhs
+    test_triangle(B, A)
+    test_triangle(C<<B, A)
+    test_triangle(C, B<<A)
 
     # fooling around with identity's
     I = l.identity
@@ -846,14 +1014,18 @@ def test_bicategory():
     #assert (i<<mul) * reassoc * (comul << i) == ii # FAIL
 
     # pentagon equation
-    src = ((D<<C)<<B)<<A
-    tgt = D<<(C<<(B<<A))
-    lhs = src.reassoc 
-    lhs = lhs.tgt.reassoc * lhs
-    rhs = ((D<<C)<<B).reassoc << A.identity
-    rhs = rhs.tgt.reassoc * rhs
-    rhs = (D.identity << ((C<<B)<<A).reassoc) * rhs
-    assert lhs == rhs
+    def test_pentagon(D, C, B, A):
+        src = ((D<<C)<<B)<<A
+        tgt = D<<(C<<(B<<A))
+        lhs = src.reassoc 
+        lhs = lhs.tgt.reassoc * lhs
+        rhs = ((D<<C)<<B).reassoc << A.identity
+        rhs = rhs.tgt.reassoc * rhs
+        rhs = (D.identity << ((C<<B)<<A).reassoc) * rhs
+        assert lhs == rhs
+    test_pentagon(D, C, B, A)
+    test_pentagon(E<<D, C, B, A)
+    test_pentagon(E, D<<C, B, A)
 
     # Eckman - Hilton
     U = m.identity
