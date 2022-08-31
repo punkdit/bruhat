@@ -118,7 +118,7 @@ def express(fn):
 #    we use to track the whole egraph.
 #    
 #    An `ENode` is like our `Node` class before but now the
-#    arguments are defined as references to eclasses rather
+#    arguments are defined as references to EClassID's rather
 #    than another node directly:
 
 class ENode(NamedTuple):
@@ -152,11 +152,12 @@ class ENode(NamedTuple):
 class EClassID(object):
     def __init__(self, egraph, id):
         self.id = id #  just for debugging
+        self.egraph = egraph # not used ??
         #self.parent : 'Optional[EClassID]' = None
         self.parent = None # EClassID
 
-        # A list of enodes that use this eclass and the eclassid of that use.
-        # This is only set on a canonical eclass (parent == None) and
+        # A list of enodes that use this eclass and the EClassID of that use.
+        # This is only set on a canonical EClassID (parent == None) and
         # will be used to repair the graph on merges.
         #self.uses : Optional[List[Tuple['ENode', 'EClassID']]] = []
         self.uses = [] # list of (ENode, EClassID)
@@ -173,20 +174,28 @@ class EClassID(object):
         self.parent = r
         return r
 
+    def __hash__(self):
+        return id(self)
+
+    def __eq__(lhs, rhs):
+        lhs = lhs.find()
+        rhs = rhs.find()
+        return lhs is rhs
+
 #    
 #    EGraphs
 #    =======
 #    
 #    We can now define the 'EGraph' which manages a collection
-#    of eclasses and their enodes. These graphs have two fundamental
+#    of EClassID's and their enodes. These graphs have two fundamental
 #    operations, _adding_ a new expression to the graph, and
-#    _merging_ two eclasses into a single one.
+#    _merging_ two EClassID's into a single one.
 
 Env = Dict[str, EClassID]
 
 class EGraph(object):
     def __init__(self):
-        self.i = 0 # id counter for debugging EClassIDs
+        self.i = 0 # id counter for debugging EClassID's
         self.version = 0 # increments every time we mutate the EGraph, so that we
                          # can quickly see when we haven't changed one
 
@@ -194,7 +203,7 @@ class EGraph(object):
         # so that we check if we have already defined a particular ENode
         self.hashcons : Dict['ENode', 'EClassID'] = {}
 
-        # a list of EClasses that have mutated by a merge operation, and whose users must
+        # a list of EClasseID's that have mutated by a merge operation, and whose users must
         # be updated to a new canonical version, we will later define a `rebuild` function
         # that processes this worklist.
         self.worklist : List['EClassID'] = []
@@ -224,7 +233,7 @@ class EGraph(object):
     def add_node(self, node: 'Node'):
        return self.add_enode(ENode(node.name, tuple(self.add_node(n) for n in node.args)))
 
-    # extract the actual eclasses
+    # extract the actual EClassID's
     def eclasses(self) -> Dict['EClassID', List['ENode']]:
         r = {}
         for node, eid in self.hashcons.items():
@@ -235,7 +244,7 @@ class EGraph(object):
                 r[eid].append(node)
         return r
 
-    #    Merging EClasses
+    #    Merging EClassID'es
     #    ================
     #    
     #    Notice that `e2` and `e5` can be merged, since they define
@@ -258,7 +267,7 @@ class EGraph(object):
         # we have updated eclass b, so nodes in the hashcons
         # might no longer be canonical and we might discover that two
         # enodes are actually the same value. We will repair this later, by
-        # remember what eclasses changed:
+        # remember what EClassID's changed:
         self.worklist.append(b)
     
     # ensure we have a de-duplicated version of the EGraph
@@ -281,7 +290,7 @@ class EGraph(object):
             p_node = p_node.canonicalize()
             self.hashcons[p_node] = p_eclass.find()
         # because we merged classes, some of the enodes that are uses might now be the same expression,
-        # meaning we can merge further eclasses
+        # meaning we can merge further EClassID's
         new_uses = {}
         for p_node, p_eclass in uses:
             p_node = p_node.canonicalize()
@@ -294,7 +303,7 @@ class EGraph(object):
 
     #    Another useful building block is the ability to create
     #    new nodes in the egraph based on a pattern, and an environment
-    #    to bind the free variables in the pattern to eclasses:
+    #    to bind the free variables in the pattern to EClassID's:
     
     def subst(self, pattern: Node, env: Env) -> EClassID:
         if not pattern.args and not isinstance(pattern.name, int):
@@ -455,7 +464,7 @@ def test():
     #    we can quickly create expressions:
     
     node = express(lambda a: (a * 2) / 2)
-    print(node)
+    assert str(node) == "(/ (* a 2) 2)"
 
     #    Now we have a pretty standard functional representation
     #    of an expression where each arg in a `Node` has exactly
@@ -468,18 +477,23 @@ def test():
     #    We can add other expressions as well, like `a << 1`, which is equivalent to `a * 2`:
     
     egraph.add_node(express(lambda a: a << 1))
-    egraph
     
     #    We can try it out by merging our nodes and observering
     #    that `e5` now has two definitions.
     
-    # lookup the eclasses for these nodes
+    # lookup the EClassID's for these nodes
     x_times_2 = egraph.add_node(express(lambda a: a * 2))
     x_shift_1 = egraph.add_node(express(lambda a: a << 1))
+    assert x_times_2 != x_shift_1
+
+    eid = egraph.add_node(express(lambda a: a << 1))
+    assert eid is x_shift_1
+
     # and merge them
     egraph.merge(x_times_2, x_shift_1)
     egraph.rebuild()
-    egraph
+
+    assert x_times_2 == x_shift_1
 
     rules = [
         Rule(lambda x: (x * 2, x << 1)), # times is a shift
@@ -490,31 +504,24 @@ def test():
     #    Lets match `(x * y) / z` against the graph:
     
     matches = ematch(egraph.eclasses(), rules[1].lhs)
-    matches[0]
-    
     
     lhs, env = matches[0]
     rhs = egraph.subst(rules[1].rhs, env)
-    egraph
     
     #    We can tell the egraph that this substitution was equivalent
     #    to the original pattern match:
     
     egraph.merge(lhs, rhs)
     egraph.rebuild()
-    egraph
 
     egraph = EGraph()
     egraph.add_node(express(lambda a: (a * 2) / 2))
-    egraph
     
     #    Now can we apply the rules and see how the rules get
     #    applied and the graph changes:
     
     apply_rules(egraph, rules)
-    
     apply_rules(egraph, rules)
-    
     apply_rules(egraph, rules)
     
     #    Notice how the version counter stops going up now because
