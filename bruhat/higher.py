@@ -1,18 +1,76 @@
 #!/usr/bin/env python
 
 """
-newer version: higher.py
+previous version: globular.py
 
-this version fails...
 """
 
 from time import time
 start_time = time()
 
+import z3
+
+
+class Solver(object):
+    def __init__(self):
+        self.solver = z3.Solver()
+        self.sort = z3.DeclareSort("THE_SORT")
+        self.v_count = 0
+        self.ops = set()
+
+    def get_var(self, stem="v"):
+        name = stem+str(self.v_count)
+        self.v_count += 1
+        v = z3.Const(name, self.sort)
+        return v
+
+    def get_op(self, name, arity=2):
+        assert name not in self.ops
+        f = z3.Function(name, [self.sort]*(arity+1))
+        self.ops.add(name)
+        return f
+
+    def equate(self, lhs, rhs):
+        self.solver.add( lhs == rhs )
+
+    def is_equal(self, lhs, rhs):
+        solver = self.solver
+        solver.push()
+        solver.add( lhs != rhs )
+        result = solver.check()
+        solver.pop()
+        return result == z3.unsat
+
+
+def test_solver():
+
+    solver = Solver()
+    a = solver.get_var("a")
+    b = solver.get_var("b")
+    c = solver.get_var("c")
+    d = solver.get_var("d")
+
+    solver.equate(a, b)
+    assert solver.is_equal(a, b)
+    solver.equate(b, c)
+    assert solver.is_equal(a, c)
+    assert not solver.is_equal(a, d)
+
+    mul = solver.get_op("*", 2)
+
+    lhs = mul(mul(a, b), c)
+    rhs = mul(a, mul(b, c))
+    solver.equate( lhs, rhs )
+
+    assert solver.is_equal( mul(lhs, d), mul(rhs, d) )
+    assert not solver.is_equal( mul(lhs, d), mul(d, rhs) )
+
+
+
 # https://ncatlab.org/nlab/show/globular+set
 
-bars = ["-", "=", "≡", "≣"] # ...?
-
+BARS = ["-", "=", "≡", "≣"] # ...?
+OPS = ["*", "<<", "@", "??"]
 
 class NotComposable(Exception):
     pass
@@ -39,8 +97,8 @@ class Cell(object):
             assert isinstance(tgt, Cell), tgt
             dim = src.dim+1
             assert src.dim == tgt.dim
-            #desc = "(%s <%s%s%s %s)"%(tgt.name, bars[dim-1], name, bars[dim-1], src.name)
-            desc = "(%s <%s%s%s %s)"%(tgt, bars[dim-1], name, bars[dim-1], src)
+            #desc = "(%s <%s%s%s %s)"%(tgt.name, BARS[dim-1], name, BARS[dim-1], src.name)
+            desc = "(%s <%s%s%s %s)"%(tgt, BARS[dim-1], name, BARS[dim-1], src)
             # check globular conditions
             assert src.src == tgt.src
             assert src.tgt == tgt.tgt
@@ -53,6 +111,9 @@ class Cell(object):
         self.parent = parent
         self._hash = None
         self.is_decorated = 0
+        self.expr = cat.solver.get_var("cell")
+        self.solver = cat.solver
+        self.key = id(self)
 
     def __str__(self):
         return self.desc
@@ -77,80 +138,16 @@ class Cell(object):
         lines = self._deepstr(depth)
         return '\n'.join(lines)
 
-    def get_root(self):
-        while self.parent is not None:
-            self = self.parent
-        return self
-
-    # WARNING:
-    # The following __hash__, __eq__ and equate is a delicate dance .
-    # The main requirement is to finish all calls to equate before doing any __hash__ .
-
     def __hash__(self):
-        # Here we exhibit paranoia about hash value changing!
-        # Do not hash me before assembling into equivelances!
-        dest = self.get_root()
-        assert self._hash is None or self._hash == dest._hash
-        value = id(dest)
-        assert dest._hash is None or dest._hash == value
-        dest._hash = value
-        self._hash = value
-        return value
+        assert 0
 
     def __eq__(lhs, rhs):
-        assert lhs.cat is rhs.cat
-        assert lhs.src == rhs.src, "Cell's are not comparable"
-        assert lhs.tgt == rhs.tgt, "Cell's are not comparable"
-        lhs = lhs.get_root()
-        rhs = rhs.get_root()
-        return lhs is rhs
+        return lhs.solver.is_equal( lhs.expr, rhs.expr )
 
     def equate(lhs, rhs):
-        assert lhs.cat is rhs.cat
-        lhs = lhs.get_root()
-        rhs = rhs.get_root()
-        if lhs is rhs:
-            return
-        if lhs._hash and rhs._hash:
-            print(lhs)
-            print(rhs)
-            assert 0
-        assert lhs._hash is None or rhs._hash is None
-        if rhs._hash is not None:
-            lhs.parent = rhs
-        else:
-            rhs.parent = lhs
-
-#    # this won't work....
-#    def equate(lhs, rhs):
-#        assert lhs.cat is rhs.cat
-#        assert lhs.topcat is rhs.topcat
-#        lhs = lhs.get_root()
-#        rhs = rhs.get_root()
-#        if lhs is rhs:
-#            return
-#        cache = lhs.topcat.cache
-#        assert lhs in cache == lhs._hash is not None
-#        assert rhs in cache == rhs._hash is not None
-#        if lhs._hash:
-#            del cache[lhs]
-#        if rhs._hash:
-#            del cache[rhs]
-#        if rhs._hash is not None:
-#            lhs.parent = rhs
-#        else:
-#            rhs.parent = lhs
-#        if lhs._hash:
-#            del cache[lhs]
-#        if rhs._hash:
-#            del cache[rhs]
-
-    def debug_eq(self):
-        print("debug_eq:")
-        while self.parent is not None:
-            print("\t", self)
-            self = self.parent
-        print("\t", self)
+        solver = lhs.solver
+        if lhs != rhs:
+            solver.equate( lhs.expr , rhs.expr )
 
     @property
     def shape(self):
@@ -197,28 +194,17 @@ class Cell(object):
         return lhs.topcat.Pair(n-offset, lhs, rhs)
 
 
-class Object(Cell):
-    def __init__(self, cat, name, parent=None):
-        self.cat = cat
-        self.dim = 0
-        self.src = None
-        self.tgt = None
-        self.name = name
-        self.parent = parent
-        self._hash = None
-
-
-
 class Pair(Cell):
     """
         A _composable pair of cell's.
     """
 
-    def __init__(self, codim, lhs, rhs):
+    def __init__(self, op, codim, lhs, rhs):
         cat = lhs.cat
         pair = cat.Pair
         assert codim >= 0
         assert lhs.dim == rhs.dim, "use whisker first"
+        #print("Pair:", op, lhs, rhs)
         if codim == 0:
             if rhs.tgt != lhs.src:
                 raise NotComposable("%s != %s"%(lhs.src, rhs.tgt))
@@ -247,14 +233,12 @@ class Pair(Cell):
             tgt = pair(codim-1, lhs.tgt, rhs.tgt)
             src = pair(codim-1, lhs.src, rhs.src)
         Cell.__init__(self, cat, tgt, src)
+        self.expr = op(lhs.expr, rhs.expr)
         self.codim = codim
         self.lhs = lhs
         self.rhs = rhs
-
-    # used for testing only..
-    @property
-    def key(self):
-        return (self.codim, self.lhs, self.rhs)
+        #print("Pair:", self.expr)
+        self.key = (codim, lhs.key, rhs.key)
 
     @property
     def shape(self):
@@ -274,25 +258,38 @@ class Pair(Cell):
         lines += [INDENT*depth + ")"]
         return lines
 
+    _identity = None
     @property
     def identity(self):
-        cat = self.cat.supercat
-        return cat.Identity(self)
+        if self._identity is None:
+            cat = self.cat.supercat
+            self._identity = cat.Identity(self)
+        return self._identity
 
+    _lunitor = None
     @property
     def lunitor(self):
-        cat = self.cat.supercat
-        return cat.LeftUnitor(self)
+        if self._lunitor is None:
+            cat = self.cat.supercat
+            self._lunitor = cat.LeftUnitor(self)
+        return self._lunitor
 
+    _runitor = None
     @property
     def runitor(self):
-        cat = self.cat.supercat
-        return cat.RightUnitor(self)
+        if self._runitor is None:
+            cat = self.cat.supercat
+            self._runitor = cat.RightUnitor(self)
+        return self._runitor
 
+    _inv = None
     @property
     def inv(self):
-        cat = self.cat.supercat
-        return cat.Inv(self)
+        if self._inv is None:
+            cat = self.cat.supercat
+            self._inv = cat.Inv(self)
+        return self._inv
+
 
 
 
@@ -310,19 +307,25 @@ class Globular(object):
         # I am a (the) homcat in my supercat
         self.dim = dim
         self.codim = 0 if supercat is None else supercat.codim+1
-        self.supercat = supercat # meow
-        self.topcat = topcat or self
-        self.cache = {} if topcat is None else None
+        self.supercat = supercat
+        if topcat is None:
+            # i am the topcat, meow!
+            self.topcat = self
+            self.solver = Solver()
+            ops = []
+            for d in range(dim):
+                ops.append(self.solver.get_op(OPS[d]))
+            self.ops = ops
+            self.cache = {}
+        else:
+            self.topcat = topcat
+            self.solver = topcat.solver
+            self.ops = topcat.ops
+            self.cache = topcat.cache
 
     def info(self, *msg):
         if self.DEBUG:
             print(*msg)
-
-    def Object(self, name):
-        codim = self.codim
-        assert codim == 0
-        cell = Object(self, name)
-        return cell
 
     def Cell(self, tgt=None, src=None, name=""):
         assert (tgt is None) == (src is None), (tgt, src)
@@ -341,52 +344,15 @@ class Globular(object):
     def Pair(self, codim, lhs, rhs):
         assert isinstance(lhs, Cell)
         assert isinstance(rhs, Cell)
-        self.info("Globular.Pair:")
-        self.info("\t", lhs)
-        self.info("\t", rhs)
-        cache = self.cache
-        if cache is None:
-            assert 0, "%s does not own this Pair!"%(self,)
-        key = (codim, lhs, rhs)
-        if key in cache:
-            pair = cache[key]
+        pair = Pair(self.ops[codim], codim, lhs, rhs)
+        if pair.key in self.cache:
+            pair = self.cache[pair.key]
         else:
-            pair = Pair(codim, lhs, rhs)
-            if key in cache:
-                # whoops, sometimes composing inside Pair.__init__ makes the pair!
-                # Example, the triangle equations.
-                pair = cache[key]
-            else:
-                cache[key] = pair
-            #self.extensive_equality(pair) # do we need this?
-        return pair
-
-    def extensive_equality(self, pair): # do we need this?
-        lhs, rhs = pair
-        codim = pair.codim
-        lroot = lhs.get_root()
-        rroot = rhs.get_root()
-        if lroot is not lhs:
-            other = self.Pair(codim, lroot, rhs)
-            self.equate(pair, other)
-        if rroot is not rhs:
-            other = self.Pair(codim, lhs, rroot)
-            self.equate(pair, other)
-        if lroot is not lhs and rroot is not rhs:
-            other = self.Pair(codim, lroot, rroot)
-            self.equate(pair, other)
+            self.cache[pair.key] = pair
         return pair
 
     def equate(self, lhs, rhs):
-        self.info("Globular.equate:")
-        self.info("\t", lhs)
-        self.info("\t", rhs)
-        if lhs == rhs:
-            self.info("\talready equal!")
-        assert lhs.src == rhs.src
-        assert lhs.tgt == rhs.tgt
         lhs.equate(rhs)
-        assert lhs == rhs
 
 
 class Set(Globular):
@@ -401,14 +367,6 @@ class Category(Globular):
         Globular.__init__(self, 1, supercat, topcat)
         self.homcat = Set(self, self.topcat)
         #self.homs = {}
-
-#    def Hom(self, tgt, src):
-#        key = (tgt, src)
-#        hom = self.homs.get(key)
-#        if hom is None:
-#            hom = Set()
-#            self.homs[key] = hom
-#        return hom
 
     def Object(self, name):
         cell = Globular.Object(self, name)
@@ -455,6 +413,7 @@ class Category(Globular):
         elif cell.dim == codim:
             assert not hasattr(cell, "identity"), "wup"
             cell.identity = Cell(self, cell, cell)
+            e = cell.identity * cell.identity
             self.equate(cell.identity*cell.identity, cell.identity)
         elif cell.dim == codim+1 and cell.is_identity:
             assert 0, "pass!"
@@ -901,9 +860,7 @@ def test_bicategory():
 
     g210 = g2*g1*g0
     f210 = f2*f1*f0
-    #Globular.DEBUG = True
     lhs = g210 << f210
-    #return
 
     rhs = (g2<<f2) * (g1<<f1) * (g0<<f0)
     assert lhs == rhs
@@ -931,8 +888,6 @@ def test_bicategory():
     test_iso(f)
     test_iso(g<<f)
     test_iso((g*g.src.lunitor)<<f)
-
-    #return
 
     # naturality of unitors
     def test_unitors(f):
@@ -972,10 +927,7 @@ def test_bicategory():
     rhs = gf.tgt.lunitor * (gf.src.tgt.identity.identity << gf)
     #assert rhs * reassoc 
 
-    return
-    assert lhs == rhs # FAIL !!!
-
-    return
+    #assert lhs == rhs # FAIL 
 
     # _associators
     lhs = (C << B) << A
@@ -1198,11 +1150,16 @@ def test_globular():
 if __name__ == "__main__":
 
     print("\n\n")
+    test_solver()
     test_category()
     test_bicategory()
     test_globular()
 
     print("OK: ran in %.3f seconds.\n"%(time() - start_time))
+
+
+
+
 
 
 
