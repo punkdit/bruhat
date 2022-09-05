@@ -3,6 +3,8 @@
 """
 previous version: globular.py
 
+next version: expr.py
+
 """
 
 from time import time
@@ -349,6 +351,7 @@ class Globular(object):
             pair = self.cache[pair.key]
         else:
             self.cache[pair.key] = pair
+        assert len(str(pair)) < 800, pair
         return pair
 
     def equate(self, lhs, rhs):
@@ -395,9 +398,10 @@ class Category(Globular):
             other = compose(a, bc)
             self.equate(pair, other)
             assert pair == other
-            if self.DEBUG:
-                pair.debug_eq()
-                other.debug_eq()
+        elif lhs.is_identity:
+            self.equate(pair, rhs)
+        elif rhs.is_identity:
+            self.equate(pair, lhs)
 
     def decorate(self, cell):
         assert isinstance(cell, Cell)
@@ -406,21 +410,25 @@ class Category(Globular):
             return
         cell.is_decorated = self.dim
         codim = self.codim
+
+        # TODO: clean this up ::::
         if cell.dim < codim:
             assert 0, cell.dim
-        elif isinstance(cell, Pair):
-            self.decorate_pair(cell)
+        #elif isinstance(cell, Pair):
+        #    self.decorate_pair(cell)
         elif cell.dim == codim:
-            assert not hasattr(cell, "identity"), "wup"
-            cell.identity = Cell(self, cell, cell)
-            e = cell.identity * cell.identity
-            self.equate(cell.identity*cell.identity, cell.identity)
+            if type(cell) == Cell:
+                assert not hasattr(cell, "identity"), "wup"
+                cell.identity = Cell(self, cell, cell)
+                e = cell.identity * cell.identity
+                self.equate(cell.identity*cell.identity, cell.identity)
         elif cell.dim == codim+1 and cell.is_identity:
-            assert 0, "pass!"
+            pass
         elif cell.dim == codim+1:
-            if isinstance(cell, Pair) and (cell.lhs.is_identity or cell.rhs.is_identity):
-                pass
-            else:
+#            if isinstance(cell, Pair) and (cell.lhs.is_identity or cell.rhs.is_identity):
+#                pass
+#            else:
+            if type(cell) == Cell:
                 src = cell.src.identity
                 self.equate(cell, cell*src)
                 self.equate(src, src*src)
@@ -430,8 +438,8 @@ class Category(Globular):
         else:
             print("cell =", cell)
             assert 0, cell.dim
-        #if isinstance(cell, Pair):
-        #    self.decorate_pair(cell)
+        if isinstance(cell, Pair):
+            self.decorate_pair(cell)
 
     def Cell(self, tgt=None, src=None, name=""):
         assert (tgt is None) == (src is None), (tgt, src)
@@ -462,6 +470,15 @@ class Category(Globular):
         inv.inv = cell
         return cell
 
+    def make_iso(self, cell):
+        if hasattr(cell, "inv"):
+            return
+        inv = self.Cell(cell.src, cell.tgt, "~"+cell.name)
+        self.equate(src.identity, inv*cell)
+        self.equate(tgt.identity, cell*inv)
+        cell.inv = inv
+        inv.inv = cell
+
 
 class Bicategory(Globular):
     def __init__(self, supercat=None, topcat=None):
@@ -473,6 +490,9 @@ class Bicategory(Globular):
     def decorate_cell2(self, cell):
         assert cell.dim == 2
         self.info("Bicategory.decorate_cell2:", cell)
+
+        if cell.is_identity:
+            return
 
         lhs = cell * cell.src.lunitor 
         rhs = cell.tgt.lunitor * (cell.src.tgt.identity.identity << cell)
@@ -547,8 +567,8 @@ class Bicategory(Globular):
             rhs = (D.identity << ((C<<B)<<A).reassoc) * rhs
             self.equate(lhs, rhs)
             found = True
-        #if pair.dim == 2:
-        #    self.decorate_cell2(pair)
+        if pair.dim == 2:
+            self.decorate_cell2(pair)
         if not found:
             self.info("Bicategory.decorate_pair: decorate not found")
 
@@ -569,7 +589,9 @@ class Bicategory(Globular):
             identity = homcat.Cell(cell, cell)
             cell.identity = identity
             lunitor = homcat.Iso(identity, identity<<identity)
+            #lunitor = homcat.Cell(identity, identity<<identity)
             identity.lunitor = identity.runitor = lunitor
+            #homcat.make_iso(lunitor)
         elif cell.dim == 1:
             # this cell is a 1-cell, make its unit'ors
             if cell.__class__ is Cell:
@@ -847,6 +869,12 @@ def test_bicategory():
     assert A1.identity*f0 == f0*A0.identity
     assert (f2*f1)*f0 == f2*(f1*f0)
 
+    #Globular.DEBUG = True
+    gf = g<<f
+    lhs = gf * gf.src.lunitor 
+    rhs = gf.tgt.lunitor * (gf.src.tgt.identity.identity << gf)
+    assert lhs == rhs # FAIL
+
     gf = g0<<f0
     assert gf is g0<<f0
     assert gf.key in cat.cache
@@ -900,7 +928,8 @@ def test_bicategory():
 
     test_unitors(f)
     test_unitors(g)
-    #test_unitors(g<<f) # FAIL
+
+    test_unitors(g<<f) # FAIL
 
     lhs = g * g.src.lunitor 
     rhs = g.tgt.lunitor * (g.src.tgt.identity.identity << g)

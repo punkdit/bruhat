@@ -1131,8 +1131,8 @@ def make_surface_54(G_0):
 
         if g in G_1:
             continue
-        elif g.order() != 2:
-            continue
+#        elif g.order() != 2:
+#            continue
         #elif g in L_0:
         #    continue
         #elif g.order() == 2 and g not in G_1 and g not in L_0:
@@ -1142,7 +1142,10 @@ def make_surface_54(G_0):
         #if g not in L_0:
         #    check_432(Hz, Hx, perm)
         #    return
-        result = is_422_cat_selfdual(Hz, Hx, perm)
+        if g.order() == 2:
+            result = is_422_cat_selfdual(Hz, Hx, perm)
+        else:
+            result = False
 
         print("%d: [|g|=%s,%s.%s.%s.%s]"%(
             len(dualities),
