@@ -12,23 +12,40 @@ import z3
 
 
 class Expr(object):
-    def __init__(self, solver):
+    def __init__(self, solver, ref):
         self.solver = solver
+        self.ref = ref
 
     def equate(self, other):
-        self.solver.equate(self, other)
+        self.solver.equate(self.ref, other.ref)
+
+    def __eq__(self, other):
+        return self.solver.is_equal(self.ref, other.ref)
 
     def __mul__(self, other):
-        operator = self.solver.get_op("*", 2)
-        expr = Term(operator, (self, other), inline=True)
+        solver = self.solver
+        operator = solver.get_op("*", 2)
+        expr = Term(solver, operator, (self, other), inline=True)
+        return expr
+
+    def __lshift__(self, other):
+        solver = self.solver
+        operator = solver.get_op("<<", 2)
+        expr = Term(solver, operator, (self, other), inline=True)
+        return expr
+
+    def __matmul__(self, other):
+        solver = self.solver
+        operator = solver.get_op("@", 2)
+        expr = Term(solver, operator, (self, other), inline=True)
         return expr
 
 
 class Variable(Expr):
     def __init__(self, solver, name):
-        Expr.__init__(self, solver)
         self.name = name
-        self.v = solver.get_var()
+        ref = solver.get_var()
+        Expr.__init__(self, solver, ref)
 
     def __str__(self):
         return self.name
@@ -36,12 +53,14 @@ class Variable(Expr):
 
 
 class Term(Expr):
-    def __init__(self, operator, args, inline=False, postfix=False):
+    def __init__(self, solver, operator, args, inline=False, postfix=False):
         self.operator = operator
         assert operator.arity() == len(args)
         self.args = args
         self.inline = inline
         self.postfix = postfix
+        ref = operator(*[arg.ref for arg in args])
+        Expr.__init__(self, solver, ref)
 
     def __str__(self):
         args = self.args
@@ -78,6 +97,7 @@ class Solver(object):
         name = stem+str(self.v_count)
         self.v_count += 1
         v = z3.Const(name, self.sort)
+        #print(v)
         return v
 
     def get_op(self, name, arity=2):
@@ -90,9 +110,15 @@ class Solver(object):
         return f
 
     def equate(self, lhs, rhs):
+        #print("Solver.equate", lhs, rhs)
+        assert isinstance(lhs, z3.ExprRef)
+        assert isinstance(rhs, z3.ExprRef)
         self.solver.add( lhs == rhs )
 
     def is_equal(self, lhs, rhs):
+        #print("Solver.is_equal", lhs, rhs)
+        assert isinstance(lhs, z3.ExprRef)
+        assert isinstance(rhs, z3.ExprRef)
         solver = self.solver
         solver.push()
         solver.add( lhs != rhs )
@@ -135,10 +161,23 @@ def test_solver():
 def test_expr():
 
     solver = Solver()
+    equate = lambda lhs, rhs : lhs.equate(rhs)
 
-    a = solver.variable("a")
+    a, b, c, d = [solver.variable(name) for name in 'abcd']
 
-    print(a*a)
+    assert str(a*a) == "(a*a)"
+
+    assert a*(b*c) != (a*b)*c
+    assert b*(c*d) != (b*c)*d
+
+    equate( a*(b*c), (a*b)*c )
+    assert a*(b*c) == (a*b)*c
+
+    assert b*(c*d) != (b*c)*d
+
+    equate( b*(c*d), (b*c)*d )
+    assert b*(c*d) == (b*c)*d
+
 
 
 if __name__ == "__main__":
