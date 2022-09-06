@@ -40,6 +40,11 @@ class Expr(object):
         term = op(self, other)
         return term
 
+    def __getattr__(self, attr):
+        theory = self.theory
+        op = theory.get_op(attr, self.sort)
+        return op(self)
+
     @staticmethod
     def match(src, tgt, send=None, depth=0):
         if send is None:
@@ -267,6 +272,11 @@ class Rewrite(object):
 
 
 class Theory(object):
+    DEBUG = False
+    def info(self, *msg):
+        if self.DEBUG:
+            print(*msg)
+
     def __init__(self, solver=None):
         if solver is None:
             solver = Solver()
@@ -280,11 +290,21 @@ class Theory(object):
         expr = Variable(self, name, sort)
         #self.cache[expr.key] = expr # ?
         solver, lookup = self.solver, self.lookup
-        v = solver.get_var()
+        v = solver.get_var(name)
         lookup[expr.key] = v
+        self.info("Variable:", expr)
         return expr
 
-    #def apply_rewrite
+    def apply_rewrite(self, eqn, expr):
+        other = eqn.match(expr)
+        if other is None:
+            return
+        assert other.key != expr.key, "continue?"
+        self.info("theory.apply_rewrite:", expr, "==", other)
+        solver, lookup = self.solver, self.lookup
+        lhs, rhs = lookup[expr.key], lookup[other.key]
+        #print("solver.equate", lhs, rhs)
+        solver.equate(lhs, rhs)
 
     def Term(self, op, *args, sort=None, inline=False, postfix=False):
         cache = self.cache
@@ -301,13 +321,7 @@ class Theory(object):
 
         #print("Term:", expr)
         for eqn in self.eqns:
-            other = eqn.match(expr)
-            if other is None:
-                continue
-            assert other.key != expr.key, "continue?"
-            #print("\t", expr, "==", other)
-            rhs = lookup[other.key]
-            solver.equate(lhs, rhs)
+            self.apply_rewrite(eqn, expr)
 
         return expr
 
@@ -315,6 +329,8 @@ class Theory(object):
         #return self.Term(name, sort=sort)
         op = self.Operator(name, sort, ())
         return op()
+        #expr = self.Variable(name, sort) # arghh.. will get match'ed
+        #return expr
 
     def Operator(self, name, rsort, argsorts, inline=False, postfix=False):
         sig = (name, tuple(argsorts))
@@ -329,17 +345,12 @@ class Theory(object):
 
     def Rewrite(self, lhs, rhs):
         eqn = Rewrite(self, lhs, rhs)
+        self.info("theory.Rewrite:", eqn)
         self.eqns.append(eqn)
         solver, lookup = self.solver, self.lookup
         lhs = lookup[lhs.key]
         for expr in list(self.cache.values()):
-            other = eqn.match(expr)
-            if other is None:
-                continue
-            assert other.key != expr.key, "continue?"
-            #print("\t", expr, "==", other)
-            rhs = lookup[other.key]
-            solver.equate(lhs, rhs)
+            self.apply_rewrite(eqn, expr)
         return eqn
 
     def Equation(self, lhs, rhs):
@@ -356,6 +367,11 @@ class Theory(object):
 
 
 class Solver(object):
+    DEBUG = False
+    def info(self, *msg):
+        if self.DEBUG:
+            print(*msg)
+
     def __init__(self):
         pass
 
@@ -397,14 +413,13 @@ class Z3Solver(Solver):
         return f
 
     def equate(self, lhs, rhs):
-        #print("Z3Solver.equate", lhs, rhs)
+        self.info("Z3Solver.equate:", lhs, "==", rhs)
         assert len(str(lhs)) < 30
         assert isinstance(lhs, z3.ExprRef)
         assert isinstance(rhs, z3.ExprRef)
         self.solver.add( lhs == rhs )
 
     def is_equal(self, lhs, rhs):
-        #print("Z3Solver.is_equal", lhs, rhs)
         assert isinstance(lhs, z3.ExprRef)
         assert isinstance(rhs, z3.ExprRef)
         solver = self.solver
@@ -412,9 +427,19 @@ class Z3Solver(Solver):
         solver.add( lhs != rhs )
         result = solver.check()
         solver.pop()
+        self.info("Z3Solver.is_equal:", lhs, "==", rhs, "?", 
+            result==z3.unsat)
         return result == z3.unsat
 
 
+def distinct(items):
+    n = len(items)
+    for i in range(n):
+      for j in range(i+1, n):
+        if items[i] == items[j]:
+            return False
+    return True
+        
 
 def test_solver():
 
@@ -438,27 +463,6 @@ def test_solver():
 
     assert solver.is_equal( mul(lhs, d), mul(rhs, d) )
     assert not solver.is_equal( mul(lhs, d), mul(d, rhs) )
-
-
-def __test_expr():
-
-    solver = Z3Solver()
-    equate = lambda lhs, rhs : lhs.equate(rhs)
-
-    a, b, c, d = [solver.variable(name) for name in 'abcd']
-
-    assert str(a*a) == "(a*a)"
-
-    assert a*(b*c) != (a*b)*c
-    assert b*(c*d) != (b*c)*d
-
-    equate( a*(b*c), (a*b)*c )
-    assert a*(b*c) == (a*b)*c
-
-    assert b*(c*d) != (b*c)*d
-
-    equate( b*(c*d), (b*c)*d )
-    assert b*(c*d) == (b*c)*d
 
 
 def test_base_theory():
@@ -523,11 +527,36 @@ def test_base_theory():
 def test_theory():
 
     solver = Z3Solver()
+    #solver.DEBUG = True
+    theory = Theory(solver)
+    sort = Sort("monoid")
+
+    a, b = [theory.Variable(name, sort) for name in 'ab']
+    one = theory.Const("one", sort)
+    theory.Operator("*", sort, [sort, sort], inline=True)
+
+    assert a*b != b*a
+
+    #theory.DEBUG = True
+    theory.Rewrite( one*a, a )
+    theory.Rewrite( a*one, a )
+
+    assert a*one == a
+    assert a*one*one*a == a*a
+    assert a*b != b*a
+    for u in [one, a, b, a*b, b*a]:
+      for v in [one, a, b, a*b, b*a]:
+        assert u*one*v == u*v
+
+
+def test_monoid_theory():
+
+    solver = Z3Solver()
     theory = Theory(solver)
     sort = Sort("monoid")
 
     a, b, c, d = [theory.Variable(name, sort) for name in 'abcd']
-    one = theory.Const("1", sort)
+    one = theory.Const("one", sort)
     theory.Operator("*", sort, [sort, sort], inline=True)
 
     assert a is not b
@@ -547,12 +576,65 @@ def test_theory():
     assert lhs == a*((b*c)*d)
     assert lhs == (a*(b*c))*d
 
-    theory.Rewrite( one*a, a )
-    theory.Rewrite( a*one, a )
+    for u in [a, b, c, d]:
+        theory.Rewrite( one*u, u )
+        theory.Rewrite( u*one, u )
 
     assert a*one == a
 
     assert a*one*one*a == a*a
+    assert a*b != b*a
+
+    assert distinct([a, b, c, d])
+
+
+def test_category_theory():
+
+    solver = Z3Solver()
+    theory = Theory(solver)
+
+    cell0 = Sort("cell0") # object's
+    cell1 = Sort("cell1") # morphism's
+
+    Operator = theory.Operator
+    Variable = theory.Variable
+   
+    Operator("identity", cell1, [cell0], postfix=True)
+    Operator("*", cell1, [cell1, cell1], inline=True)
+
+    X, Y, Z, W = [Variable(name, cell0) for name in "XYZW"]
+    f, g, h = [Variable(name, cell1) for name in "fgh"]
+
+    assert X.identity is X.identity
+    assert X.identity == X.identity
+    assert X.identity != Y.identity
+
+
+    #      h      g      f    
+    #  W <--- Z <--- Y <--- X
+    # 
+
+    assert g*f != h*g
+    theory.Equation( (h*g)*f, h*(g*f) )
+    assert g*f != h*g
+
+    def morphism(f, X, Y):
+        theory.Rewrite( f*X.identity, f )
+        theory.Rewrite( Y.identity*f, f )
+
+    morphism(f, X, Y)
+    assert g*f != h*g
+    morphism(g, Y, Z)
+    assert g*f != h*g
+    morphism(h, Z, W)
+    assert distinct([X, Y, Z, W])
+    assert distinct([X.identity, Y.identity, Z.identity, W.identity])
+
+    assert g*f != h*g
+
+    assert (h*g)*Y.identity == h*g
+    assert g*f != h*g
+
 
 
 if __name__ == "__main__":
@@ -561,6 +643,8 @@ if __name__ == "__main__":
     test_solver()
     test_base_theory()
     test_theory()
+    test_monoid_theory()
+    test_category_theory()
 
     #test_category()
     #test_bicategory()
