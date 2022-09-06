@@ -3,71 +3,14 @@
 """
 previous version: globular.py
 
-next version: expr.py
+next version: theory.py
 
 """
 
 from time import time
 start_time = time()
 
-import z3
-
-
-class Solver(object):
-    def __init__(self):
-        self.solver = z3.Solver()
-        self.sort = z3.DeclareSort("THE_SORT")
-        self.v_count = 0
-        self.ops = set()
-
-    def get_var(self, stem="v"):
-        name = stem+str(self.v_count)
-        self.v_count += 1
-        v = z3.Const(name, self.sort)
-        return v
-
-    def get_op(self, name, arity=2):
-        assert name not in self.ops
-        f = z3.Function(name, [self.sort]*(arity+1))
-        self.ops.add(name)
-        return f
-
-    def equate(self, lhs, rhs):
-        self.solver.add( lhs == rhs )
-
-    def is_equal(self, lhs, rhs):
-        solver = self.solver
-        solver.push()
-        solver.add( lhs != rhs )
-        result = solver.check()
-        solver.pop()
-        return result == z3.unsat
-
-
-def test_solver():
-
-    solver = Solver()
-    a = solver.get_var("a")
-    b = solver.get_var("b")
-    c = solver.get_var("c")
-    d = solver.get_var("d")
-
-    solver.equate(a, b)
-    assert solver.is_equal(a, b)
-    solver.equate(b, c)
-    assert solver.is_equal(a, c)
-    assert not solver.is_equal(a, d)
-
-    mul = solver.get_op("*", 2)
-
-    lhs = mul(mul(a, b), c)
-    rhs = mul(a, mul(b, c))
-    solver.equate( lhs, rhs )
-
-    assert solver.is_equal( mul(lhs, d), mul(rhs, d) )
-    assert not solver.is_equal( mul(lhs, d), mul(d, rhs) )
-
-
+from bruhat.theory import Theory, Z3Solver
 
 # https://ncatlab.org/nlab/show/globular+set
 
@@ -110,11 +53,6 @@ class Cell(object):
         self.src = src
         self.tgt = tgt
         self.desc = desc
-        self.parent = parent
-        self._hash = None
-        self.is_decorated = 0
-        self.expr = cat.solver.get_var("cell")
-        self.solver = cat.solver
         self.key = id(self)
 
     def __str__(self):
@@ -1179,7 +1117,6 @@ def test_globular():
 if __name__ == "__main__":
 
     print("\n\n")
-    test_solver()
     test_category()
     test_bicategory()
     test_globular()
