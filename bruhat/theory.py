@@ -284,7 +284,7 @@ class Theory(object):
         if expr is None:
             expr = Const(self, name, sort)
         solver, lookup = self.solver, self.lookup
-        v = solver.get_var(name)
+        v = solver.get_const(name)
         lookup[expr.key] = v
         self.info("Const:", expr)
         return expr
@@ -384,7 +384,7 @@ class Solver(object):
     def __init__(self):
         pass
 
-    def get_var(self, stem="v"):
+    def get_const(self, stem="v"):
         pass
 
     def get_operator(self, name, arity=2):
@@ -405,7 +405,7 @@ class Z3Solver(Solver):
         self.v_count = 0
         self.oplookup = {}
 
-    def get_var(self, stem="v"):
+    def get_const(self, stem="v"):
         name = stem+str(self.v_count)
         self.v_count += 1
         v = z3.Const(name, self.sort)
@@ -453,10 +453,10 @@ def distinct(items):
 def test_solver():
 
     solver = Z3Solver()
-    a = solver.get_var("a")
-    b = solver.get_var("b")
-    c = solver.get_var("c")
-    d = solver.get_var("d")
+    a = solver.get_const("a")
+    b = solver.get_const("b")
+    c = solver.get_const("c")
+    d = solver.get_const("d")
 
     solver.equate(a, b)
     assert solver.is_equal(a, b)
