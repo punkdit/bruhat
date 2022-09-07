@@ -16,6 +16,8 @@ class Sort(object):
         self.name = name
     def __str__(self):
         return self.name
+    def __repr__(self):
+        return "Sort(%r)"%(self.name,)
 
 
 class Expr(object):
@@ -32,17 +34,41 @@ class Expr(object):
         assert 0
 
     def __eq__(self, other):
+        assert isinstance(other, Expr), other
         return self.theory.is_equal(self, other)
 
     def __mul__(self, other):
+        assert isinstance(other, Expr), other
         theory = self.theory
-        op = theory.get_op("*", self.sort, other.sort)
+        op = theory.get_operator("*", self.sort, other.sort)
+        if op is None:
+            raise AttributeError("operator %s*%s not found"%(self.sort, other.sort))
+        term = op(self, other)
+        return term
+
+    def __lshift__(self, other):
+        assert isinstance(other, Expr), other
+        theory = self.theory
+        op = theory.get_operator("<<", self.sort, other.sort)
+        if op is None:
+            raise AttributeError("operator %s<<%s not found"%(self.sort, other.sort))
+        term = op(self, other)
+        return term
+
+    def __matmul__(self, other):
+        assert isinstance(other, Expr), other
+        theory = self.theory
+        op = theory.get_operator("@", self.sort, other.sort)
+        if op is None:
+            raise AttributeError("operator %s@%s not found"%(self.sort, other.sort))
         term = op(self, other)
         return term
 
     def __getattr__(self, attr):
         theory = self.theory
-        op = theory.get_op(attr, self.sort)
+        op = theory.get_operator(attr, self.sort)
+        if op is None:
+            raise AttributeError("attr %r not found"%(attr,))
         return op(self)
 
     @staticmethod
@@ -55,13 +81,13 @@ class Expr(object):
             return None
         if send:
             src = src.substitute(send) # ?
-        if isinstance(src, Variable):
+        if isinstance(src, Const):
             if src.key in send and send[src.key] is not tgt:
                 return None # <------------ return
             send[src.key] = tgt
-            #print(indent+"match: Variable")
+            #print(indent+"match: Const")
             return send # <-------------- return
-        if isinstance(tgt, Variable):
+        if isinstance(tgt, Const):
             return None # <-------------- return
         assert isinstance(src, Term)
         assert isinstance(tgt, Term)
@@ -84,9 +110,9 @@ class Expr(object):
 #        if send:
 #            lhs = lhs.substitute(send)
 #            rhs = rhs.substitute(send)
-#        if isinstance(rhs, Variable):
+#        if isinstance(rhs, Const):
 #            lhs, rhs = rhs, lhs
-#        if isinstance(lhs, Variable):
+#        if isinstance(lhs, Const):
 #            if lhs is not rhs and rhs.find(lhs):
 #                return None # fail (recursive)
 #            #print(indent, "<== {%s : %s}"%(lhs, rhs))
@@ -109,7 +135,7 @@ class Expr(object):
 
 
 
-class Variable(Expr):
+class Const(Expr):
     def __init__(self, theory, name, sort):
         self.name = name
         self.sort = sort
@@ -122,7 +148,7 @@ class Variable(Expr):
     __repr__ = __str__
 
     def find(self, v):
-        assert isinstance(v, Variable)
+        assert isinstance(v, Const)
         return self is v
 
     def substitute(self, send):
@@ -143,6 +169,9 @@ class Operator(object):
 
     def __str__(self):
         return self.name
+
+    def __repr__(self):
+        return "%s(%r)"%(self.__class__.__name__, self.name)
 
     def __call__(self, *args):
         theory = self.theory
@@ -177,14 +206,17 @@ class Term(Expr):
             l, = args
             s = "%s.%s"%(l, op)
         elif len(args) == 0:
-            s = str(op) # Const
+            s = str(op) # Nullary
         else:
             s = "%s%s"%(op, args)
         return s
     __repr__ = __str__
 
+    def __getitem__(self, idx):
+        return self.args[idx]
+
     def find(self, v):
-        assert isinstance(v, Variable)
+        assert isinstance(v, Const)
         for arg in self.args:
             if arg.find(v):
                 return True
@@ -206,42 +238,6 @@ class Term(Expr):
         return vs
 
 
-
-
-#class Rewrite(object):
-#    def __init__(self, theory, lhs, rhs):
-#        assert isinstance(lhs, Expr)
-#        assert isinstance(rhs, Expr)
-#        assert theory is lhs.theory
-#        assert theory is rhs.theory
-#        assert lhs.sort == rhs.sort
-#        theory = lhs.theory
-#        vs = lhs.all_vars() | rhs.all_vars()
-#        # Make some uniqe Variable's just for this Rewrite:
-#        fwd = {v.key : theory.Variable("_"+v.name, v.sort) for v in vs.values()}
-#        # & remember how to get back:
-#        self.rev = {fwd[v.key].key : v for v in vs.values()}
-#        lhs = lhs.substitute(fwd)
-#        rhs = rhs.substitute(fwd)
-#        self.lhs = lhs
-#        self.rhs = rhs
-#
-#    def __str__(self):
-#        return "%s -> %s" % (self.lhs, self.rhs)
-#
-#    def match(self, expr, directional=True):
-#        assert isinstance(expr, Expr)
-#        lhs, rhs = self.lhs, self.rhs
-#        #print("Rewrite.match", lhs, "-->", expr)
-#        send = Expr.match(lhs, expr)
-#        #print("Rewrite.match =", send)
-#        if send is not None:
-#            rhs = rhs.substitute(send)
-#            rhs = rhs.substitute(self.rev)
-#            return rhs
-
-        
-    
 
 class Rewrite(object):
     def __init__(self, theory, src, tgt):
@@ -266,10 +262,6 @@ class Rewrite(object):
             tgt = tgt.substitute(send)
             return tgt
 
-        
-    
-
-
 
 class Theory(object):
     DEBUG = False
@@ -286,13 +278,13 @@ class Theory(object):
         self.eqns = []
         self.lookup = {}
 
-    def Variable(self, name, sort):
-        expr = Variable(self, name, sort)
-        #self.cache[expr.key] = expr # ?
+    def Const(self, name, sort, expr=None):
+        if expr is None:
+            expr = Const(self, name, sort)
         solver, lookup = self.solver, self.lookup
         v = solver.get_var(name)
         lookup[expr.key] = v
-        self.info("Variable:", expr)
+        self.info("Const:", expr)
         return expr
 
     def apply_rewrite(self, eqn, expr):
@@ -315,7 +307,7 @@ class Theory(object):
         # we made a new Term
         cache[expr.key] = expr
         solver, lookup = self.solver, self.lookup
-        op = solver.get_op(op.name, len(args))
+        op = solver.get_operator(op.name, len(args))
         lhs = op(*[lookup[arg.key] for arg in args])
         lookup[expr.key] = lhs
 
@@ -325,23 +317,25 @@ class Theory(object):
 
         return expr
 
-    def Const(self, name, sort):
-        #return self.Term(name, sort=sort)
-        op = self.Operator(name, sort, ())
-        return op()
-        #expr = self.Variable(name, sort) # arghh.. will get match'ed
-        #return expr
+    def add_operator(self, op):
+        sig = (op.name, tuple(op.argsorts))
+        assert sig not in self.sigs
+        self.sigs[sig] = op
 
     def Operator(self, name, rsort, argsorts, inline=False, postfix=False):
-        sig = (name, tuple(argsorts))
-        assert sig not in self.sigs
         op = Operator(self, name, rsort, argsorts, inline=inline, postfix=postfix)
-        self.sigs[sig] = op
+        if argsorts:
+            self.add_operator(op)
         return op
 
-    def get_op(self, name, *argsorts):
+    def get_operator(self, name, *argsorts):
         sig = (name, argsorts)
-        return self.sigs[sig]
+        return self.sigs.get(sig, None)
+
+    def Nullary(self, name, sort):
+        op = self.Operator(name, sort, ())
+        expr = op()
+        return expr
 
     def Rewrite(self, lhs, rhs):
         eqn = Rewrite(self, lhs, rhs)
@@ -378,7 +372,7 @@ class Solver(object):
     def get_var(self, stem="v"):
         pass
 
-    def get_op(self, name, arity=2):
+    def get_operator(self, name, arity=2):
         op = lambda *args : None
         return op
 
@@ -403,7 +397,7 @@ class Z3Solver(Solver):
         #print(v)
         return v
 
-    def get_op(self, name, arity=2):
+    def get_operator(self, name, arity=2):
         if name in self.oplookup:
             f = self.oplookup[name]
             assert f.arity() == arity
@@ -414,7 +408,7 @@ class Z3Solver(Solver):
 
     def equate(self, lhs, rhs):
         self.info("Z3Solver.equate:", lhs, "==", rhs)
-        assert len(str(lhs)) < 30
+        #assert len(str(lhs)) < 30
         assert isinstance(lhs, z3.ExprRef)
         assert isinstance(rhs, z3.ExprRef)
         self.solver.add( lhs == rhs )
@@ -455,7 +449,7 @@ def test_solver():
     assert solver.is_equal(a, c)
     assert not solver.is_equal(a, d)
 
-    mul = solver.get_op("*", 2)
+    mul = solver.get_operator("*", 2)
 
     lhs = mul(mul(a, b), c)
     rhs = mul(a, mul(b, c))
@@ -470,12 +464,12 @@ def test_base_theory():
     theory = Theory()
     sort = Sort("sort")
 
-    a, b, c, d, e, f, g = [theory.Variable(name, sort) for name in 'abcdefg']
-    one = theory.Const("1", sort)
+    a, b, c, d, e, f, g = [theory.Const(name, sort) for name in 'abcdefg']
+    one = theory.Nullary("1", sort)
     theory.Operator("*", sort, [sort, sort], inline=True)
 
     assert a is not b
-    assert a is not theory.Variable("a", sort)
+    assert a is not theory.Const("a", sort)
     assert a*b is a*b
 
     assert str(a*b) == "(a*b)"
@@ -520,7 +514,7 @@ def test_base_theory():
     assert rhs is one*a
 
     _sort = Sort("_sort")
-    _a = theory.Variable("_a", _sort)
+    _a = theory.Const("_a", _sort)
     assert Expr.match(a, _a) is None
 
 
@@ -531,8 +525,8 @@ def test_theory():
     theory = Theory(solver)
     sort = Sort("monoid")
 
-    a, b = [theory.Variable(name, sort) for name in 'ab']
-    one = theory.Const("one", sort)
+    a, b = [theory.Const(name, sort) for name in 'ab']
+    one = theory.Nullary("one", sort)
     theory.Operator("*", sort, [sort, sort], inline=True)
 
     assert a*b != b*a
@@ -555,12 +549,12 @@ def test_monoid_theory():
     theory = Theory(solver)
     sort = Sort("monoid")
 
-    a, b, c, d = [theory.Variable(name, sort) for name in 'abcd']
-    one = theory.Const("one", sort)
+    a, b, c, d = [theory.Const(name, sort) for name in 'abcd']
+    one = theory.Nullary("one", sort)
     theory.Operator("*", sort, [sort, sort], inline=True)
 
     assert a is not b
-    assert a is not theory.Variable("a", sort)
+    assert a is not theory.Const("a", sort)
     assert a*b is a*b
 
     assert str(a*b) == "(a*b)"
@@ -597,13 +591,13 @@ def test_category_theory():
     cell1 = Sort("cell1") # morphism's
 
     Operator = theory.Operator
-    Variable = theory.Variable
+    Const = theory.Const
    
     Operator("identity", cell1, [cell0], postfix=True)
     Operator("*", cell1, [cell1, cell1], inline=True)
 
-    X, Y, Z, W = [Variable(name, cell0) for name in "XYZW"]
-    f, g, h = [Variable(name, cell1) for name in "fgh"]
+    X, Y, Z, W = [Const(name, cell0) for name in "XYZW"]
+    f, g, h = [Const(name, cell1) for name in "fgh"]
 
     assert X.identity is X.identity
     assert X.identity == X.identity
@@ -645,10 +639,6 @@ if __name__ == "__main__":
     test_theory()
     test_monoid_theory()
     test_category_theory()
-
-    #test_category()
-    #test_bicategory()
-    #test_globular()
 
     print("OK: ran in %.3f seconds.\n"%(time() - start_time))
 
