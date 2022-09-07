@@ -19,64 +19,9 @@ class Sort(object):
     def __repr__(self):
         return "Sort(%r)"%(self.name,)
 
-#
-#class Virtual(object):
-#    def __init__(self, sort):
-#        assert isinstance(sort, Sort)
-#        self.sort = sort
-#    def __mul__(self, other):
-#        return ETerm("*", self.sort, self, other)
-#    def __lshift__(self, other):
-#        return ETerm("<<", self.sort, self, other)
-#    def __matmul__(self, other):
-#        return ETerm("@", self.sort, self, other)
-#
-#    @staticmethod
-#    def match(src, tgt, send=None, depth=0):
-#        if send is None:
-#            send = {}
-#        indent = "  "*depth
-#        #print(indent+"match:", src, "->", tgt, send)
-#        if src.sort != tgt.sort:
-#            return None
-#        if send:
-#            src = src.substitute(send) # ?
-#        if isinstance(src, Const):
-#            if src.key in send and send[src.key] is not tgt:
-#                return None # <------------ return
-#            send[src.key] = tgt
-#            #print(indent+"match: Const")
-#            return send # <-------------- return
-#        if isinstance(tgt, Const):
-#            return None # <-------------- return
-#        assert isinstance(src, Term)
-#        assert isinstance(tgt, Term)
-#        if src.op != tgt.op:
-#            return None # fail
-#        for left, right in zip(src.args, tgt.args):
-#            send = Expr.match(left, right, send, depth=depth+1) # recurse
-#            if send is None:
-#                return None # fail
-#        return send
-#
-#
-#class Variable(Virtual):
-#    def __init__(self, name, sort):
-#        Virtual.__init__(self, sort)
-#        self.name = name
-#    def __str__(self):
-#        return self.name
-#    __repr__ = __str__
-#
-#class ETerm(Virtual):
-#    def __init__(self, name, sort, *args):
-#        Virtual.__init__(self, sort)
-#        self.name = name
-#        self.args = args
-#    def __str__(self):
-#        return "%s%s"%(self.name, self.args)
-#    __repr__ = __str__
 
+# Variable's are universally quantified,
+# Const's are existentially quantified.
 
 class Expr(object):
     def __init__(self, theory, key, sort, is_const):
@@ -161,32 +106,6 @@ class Expr(object):
             if send is None:
                 return None # fail
         return send
-
-
-class Rewrite(object):
-    def __init__(self, theory, src, tgt):
-        assert isinstance(src, Expr)
-        assert isinstance(tgt, Expr)
-        assert theory is src.theory
-        assert theory is tgt.theory
-        assert src.sort == tgt.sort
-        assert not src.is_const
-        self.src = src
-        self.tgt = tgt
-
-    def __str__(self):
-        return "%s -> %s" % (self.src, self.tgt)
-
-    def match(self, expr, directional=True):
-        assert isinstance(expr, Expr)
-        src, tgt = self.src, self.tgt
-        #print("Rewrite.match", src, "-->", expr)
-        send = Expr.match(src, expr)
-        #print("Rewrite.match =", send)
-        if send is not None:
-            tgt = tgt.substitute(send)
-            return tgt
-
 
 
 class Variable(Expr):
@@ -317,6 +236,32 @@ class Term(Expr):
             for v in arg.all_vars().values():
                 vs[v.key] = v
         return vs
+
+
+class Rewrite(object):
+    def __init__(self, theory, src, tgt):
+        assert isinstance(src, Expr)
+        assert isinstance(tgt, Expr)
+        assert theory is src.theory
+        assert theory is tgt.theory
+        assert src.sort == tgt.sort
+        assert not src.is_const, 'makes no sense..'
+        self.src = src
+        self.tgt = tgt
+
+    def __str__(self):
+        return "%s -> %s" % (self.src, self.tgt)
+
+    def match(self, expr, directional=True):
+        assert isinstance(expr, Expr)
+        src, tgt = self.src, self.tgt
+        #print("Rewrite.match", src, "-->", expr)
+        send = Expr.match(src, expr)
+        #print("Rewrite.match =", send)
+        if send is not None:
+            tgt = tgt.substitute(send)
+            return tgt
+
 
 
 
