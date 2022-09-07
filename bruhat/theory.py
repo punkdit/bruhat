@@ -19,12 +19,71 @@ class Sort(object):
     def __repr__(self):
         return "Sort(%r)"%(self.name,)
 
+#
+#class Virtual(object):
+#    def __init__(self, sort):
+#        assert isinstance(sort, Sort)
+#        self.sort = sort
+#    def __mul__(self, other):
+#        return ETerm("*", self.sort, self, other)
+#    def __lshift__(self, other):
+#        return ETerm("<<", self.sort, self, other)
+#    def __matmul__(self, other):
+#        return ETerm("@", self.sort, self, other)
+#
+#    @staticmethod
+#    def match(src, tgt, send=None, depth=0):
+#        if send is None:
+#            send = {}
+#        indent = "  "*depth
+#        #print(indent+"match:", src, "->", tgt, send)
+#        if src.sort != tgt.sort:
+#            return None
+#        if send:
+#            src = src.substitute(send) # ?
+#        if isinstance(src, Const):
+#            if src.key in send and send[src.key] is not tgt:
+#                return None # <------------ return
+#            send[src.key] = tgt
+#            #print(indent+"match: Const")
+#            return send # <-------------- return
+#        if isinstance(tgt, Const):
+#            return None # <-------------- return
+#        assert isinstance(src, Term)
+#        assert isinstance(tgt, Term)
+#        if src.op != tgt.op:
+#            return None # fail
+#        for left, right in zip(src.args, tgt.args):
+#            send = Expr.match(left, right, send, depth=depth+1) # recurse
+#            if send is None:
+#                return None # fail
+#        return send
+#
+#
+#class Variable(Virtual):
+#    def __init__(self, name, sort):
+#        Virtual.__init__(self, sort)
+#        self.name = name
+#    def __str__(self):
+#        return self.name
+#    __repr__ = __str__
+#
+#class ETerm(Virtual):
+#    def __init__(self, name, sort, *args):
+#        Virtual.__init__(self, sort)
+#        self.name = name
+#        self.args = args
+#    def __str__(self):
+#        return "%s%s"%(self.name, self.args)
+#    __repr__ = __str__
+
 
 class Expr(object):
-    def __init__(self, theory, key, sort):
+    def __init__(self, theory, key, sort, is_const):
         self.theory = theory
         self.key = key
         self.sort = sort
+        self.is_const = is_const
 
     def equate(self, other):
         assert 0, "use theory.Equation etc."
@@ -81,16 +140,20 @@ class Expr(object):
             return None
         if send:
             src = src.substitute(send) # ?
-        if isinstance(src, Const):
+        if isinstance(src, Variable):
             if src.key in send and send[src.key] is not tgt:
                 return None # <------------ return
             send[src.key] = tgt
             #print(indent+"match: Const")
             return send # <-------------- return
-        if isinstance(tgt, Const):
+        if isinstance(tgt, Variable):
             return None # <-------------- return
-        assert isinstance(src, Term)
-        assert isinstance(tgt, Term)
+        if src is tgt:
+            return send
+        if isinstance(src, Const) or isinstance(tgt, Const):
+            return None
+        assert isinstance(src, Term), (src, tgt)
+        assert isinstance(tgt, Term), (src, tgt)
         if src.op != tgt.op:
             return None # fail
         for left, right in zip(src.args, tgt.args):
@@ -99,40 +162,54 @@ class Expr(object):
                 return None # fail
         return send
 
-#    @staticmethod
-#    def unify(lhs, rhs, send=None, depth=0):
-#        indent = "  "*depth
-#        #print(indent+"unify:", lhs, "&", rhs)
-#        if lhs.sort != rhs.sort:
-#            return None
-#        if send is None:
-#            send = {}
-#        if send:
-#            lhs = lhs.substitute(send)
-#            rhs = rhs.substitute(send)
-#        if isinstance(rhs, Const):
-#            lhs, rhs = rhs, lhs
-#        if isinstance(lhs, Const):
-#            if lhs is not rhs and rhs.find(lhs):
-#                return None # fail (recursive)
-#            #print(indent, "<== {%s : %s}"%(lhs, rhs))
-#            assert lhs.key not in send
-#            if lhs is not rhs:
-#                send = dict(send)
-#                for k,v in list(send.items()):
-#                    send[k] = v.substitute({lhs.key:rhs})
-#                send[lhs.key] = rhs
-#            return send
-#        assert isinstance(lhs, Term)
-#        assert isinstance(rhs, Term)
-#        if lhs.op != rhs.op:
-#            return None # fail
-#        for left, right in zip(lhs.args, rhs.args):
-#            send = Expr.unify(left, right, send, depth=depth+1)
-#            if send is None:
-#                return None # fail
-#        return send
 
+class Rewrite(object):
+    def __init__(self, theory, src, tgt):
+        assert isinstance(src, Expr)
+        assert isinstance(tgt, Expr)
+        assert theory is src.theory
+        assert theory is tgt.theory
+        assert src.sort == tgt.sort
+        assert not src.is_const
+        self.src = src
+        self.tgt = tgt
+
+    def __str__(self):
+        return "%s -> %s" % (self.src, self.tgt)
+
+    def match(self, expr, directional=True):
+        assert isinstance(expr, Expr)
+        src, tgt = self.src, self.tgt
+        #print("Rewrite.match", src, "-->", expr)
+        send = Expr.match(src, expr)
+        #print("Rewrite.match =", send)
+        if send is not None:
+            tgt = tgt.substitute(send)
+            return tgt
+
+
+
+class Variable(Expr):
+    def __init__(self, theory, name, sort):
+        self.name = name
+        self.sort = sort
+        key = id(self)
+        Expr.__init__(self, theory, key, sort, False)
+
+    def __str__(self):
+        return self.name
+        #return "%s:%s"%(self.name, self.sort)
+    __repr__ = __str__
+
+    def find(self, v):
+        assert isinstance(v, Const)
+        return self is v
+
+    def substitute(self, send):
+        return send.get(self.key, self)
+
+    def all_vars(self):
+        return {self.key : self}
 
 
 class Const(Expr):
@@ -140,7 +217,7 @@ class Const(Expr):
         self.name = name
         self.sort = sort
         key = id(self)
-        Expr.__init__(self, theory, key, sort)
+        Expr.__init__(self, theory, key, sort, True)
 
     def __str__(self):
         return self.name
@@ -192,7 +269,11 @@ class Term(Expr):
         self.inline = inline
         self.postfix = postfix
         key = (op,) + tuple(arg.key for arg in args)
-        Expr.__init__(self, theory, key, sort)
+        is_const = True
+        for arg in args:
+            if not arg.is_const:
+                is_const = False
+        Expr.__init__(self, theory, key, sort, is_const)
 
     def __str__(self):
         args = self.args
@@ -222,7 +303,7 @@ class Term(Expr):
                 return True
         return False
 
-    def substitute(self, send): # hotspot
+    def substitute(self, send):
         op = self.op
         args = [arg.substitute(send) for arg in self.args]
         theory = self.theory
@@ -239,30 +320,6 @@ class Term(Expr):
 
 
 
-class Rewrite(object):
-    def __init__(self, theory, src, tgt):
-        assert isinstance(src, Expr)
-        assert isinstance(tgt, Expr)
-        assert theory is src.theory
-        assert theory is tgt.theory
-        assert src.sort == tgt.sort
-        self.src = src
-        self.tgt = tgt
-
-    def __str__(self):
-        return "%s -> %s" % (self.src, self.tgt)
-
-    def match(self, expr, directional=True):
-        assert isinstance(expr, Expr)
-        src, tgt = self.src, self.tgt
-        #print("Rewrite.match", src, "-->", expr)
-        send = Expr.match(src, expr)
-        #print("Rewrite.match =", send)
-        if send is not None:
-            tgt = tgt.substitute(send)
-            return tgt
-
-
 class Theory(object):
     DEBUG = False
     def info(self, *msg):
@@ -273,7 +330,7 @@ class Theory(object):
         if solver is None:
             solver = Solver()
         self.solver = solver
-        self.cache = {}
+        self.cache = {} # cache all constant expressions
         self.sigs = {}
         self.eqns = []
         self.lookup = {}
@@ -287,25 +344,31 @@ class Theory(object):
         self.info("Const:", expr)
         return expr
 
+    def Variable(self, name, sort):
+        expr = Variable(self, name, sort)
+        self.info("Variable:", expr)
+        return expr
+
     def apply_rewrite(self, eqn, expr):
         other = eqn.match(expr)
         if other is None:
             return
         assert other.key != expr.key, "continue?"
         self.info("theory.apply_rewrite:", expr, "==", other)
-        solver, lookup = self.solver, self.lookup
-        lhs, rhs = lookup[expr.key], lookup[other.key]
-        #print("solver.equate", lhs, rhs)
-        solver.equate(lhs, rhs)
+        self.equate(expr, other)
 
     def Term(self, op, *args, sort=None, inline=False, postfix=False):
         cache = self.cache
         expr = Term(self, op, *args, sort=sort, inline=inline, postfix=postfix)
+        if not expr.is_const:
+            return expr # <------------- return
+
         if expr.key in cache:
             return cache[expr.key] # <------------- return
 
         # we made a new Term
         cache[expr.key] = expr
+
         solver, lookup = self.solver, self.lookup
         op = solver.get_operator(op.name, len(args))
         lhs = op(*[lookup[arg.key] for arg in args])
@@ -313,7 +376,7 @@ class Theory(object):
 
         #print("Term:", expr)
         for eqn in self.eqns:
-            self.apply_rewrite(eqn, expr)
+            self.apply_rewrite(eqn, expr) # may recurse !
 
         return expr
 
@@ -338,12 +401,17 @@ class Theory(object):
         return expr
 
     def Rewrite(self, lhs, rhs):
+        if lhs.is_const:
+            assert rhs.is_const
+            self.equate(lhs, rhs) # now these constant's are equal
+            return
         eqn = Rewrite(self, lhs, rhs)
         self.info("theory.Rewrite:", eqn)
         self.eqns.append(eqn)
+
         solver, lookup = self.solver, self.lookup
-        lhs = lookup[lhs.key]
         for expr in list(self.cache.values()):
+            assert expr.is_const, expr
             self.apply_rewrite(eqn, expr)
         return eqn
 
@@ -352,7 +420,9 @@ class Theory(object):
         self.Rewrite(rhs, lhs)
 
     def equate(self, lhs, rhs):
-        assert 0
+        solver, lookup = self.solver, self.lookup
+        lhs, rhs = lookup[lhs.key], lookup[rhs.key]
+        solver.equate(lhs, rhs)
 
     def is_equal(self, lhs, rhs):
         solver, lookup = self.solver, self.lookup
@@ -465,7 +535,9 @@ def test_base_theory():
     sort = Sort("sort")
 
     a, b, c, d, e, f, g = [theory.Const(name, sort) for name in 'abcdefg']
-    one = theory.Nullary("1", sort)
+    t, u, v, w, x, y, z = [theory.Variable(name, sort) for name in 'tuvwxyz']
+    #one = theory.Nullary("1", sort)
+    one = theory.Const("one", sort)
     theory.Operator("*", sort, [sort, sort], inline=True)
 
     assert a is not b
@@ -475,47 +547,39 @@ def test_base_theory():
     assert str(a*b) == "(a*b)"
 
     for (src, tgt) in [
-        (a, a*b),
-        (a*b, b*a),
-        (a*b, b*(c*d)),
+        (u, u*v),
+        (u*v, v*u),
+        (u*v, v*(w*w)),
+        ((u*v)*w, (x*y)*(z*t)),
     ]:
         send = Expr.match( src, tgt )
         assert send
-        assert src.substitute(send) is tgt
+        assert src.substitute(send).key == tgt.key
 
-    send = Expr.match( a*b, a )
+    send = Expr.match( u*v, v )
     assert send is None
 
-    lhs, rhs = (a*b)*c, a*(b*c)
-    send = Expr.match( (a*b)*c, d*e )
+    send = Expr.match( (u*v)*w, u*v )
     assert send is None
 
-    send = Expr.match( d*e, (a*b)*c )
-    assert send
-    assert (d*e).substitute(send) is (a*b)*c
-
-    send = Expr.match( (a*b)*c, (d*e)*(f*g) )
-    assert send
-    assert ((a*b)*c).substitute(send) is (d*e)*(f*g)
-
-    eqn = Rewrite(theory, (a*b)*c, a*(b*c))
+    eqn = Rewrite(theory, (u*v)*w, u*(v*w))
 
     lhs = (a*b)*(c*d)
     rhs = eqn.match(lhs)
     assert rhs is a*(b*(c*d)), rhs
 
-    lhs = one*a
-    rhs = one*(one*b)
+    lhs = one*u
+    rhs = one*(one*v)
     assert Expr.match(lhs, rhs)
 
-    eqn = Rewrite(theory, one*a, a)
+    eqn = Rewrite(theory, one*u, u)
     lhs = one*(one*a)
     rhs = eqn.match(lhs)
     assert rhs is one*a
 
     _sort = Sort("_sort")
     _a = theory.Const("_a", _sort)
-    assert Expr.match(a, _a) is None
+    assert Expr.match(u, _a) is None
 
 
 def test_theory():
@@ -526,14 +590,16 @@ def test_theory():
     sort = Sort("monoid")
 
     a, b = [theory.Const(name, sort) for name in 'ab']
-    one = theory.Nullary("one", sort)
+    x, y = [theory.Variable(name, sort) for name in 'xy']
+    #one = theory.Nullary("one", sort)
+    one = theory.Const("one", sort)
     theory.Operator("*", sort, [sort, sort], inline=True)
 
     assert a*b != b*a
 
     #theory.DEBUG = True
-    theory.Rewrite( one*a, a )
-    theory.Rewrite( a*one, a )
+    theory.Rewrite( one*x, x )
+    theory.Rewrite( x*one, x )
 
     assert a*one == a
     assert a*one*one*a == a*a
@@ -550,7 +616,8 @@ def test_monoid_theory():
     sort = Sort("monoid")
 
     a, b, c, d = [theory.Const(name, sort) for name in 'abcd']
-    one = theory.Nullary("one", sort)
+    u, v, w = [theory.Variable(name, sort) for name in 'uvw']
+    one = theory.Const("one", sort)
     theory.Operator("*", sort, [sort, sort], inline=True)
 
     assert a is not b
@@ -561,7 +628,7 @@ def test_monoid_theory():
 
     assert (a*b)*c != a*(b*c)
 
-    theory.Equation( (a*b)*c, a*(b*c) )
+    theory.Equation( (u*v)*w, u*(v*w) )
     assert (a*b)*c == a*(b*c)
 
     lhs = ((a*b)*c)*d
@@ -570,9 +637,8 @@ def test_monoid_theory():
     assert lhs == a*((b*c)*d)
     assert lhs == (a*(b*c))*d
 
-    for u in [a, b, c, d]:
-        theory.Rewrite( one*u, u )
-        theory.Rewrite( u*one, u )
+    theory.Rewrite(one*u, u)
+    theory.Rewrite(u*one, u)
 
     assert a*one == a
 
@@ -592,12 +658,16 @@ def test_category_theory():
 
     Operator = theory.Operator
     Const = theory.Const
+    Variable = theory.Variable
    
     Operator("identity", cell1, [cell0], postfix=True)
     Operator("*", cell1, [cell1, cell1], inline=True)
 
     X, Y, Z, W = [Const(name, cell0) for name in "XYZW"]
     f, g, h = [Const(name, cell1) for name in "fgh"]
+
+    vX, vY, vZ, vW = [Variable(name, cell0) for name in "XYZW"]
+    vf, vg, vh = [Variable(name, cell1) for name in "fgh"]
 
     assert X.identity is X.identity
     assert X.identity == X.identity
@@ -609,18 +679,15 @@ def test_category_theory():
     # 
 
     assert g*f != h*g
-    theory.Equation( (h*g)*f, h*(g*f) )
+    theory.Equation( (vh*vg)*vf, vh*(vg*vf) )
     assert g*f != h*g
 
-    def morphism(f, X, Y):
-        theory.Rewrite( f*X.identity, f )
-        theory.Rewrite( Y.identity*f, f )
+    for cell in [X, Y, Z, W]:
+        theory.Rewrite( vf*cell.identity, vf )
+        theory.Rewrite( cell.identity*vf, vf )
 
-    morphism(f, X, Y)
     assert g*f != h*g
-    morphism(g, Y, Z)
     assert g*f != h*g
-    morphism(h, Z, W)
     assert distinct([X, Y, Z, W])
     assert distinct([X.identity, Y.identity, Z.identity, W.identity])
 
@@ -629,6 +696,26 @@ def test_category_theory():
     assert (h*g)*Y.identity == h*g
     assert g*f != h*g
 
+    assert X.identity * X.identity == X.identity
+
+    # add an isomorphism ... ?
+    i = Const("i", cell1)
+    j = Const("j", cell1)
+    theory.Rewrite(i*j, X.identity)
+    theory.Rewrite(j*i, X.identity)
+
+
+    # Here's the problem. We want to do the following chain:
+    #
+    #           [1]           [2]                  [3]
+    #  (f*i)*j ----> f*(i*j) ----> f*X.identity -------> f
+    #  
+    # but only z3 knows about [2]. We haven't triggered the
+    # Rewrite for [3] so we never tell z3 about it.
+    #  
+
+    #assert f*i*j == f*X.identity # uncomment this to tell z3 about [3].
+    assert f*i*j == f # FAIL
 
 
 if __name__ == "__main__":
