@@ -4,7 +4,7 @@ import sys
 from time import time
 start_time = time()
 
-from bruhat.theory import Sort, Expr, Const, Operator, Theory, Z3Solver
+from bruhat.theory import Sort, Expr, Const, Operator, Theory, Debug
 
 # https://ncatlab.org/nlab/show/globular+set
 BARS = ["-", "=", "≡", "≣"] # ...?
@@ -15,33 +15,32 @@ class NotComposable(Exception):
 
 INDENT = "  "
 
-def build_cell(self, tgt, src, name=""):
-    # this is a bit clunky... a covariant inheritance problem
-    assert (tgt is None) == (src is None), (tgt, src)
-    if tgt is None:
-        dim = 0
-        desc = name
-    else:
-        assert isinstance(tgt, Expr), tgt
-        assert isinstance(src, Expr), src
-        dim = src.dim+1
-        assert src.dim == tgt.dim
-        #desc = "(%s <%s%s%s %s)"%(tgt.name, BARS[dim-1], name, BARS[dim-1], src.name)
-        desc = "(%s <%s%s%s %s)"%(tgt, BARS[dim-1], name, BARS[dim-1], src)
-        # check globular conditions
-        assert src.src is tgt.src
-        assert src.tgt is tgt.tgt
-    self.dim = dim
-    self.src = src
-    self.tgt = tgt
-    self.desc = desc
-    theory = self.theory
 
-
-class Cell(Const):
-    def __init__(self, theory, name, sort, tgt=None, src=None):
-        Const.__init__(self, theory, name, sort)
-        build_cell(self, tgt, src, name)
+class Cell(Debug):
+    def __init__(self, theory, sort, tgt=None, src=None, name="?", expr=None):
+        assert (tgt is None) == (src is None), (tgt, src)
+        if tgt is None:
+            dim = 0
+            desc = name
+        else:
+            assert isinstance(tgt, Cell), tgt
+            assert isinstance(src, Cell), src
+            dim = src.dim+1
+            assert src.dim == tgt.dim
+            #desc = "(%s <%s%s%s %s)"%(tgt.name, BARS[dim-1], name, BARS[dim-1], src.name)
+            desc = "(%s <%s%s%s %s)"%(tgt, BARS[dim-1], name, BARS[dim-1], src)
+            # check globular conditions
+            assert src.src is tgt.src
+            assert src.tgt is tgt.tgt
+        self.dim = dim
+        self.src = src
+        self.tgt = tgt
+        self.desc = desc
+        self.theory = theory
+        if expr is None:
+            name = name if name else "?"
+            expr = theory.Const(name, sort)
+        self.expr = expr
 
     def __str__(self):
         return self.desc
@@ -51,6 +50,12 @@ class Cell(Const):
             return "Cell(%s, %s)"%(self.tgt, self.src)
         else:
             return "Cell(%r)"%(self.name,)
+
+    def __eq__(lhs, rhs):
+        return lhs.expr == rhs.expr
+
+    def __hash__(self):
+        assert 0
 
     def _deepstr(self, depth=0):
         if self.tgt is None:
@@ -79,6 +84,31 @@ class Cell(Const):
     def is_identity(self):
         assert self.dim > 0, "wah?"
         return self.src == self.tgt and self == self.src.identity
+
+    def __mul__(lhs, rhs):
+        lhs.info("__mul__", lhs, rhs)
+        expr = lhs.expr * rhs.expr
+        n = lhs.dim
+        offset = lhs.theory.dim+lhs.theory.codim
+        assert n>=offset
+        cell = Pair(n-offset, lhs, rhs, expr)
+        return cell
+
+    def __lshift__(lhs, rhs):
+        expr = lhs.expr << rhs.expr
+        n = lhs.dim
+        offset = lhs.theory.dim-1+lhs.theory.codim
+        assert n>=offset
+        cell = Pair(n-offset, lhs, rhs, expr)
+        return cell
+
+    def __matmul__(lhs, rhs):
+        expr = lhs.expr @ rhs.expr
+        n = lhs.dim
+        offset = lhs.theory.dim-2+lhs.theory.codim
+        assert n>=offset
+        cell = Pair(n-offset, lhs, rhs, expr)
+        return cell
 
 #    def __mul__(lhs, rhs):
 #        assert lhs.dim == rhs.dim 
@@ -110,28 +140,26 @@ class Cell(Const):
 #        assert n>=offset
 #        return lhs.topcat.Pair(n-offset, lhs, rhs)
 
-class Identity(Operator):
-    def __init__(self, theory):
-        Operator.__init__(self, theory, "identity", theory.cell1, (theory.cell0,), 
-            postfix=True)
+    @property
+    def identity(self):
+        expr = self.expr.identity
+        return Cell(self.theory, expr.sort, self, self, str(expr), expr)
 
-    def __call__(self, cell):
-        expr = Operator.__call__(self, cell)
-        build_cell(expr, cell, cell)
-        return expr
+    def rewrite(self, other):
+        self.expr.rewrite(other.expr)
 
 
-class Pair(Operator):
-    def __init__(self, theory, name, sort, codim):
-        Operator.__init__(self, theory, name, sort, (sort, sort), inline=True)
+class Pair(Cell):
+    """
+        A _composable pair of cell's.
+    """
+
+    def __init__(self, codim, lhs, rhs, expr):
+        self.info("Pair", codim, lhs, rhs, expr)
+        theory = lhs.theory
         assert codim >= 0
-        self.codim = codim
-
-    def __call__(self, lhs, rhs):
-        assert lhs.dim == rhs.dim, "use whisker first?"
-        dim = lhs.dim
-        #print("Pair:", lhs, rhs)
-        codim = self.codim
+        assert lhs.dim == rhs.dim, "use whisker first"
+        assert codim == 0
         if codim == 0:
             if rhs.tgt != lhs.src:
                 raise NotComposable("%s != %s"%(lhs.src, rhs.tgt))
@@ -141,15 +169,15 @@ class Pair(Operator):
             if lhs.src.src != rhs.src.tgt:
                 raise NotComposable("%s != %s"%(lhs.src.src, rhs.src.tgt))
             # lhs.tgt.src == rhs.tgt.tgt
-            tgt = pair(0, lhs.tgt, rhs.tgt)
-            src = pair(0, lhs.src, rhs.src)
+            tgt = Pair(0, lhs.tgt, rhs.tgt)
+            src = Pair(0, lhs.src, rhs.src)
         elif codim == 2:
             if lhs.src.src.src != rhs.src.src.tgt:
                 raise NotComposable("%s != %s"%(lhs.src.src.src, rhs.src.src.tgt))
             # -> lhs.tgt.src.src == rhs.tgt.src.tgt
             # -> lhs.tgt.tgt.src == rhs.tgt.tgt.tgt
-            tgt = pair(1, lhs.tgt, rhs.tgt)
-            src = pair(1, lhs.src, rhs.src)
+            tgt = Pair(1, lhs.tgt, rhs.tgt)
+            src = Pair(1, lhs.src, rhs.src)
         else:
             src, tgt = lhs, rhs
             for _ in range(codim):
@@ -157,39 +185,59 @@ class Pair(Operator):
                 tgt = tgt.src
             if rhs.tgt != lhs.src:
                 raise NotComposable("%s != %s"%(lhs.src, rhs.tgt))
-            tgt = pair(codim-1, lhs.tgt, rhs.tgt)
-            src = pair(codim-1, lhs.src, rhs.src)
-        expr = Operator.__call__(self, lhs, rhs)
-        build_cell(expr, tgt, src)
-        expr.lhs = lhs
-        expr.rhs = rhs
-        return expr
+            tgt = Pair(codim-1, lhs.tgt, rhs.tgt)
+            src = Pair(codim-1, lhs.src, rhs.src)
+        self.info("\t", tgt, src)
+        self.codim = codim
+        self.lhs = lhs
+        self.rhs = rhs
+        #print("Pair:", self.expr)
+#        self.key = (codim, lhs.key, rhs.key)
+        Cell.__init__(self, theory, expr.sort, tgt, src, expr=expr)
+
+    @property
+    def shape(self):
+        return (self.codim, self.dim)
+
+    def __getitem__(self, i):
+        return [self.lhs, self.rhs][i]
+
+    def __str__(self):
+        return "(%s *%d %s)" % (self.lhs, self.codim, self.rhs)
+
+    def _deepstr(self, depth=0):
+        lines  = [INDENT*depth + "(" + str(self.shape)]
+        lines += self.lhs._deepstr(depth+1)
+        lines += [INDENT*depth + "*%d"%self.codim]
+        lines += self.rhs._deepstr(depth+1)
+        lines += [INDENT*depth + ")"]
+        return lines
+
 
 
 class Category(Theory):
     def __init__(self):
-        Theory.__init__(self, Z3Solver())
+        Theory.__init__(self)
+        self.dim = 1
+        self.codim = 0
         cell0 = Sort("cell0")
         cell1 = Sort("cell1")
         self.cell0 = cell0
         self.cell1 = cell1
 
-        mul = Pair(self, "*", cell1, 0)
-        self.add_operator(mul)
-        #self.Operator("identity", cell1, [cell0], postfix=True)
-        identity = Identity(self)
-        self.add_operator(identity)
+        Variable = self.Variable
+        Operator = self.Operator
+        Operator("identity", cell1, [cell0], postfix=True)
+        Operator("*", cell1, [cell1, cell1], inline=True)
 
         # build theory
-        Cell = self.Cell
-        l = Cell(name="l")
-        m = Cell(name="m")
-        n = Cell(name="n")
-        o = Cell(name="o")
-    
-        f = Cell(m, l)
-        g = Cell(n, m)
-        h = Cell(o, n)
+        l = Variable("l", cell0)
+        m = Variable("m", cell0)
+        n = Variable("n", cell0)
+        o = Variable("o", cell0)
+        f = Variable("f", cell1) # Cell(m, l)
+        g = Variable("g", cell1) # Cell(n, m)
+        h = Variable("h", cell1) # Cell(o, n)
 
         self.Rewrite( l.identity*l.identity, l.identity )
         self.Rewrite( f*l.identity, f )
@@ -199,23 +247,16 @@ class Category(Theory):
     def Cell(self, tgt=None, src=None, name=""):
         assert (tgt is None) == (src is None), (tgt, src)
         sort = self.cell0 if tgt is None else self.cell1
-        cell = Cell(self, name, sort, tgt, src)
-        self.Const(name, sort, cell) # brrr
+        cell = Cell(self, sort, tgt, src, name)
         return cell
 
-    def Nullary(self, tgt=None, src=None, name="c"):
-        sort = self.cell0 if tgt is None else self.cell1
-        expr = Theory.Nullary(self, name, sort)
-        build_cell(expr, tgt, src, name)
-        return expr
-
     def Iso(self, tgt, src, name="c"):
-        cell = self.Const(tgt, src, name)
-        inv = self.Const(src, tgt, name+"_i")
+        cell = self.Cell(tgt, src, name)
+        inv = self.Cell(src, tgt, name+"_i")
         cell.inv = inv
         inv.inv = cell
-        self.Rewrite( inv*cell, src.identity )
-        self.Rewrite( cell*inv, tgt.identity )
+        ( inv*cell ).rewrite( src.identity )
+        ( cell*inv ).rewrite( tgt.identity )
         return cell
 
 
@@ -230,10 +271,11 @@ def test_category():
     n = Cell(name="n")
     o = Cell(name="o")
 
-    e = Cell(l, l)
-    f = Cell(m, l)
-    g = Cell(n, m)
-    h = Cell(o, n)
+    e = Cell(l, l, "e")
+    f = Cell(m, l, "f")
+    g = Cell(n, m, "g")
+    h = Cell(o, n, "h")
+
 
     assert (h*g)*f == h*(g*f)
     assert h*n.identity == h
@@ -297,19 +339,13 @@ def test_category_more():
     assert cell == D*((C*B)*A)
     assert cell == (D*(C*B))*A
 
-#    theory.DEBUG = True
-#    theory.solver.DEBUG = True
-#    E = theory.Iso(m, l)
-#    assert E*E.inv == Im
-#    assert E.inv*E == Il
-#
-#    lhs = (B*E)*E.inv 
-#
-##    assert (B*E)*E.inv == B*(E*E.inv)
-##    assert (B*E)*E.inv == B*m.identity
-#    assert B*E*E.inv == B
-#
-#    return
+    E = theory.Iso(m, l)
+    assert E*E.inv == Im
+    assert E.inv*E == Il
+
+    assert (B*E)*E.inv == B*(E*E.inv)
+    assert (B*E)*E.inv == B*m.identity
+    assert B*E*E.inv == B
 
     # 1-cell
     A = Cell(m, m)

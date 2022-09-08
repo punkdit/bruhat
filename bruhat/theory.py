@@ -22,7 +22,7 @@ class Sort(object):
 # Variable's are universally quantified,
 # Const's are existentially quantified.
 
-class Expr(object):
+class Debug(object):
     DEBUG = False
     depth = 0
     def info(self, *msg):
@@ -35,10 +35,13 @@ class Expr(object):
             print(*msg)
     def push(self):
         if self.DEBUG:
-            Expr.depth += 1
+            self.__class__.depth += 1
     def pop(self):
         if self.DEBUG:
-            Expr.depth -= 1
+            self.__class__.depth -= 1
+
+
+class Expr(Debug):
 
     def __init__(self, theory, key, sort, is_const):
         self.theory = theory
@@ -349,11 +352,7 @@ class Rewrite(object):
             return tgt
 
 
-class Theory(object):
-    DEBUG = False
-    def info(self, *msg):
-        if self.DEBUG:
-            print(*msg)
+class Theory(Debug):
 
     def __init__(self):
         self.cache = {} # cache all constant expressions
