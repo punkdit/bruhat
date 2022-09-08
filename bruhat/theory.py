@@ -616,6 +616,57 @@ def test_monoid_theory():
     assert distinct([a, b, c, d])
 
 
+def test_group_theory():
+
+    theory = Theory()
+    sort = Sort("group")
+
+    a, b, c, d = [theory.Const(name, sort) for name in 'abcd']
+    u, v, w = [theory.Variable(name, sort) for name in 'uvw']
+    one = theory.Const("one", sort)
+    theory.Operator("*", sort, [sort, sort], inline=True)
+    theory.Operator("inv", sort, [sort], postfix=True)
+
+    assert a is not b
+    assert a is not theory.Const("a", sort)
+    assert a*b is a*b
+
+    assert str(a*b) == "(a*b)"
+
+    assert (a*b)*c != a*(b*c)
+
+    theory.Equation( (u*v)*w, u*(v*w) )
+    theory.Rewrite( u*u.inv, one )
+    theory.Rewrite( u.inv*u, one )
+    theory.Rewrite( u.inv.inv, u )
+    theory.Rewrite( (u*v).inv, v.inv * u.inv )
+    theory.Rewrite( one.inv, one )
+
+    #theory.dump()
+    assert (a*b)*c == a*(b*c)
+
+    assert a.inv.inv == a
+    assert one.inv == one
+
+    ab = a*b
+    assert ab.inv * ab == one
+    assert ab.inv == b.inv * a.inv
+
+    # Coxeter group ?
+    theory.Rewrite( a*a, one )
+    theory.Rewrite( b*b, one )
+    #theory.Rewrite( a*b*a*b*a*b, one )
+    #theory.Equation( a*b*a, b*a*b )
+    theory.Rewrite( a*b*a, b*a*b )
+
+    assert distinct([one, a, b, a*b, b*a, a*b*a])
+    #Theory.DEBUG = Expr.DEBUG = True
+    #a*b*a*b == b*a
+    #theory.dump()
+    #assert a*b*a*b == b*a # FAIL
+    #assert a*b*a*b*a*b == one # infinite recurse FAIL
+
+
 def test_category_theory():
 
     theory = Theory()
@@ -679,11 +730,13 @@ def test_category_theory():
 
     # now we do the following chain:
     #  (f*i)*j ----> f*(i*j) ----> f*X.identity -------> f
-
     assert f*i*j == f
 
-    # look at this! all kinds of chains...
+    # it actually turns out to be this one:
+    #  f*X.identity -------> f ---> ((f*i)*j)
     #theory.dump()
+
+    assert f*(i*j) == f
 
 
 
@@ -693,6 +746,7 @@ if __name__ == "__main__":
     test_base_theory()
     test_theory()
     test_monoid_theory()
+    test_group_theory()
     test_category_theory()
 
     print("OK: ran in %.3f seconds.\n"%(time() - start_time))
