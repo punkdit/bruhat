@@ -2,7 +2,7 @@
 
 """
 previous version: higher.py
-see also: theory_z3.py
+see also: _theory_z3.py
 
 """
 
@@ -24,42 +24,70 @@ class Sort(object):
 
 class Expr(object):
     DEBUG = False
+    depth = 0
     def info(self, *msg):
-        if self.DEBUG:
+        if not self.DEBUG:
+            return
+        indent = " "*(Expr.depth*2 - 1)
+        if indent:
+            print(indent, *msg)
+        else:
             print(*msg)
+    def push(self):
+        if self.DEBUG:
+            Expr.depth += 1
+    def pop(self):
+        if self.DEBUG:
+            Expr.depth -= 1
 
-    def __init__(self, theory, key, sort, is_const, parent=None):
+    def __init__(self, theory, key, sort, is_const):
         self.theory = theory
         self.key = key # hashable
         self.sort = sort
         self.is_const = is_const
-        if parent is not None:
-            assert is_const
-        self.parent = parent
+        self.parent = None
 
     def find_root(self):
         expr = self
+        count = 0
         while expr.parent is not None:
             assert expr.parent is not expr
             expr = expr.parent
+            count += 1
+            assert count < 100
+        return expr
+
+    def find_root_rebuild(self):
+        expr = self.find_root()
         expr = expr.rebuild()
         return expr
 
     def rewrite(lhs, rhs):
         assert isinstance(rhs, Expr), rhs
+        lhs.info("Expr.rewrite", lhs, "-->", rhs)
+        lhs.push()
+        #lhs = lhs.find_root()
+        #rhs = rhs.find_root_rebuild()
+        lhs = lhs.rebuild()
+        rhs = rhs.rebuild()
         lhs = lhs.find_root()
         rhs = rhs.find_root()
         if lhs is not rhs:
-            lhs.info("Expr.rewrite: %s --> %s" % (lhs, rhs))
+            lhs.info("Expr.rewrite %s --> %s" % (lhs, rhs))
+            #if str(rhs) == "((h*g)*Y.identity)":
+            #    assert 0
             lhs.parent = rhs
+        lhs.pop()
 
     def __hash__(self):
         assert 0, "use .key"
 
     def __eq__(self, other):
         assert isinstance(other, Expr), other
-        lhs = self.find_root()
-        rhs = other.find_root()
+        lhs = self.find_root_rebuild()
+        rhs = other.find_root_rebuild()
+        #lhs = self.find_root()
+        #rhs = other.find_root()
         return lhs is rhs
 
     def __mul__(self, other):
@@ -168,7 +196,7 @@ class Const(Expr):
     __repr__ = __str__
 
     def rebuild(self):
-        assert self.parent is None
+        #assert self.parent is None
         return self
 
     def find(self, v):
@@ -242,23 +270,32 @@ class Term(Expr):
 
     count = 0
     def rebuild(self):
-        assert self.parent is None
+        #assert self.parent is None
         self.info("Expr.rebuild", self, id(self))
-        #assert self.count < 10
-        #self.count += 1
+        self.push()
+        if self.DEBUG:
+            assert self.depth < 10
+            #assert self.count < 10
+            #self.count += 1
         expr = self
         op = self.op
         for arg in self.args:
             assert arg is not self
             self.info("Expr.rebuild\t", arg, "-->", arg.parent, id(arg.parent))
-        args = [arg.find_root() for arg in self.args] # recurse
+        #args = [arg.find_root_rebuild() for arg in self.args] # recurse
+        args = [arg.rebuild() for arg in self.args] # recurse
         term = self.theory.Term(op, *args, 
             sort=self.sort, inline=self.inline, postfix=self.postfix)
         if term is not expr:
-            term = term.find_root() # recurse !
+            #term = term.find_root_rebuild() # recurse !
+            term = term.rebuild() # recurse !
             assert term is not expr
+            assert term.parent is None
             self.info("Expr.rebuild =", term)
+            assert expr.parent is None
             expr.parent = term # equate these
+        self.pop()
+        #assert term.parent is None
         return term
 
     def __getitem__(self, idx):
@@ -324,6 +361,18 @@ class Theory(object):
         self.eqns = []
         self.lookup = {}
 
+    def dump(self):
+        vs = list(self.cache.values())
+        print("Theory.dump")
+        for v in vs:
+            print('\t', v, end=" ")
+            v = v.parent
+            while v:
+                print("-->", v, end=" ")
+                v = v.parent
+            print()
+        print()
+
     def Const(self, name, sort, expr=None):
         if expr is None:
             expr = Const(self, name, sort)
@@ -338,13 +387,18 @@ class Theory(object):
         self.info("Variable:", expr)
         return expr
 
+    def rewrite(self, lhs, rhs):
+        lhs.rewrite(rhs)
+
     def apply_rewrite(self, eqn, expr):
-        other = eqn.match(expr)
-        if other is None:
-            return
-        assert other.key != expr.key, "continue?"
-        self.info("theory.apply_rewrite:", expr, "==", other)
-        self.rewrite(expr, other)
+        while 1:
+            other = eqn.match(expr)
+            if other is None:
+                return
+            assert other.key != expr.key, "continue?"
+            self.info("Theory.apply_rewrite:", expr, "-->", other)
+            self.rewrite(expr, other)
+            expr = other
 
     def Term(self, op, *args, sort=None, inline=False, postfix=False):
         cache = self.cache
@@ -358,12 +412,18 @@ class Theory(object):
         # we made a new Term
         cache[expr.key] = expr
 
-        #solver, lookup = self.solver, self.lookup
-        #op = solver.get_operator(op.name, len(args))
-        #lhs = op(*[lookup[arg.key] for arg in args])
-        #lookup[expr.key] = lhs
+        rewrite = False
+        args = list(args)
+        for i in range(len(args)):
+            arg = args[i].find_root()
+            if arg is not args[i]:
+                rewrite = True
+                args[i] = arg
+        if rewrite:
+            term = self.Term(op, *args, sort=sort, inline=inline, postfix=postfix)
+            self.rewrite(expr, term)
 
-        #print("Term:", expr)
+        self.info("Theory.Term:", expr)
         for eqn in self.eqns:
             self.apply_rewrite(eqn, expr) # may recurse !
 
@@ -398,18 +458,14 @@ class Theory(object):
         self.info("theory.Rewrite:", eqn)
         self.eqns.append(eqn)
 
-        #solver, lookup = self.solver, self.lookup
-        #for expr in list(self.cache.values()):
-        #    assert expr.is_const, expr
-        #    self.apply_rewrite(eqn, expr)
+        for expr in list(self.cache.values()):
+            assert expr.is_const, expr
+            self.apply_rewrite(eqn, expr)
         return eqn
 
     def Equation(self, lhs, rhs):
         self.Rewrite(lhs, rhs)
         self.Rewrite(rhs, lhs)
-
-    def rewrite(self, lhs, rhs):
-        lhs.rewrite(rhs)
 
     #def equate(self, lhs, rhs):
     #    solver, lookup = self.solver, self.lookup
@@ -499,13 +555,17 @@ def test_theory():
     assert a != b
     assert a*b != b*a
 
-    #theory.DEBUG = True
     theory.Rewrite( one*x, x )
     theory.Rewrite( x*one, x )
 
     assert a*one == a
     assert one*b == b
     assert distinct([a, b, a*b, b*a])
+    #Theory.DEBUG = Expr.DEBUG = True
+    #theory.dump()
+    #lhs = a*one*one*a
+    #theory.dump()
+
     assert a*one*one*a == a*a
     assert a*b != b*a
     assert one*one == one
@@ -534,8 +594,9 @@ def test_monoid_theory():
 
     assert (a*b)*c != a*(b*c)
 
+    #Theory.DEBUG = Expr.DEBUG = True
     theory.Equation( (u*v)*w, u*(v*w) )
-    Expr.DEBUG = True
+    #theory.dump()
     assert (a*b)*c == a*(b*c)
 
     lhs = ((a*b)*c)*d
@@ -604,24 +665,26 @@ def test_category_theory():
 
     assert X.identity * X.identity == X.identity
 
+    #theory.dump()
+
+    assert (h*g)*f == h*(g*f)
+
+    #Theory.DEBUG = Expr.DEBUG = True
+
     # add an isomorphism ... ?
     i = Const("i", cell1)
     j = Const("j", cell1)
     theory.Rewrite(i*j, X.identity)
     theory.Rewrite(j*i, X.identity)
 
-
-    # Here's the problem. We want to do the following chain:
-    #
-    #           [1]           [2]                  [3]
+    # now we do the following chain:
     #  (f*i)*j ----> f*(i*j) ----> f*X.identity -------> f
-    #  
-    # but only z3 knows about [2]. We haven't triggered the
-    # Rewrite for [3] so we never tell z3 about it.
-    #  
 
-    #assert f*i*j == f*X.identity # uncomment this to tell z3 about [3].
-    assert f*i*j == f # FAIL
+    assert f*i*j == f
+
+    # look at this! all kinds of chains...
+    #theory.dump()
+
 
 
 if __name__ == "__main__":
