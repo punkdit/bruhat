@@ -98,7 +98,7 @@ class Expr(Debug):
         theory = self.theory
         op = theory.get_operator("*", self.sort, other.sort)
         if op is None:
-            raise AttributeError("operator %s*%s not found"%(self.sort, other.sort))
+            raise AttributeError("binary operator %s*%s not found"%(self.sort, other.sort))
         term = op(self, other)
         return term
 
@@ -107,7 +107,7 @@ class Expr(Debug):
         theory = self.theory
         op = theory.get_operator("<<", self.sort, other.sort)
         if op is None:
-            raise AttributeError("operator %s<<%s not found"%(self.sort, other.sort))
+            raise AttributeError("binary operator %s<<%s not found"%(self.sort, other.sort))
         term = op(self, other)
         return term
 
@@ -116,7 +116,7 @@ class Expr(Debug):
         theory = self.theory
         op = theory.get_operator("@", self.sort, other.sort)
         if op is None:
-            raise AttributeError("operator %s@%s not found"%(self.sort, other.sort))
+            raise AttributeError("binary operator %s@%s not found"%(self.sort, other.sort))
         term = op(self, other)
         return term
 
@@ -124,7 +124,7 @@ class Expr(Debug):
         theory = self.theory
         op = theory.get_operator(attr, self.sort)
         if op is None:
-            raise AttributeError("attr %r not found"%(attr,))
+            raise AttributeError("unary operator %s.%s not found"%(self.sort, attr,))
         return op(self)
 
     @staticmethod
