@@ -2,6 +2,7 @@
 
 """
 newer version: higher.py
+see also: cell.py
 
 this version fails...
 """

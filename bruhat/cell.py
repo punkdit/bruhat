@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+"""
+previous version: higher.py
+see also: globular.py
+"""
+
 import sys
 sys.setrecursionlimit(40)
 from time import time
