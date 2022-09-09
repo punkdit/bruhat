@@ -422,6 +422,8 @@ class Theory(Debug):
             term = self.Term(op, *args, sort=sort, inline=inline, postfix=postfix)
             self.rewrite(expr, term)
 
+        #if str(expr) == "(((f0*iso)*~iso)*lunitor)":
+        #    assert 0
         self.info("Theory.Term:", expr)
         for eqn in self.eqns:
             self.apply_rewrite(eqn, expr) # may recurse !

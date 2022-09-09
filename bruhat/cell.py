@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+sys.setrecursionlimit(40)
 from time import time
 start_time = time()
 
@@ -256,9 +257,9 @@ class Category(Globular):
         Rewrite( m.identity*f, f )
         Equation( (h*g)*f, h*(g*f) )
 
-    def Iso(self, tgt, src, name="c"):
+    def Iso(self, tgt, src, name):
         cell = self.Cell(tgt, src, name)
-        inv = self.Cell(src, tgt, name+"_i")
+        inv = self.Cell(src, tgt, "~"+name)
         cell.inv = inv
         inv.inv = cell
         ( inv*cell ).rewrite( src.identity )
@@ -306,14 +307,16 @@ class Bicategory(Category):
         g0 = Variable("g0", cell2) #  B1 <----- B0
         g1 = Variable("g1", cell2) #  B2 <----- B1
 
-        Rewrite( (B<<A).identity, B.identity << A.identity )
+        Equation( (B<<A).identity, B.identity << A.identity )
+        #Rewrite( (B<<A).identity, B.identity << A.identity )
 
         # Equation here causes infinite recursion...
         Rewrite( (g1*g0) << (f1*f0) , (g1 << f1) * (g0 << f0) )
+        Rewrite( (g1 << f1) * (g0 << f0), (g1*g0)<<(f1*f0) )
 
     def lunitor(self, cell):
         assert cell.dim == 1
-        lunitor = self.Iso(cell, cell.tgt.identity << cell, "l")
+        lunitor = self.Iso(cell, cell.tgt.identity << cell, "lunitor")
         return lunitor
 
     def runitor(self, cell):
@@ -321,7 +324,7 @@ class Bicategory(Category):
         if cell == cell.src.identity:
             runitor = cell.lunitor
         else:
-            runitor = self.Iso(cell, cell << cell.src.identity, "r")
+            runitor = self.Iso(cell, cell << cell.src.identity, "runitor")
         return runitor
 
     def reassoc(self, cell):
@@ -330,7 +333,7 @@ class Bicategory(Category):
         CB, A = cell
         assert CB.shape == (0, 1), cell
         C, B = CB
-        reassoc = self.Iso(C<<(B<<A), cell)
+        reassoc = self.Iso(C<<(B<<A), cell, "reassoc")
         return reassoc
 
 
@@ -422,7 +425,7 @@ def test_category_more():
     assert cell == D*((C*B)*A)
     assert cell == (D*(C*B))*A
 
-    E = cat.Iso(m, l)
+    E = cat.Iso(m, l, "E")
     assert E*E.inv == Im
     assert E.inv*E == Il
 
@@ -439,6 +442,7 @@ def test_bicategory():
 
     print("test_bicategory")
     cat = Bicategory()
+    theory = cat.theory
 
     Cell = cat.Cell
 
@@ -467,7 +471,7 @@ def test_bicategory():
     assert i*unitor == unitor
     II = I<<I
     assert II.identity == i<<i
-#    assert unitor*(i<<i) == unitor # FAIL
+    assert unitor*(i<<i) == unitor # FAIL
 
     assert II != I
 
@@ -515,16 +519,16 @@ def test_bicategory():
     assert lhs == rhs
     assert lhs == BA.identity
 
-#    assert BA.lunitor.tgt == BA
-#    assert BA.lunitor.src == BA.tgt.identity << BA
-#    assert BA.runitor.tgt == BA
-#    assert BA.runitor.src == BA << BA.src.identity
+    assert BA.lunitor.tgt == BA
+    assert BA.lunitor.src == BA.tgt.identity << BA
+    assert BA.runitor.tgt == BA
+    assert BA.runitor.src == BA << BA.src.identity
 
     CBA = C<<BA
-#    assert CBA.lunitor.tgt == CBA
-#    assert CBA.lunitor.src == CBA.tgt.identity << CBA
-#    assert CBA.runitor.tgt == CBA
-#    assert CBA.runitor.src == CBA << CBA.src.identity
+    assert CBA.lunitor.tgt == CBA
+    assert CBA.lunitor.src == CBA.tgt.identity << CBA
+    assert CBA.runitor.tgt == CBA
+    assert CBA.runitor.src == CBA << CBA.src.identity
 
     # 2-cells
     f = f0 = Cell(A1, A0, "f0")
@@ -535,6 +539,12 @@ def test_bicategory():
     g1 = Cell(B2, B1, "g1")
     g2 = Cell(B3, B2, "g2")
     h = h0 = Cell(C1, C0, "h0")
+
+    cell = Cell(B1<<A1, B0<<A0, "fg")
+    assert cell * (B0.identity<<A0.identity) == cell
+    assert cell * (B0<<A0).identity == cell
+    assert cell * cell.src.identity == cell
+    assert cell.src.identity == (B0<<A0).identity
 
     f21 = f2*f1
     f210 = f21*f0
@@ -553,6 +563,15 @@ def test_bicategory():
 
     assert A1.identity*f0 == f0*A0.identity
     assert (f2*f1)*f0 == f2*(f1*f0)
+
+    assert (g0<<f0).src == g0.src << f0.src
+
+    lhs = g0 << f0
+    i = g0.src.identity << f0.src.identity
+    assert lhs == lhs * i
+
+    i = (g0.src << f0.src).identity
+    assert lhs == lhs * i
 
 #    gf = g<<f
 #    lhs = gf * gf.src.lunitor 
@@ -592,13 +611,13 @@ def test_bicategory():
     test_assoc(g2<<f2, g1<<f1, g0<<f0)
 
     def test_iso(f):
-        i = cat.Iso(f.src, f.src)
+        i = cat.Iso(f.src, f.src, "iso")
         assert i * i.inv == f.src.identity
         assert f * f.src.identity == f
         assert f * i * i.inv == f
-    test_iso(f)
-    test_iso(g<<f)
-    test_iso((g*g.src.lunitor)<<f)
+#    test_iso(f)
+#    test_iso(g<<f)
+#    test_iso((g*g.src.lunitor)<<f)
 
     # naturality of unitors
     def test_unitors(f):
@@ -609,6 +628,8 @@ def test_bicategory():
         rhs = f.tgt.runitor * (f << f.src.src.identity.identity)
         assert lhs == rhs
 
+    Theory.DEBUG = True
+    theory.dump()
     test_unitors(f)
     test_unitors(g)
 
