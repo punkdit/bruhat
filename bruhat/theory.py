@@ -348,6 +348,7 @@ class Rewrite(object):
         send = Expr.match(src, expr)
         #print("Rewrite.match =", send)
         if send is not None:
+            #expr.theory.info("%s substitute %s"%(tgt, send))
             tgt = tgt.substitute(send)
             return tgt
 

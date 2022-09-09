@@ -6,7 +6,7 @@ see also: globular.py
 """
 
 import sys
-sys.setrecursionlimit(40)
+#sys.setrecursionlimit(40)
 from time import time
 start_time = time()
 
@@ -127,6 +127,18 @@ class Cell(Debug):
         expr = self.expr.identity
         return Cell(self.cat, self, self, str(expr), expr)
 
+    # use with BicategoryOperators:
+    @property
+    def lunitor(cell):
+        expr = cell.expr.lunitor
+        return Cell(cell.cat, cell, cell.tgt.identity << cell, str(expr), expr)
+
+    @property
+    def runitor(cell):
+        expr = cell.expr.runitor
+        return Cell(cell.cat, cell, cell << cell.src.identity, str(expr), expr)
+
+    # use with Bicategory:
     def __getattr__(self, attr):
         method = getattr(self.cat, attr)
         value = method(self)
@@ -289,6 +301,7 @@ class Bicategory(Category):
         Operator("<<",       cell2, [cell2, cell2],        inline =True)
 
         # These need to be Iso's, not sure if we can handle that using Rewrite's..?
+        # See BicategoryOperators below for an attempt at this
         #Operator("lunitor",  cell2, [cell1],               postfix=True)
         #Operator("runitor",  cell2, [cell1],               postfix=True)
         #Operator("reassoc",  cell2, [cell1, cell1, cell1], )
@@ -315,9 +328,19 @@ class Bicategory(Category):
         Equation( (B<<A).identity, B.identity << A.identity )
         #Rewrite( (B<<A).identity, B.identity << A.identity )
 
-        # Equation here causes infinite recursion...
+        # infinite recursion... ??
         Rewrite( (g1*g0) << (f1*f0) , (g1 << f1) * (g0 << f0) )
         Rewrite( (g1 << f1) * (g0 << f0), (g1*g0)<<(f1*f0) )
+
+        self.namespace = locals() # yes i'm lazy
+
+    def Cell(self, tgt=None, src=None, name=None):
+        assert name is not None
+        cell = Globular.Cell(self, tgt, src, name)
+        #Equation = self.theory.Equation
+        #print("Cell:", name, cell.shape)
+        # ???
+        return cell
 
     def lunitor(self, cell):
         assert cell.dim == 1
@@ -340,6 +363,58 @@ class Bicategory(Category):
         C, B = CB
         reassoc = self.Iso(C<<(B<<A), cell, "reassoc")
         return reassoc
+
+
+class BicategoryOperators(Category):
+    def __init__(self, dim=2):
+        Category.__init__(self, dim)
+
+        cell0, cell1, cell2 = self.sorts[-3:]
+        theory = self.theory
+
+        Variable = theory.Variable
+        Operator = theory.Operator
+        Rewrite = theory.Rewrite
+        Equation = theory.Equation
+
+        Operator("identity", cell1, [cell0],               postfix=True)
+        Operator("<<",       cell1, [cell1, cell1],        inline =True)
+        Operator("<<",       cell2, [cell2, cell2],        inline =True)
+
+        # These need to be Iso's, not sure if we can handle that using Rewrite's..?
+        Operator("lunitor",  cell2, [cell1],               postfix=True)
+        Operator("runitor",  cell2, [cell1],               postfix=True)
+        Operator("reassoc",  cell2, [cell1, cell1, cell1], )
+
+        # build theory
+        l = Variable("l", cell0)
+        m = Variable("m", cell0)
+        n = Variable("n", cell0)
+        o = Variable("o", cell0)
+
+        A = A0 = Variable("A0", cell1) # m <--A-- l
+        A1     = Variable("A1", cell1) # m <--A-- l
+        A2     = Variable("A2", cell1) # m <--A-- l
+        B = B0 = Variable("B0", cell1) # m <--B-- l
+        B1     = Variable("B1", cell1) # m <--B-- l
+        B2     = Variable("B2", cell1) # m <--B-- l
+        C      = Variable("C", cell1) # o <--C-- n
+
+        f0 = Variable("f0", cell2) #  A1 <----- A0
+        f1 = Variable("f1", cell2) #  A2 <----- A1
+        g0 = Variable("g0", cell2) #  B1 <----- B0
+        g1 = Variable("g1", cell2) #  B2 <----- B1
+
+        Equation( (B<<A).identity, B.identity << A.identity )
+        #Rewrite( (B<<A).identity, B.identity << A.identity )
+
+        # infinite recursion... ??
+        Rewrite( (g1*g0) << (f1*f0) , (g1 << f1) * (g0 << f0) )
+        Rewrite( (g1 << f1) * (g0 << f0), (g1*g0)<<(f1*f0) )
+
+        Equation( l.identity.lunitor , l.identity.runitor )
+
+        #self.namespace = locals() # yes i'm lazy
 
 
 def test_category():
@@ -446,7 +521,8 @@ def test_category_more():
 def test_bicategory():
 
     print("test_bicategory")
-    cat = Bicategory()
+    #cat = Bicategory()
+    cat = BicategoryOperators()
     theory = cat.theory
 
     Cell = cat.Cell
@@ -469,13 +545,21 @@ def test_bicategory():
 
     i = I.identity
     assert i*i == i
-    f = Cell(I, I)
-    assert f*i == f
-    assert i*f == f
+#    f = Cell(I, I, "f")
+#    assert f*i == f
+#    assert i*f == f
 
     assert i*unitor == unitor
     II = I<<I
+    i<<i
     assert II.identity == i<<i
+    theory.DEBUG = True
+    Expr.DEBUG = True
+    ff = Cell(unitor.src, unitor.src, "ff")
+    ff*(i<<i) , ff
+    theory.dump()
+
+    assert ff*(i<<i) == ff
     assert unitor*(i<<i) == unitor # FAIL
 
     assert II != I
@@ -620,9 +704,12 @@ def test_bicategory():
         assert i * i.inv == f.src.identity
         assert f * f.src.identity == f
         assert f * i * i.inv == f
-#    test_iso(f)
-#    test_iso(g<<f)
-#    test_iso((g*g.src.lunitor)<<f)
+
+    #Theory.DEBUG = True
+    #theory.dump()
+    test_iso(f)
+    test_iso(g<<f)
+    test_iso((g*g.src.lunitor)<<f)
 
     # naturality of unitors
     def test_unitors(f):
@@ -633,8 +720,6 @@ def test_bicategory():
         rhs = f.tgt.runitor * (f << f.src.src.identity.identity)
         assert lhs == rhs
 
-    Theory.DEBUG = True
-    theory.dump()
     test_unitors(f)
     test_unitors(g)
 
