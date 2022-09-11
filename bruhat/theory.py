@@ -28,7 +28,7 @@ class Debug(object):
     def info(self, *msg):
         if not self.DEBUG:
             return
-        indent = " "*(Expr.depth*2 - 1)
+        indent = " "*(self.__class__.depth*2 - 1)
         if indent:
             print(indent, *msg)
         else:
@@ -43,11 +43,12 @@ class Debug(object):
 
 class Expr(Debug):
 
-    def __init__(self, theory, key, sort, is_const):
+    def __init__(self, theory, key, sort, is_const, size):
         self.theory = theory
         self.key = key # hashable
         self.sort = sort
         self.is_const = is_const
+        self.size = size
         self.parent = None
 
     def find_root(self):
@@ -79,6 +80,9 @@ class Expr(Debug):
             lhs.info("Expr.rewrite %s --> %s" % (lhs, rhs))
             #if str(rhs) == "((h*g)*Y.identity)":
             #    assert 0
+            if lhs.size < rhs.size: # argh, what am i doing?
+                lhs, rhs = rhs, lhs
+            assert lhs.size >= rhs.size
             lhs.parent = rhs
         lhs.pop()
 
@@ -165,7 +169,7 @@ class Variable(Expr):
         self.name = name
         self.sort = sort
         key = id(self)
-        Expr.__init__(self, theory, key, sort, False)
+        Expr.__init__(self, theory, key, sort, False, 1)
 
     def __str__(self):
         return self.name
@@ -191,7 +195,7 @@ class Const(Expr):
         self.name = name
         self.sort = sort
         key = id(self)
-        Expr.__init__(self, theory, key, sort, True)
+        Expr.__init__(self, theory, key, sort, True, 1)
 
     def __str__(self):
         return self.name
@@ -248,10 +252,12 @@ class Term(Expr):
         self.postfix = postfix
         key = (op,) + tuple(arg.key for arg in args)
         is_const = True
+        size = 0
         for arg in args:
             if not arg.is_const:
                 is_const = False
-        Expr.__init__(self, theory, key, sort, is_const)
+            size += arg.size
+        Expr.__init__(self, theory, key, sort, is_const, size)
 
     def __str__(self):
         args = self.args
@@ -276,10 +282,10 @@ class Term(Expr):
         #assert self.parent is None
         self.info("Expr.rebuild", self, id(self))
         self.push()
-        if self.DEBUG:
-            assert self.depth < 10
-            #assert self.count < 10
-            #self.count += 1
+        #if self.DEBUG:
+        #    assert self.depth < 10
+        #    #assert self.count < 10
+        #    #self.count += 1
         expr = self
         op = self.op
         for arg in self.args:
@@ -412,6 +418,9 @@ class Theory(Debug):
         # we made a new Term
         cache[expr.key] = expr
 
+        self.push()
+        self.info("Theory.Term:", expr)
+
         rewrite = False
         args = list(args)
         for i in range(len(args)):
@@ -423,11 +432,10 @@ class Theory(Debug):
             term = self.Term(op, *args, sort=sort, inline=inline, postfix=postfix)
             self.rewrite(expr, term)
 
-        #if str(expr) == "(((f0*iso)*~iso)*lunitor)":
-        #    assert 0
-        self.info("Theory.Term:", expr)
         for eqn in self.eqns:
             self.apply_rewrite(eqn, expr) # may recurse !
+
+        self.pop()
 
         return expr
 
@@ -650,6 +658,9 @@ def test_group_theory():
     assert a.inv.inv == a
     assert one.inv == one
 
+    #Theory.DEBUG = Expr.DEBUG = True
+    #theory.dump()
+
     ab = a*b
     assert ab.inv * ab == one
     assert ab.inv == b.inv * a.inv
@@ -666,7 +677,7 @@ def test_group_theory():
     #a*b*a*b == b*a
     #theory.dump()
     #assert a*b*a*b == b*a # FAIL
-    #assert a*b*a*b*a*b == one # infinite recurse FAIL
+    #assert a*b*a*b*a*b == one # FAIL
 
 
 def test_category_theory():
