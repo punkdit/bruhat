@@ -301,23 +301,6 @@ def get_wenum(P):
     return counts
 
 
-#def get_wenum(P):
-#    counts = {}
-#    for term in P.i_terms():
-#        term = str(term)
-#        nz = term.count("Z") + term.count("Y")
-#        nx = term.count("X") + term.count("Y")
-#        key = nz, nx
-#        counts[key] = counts.get(key, 0) + 1
-#    ks = list(counts.keys())
-#    ks.sort()
-#    #print(len(counts))    
-#    for k in ks:
-#        print("%s:%s "%(k, counts[k]), end="")
-#    print()
-#    return counts
-
-
 def main():
 
     Hz, Hx = build_code_1()
