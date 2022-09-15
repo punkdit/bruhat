@@ -106,7 +106,7 @@ def test():
 #    def __init__(self, x, y):
 #        self.v = 
 
-def render():
+def render_1():
 
     cvs = Canvas()
     cvs.append(Scale(5., 5.))
@@ -121,38 +121,208 @@ def render():
 
     st = [grey]+st_Thick
     circle = lambda p : cvs.fill(path.circle(*p, 0.03))
-    stroke = lambda p0, p1: cvs.stroke(path.line(*p0, *p1), st)
-    def curve(p0, p1, dx=0., dy=0.):
+
+    paths = []
+    def stroke(p0, p1, rev=False): 
+        if rev:
+            p0, p1 = p1, p0
+        pth = path.line(*p0, *p1)
+        #cvs.stroke(pth, st) #+[deco.marrow])
+        p01 = 0.5*(p0+p1)
+        #cvs.text(*p01, "%d"%len(paths), st_center+[text.size.tiny])
+        paths.append(pth)
+        return len(paths)-1
+
+    def curve(p0, p1, dx=0., dy=0., rev=False):
+        if rev:
+            p0, p1 = p1, p0
         p2 = 0.5*(p0 + p1) + Mat([dx, dy])
-        cvs.stroke(path.curve(*p0, *p2, *p2, *p1), st) 
+        pth = path.curve(*p0, *p2, *p2, *p1)
+        #cvs.stroke(pth, st) #+[deco.marrow]) 
+        #cvs.text(*p2, "%d"%len(paths), st_center+[text.size.tiny])
+        paths.append(pth)
+        return len(paths)-1
+
+    def fill(i0, i1, i2):
+        #pths = [paths[idx] for idx in idxs]
+        p = paths[i0] + paths[i1] + paths[i2]
+        i = 1
+        while i < len(p.items):
+            if isinstance(p.items[i], MoveTo):
+                p.items.pop(i)
+            else:
+                i += 1
+        cvs.fill(p, st)
 
     for i in range(5):
-        stroke(ps[0, 1], ps[i, 2])
-        stroke(ps[4, 1], ps[i, 0])
+        stroke(ps[0, 1], ps[i, 2], i%2)
+        stroke(ps[4, 1], ps[i, 0], i%2)
     for i in range(4):
-        stroke(ps[i, 0], ps[i+1, 0])
+        stroke(ps[i, 0], ps[i+1, 0], i%2)
         stroke(ps[i, 1], ps[i+1, 1])
-        stroke(ps[i, 2], ps[i+1, 2])
+        stroke(ps[i, 2], ps[i+1, 2], i%2)
     stroke(ps[0,0], ps[0,1])
     stroke(ps[4,1], ps[4,2])
-    stroke(ps[0,0], ps[2,1])
-    stroke(ps[2,1], ps[4,2])
+    stroke(ps[0,0], ps[2,1], True)
+    stroke(ps[2,1], ps[4,2], True)
 
-    curve(ps[0,1], ps[2,1], -0.4)
-    curve(ps[0,1], ps[2,1], +0.4)
-    curve(ps[2,1], ps[4,1], -0.4)
-    curve(ps[2,1], ps[4,1], +0.4)
+    curve(ps[0,1], ps[2,1], -0.4, -0.4)
+    curve(ps[0,1], ps[2,1], +0.3, +0.4, True)
+    curve(ps[2,1], ps[4,1], -0.3, -0.4, True)
+    curve(ps[2,1], ps[4,1], +0.4, +0.4)
+
+    fill(7, 5, 16)
+    fill(3, 1, 10)
+    fill(24, 22, 26)
+    fill(27, 11, 14)
+    fill(8, 21, 6)
+    fill(28, 17, 20)
+    fill(25, 29, 23)
+    fill(4, 15, 2)
+
+    for pth in paths:
+        cvs.stroke(pth, st_thin)
 
     for row in range(5):
       for col in range(3):
-        p = ps[row, col]
-        pth = path.circle(*p, 0.03)
-        if row and col<2:
-            cvs.fill(pth)
+        if (row, col) in [(0, 1), (4, 1)]:
+            cl = red
+        elif (row, col) in [(1,0),(1,2),(2,1),(3,0),(3,2)]:
+            cl = blue
         else:
-            cvs.stroke(pth)
+            cl = green
+        p = ps[row, col]
+        pth = path.circle(*p, 0.05)
+        cvs.fill(pth, [cl])
 
-    #cvs.writePDFfile("dessin.pdf")
+    cvs.writePDFfile("dessin_1.pdf")
+
+
+def render_2():
+
+    cvs = Canvas()
+    cvs.append(Scale(5., 5.))
+
+    point = lambda x, y : Mat([x, y])
+
+    dx, dy = 2, 2
+    p00 = 0*dx, 0*dy
+    p01 = 1*dx, 0*dy
+    p02 = 2*dx, 0*dy
+
+    p10 = 0*dx, 1*dy
+    p11 = (1/3)*dx, 1*dy
+    p12 = (2/3)*dx, 1*dy
+    p13 = 1*dx, 1*dy
+    p14 = (4/3)*dx, 1*dy
+    p15 = (5/3)*dx, 1*dy
+    p16 = 2*dx, 1*dy
+
+    p20 = 0*dx, 2*dy
+    p21 = 1*dx, 2*dy
+    p22 = 2*dx, 2*dy
+
+    st = [grey]+st_Thick
+    circle = lambda p : cvs.fill(path.circle(*p, 0.03))
+
+    debug = False
+    paths = []
+    def stroke(p0, p1, rev=False): 
+        p0, p1 = point(*p0), point(*p1)
+        if rev:
+            p0, p1 = p1, p0
+        pth = path.line(*p0, *p1)
+        if debug:
+            cvs.stroke(pth, st+[deco.marrow])
+        p01 = 0.5*(p0+p1)
+        if debug:
+            cvs.text(*p01, "%d"%len(paths), st_center+[text.size.tiny])
+        paths.append(pth)
+        return len(paths)-1
+
+    def curve(p0, p1, dx=0., dy=0., rev=False):
+        p0, p1 = point(*p0), point(*p1)
+        if rev:
+            p0, p1 = p1, p0
+        p2 = 0.5*(p0 + p1) + Mat([dx, dy])
+        pth = path.curve(*p0, *p2, *p2, *p1)
+        if debug:
+            cvs.stroke(pth, st+[deco.marrow]) 
+            cvs.text(*p2, "%d"%len(paths), st_center+[text.size.tiny])
+        paths.append(pth)
+        return len(paths)-1
+
+    def fill(i0=None, i1=None, i2=None):
+        if i0 is None:
+            n = len(paths)
+            i0, i1, i2 = n-3, n-2, n-1
+        p = paths[i0] + paths[i1] + paths[i2]
+        i = 1
+        while i < len(p.items):
+            if isinstance(p.items[i], MoveTo):
+                p.items.pop(i)
+            else:
+                i += 1
+        cvs.fill(p, st)
+
+    stroke(p00, p01)
+    stroke(p01, p13)
+    curve(p13, p00, 0., -0.2)
+    fill()
+
+    stroke(p02, p16)
+    curve(p16, p13, 0., -0.8)
+    curve(p13, p02, 0., -0.2)
+    fill()
+
+    curve(p13, p14)
+    curve(p14, p15)
+    curve(p15, p13, 0., -0.4)
+    fill()
+
+    curve(p13, p10, 0., -0.8)
+    curve(p10, p11)
+    curve(p11, p13, 0., -0.4)
+    fill()
+
+    curve(p11, p12)
+    curve(p12, p13)
+    curve(p13, p11, 0., +0.4)
+    fill()
+
+    curve(p13, p15, 0., +0.4)
+    curve(p15, p16)
+    curve(p16, p13, 0., +0.8)
+    fill()
+
+    curve(p13, p22, 0., 0.2)
+    curve(p22, p21)
+    curve(p21, p13)
+    fill()
+
+    curve(p13, p20, 0., +0.2)
+    curve(p20, p10)
+    curve(p10, p13, 0., +0.8)
+    fill()
+
+    stroke(p01, p02)
+    stroke(p20, p21)
+    stroke(p00, p10)
+    stroke(p16, p22)
+
+    for pth in paths:
+        cvs.stroke(pth, st_thin)
+
+    for p in [p00, p02, p11, p15, p20, p22]:
+        pth = path.circle(*p, 0.05)
+        cvs.fill(pth, [blue])
+    for p in [p01, p10, p12, p14, p16, p21]:
+        pth = path.circle(*p, 0.05)
+        cvs.fill(pth, [green])
+    pth = path.circle(*p13, 0.05)
+    cvs.fill(pth, [red])
+
+    cvs.writePDFfile("dessin_2.pdf")
 
     
 def build_code_1():
@@ -333,9 +503,10 @@ if __name__ == "__main__":
 
     test()
     test_real_pauli()
-    #render()
+    #render_1()
+    #render_2()
 
-    main()
+    #main()
 
     t = time() - start_time
     print("finished in %.3f seconds"%t)
