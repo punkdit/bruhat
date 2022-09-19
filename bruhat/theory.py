@@ -178,7 +178,7 @@ class Variable(Expr):
     __repr__ = __str__
 
     def rebuild(self):
-        assert 0, "i'm a Variable!"
+        assert 0, "%s is a Variable!"%(self,)
 
     def find(self, v):
         assert isinstance(v, Const)
@@ -758,13 +758,15 @@ def test_category_theory():
     assert f*(i*j) == f
 
 
-
-def test_rewrite_category_theory():
+def build_category_theory(cell0=None, cell1=None):
 
     theory = Theory()
 
-    cell0 = Sort("cell0") # object's
-    cell1 = Sort("cell1") # morphism's
+    if cell0 is None:
+        cell0 = Sort("cell0") # object's
+        cell1 = Sort("cell1") # morphism's
+        theory.cell0 = cell0
+        theory.cell1 = cell1
 
     Operator = theory.Operator
     Const = theory.Const
@@ -790,24 +792,51 @@ def test_rewrite_category_theory():
     Rewrite( l.identity*l.identity, l.identity )
     Rewrite( f*l.identity, f )
     Rewrite( m.identity*f, f )
+    Rewrite( (g*f).src, f.src )
+    Rewrite( (g*f).tgt, g.tgt )
+    Rewrite( l.identity.src, l )
+    Rewrite( l.identity.tgt, l )
     Equation( (h*g)*f, h*(g*f) )
 
     Rewrite( l.identity.inv, l.identity )
     Rewrite( f*f.inv, f.tgt.identity )
     Rewrite( f.inv*f, f.src.identity )
     Rewrite( f.inv.inv, f )
+    Rewrite( f.inv.src, f.tgt )
+    Rewrite( f.inv.tgt, f.src )
+    #Equation( (f*f).src, (f*f).tgt ) # ??
 
-    # test theory
+    Equation( (g*f).inv, f.inv * g.inv )
+
+    return theory
+
+
+def test_rewrite_category_theory():
+
+    theory = build_category_theory()
+
+    Const = theory.Const
+    cell0 = theory.cell0
+    cell1 = theory.cell1
 
     X, Y, Z, W = [Const(name, cell0) for name in "XYZW"]
     f, g, h = [Const(name, cell1) for name in "fgh"]
     iso = Const("iso", cell1)
 
-    assert f*(g*h) == (f*g)*h
+    assert h*(g*f) == (h*g)*f
     assert f*X.identity == f
     assert Y.identity*f == f
     assert f*f.src.identity == f
     assert f.tgt.identity*f == f
+
+    assert (g*f).src == f.src
+    assert (g*f).tgt == g.tgt
+
+    assert (h*g*f).src == f.src
+    assert (h*g*f).tgt == h.tgt
+
+    assert X.identity.src == X
+    assert X.identity.tgt == X
 
     assert X.identity.inv == X.identity
     assert f.src.identity.inv == f.src.identity
@@ -818,13 +847,16 @@ def test_rewrite_category_theory():
     assert f * iso * iso.inv == f
 
 
-def test_rewrite_bicategory_theory():
-
-    theory = Theory()
+def build_bicategory_theory():
 
     cell0 = Sort("cell0") # object's
     cell1 = Sort("cell1") # morphism's
     cell2 = Sort("cell2") # 2-morphism's
+
+    theory = build_category_theory(cell1, cell2)
+    theory.cell0 = cell0
+    theory.cell1 = cell1
+    theory.cell2 = cell2
 
     Operator = theory.Operator
     Const = theory.Const
@@ -832,45 +864,18 @@ def test_rewrite_bicategory_theory():
     Rewrite = theory.Rewrite
     Equation = theory.Equation
    
-    Operator("identity", cell2, [cell1], postfix=True)
     Operator("identity", cell1, [cell0], postfix=True)
-    Operator("*",        cell2, [cell2, cell2], inline=True)
     Operator("<<",       cell1, [cell1, cell1], inline=True)
     Operator("<<",       cell2, [cell2, cell2], inline=True)
 
-    Operator("src", cell1, [cell2], postfix=True)
-    Operator("tgt", cell1, [cell2], postfix=True)
     Operator("src", cell0, [cell1], postfix=True)
     Operator("tgt", cell0, [cell1], postfix=True)
 
-    Operator("inv", cell2, [cell2], postfix=True)
-
     Operator("lunitor",  cell2, [cell1],               postfix=True)
     Operator("runitor",  cell2, [cell1],               postfix=True)
-    Operator("reassoc",  cell2, [cell1, cell1, cell1], )
+    reassoc = Operator("reassoc",  cell2, [cell1, cell1, cell1], )
+    theory.reassoc = reassoc
 
-    # -----------------------------------------
-    # build category theory
-
-    l = Variable("l", cell1)
-    m = Variable("m", cell1)
-    n = Variable("n", cell1)
-    o = Variable("o", cell1)
-    f = Variable("f", cell2) # m <-- l
-    g = Variable("g", cell2) # n <-- m
-    h = Variable("h", cell2) # o <-- n
-
-    Rewrite( l.identity*l.identity, l.identity )
-    Rewrite( f*l.identity, f )
-    Rewrite( m.identity*f, f )
-    Equation( (h*g)*f, h*(g*f) )
-
-    Rewrite( l.identity.inv, l.identity )
-    Rewrite( f*f.inv, f.tgt.identity )
-    Rewrite( f.inv*f, f.src.identity )
-    Rewrite( f.inv.inv, f )
-
-    del l, m, n, o, f, g, h # cleanup
 
     # -----------------------------------------
     # build bicategory theory
@@ -883,26 +888,34 @@ def test_rewrite_bicategory_theory():
     A = A0 = Variable("A0", cell1) # m <--A-- l
     A1     = Variable("A1", cell1) # m <--A-- l
     A2     = Variable("A2", cell1) # m <--A-- l
-    B = B0 = Variable("B0", cell1) # m <--B-- l
-    B1     = Variable("B1", cell1) # m <--B-- l
-    B2     = Variable("B2", cell1) # m <--B-- l
-    C      = Variable("C", cell1) # o <--C-- n
+    B = B0 = Variable("B0", cell1) # n <--B-- m
+    B1     = Variable("B1", cell1) # n <--B-- m
+    B2     = Variable("B2", cell1) # n <--B-- m
+    C = C0 = Variable("C0", cell1) # o <--C-- n
+    C1     = Variable("C1", cell1) # o <--C-- n
+    D      = Variable("D0", cell1) # p <--D-- o
 
     f = f0 = Variable("f0", cell2) #  A1 <----- A0
     f1     = Variable("f1", cell2) #  A2 <----- A1
     g = g0 = Variable("g0", cell2) #  B1 <----- B0
     g1     = Variable("g1", cell2) #  B2 <----- B1
+    h      = Variable("n1", cell2) #  C1 <----- C0
 
-    # Globular
     Equation( f.src.src, f.tgt.src )
     Equation( f.src.tgt, f.tgt.tgt )
+
+    Rewrite( l.identity.src, l )
+    Rewrite( l.identity.tgt, l )
+
+    Rewrite( (B<<A).src, A.src )
+    Rewrite( (B<<A).tgt, B.tgt )
 
     Equation( (B<<A).identity, B.identity << A.identity )
 
     Rewrite( (g1*g0) << (f1*f0) , (g1 << f1) * (g0 << f0) )
     Rewrite( (g1 << f1) * (g0 << f0), (g1*g0)<<(f1*f0) )
 
-    Equation( (g<<f).inv, g.inv << f.inv )
+    #Equation( (g<<f).inv, g.inv << f.inv ) # i don't think it's needed...?
 
     # unitors
     Rewrite( A.lunitor.tgt, A )
@@ -910,14 +923,49 @@ def test_rewrite_bicategory_theory():
     Rewrite( A.runitor.tgt, A )
     Rewrite( A.runitor.src, A << A.src.identity )
 
-    Equation( l.identity.lunitor, l.identity.runitor )
+    # naturality
     Equation( f * A0.lunitor, f.tgt.lunitor * (A0.tgt.identity.identity << f) )
+    Equation( l.identity.lunitor, l.identity.runitor )
 
-    del l, m, n, o, A, A0, B, B0, f, g, f0 #...
+    # reassoc
+    Rewrite( reassoc(C, B, A).tgt, C<<(B<<A) )
+    Rewrite( reassoc(C, B, A).src, (C<<B)<<A )
+
+    # naturality
+    #Equation( reassoc(C1, B1, A1) * ( (h<<g)<<f ), ( h << (g<<f) ) * reassoc(C0, B0, A0) ) # fails because of free variables!
+    Equation( reassoc(h.tgt, g.tgt, f.tgt) * ( (h<<g)<<f ), ( h << (g<<f) ) * reassoc(h.src, g.src, f.src) )
+
+    # pentagon equation:
+    # lhs:                rhs:
+    #  ((D<<C)<<B)<<A     ((D<<C)<<B)<<A
+    #                      (D<<C)<<(B<<A)
+    #  (D<<(C<<B))<<A
+    #  D<<((C<<B)<<A)
+    #  D<<(C<<(B<<A))       D<<(C<<(B<<A))
+    lhs = reassoc(D, C, B) << A.identity
+    lhs = reassoc(D, C<<B, A) * lhs
+    lhs = D.identity << reassoc(C, B, A) * lhs
+    rhs = reassoc(D<<C, B, C)
+    rhs = reassoc(D, C, B<<A) * rhs
+    Equation(lhs, rhs)
+
+    # triangle equation(s)
+    Equation( B.runitor << A.identity, (B.identity << A.lunitor)*reassoc(B, B.src.identity, A) )
+    Rewrite( (B<<A).lunitor, B.lunitor << A.identity ) # do we need this?
+    Rewrite( (B<<A).runitor, B.identity << A.runitor )
+
+    return theory
+
+
+def test_rewrite_bicategory_theory():
+
+    theory = build_bicategory_theory()
+    cell0, cell1, cell2 = theory.cell0, theory.cell1, theory.cell2
+    Const = theory.Const
+    reassoc = theory.reassoc
 
     # -----------------------------------------
     # test theory
-
 
 #    l = Const("l", cell0)
 #    m = Const("m", cell0)
@@ -936,11 +984,14 @@ def test_rewrite_bicategory_theory():
     f2     = Const("f1", cell2) #  A3 <----- A2
     g = g0 = Const("g0", cell2) #  B1 <----- B0
     g1     = Const("g1", cell2) #  B2 <----- B1
+    h = h0 = Const("h0", cell2) #  C1 <----- C0
 
     iso = Const("iso", cell2)
 
     A1, A0, A = f.tgt, f.src, f.src
     B1, B0, B = g.tgt, g.src, g.src
+    C1, C0, C = h.tgt, h.src, h.src
+    m, l = A.tgt, A.src
 
     assert f2*(f1*f0) == (f2*f1)*f0
     assert f*A0.identity == f
@@ -948,6 +999,11 @@ def test_rewrite_bicategory_theory():
     assert f*f.src.identity == f
     assert f.tgt.identity*f == f
 
+    assert A.identity.src == A
+    assert A.identity.tgt == A
+
+    assert (f1*f0).src == f0.src
+    assert (f1*f0).tgt == f1.tgt
 
     assert A.identity.inv == A.identity
     assert f.src.identity.inv == f.src.identity
@@ -956,15 +1012,37 @@ def test_rewrite_bicategory_theory():
     assert f * iso * iso.inv == f
 
     A.lunitor * A.lunitor.inv == A.identity
-    theory.dump( A.lunitor * A.lunitor.inv )
+    #theory.dump( A.lunitor * A.lunitor.inv )
     assert A.lunitor * A.lunitor.inv == A.identity
     assert f * f.src.lunitor == f.tgt.lunitor * (f.tgt.tgt.identity.identity << f)
 
     lhs = A1.lunitor * (A1.tgt.identity.identity << f) * A0.lunitor.inv
     assert lhs == f
 
-    #theory.dump(lhs)
+    assert B.identity << A.identity == (B<<A).identity
+    assert B.lunitor << A.identity != (B<<A).identity
+    assert B.lunitor << A.identity == (B<<A).lunitor
 
+    BA = B<<A
+    CB = C<<B
+    assert BA.identity.src == BA
+
+    assert B.runitor << A.identity == (B.identity << A.lunitor) * reassoc(B, B.src.identity, A)
+
+    assert CB.runitor << A.identity == (CB.identity << A.lunitor) * reassoc(CB, B.src.identity, A)
+
+    I = l.identity
+    assert I == I.src.identity
+    assert I.runitor << I.identity == (I.identity << I.lunitor) * reassoc(I, I, I)
+
+    #assert (B.runitor << A.identity)*reassoc(B, B.src.identity, A).inv == B.identity << A.lunitor # FAIL
+
+    #Theory.DEBUG = True
+    #Expr.DEBUG = True
+
+    assert reassoc(C1, B1, A1) * ( (h<<g)<<f ) == ( h << (g<<f) ) * reassoc(C0, B0, A0)
+    assert A.identity.tgt == A
+    assert reassoc(C1, B1, A) * ( (h<<g)<<A.identity ) == ( h << (g<<A.identity) ) * reassoc(C0, B0, A0) # FAIL
 
 
 if __name__ == "__main__":
