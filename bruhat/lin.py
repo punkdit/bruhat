@@ -1384,6 +1384,7 @@ def test_symmetric_square():
 
 def test_all():
 
+    test_young()
     test_structure()
     test_super()
     test_symmetric_square()

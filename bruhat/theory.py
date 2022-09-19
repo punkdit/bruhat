@@ -367,16 +367,30 @@ class Theory(Debug):
         self.eqns = []
         self.lookup = {}
 
-    def dump(self):
+    def dump(self, expr=None):
+        # print the chains of equivelant Expr's
+        assert expr is None or isinstance(expr, Expr)
         vs = list(self.cache.values())
-        print("Theory.dump")
+        keys = dict((v.key, v) for v in vs)
         for v in vs:
-            print('\t', v, end=" ")
+            if v.parent is None:
+                continue
+            key = v.parent.key
+            if key in keys:
+                del keys[key]
+        chains = []
+        for v in keys.values():
+            chain = [v]
             v = v.parent
             while v:
-                print("-->", v, end=" ")
+                chain.append(v)
                 v = v.parent
-            print()
+            chains.append(chain)
+
+        print("Theory.dump:", expr if expr else "")
+        for chain in chains:
+            if expr is None or expr in chain:
+                print("\t", " --> ".join(str(v) for v in chain))
         print()
 
     def Const(self, name, sort, expr=None):

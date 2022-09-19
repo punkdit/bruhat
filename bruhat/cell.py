@@ -3,6 +3,12 @@
 """
 previous version: higher.py
 see also: globular.py
+
+here we try to build naturality of unitors JIT style,
+but fail.
+
+next version: cellrewrite.py
+
 """
 
 import sys
@@ -128,18 +134,32 @@ class Cell(Debug):
         return Cell(self.cat, self, self, str(expr), expr)
 
     # use with BicategoryOperators:
+    _lunitor = None
     @property
     def lunitor(cell):
+        if cell._lunitor is not None:
+            return cell._lunitor
+        cat = cell.cat
         expr = cell.expr.lunitor
-        return Cell(cell.cat, cell, cell.tgt.identity << cell, str(expr), expr)
+        lunitor = cat.Iso(cell, cell.tgt.identity << cell, str(expr), expr)
+        cell._lunitor = lunitor
+        return lunitor
 
+    _runitor = None
     @property
     def runitor(cell):
+        if cell._runitor is not None:
+            return cell._runitor
+        cat = cell.cat
         expr = cell.expr.runitor
-        return Cell(cell.cat, cell, cell << cell.src.identity, str(expr), expr)
+        runitor = cat.Iso(cell, cell << cell.src.identity, str(expr), expr)
+        cell._runitor = runitor
+        return runitor
 
     # use with Bicategory:
     def __getattr__(self, attr):
+        if not isinstance(self.cat, Bicategory):
+            raise AttributeError
         method = getattr(self.cat, attr)
         value = method(self)
         setattr(self, attr, value)
@@ -234,7 +254,10 @@ class Globular(Debug):
         self.codim = len(sorts)-dim-1
         self.theory = Theory()
 
-    def Cell(self, tgt=None, src=None, name="?"):
+    def decorate(self, cell):
+        pass
+
+    def Cell(self, tgt=None, src=None, name="?", expr=None):
         assert (tgt is None) == (src is None), (tgt, src)
         sorts = self.sorts
         if tgt is None:
@@ -242,9 +265,14 @@ class Globular(Debug):
         else:
             assert tgt.dim < self.dim
             sort = sorts[tgt.dim+1]
-        expr = self.theory.Const(name, sort)
+        if expr is None:
+            expr = self.theory.Const(name, sort)
         cell = Cell(self, tgt, src, name, expr)
+        self.decorate(cell)
         return cell
+
+    def dump(self, cell):
+        self.theory.dump(cell.expr)
 
 
 class Category(Globular):
@@ -274,8 +302,8 @@ class Category(Globular):
         Rewrite( m.identity*f, f )
         Equation( (h*g)*f, h*(g*f) )
 
-    def Iso(self, tgt, src, name):
-        cell = self.Cell(tgt, src, name)
+    def Iso(self, tgt, src, name, expr=None):
+        cell = self.Cell(tgt, src, name, expr)
         inv = self.Cell(src, tgt, "~"+name)
         cell.inv = inv
         inv.inv = cell
@@ -377,14 +405,13 @@ class BicategoryOperators(Category):
         Rewrite = theory.Rewrite
         Equation = theory.Equation
 
+        # We already have these from Category:
+        #Operator("identity", cell2, [cell1], postfix=True)
+        #Operator("*", cell1, [cell2, cell2], inline=True)
+
         Operator("identity", cell1, [cell0],               postfix=True)
         Operator("<<",       cell1, [cell1, cell1],        inline =True)
         Operator("<<",       cell2, [cell2, cell2],        inline =True)
-
-        # These need to be Iso's, not sure if we can handle that using Rewrite's..?
-        Operator("lunitor",  cell2, [cell1],               postfix=True)
-        Operator("runitor",  cell2, [cell1],               postfix=True)
-        Operator("reassoc",  cell2, [cell1, cell1, cell1], )
 
         # build theory
         l = Variable("l", cell0)
@@ -408,13 +435,35 @@ class BicategoryOperators(Category):
         Equation( (B<<A).identity, B.identity << A.identity )
         #Rewrite( (B<<A).identity, B.identity << A.identity )
 
-        # infinite recursion... ??
         Rewrite( (g1*g0) << (f1*f0) , (g1 << f1) * (g0 << f0) )
         Rewrite( (g1 << f1) * (g0 << f0), (g1*g0)<<(f1*f0) )
 
+        # These are Iso's
+        Operator("lunitor",  cell2, [cell1],               postfix=True)
+        Operator("runitor",  cell2, [cell1],               postfix=True)
+        Operator("reassoc",  cell2, [cell1, cell1, cell1], )
+
         Equation( l.identity.lunitor , l.identity.runitor )
 
-        #self.namespace = locals() # yes i'm lazy
+        # TODO: add Equation's for naturality, triangle, pentagon, ...
+        # FAIL: we need src & tgt operators...
+
+    def decorate(self, cell):
+        if cell.dim != 2:
+            return
+        expr = cell.expr
+        if not isinstance(expr, Const):
+            return
+        #print("expr:", expr)
+
+        return
+        # try to build naturality as we go, but fail
+        # infinite recursion FAIL
+        lhs = cell.src.lunitor
+        rhs = cell.tgt.lunitor * (cell.tgt.tgt.identity << cell)
+        lhs.rewrite(rhs)
+        
+        
 
 
 def test_category():
@@ -543,28 +592,31 @@ def test_bicategory():
     unitor = I.lunitor
     assert unitor == I.runitor
 
-    i = I.identity
-    assert i*i == i
-#    f = Cell(I, I, "f")
-#    assert f*i == f
-#    assert i*f == f
+    lii = I.identity
+    assert lii*lii == lii
+    #f = Cell(I, I, "f")
+    #assert f*lii == f
+    #assert lii*f == f
 
-    assert i*unitor == unitor
+    assert lii*unitor == unitor
     II = I<<I
-    i<<i
-    assert II.identity == i<<i
-    theory.DEBUG = True
-    Expr.DEBUG = True
+    #assert II.identity == lii<<lii
+    #theory.DEBUG = True
+    #Expr.DEBUG = True
     ff = Cell(unitor.src, unitor.src, "ff")
-    ff*(i<<i) , ff
-    theory.dump()
-
-    assert ff*(i<<i) == ff
-    assert unitor*(i<<i) == unitor # FAIL
+    #ff*(lii<<lii) , ff
+    #print((ff*(lii<<lii)).expr )
+    #theory.dump()
 
     assert II != I
-
     assert II.identity
+
+    #assert (lii<<lii) == (l.identity << l.identity).identity # yes
+    assert ff*(lii<<lii) == ff # FAIL
+    assert unitor*(lii<<lii) == unitor # FAIL
+
+    #theory.dump()
+    #return
 
 
     # 1-cells
@@ -589,13 +641,17 @@ def test_bicategory():
     A0.lunitor
     A0.runitor
 
+    A0.lunitor.inv
+    assert (A0.lunitor.inv * A0.lunitor) == A0.lunitor.src.identity
+    assert (A0.lunitor * A0.lunitor.inv) == A0.lunitor.tgt.identity
+
     u = A0.identity
     uu = u*u
     assert uu == u
 
     BAI = BA << A.src.identity
     BA.identity
-    BAI.reassoc
+    #BAI.reassoc
     BA.lunitor
 
     assert BA.identity == B0.identity<<A0.identity
@@ -662,10 +718,13 @@ def test_bicategory():
     i = (g0.src << f0.src).identity
     assert lhs == lhs * i
 
-#    gf = g<<f
-#    lhs = gf * gf.src.lunitor 
-#    rhs = gf.tgt.lunitor * (gf.src.tgt.identity.identity << gf)
-#    assert lhs == rhs # FAIL
+    gf = g<<f
+    lhs = gf * gf.src.lunitor 
+    rhs = gf.tgt.lunitor * (gf.src.tgt.identity.identity << gf)
+    #assert lhs == rhs # FAIL
+
+    assert A1.lunitor * A1.lunitor.inv * f == f
+    assert A1.lunitor is A1.lunitor
 
     gf = g0<<f0
     assert gf == g0<<f0
@@ -699,17 +758,23 @@ def test_bicategory():
     test_assoc(f2, f1, f0)
     test_assoc(g2<<f2, g1<<f1, g0<<f0)
 
-    def test_iso(f):
-        i = cat.Iso(f.src, f.src, "iso")
+    def test_iso(f, name):
+        i = cat.Iso(f.src, f.src, name)
         assert i * i.inv == f.src.identity
-        assert f * f.src.identity == f
+        #cat.dump(f )
+        #cat.dump( (f*i*i.inv) )
+        #cat.dump( (i*i.inv) )
+        #cat.dump( f.src.identity )
         assert f * i * i.inv == f
 
     #Theory.DEBUG = True
     #theory.dump()
-    test_iso(f)
-    test_iso(g<<f)
-    test_iso((g*g.src.lunitor)<<f)
+    test_iso(f, "iso_f")
+    test_iso(g<<f, "iso_gf")
+    test_iso((g1*g0)<<f, "iso_ggf")
+    test_iso(g0<<(f1*f0), "iso_gff")
+    test_iso((g1*g0)<<(f1*f0), "iso_gff")
+    #test_iso((g*g.src.lunitor)<<f, "iso_glf") # FAIL
 
     # naturality of unitors
     def test_unitors(f):

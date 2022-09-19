@@ -370,7 +370,7 @@ def test_chain_tensor():
     c = Chain([A])
     print(c)
 
-    c.dump()
+    #c.dump()
 
     #cc = c @ c
     #print(cc)
@@ -561,6 +561,8 @@ def test_chainmap():
 def test_all():
     test_gf()
     test_chain()
+    test_chain_tensor()
+    test_chainmap()
 
 
 
