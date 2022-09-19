@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 
 """
-previous version: higher.py
-see also: globular.py
+previous version: cell.py
 
-here we try to build naturality of unitors JIT style,
-but fail.
+just do everything with operators ? src, tgt, inv, lunitor, runitor, ...
 
-next version: cellrewrite.py
+see: theory.py where i test this idea
 
 """
 

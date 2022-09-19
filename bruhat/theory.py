@@ -91,6 +91,7 @@ class Expr(Debug):
 
     def __eq__(self, other):
         assert isinstance(other, Expr), other
+        #assert self.sort is other.sort # too strict...
         lhs = self.find_root_rebuild()
         rhs = other.find_root_rebuild()
         #lhs = self.find_root()
@@ -491,15 +492,6 @@ class Theory(Debug):
         self.Rewrite(lhs, rhs)
         self.Rewrite(rhs, lhs)
 
-    #def equate(self, lhs, rhs):
-    #    solver, lookup = self.solver, self.lookup
-    #    lhs, rhs = lookup[lhs.key], lookup[rhs.key]
-    #    solver.equate(lhs, rhs)
-
-    #def is_equal(self, lhs, rhs):
-    #    solver, lookup = self.solver, self.lookup
-    #    lhs, rhs = lookup[lhs.key], lookup[rhs.key]
-    #    return solver.is_equal(lhs, rhs)
 
 
 
@@ -767,6 +759,214 @@ def test_category_theory():
 
 
 
+def test_rewrite_category_theory():
+
+    theory = Theory()
+
+    cell0 = Sort("cell0") # object's
+    cell1 = Sort("cell1") # morphism's
+
+    Operator = theory.Operator
+    Const = theory.Const
+    Variable = theory.Variable
+    Rewrite = theory.Rewrite
+    Equation = theory.Equation
+   
+    Operator("identity", cell1, [cell0], postfix=True)
+    Operator("*", cell1, [cell1, cell1], inline=True)
+    Operator("inv", cell1, [cell1], postfix=True)
+    Operator("src", cell0, [cell1], postfix=True)
+    Operator("tgt", cell0, [cell1], postfix=True)
+
+    # build theory
+    l = Variable("l", cell0)
+    m = Variable("m", cell0)
+    n = Variable("n", cell0)
+    o = Variable("o", cell0)
+    f = Variable("f", cell1) # m <-- l
+    g = Variable("g", cell1) # n <-- m
+    h = Variable("h", cell1) # o <-- n
+
+    Rewrite( l.identity*l.identity, l.identity )
+    Rewrite( f*l.identity, f )
+    Rewrite( m.identity*f, f )
+    Equation( (h*g)*f, h*(g*f) )
+
+    Rewrite( l.identity.inv, l.identity )
+    Rewrite( f*f.inv, f.tgt.identity )
+    Rewrite( f.inv*f, f.src.identity )
+    Rewrite( f.inv.inv, f )
+
+    # test theory
+
+    X, Y, Z, W = [Const(name, cell0) for name in "XYZW"]
+    f, g, h = [Const(name, cell1) for name in "fgh"]
+    iso = Const("iso", cell1)
+
+    assert f*(g*h) == (f*g)*h
+    assert f*X.identity == f
+    assert Y.identity*f == f
+    assert f*f.src.identity == f
+    assert f.tgt.identity*f == f
+
+    assert X.identity.inv == X.identity
+    assert f.src.identity.inv == f.src.identity
+
+    assert distinct([f, g, h])
+
+    assert iso * iso.inv == iso.tgt.identity
+    assert f * iso * iso.inv == f
+
+
+def test_rewrite_bicategory_theory():
+
+    theory = Theory()
+
+    cell0 = Sort("cell0") # object's
+    cell1 = Sort("cell1") # morphism's
+    cell2 = Sort("cell2") # 2-morphism's
+
+    Operator = theory.Operator
+    Const = theory.Const
+    Variable = theory.Variable
+    Rewrite = theory.Rewrite
+    Equation = theory.Equation
+   
+    Operator("identity", cell2, [cell1], postfix=True)
+    Operator("identity", cell1, [cell0], postfix=True)
+    Operator("*",        cell2, [cell2, cell2], inline=True)
+    Operator("<<",       cell1, [cell1, cell1], inline=True)
+    Operator("<<",       cell2, [cell2, cell2], inline=True)
+
+    Operator("src", cell1, [cell2], postfix=True)
+    Operator("tgt", cell1, [cell2], postfix=True)
+    Operator("src", cell0, [cell1], postfix=True)
+    Operator("tgt", cell0, [cell1], postfix=True)
+
+    Operator("inv", cell2, [cell2], postfix=True)
+
+    Operator("lunitor",  cell2, [cell1],               postfix=True)
+    Operator("runitor",  cell2, [cell1],               postfix=True)
+    Operator("reassoc",  cell2, [cell1, cell1, cell1], )
+
+    # -----------------------------------------
+    # build category theory
+
+    l = Variable("l", cell1)
+    m = Variable("m", cell1)
+    n = Variable("n", cell1)
+    o = Variable("o", cell1)
+    f = Variable("f", cell2) # m <-- l
+    g = Variable("g", cell2) # n <-- m
+    h = Variable("h", cell2) # o <-- n
+
+    Rewrite( l.identity*l.identity, l.identity )
+    Rewrite( f*l.identity, f )
+    Rewrite( m.identity*f, f )
+    Equation( (h*g)*f, h*(g*f) )
+
+    Rewrite( l.identity.inv, l.identity )
+    Rewrite( f*f.inv, f.tgt.identity )
+    Rewrite( f.inv*f, f.src.identity )
+    Rewrite( f.inv.inv, f )
+
+    del l, m, n, o, f, g, h # cleanup
+
+    # -----------------------------------------
+    # build bicategory theory
+
+    l = Variable("l", cell0)
+    m = Variable("m", cell0)
+    n = Variable("n", cell0)
+    o = Variable("o", cell0)
+
+    A = A0 = Variable("A0", cell1) # m <--A-- l
+    A1     = Variable("A1", cell1) # m <--A-- l
+    A2     = Variable("A2", cell1) # m <--A-- l
+    B = B0 = Variable("B0", cell1) # m <--B-- l
+    B1     = Variable("B1", cell1) # m <--B-- l
+    B2     = Variable("B2", cell1) # m <--B-- l
+    C      = Variable("C", cell1) # o <--C-- n
+
+    f = f0 = Variable("f0", cell2) #  A1 <----- A0
+    f1     = Variable("f1", cell2) #  A2 <----- A1
+    g = g0 = Variable("g0", cell2) #  B1 <----- B0
+    g1     = Variable("g1", cell2) #  B2 <----- B1
+
+    # Globular
+    Equation( f.src.src, f.tgt.src )
+    Equation( f.src.tgt, f.tgt.tgt )
+
+    Equation( (B<<A).identity, B.identity << A.identity )
+
+    Rewrite( (g1*g0) << (f1*f0) , (g1 << f1) * (g0 << f0) )
+    Rewrite( (g1 << f1) * (g0 << f0), (g1*g0)<<(f1*f0) )
+
+    Equation( (g<<f).inv, g.inv << f.inv )
+
+    # unitors
+    Rewrite( A.lunitor.tgt, A )
+    Rewrite( A.lunitor.src, A.tgt.identity << A )
+    Rewrite( A.runitor.tgt, A )
+    Rewrite( A.runitor.src, A << A.src.identity )
+
+    Equation( l.identity.lunitor, l.identity.runitor )
+    Equation( f * A0.lunitor, f.tgt.lunitor * (A0.tgt.identity.identity << f) )
+
+    del l, m, n, o, A, A0, B, B0, f, g, f0 #...
+
+    # -----------------------------------------
+    # test theory
+
+
+#    l = Const("l", cell0)
+#    m = Const("m", cell0)
+#    n = Const("n", cell0)
+#    o = Const("o", cell0)
+#
+#    A = A0 = Const("A0", cell1) # m <--A-- l
+#    A1     = Const("A1", cell1) # m <--A-- l
+#    A2     = Const("A2", cell1) # m <--A-- l
+#    B = B0 = Const("B0", cell1) # m <--B-- l
+#    B1     = Const("B1", cell1) # m <--B-- l
+#    B2     = Const("B2", cell1) # m <--B-- l
+
+    f = f0 = Const("f0", cell2) #  A1 <----- A0
+    f1     = Const("f1", cell2) #  A2 <----- A1
+    f2     = Const("f1", cell2) #  A3 <----- A2
+    g = g0 = Const("g0", cell2) #  B1 <----- B0
+    g1     = Const("g1", cell2) #  B2 <----- B1
+
+    iso = Const("iso", cell2)
+
+    A1, A0, A = f.tgt, f.src, f.src
+    B1, B0, B = g.tgt, g.src, g.src
+
+    assert f2*(f1*f0) == (f2*f1)*f0
+    assert f*A0.identity == f
+    assert A1.identity*f == f
+    assert f*f.src.identity == f
+    assert f.tgt.identity*f == f
+
+
+    assert A.identity.inv == A.identity
+    assert f.src.identity.inv == f.src.identity
+
+    assert iso * iso.inv == iso.tgt.identity
+    assert f * iso * iso.inv == f
+
+    A.lunitor * A.lunitor.inv == A.identity
+    theory.dump( A.lunitor * A.lunitor.inv )
+    assert A.lunitor * A.lunitor.inv == A.identity
+    assert f * f.src.lunitor == f.tgt.lunitor * (f.tgt.tgt.identity.identity << f)
+
+    lhs = A1.lunitor * (A1.tgt.identity.identity << f) * A0.lunitor.inv
+    assert lhs == f
+
+    #theory.dump(lhs)
+
+
+
 if __name__ == "__main__":
 
     print("\n\n")
@@ -774,7 +974,8 @@ if __name__ == "__main__":
     test_theory()
     test_monoid_theory()
     test_group_theory()
-    test_category_theory()
+    test_rewrite_category_theory()
+    test_rewrite_bicategory_theory()
 
     print("OK: ran in %.3f seconds.\n"%(time() - start_time))
 
