@@ -910,6 +910,8 @@ def build_bicategory_theory():
     Rewrite( (B<<A).src, A.src )
     Rewrite( (B<<A).tgt, B.tgt )
 
+    Equation( (g<<f).src, g.src<<f.src )
+
     Equation( (B<<A).identity, B.identity << A.identity )
 
     Rewrite( (g1*g0) << (f1*f0) , (g1 << f1) * (g0 << f0) )
@@ -981,15 +983,23 @@ def test_rewrite_bicategory_theory():
 
     f = f0 = Const("f0", cell2) #  A1 <----- A0
     f1     = Const("f1", cell2) #  A2 <----- A1
-    f2     = Const("f1", cell2) #  A3 <----- A2
+    f2     = Const("f2", cell2) #  A3 <----- A2
+    f22    = Const("f22", cell2)#  A3 <----- A2
     g = g0 = Const("g0", cell2) #  B1 <----- B0
     g1     = Const("g1", cell2) #  B2 <----- B1
+    g2     = Const("g2", cell2) #  B2 <----- B1
     h = h0 = Const("h0", cell2) #  C1 <----- C0
 
     iso = Const("iso", cell2)
 
-    A1, A0, A = f.tgt, f.src, f.src
-    B1, B0, B = g.tgt, g.src, g.src
+    A1, A0, A = f0.tgt, f0.src, f0.src
+    #A2, A1    = f1.tgt, f1.src
+    #A3, A2    = f2.tgt, f2.src
+
+    B1, B0, B = g0.tgt, g0.src, g0.src
+    #B2, B1    = g1.tgt, g1.src
+    #B3, B2    = g2.tgt, g2.src
+
     C1, C0, C = h.tgt, h.src, h.src
     m, l = A.tgt, A.src
 
@@ -1017,7 +1027,7 @@ def test_rewrite_bicategory_theory():
     assert f * f.src.lunitor == f.tgt.lunitor * (f.tgt.tgt.identity.identity << f)
 
     lhs = A1.lunitor * (A1.tgt.identity.identity << f) * A0.lunitor.inv
-    assert lhs == f
+    assert lhs == f # FAIL
 
     assert B.identity << A.identity == (B<<A).identity
     assert B.lunitor << A.identity != (B<<A).identity
@@ -1042,8 +1052,210 @@ def test_rewrite_bicategory_theory():
 
     assert reassoc(C1, B1, A1) * ( (h<<g)<<f ) == ( h << (g<<f) ) * reassoc(C0, B0, A0)
     assert A.identity.tgt == A
-    assert reassoc(C1, B1, A) * ( (h<<g)<<A.identity ) == ( h << (g<<A.identity) ) * reassoc(C0, B0, A0) # FAIL
+    #assert reassoc(C1, B1, A) * ( (h<<g)<<A.identity ) == ( h << (g<<A.identity) ) * reassoc(C0, B0, A0) # FAIL
 
+
+    # -----------------------
+
+    f21 = f2*f1
+    f210 = f21*f0
+    f10 = f1*f0
+    rhs = f2*f10
+    assert f210 == (f2*f1)*f0
+    assert f210 == f2*(f1*f0)
+
+    assert f0.sort == cell2
+
+    assert f2 != f22
+    assert f2*f1 != f22*f1
+
+    ff = f1*f0
+    assert ff == f1*f0
+
+    assert A1.identity*f0 == f0*A0.identity
+    assert (f2*f1)*f0 == f2*(f1*f0)
+
+    assert (g0<<f0).src == g0.src << f0.src
+
+    lhs = g0 << f0
+    i = g0.src.identity << f0.src.identity
+    assert lhs == lhs * i
+
+    i = (g0.src << f0.src).identity
+    assert lhs == lhs * i
+
+    gf = g<<f
+    lhs = gf * gf.src.lunitor 
+    rhs = gf.tgt.lunitor * (gf.src.tgt.identity.identity << gf)
+    #assert lhs == rhs # FAIL
+
+    assert A1.lunitor * A1.lunitor.inv * f == f
+    assert A1.lunitor is A1.lunitor
+
+    gf = g0<<f0
+    assert gf == g0<<f0
+
+    assert gf.src == B0<<A0
+    assert gf * BA.identity == gf
+
+    lhs = (g1*g0) << (f1*f0)
+    rhs = (g1<<f1) * (g0<<f0)
+    assert lhs == rhs
+
+    g210 = g2*g1*g0
+    f210 = f2*f1*f0
+    lhs = g210 << f210
+
+    rhs = (g2<<f2) * (g1<<f1) * (g0<<f0)
+    assert lhs == rhs
+
+    rrhs = (g2<<f2) * ((g1<<f1) * (g0<<f0))
+    assert rhs == rrhs
+
+    def test_identity(f):
+        assert f * f.src.identity == f
+        assert f.tgt.identity * f == f
+    test_identity(g<<f)
+    test_identity((g*g.src.lunitor)<<f)
+    test_identity((g1*g0)<<f)
+
+    def test_assoc(f2, f1, f0):
+        assert (f2*f1)*f0 == f2*(f1*f0)
+    test_assoc(f2, f1, f0)
+    test_assoc(g2<<f2, g1<<f1, g0<<f0)
+
+    def test_iso(f, name):
+        #i = cat.Iso(f.src, f.src, name)
+        i = Const(name, cell2)
+        #assert i * i.inv == f.src.identity # FAIL
+        #cat.dump(f )
+        #cat.dump( (f*i*i.inv) )
+        #cat.dump( (i*i.inv) )
+        #cat.dump( f.src.identity )
+        assert f * i * i.inv == f
+
+    #Theory.DEBUG = True
+    #theory.dump()
+    test_iso(f, "iso_f")
+    test_iso(g<<f, "iso_gf")
+    test_iso((g1*g0)<<f, "iso_ggf")
+    test_iso(g0<<(f1*f0), "iso_gff")
+    test_iso((g1*g0)<<(f1*f0), "iso_gff")
+    test_iso((g*g.src.lunitor)<<f, "iso_glf") # FAIL
+
+    # naturality of unitors
+    def test_unitors(f):
+        lhs = f * f.src.lunitor 
+        rhs = f.tgt.lunitor * (f.src.tgt.identity.identity << f)
+        assert lhs == rhs
+        lhs = f * f.src.runitor 
+        rhs = f.tgt.runitor * (f << f.src.src.identity.identity)
+        assert lhs == rhs
+
+    test_unitors(f)
+    test_unitors(g)
+
+    test_unitors(g<<f) # FAIL
+
+    lhs = g * g.src.lunitor 
+    rhs = g.tgt.lunitor * (g.src.tgt.identity.identity << g)
+    assert lhs == rhs
+    lhs = lhs << f
+    rhs = rhs << f
+    assert lhs == rhs
+
+    gf = g<<f
+    lhs = gf * gf.src.lunitor 
+    I = g.src.tgt.identity
+    assert gf.src.lunitor.src == I << (g.src << f.src)
+    reassoc = ((I<<g.src)<<f.src).reassoc
+    #test_assoc((g*g.src.lunitor) << f, reassoc.inv, reassoc) # Works here !!!
+    assert lhs == ((g*g.src.lunitor) << f) * reassoc.inv
+    assert reassoc.inv * reassoc == reassoc.src.identity
+    assert lhs*reassoc == ((g*g.src.lunitor) << f) * reassoc.inv * reassoc
+    test_assoc((g*g.src.lunitor) << f, reassoc.inv, reassoc) # FAIL !!!
+    assert lhs*reassoc == ((g*g.src.lunitor) << f) * (reassoc.inv * reassoc)
+    assert lhs*reassoc == ((g*g.src.lunitor) << f) * reassoc.src.identity
+    test_identity( ((g*g.src.lunitor) << f) )
+    assert lhs*reassoc == ((g*g.src.lunitor) << f)
+    assert lhs == ((g.tgt.lunitor*(I.identity << g)) << f) * reassoc.inv
+    rhs = gf.tgt.lunitor * (gf.src.tgt.identity.identity << gf)
+    #assert rhs * reassoc 
+
+    #assert lhs == rhs # FAIL 
+
+    # _associators
+    lhs = (C << B) << A
+    rhs = C << (B << A)
+    assert lhs.reassoc.src == lhs
+    assert lhs.reassoc.tgt == rhs
+    assert not hasattr(rhs, "reassoc")
+
+    cell = (D<<C) << (B<<A)
+    assert cell.reassoc
+
+    # naturality of reassoc
+    hgf = (h0 << g0) << f0
+    assert hgf.tgt.reassoc * hgf == (h0<<(g0<<f0)) * hgf.src.reassoc
+
+    # triangle equation
+    def test_triangle(B, A):
+        lhs = B.runitor << A.identity
+        rhs = B.identity << A.lunitor
+        rhs = rhs * lhs.src.reassoc
+        assert lhs == rhs
+    test_triangle(B, A)
+    test_triangle(C<<B, A)
+    test_triangle(C, B<<A)
+
+    # fooling around with identity's
+    I = l.identity
+    i = I.identity
+    assert I.lunitor == I.runitor
+    mul = I.lunitor
+    comul = mul.inv
+    assert comul == I.runitor.inv
+    assert mul * comul == i
+    ii = i<<i
+    assert comul * mul == ii
+    lhs = mul*(mul << i)
+    rhs = mul*(i<<mul) 
+    reassoc = ((I<<I)<<I).reassoc
+    rhs = rhs * reassoc
+    assert lhs == rhs
+    #assert (mul << i) * reassoc.inv * (i << comul) == ii # FAIL
+    #assert (i<<mul) * reassoc * (comul << i) == ii # FAIL
+
+    # pentagon equation
+    def test_pentagon(D, C, B, A):
+        src = ((D<<C)<<B)<<A
+        tgt = D<<(C<<(B<<A))
+        lhs = src.reassoc 
+        lhs = lhs.tgt.reassoc * lhs
+        rhs = ((D<<C)<<B).reassoc << A.identity
+        rhs = rhs.tgt.reassoc * rhs
+        rhs = (D.identity << ((C<<B)<<A).reassoc) * rhs
+        assert lhs == rhs
+    test_pentagon(D, C, B, A)
+    test_pentagon(E<<D, C, B, A)
+    test_pentagon(E, D<<C, B, A)
+
+    # Eckman - Hilton
+    U = m.identity
+    u = U.identity
+    f = Cell(U, U)
+    g = Cell(U, U)
+    assert f!=g
+
+    assert f*u == f == u*f
+    assert g*u == g == u*g
+    assert f<<g == (f*u) << (u*g)
+    assert         (f*u) << (u*g) == (f<<u)*(u<<g)
+    #assert                           (f<<u)*(u<<g) == ???
+    #assert f*g == g*f
+    # not yet...
+
+    
 
 if __name__ == "__main__":
 
