@@ -1233,6 +1233,7 @@ def test_rewrite_bicategory_theory():
     test_triangle(C, B<<A)
 
     # fooling around with identity's
+    l = Const("l", cell0)
     I = l.identity
     i = I.identity
     assert I.lunitor == I.runitor
@@ -1242,6 +1243,12 @@ def test_rewrite_bicategory_theory():
     assert mul * comul == i
     ii = i<<i
     #assert comul * mul == ii # FAIL
+    assert comul * mul == mul.src.identity
+    assert mul.src == I<<I
+    #assert mul.src.identity == (I<<I).identity # FAIL
+    theory.dump(mul.src)
+    theory.dump(mul.src.identity)
+    assert mul.src.identity == (I.identity<<I.identity)
     lhs = mul*(mul << i)
     rhs = mul*(i<<mul) 
     a = reassoc(I, I, I)
