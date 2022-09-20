@@ -995,6 +995,7 @@ def test_rewrite_bicategory_theory():
     g2     = Const("g2", cell2) #  B2 <----- B1
     h = h0 = Const("h0", cell2) #  C1 <----- C0
     k = k0 = Const("k0", cell2) #  D1 <----- D0
+    E = Const("E", cell1)
 
     iso = Const("iso", cell2)
 
@@ -1251,18 +1252,15 @@ def test_rewrite_bicategory_theory():
 
     # pentagon equation
     def test_pentagon(D, C, B, A):
-        src = ((D<<C)<<B)<<A
-        tgt = D<<(C<<(B<<A))
-        #lhs = src.reassoc 
-        lhs = reassoc(D<<C, B, A)
-        lhs = lhs.tgt.reassoc * lhs
-        rhs = ((D<<C)<<B).reassoc << A.identity
-        rhs = rhs.tgt.reassoc * rhs
-        rhs = (D.identity << ((C<<B)<<A).reassoc) * rhs
+        lhs = reassoc(D, C, B) << A.identity
+        lhs = reassoc(D, C<<B, A) * lhs
+        lhs = D.identity << reassoc(C, B, A) * lhs
+        rhs = reassoc(D<<C, B, C)
+        rhs = reassoc(D, C, B<<A) * rhs
         assert lhs == rhs
-    #test_pentagon(D, C, B, A)
-    #test_pentagon(E<<D, C, B, A)
-    #test_pentagon(E, D<<C, B, A)
+    test_pentagon(D, C, B, A)
+    test_pentagon(E<<D, C, B, A)
+    test_pentagon(E, D<<C, B, A)
 
     assert distinct([f0, f1, f2, f22, g0, g1, g2, h0, k0])
     assert distinct([A0, A1, B0, B1, C0, C1, D0, D1])
