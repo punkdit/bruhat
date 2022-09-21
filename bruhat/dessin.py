@@ -1,16 +1,20 @@
 #!/usr/bin/env python
+"""
+build dessins d'enfants & their homology (CSS quantum codes),
+and draw some pictures..
+"""
 
+from random import randint, choice
 from time import sleep, time
 from functools import reduce
 from operator import matmul
 
 from bruhat.solve import array2, shortstr, dot2, linear_independent
-
 from bruhat.action import Perm, Group, Coset, mulclose, close_hom
+from bruhat.todd_coxeter import Schreier
 
 from huygens.namespace import *
 from huygens.pov import Mat
-
 
 from qupy.dev._algebra import Algebra, build_algebra, Tensor
 
@@ -495,18 +499,90 @@ def main():
     print()
 
 
+def test_dessins():
+
+    # red, green, blue reflections
+    ngens = 3
+    r, g, b = (0, 1, 2)
+    rels = [(r, r), (g, g), (b, b)] # self-inverse
+
+    def make(hgens, maxsize=10000, rev=False):
+        hgens = [tuple('rgb'.index(item) for item in gen) for gen in hgens]
+        if rev:
+            hgens = [tuple(reversed(gen)) for gen in hgens]
+        graph = Schreier(ngens, rels)
+        graph.build(hgens, maxsize)
+        return graph
+
+    # The dessin for the Gaussian elliptic curve
+    hgens = ["rgrb", "rb"*4, "rbgbrb", "grbr", "bgbg"]
+    graph = make(hgens, rev=True)
+    assert len(graph) == 8
+
+    rev = lambda gen : tuple(reversed(gen))
+
+    # this is dessin/code #1 above:
+    hgens = [
+        "bg"*8,  # around red
+        "rb"*4, # around green
+        "grgr", # around blue
+        "grbrbg", # green 4
+        "bgrgrgrgrb", # blue 5
+        rev("bgbrgb"), # green 13
+        rev("rbrgbrgrbr"), # green 5
+        "gbgbrb",  # homology cycle
+        "rbrgbgbgbg", # homology cycle
+        #"gbgrgbgbgbgb", # another homology cycle.. not needed
+    ]
+    graph = make(hgens, rev=True)
+    assert len(graph) == 16
+
+    # make some random codes
+    count = 0
+    while count < 0:
+        hgens = []
+        for n in range(10):
+            rel = []
+            #for m in range(randint(8, 12)):
+            for m in range(16):
+                rel.append(choice('rgb'))
+            hgens.append(tuple(rel))
+        graph = make(hgens)
+        N = len(graph)
+        if N<5:
+            continue
+        elif N<1000:
+            print(len(graph), end=" ", flush=True)
+        else:
+            print(".", end="", flush=True)
+        count += 1
+    print()
+
+    # Klein Quartic
+    red, green, blue = r, g, b
+    a = (green, blue)
+    b = (blue, red)
+    bi = (red, blue)
+    klein = rels + [a*3, b*7, (a+b)*2, (a+bi+bi)*4]
+    print(klein)
+    #graph = Schreier(ngens, rels + [a*3, b*7, (a+b)*2, (a+bi*2)*4])
+    graph = Schreier(ngens, klein)
+    graph.build()
+    assert len(graph) == 168*2
+
 
 
 if __name__ == "__main__":
 
     start_time = time()
 
-    test()
-    test_real_pauli()
+    #test()
+    #test_real_pauli()
     #render_1()
     #render_2()
-
     #main()
+
+    test_dessins()
 
     t = time() - start_time
     print("finished in %.3f seconds"%t)

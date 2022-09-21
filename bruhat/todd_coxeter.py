@@ -61,6 +61,7 @@ class Schreier(object):
 
         for rel in rels:
             for gen in rel:
+                assert type(gen) is int, repr(gen)
                 assert 0 <= gen < ngens, repr(rel)
 
         #The labels variable is a list of _numbers, with the property
@@ -253,8 +254,8 @@ class Schreier(object):
                     self.dump()
             to_visit += 1
             if maxsize and len(neighbors) > maxsize:
-                return False
-        return True
+                return None
+        return self
         
     #    It creates the start vertex, adds all of the relations
     #    for H as relators at this basepoint, and then for each
@@ -447,7 +448,7 @@ def test():
     graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 6 # S_3
-    print(len(graph.labels))
+    #print(len(graph.labels))
     
     ngens = 3
     a, ai, b, bi, c, ci = range(2*ngens)
@@ -456,7 +457,7 @@ def test():
     graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 24 # S_4
-    print(len(graph.labels))
+    #print(len(graph.labels))
 
     ngens = 4
     a, ai, b, bi, c, ci, d, di = range(2*ngens)
@@ -465,7 +466,7 @@ def test():
     graph = Schreier(2*ngens, rels)
     graph.build()
     assert len(graph) == 1152 # F_4
-    print(len(graph.labels))
+    #print(len(graph.labels))
     
     if argv.slow:
         ngens = 4
@@ -526,12 +527,10 @@ def test():
         2, 0, 2, 0, 2, 0, 2), (0, 4, 0, 4, 0, 4, 0, 4), (2, 4,
         2, 4), (2, 0, 2, 0, 2, 0, 0, 6, 2, 0, 2, 0, 2, 0, 0,
         6, 2, 0, 2, 0, 2, 0, 0, 6)]
-    hgens = []
     graph = Schreier(ngens, rels)
     graph.build()
 
     assert len(graph) == 240
-
 
 
 def test_coxeter():
