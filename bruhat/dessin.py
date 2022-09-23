@@ -558,14 +558,12 @@ def test_dessins():
         count += 1
     print()
 
-    # Klein Quartic
+    # Klein Quartic: it's a homogeneous space
     red, green, blue = r, g, b
     a = (green, blue)
     b = (blue, red)
     bi = (red, blue)
     klein = rels + [a*3, b*7, (a+b)*2, (a+bi+bi)*4]
-    print(klein)
-    #graph = Schreier(ngens, rels + [a*3, b*7, (a+b)*2, (a+bi*2)*4])
     graph = Schreier(ngens, klein)
     graph.build()
     assert len(graph) == 168*2
