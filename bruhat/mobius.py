@@ -281,7 +281,10 @@ class Mobius(object):
         # L will send left -> 0, right -> inf
         assert abs(L(left)) < EPSILON
         # R will send L(u) -> L(v)
-        R = Mobius(L(v).imag / L(u).imag, 0., 0., 1.)
+        Lv, Lu = L(v), L(u)
+        assert Lv is not None, "v = %s"%v
+        assert Lu is not None, "u = %s"%u
+        R = Mobius(Lv.imag / Lu.imag, 0., 0., 1.)
         # The final translation:
         g = K * (~L) * R * L * (~K)
         assert abs(g(z)-w) < EPSILON

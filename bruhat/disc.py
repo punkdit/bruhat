@@ -66,6 +66,12 @@ class Geodesic(object):
 
     @classmethod
     def _construct_short(cls, z0, z1):
+
+        #print("_construct_short", z0, z1)
+        if abs(z0)>1-EPSILON:
+            z0 *= 0.999 # argh, stupid hack
+        if abs(z1)>1-EPSILON:
+            z1 *= 0.999 # argh, stupid hack
         g = Mobius.get_translate(z0, z1)
         l, r = g.fixed()
         src, tgt = l, r
@@ -113,7 +119,8 @@ class Geodesic(object):
 class CircleGeodesic(Geodesic):
     def __init__(self, z_center, radius, theta0, theta1, method=path.arc):
         self.z_center = complex(z_center)
-        assert abs(self.z_center) > 1+EPSILON, " not a geodesic "
+        #assert abs(self.z_center) > 1+EPSILON, " not a geodesic: %s "%(abs(self.z_center),)
+        assert abs(self.z_center) > 1, " not a geodesic: %s "%(abs(self.z_center),)
         self.radius = radius
         self.theta0 = theta0
         self.theta1 = theta1

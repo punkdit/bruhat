@@ -110,7 +110,7 @@ def test():
 #    def __init__(self, x, y):
 #        self.v = 
 
-def render_1():
+def render_1(radius=0.07):
 
     cvs = Canvas()
     cvs.append(Scale(5., 5.))
@@ -124,7 +124,7 @@ def render_1():
         ps[row, col] = point((col-0.25*row)*dx, row*dy)
 
     st = [grey]+st_Thick
-    circle = lambda p : cvs.fill(path.circle(*p, 0.03))
+    circle = lambda p : cvs.fill(path.circle(*p, 0.04))
 
     paths = []
     def stroke(p0, p1, rev=False): 
@@ -196,13 +196,14 @@ def render_1():
         else:
             cl = green
         p = ps[row, col]
-        pth = path.circle(*p, 0.05)
+        pth = path.circle(*p, radius)
         cvs.fill(pth, [cl])
 
     cvs.writePDFfile("dessin_1.pdf")
+    cvs.writeSVGfile("dessin_1.svg")
 
 
-def render_2():
+def render_2(radius=0.07):
 
     cvs = Canvas()
     cvs.append(Scale(5., 5.))
@@ -227,7 +228,7 @@ def render_2():
     p22 = 2*dx, 2*dy
 
     st = [grey]+st_Thick
-    circle = lambda p : cvs.fill(path.circle(*p, 0.03))
+    circle = lambda p : cvs.fill(path.circle(*p, 0.04))
 
     debug = False
     paths = []
@@ -318,15 +319,16 @@ def render_2():
         cvs.stroke(pth, st_thin)
 
     for p in [p00, p02, p11, p15, p20, p22]:
-        pth = path.circle(*p, 0.05)
+        pth = path.circle(*p, radius)
         cvs.fill(pth, [blue])
     for p in [p01, p10, p12, p14, p16, p21]:
-        pth = path.circle(*p, 0.05)
+        pth = path.circle(*p, radius)
         cvs.fill(pth, [green])
-    pth = path.circle(*p13, 0.05)
+    pth = path.circle(*p13, radius)
     cvs.fill(pth, [red])
 
     cvs.writePDFfile("dessin_2.pdf")
+    cvs.writeSVGfile("dessin_2.svg")
 
     
 def build_code_1():
@@ -576,8 +578,8 @@ if __name__ == "__main__":
 
     #test()
     #test_real_pauli()
-    #render_1()
-    #render_2()
+    render_1()
+    render_2()
     #main()
 
     test_dessins()
