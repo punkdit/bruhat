@@ -263,31 +263,40 @@ class Mobius(object):
     def get_translate(cls, z, w):
         "find Mobius translation that sends z to w"
         # First send to the upper half-plane:
+        #print("get_translate", z, "-->", w)
         K = Mobius.cayley()
         u, v = (~K)(z), (~K)(w)
+        #print("\t", u, "-->", v)
         # Now find the geodesic that goes through u and v:
-        top = v.real**2 + v.imag**2 - u.real**2 - u.imag**2
-        bot = 2*(v.real - u.real)
-        ax = top / bot
-        radius = ((u.real - ax)**2 + u.imag**2)**0.5
-        #print("ax:", ax, "radius:", radius)
-        # The left and right endpoints of the geodesic:
-        left, right = ax-radius, ax+radius
-        #disc.show_point(K(left))
-        #disc.show_point(K(right))
-        # Now send this geodesic to the +ve imaginary axis
-        L = Mobius(0., -1., 1., -right)
-        L = Mobius(1., -L(left), 0., 1.) * L
-        # L will send left -> 0, right -> inf
-        assert abs(L(left)) < EPSILON
+        if abs(v.real - u.real) < 1e-8:
+            # Now send this geodesic to the +ve imaginary axis
+            x = v.real
+            L = Mobius(1, -x, 0, 1)
+            assert abs(L(x)) < EPSILON
+        else:
+            bot = 2*(v.real - u.real)
+            top = v.real**2 + v.imag**2 - u.real**2 - u.imag**2
+            #print("%s / %s" % (top, bot))
+            ax = top / bot
+            radius = ((u.real - ax)**2 + u.imag**2)**0.5
+            #print("ax:", ax, "radius:", radius)
+            # The left and right endpoints of the geodesic:
+            left, right = ax-radius, ax+radius
+            # Now send this geodesic to the +ve imaginary axis
+            L = Mobius(0., -1., 1., -right)
+            L = Mobius(1., -L(left), 0., 1.) * L
+            # L will send left -> 0, right -> inf
+            assert abs(L(left)) < EPSILON
         # R will send L(u) -> L(v)
         Lv, Lu = L(v), L(u)
         assert Lv is not None, "v = %s"%v
         assert Lu is not None, "u = %s"%u
+        #print("\t", Lu, Lv)
         R = Mobius(Lv.imag / Lu.imag, 0., 0., 1.)
+        #print("\t\t", R(Lu))
         # The final translation:
         g = K * (~L) * R * L * (~K)
-        assert abs(g(z)-w) < EPSILON
+        assert abs(g(z)-w) < EPSILON, "g(z)=%s"%(g(z),)
         return g
 
 SL = lambda a, b, c : Mobius(a, b, c, (b*c+1)/a)

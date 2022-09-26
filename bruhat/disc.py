@@ -69,10 +69,14 @@ class Geodesic(object):
 
         #print("_construct_short", z0, z1)
         if abs(z0)>1-EPSILON:
-            z0 *= 0.999 # argh, stupid hack
-        if abs(z1)>1-EPSILON:
-            z1 *= 0.999 # argh, stupid hack
-        g = Mobius.get_translate(z0, z1)
+            #z0 *= 0.999 # argh, stupid hack
+            g = Mobius.get_translate(0.999*z0, z1)
+        elif abs(z1)>1-EPSILON:
+            #z1 *= 0.999 # argh, stupid hack
+            g = Mobius.get_translate(z0, 0.999*z1)
+        else:
+            g = Mobius.get_translate(z0, z1)
+
         l, r = g.fixed()
         src, tgt = l, r
 
@@ -99,8 +103,8 @@ class Geodesic(object):
             idx = 1-idx
 
         gamma = CircleGeodesic(z_center, radius, theta0, theta1, meths[idx])
-        assert abs(gamma.z0 - z0) < EPSILON, (gamma.z0, z0)
-        assert abs(gamma.z1 - z1) < EPSILON, (gamma.z1, z1)
+        assert abs(gamma.z0 - z0) < 1e-4, (gamma.z0, z0)
+        assert abs(gamma.z1 - z1) < 1e-4, (gamma.z1, z1)
 
         return gamma
 
