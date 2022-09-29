@@ -956,6 +956,11 @@ class ModuloElement(GenericElement):
         value = self.value(v.value)
         value = self.tp.promote(value)
         return value
+
+    def reduce(a, b):
+        return 0, b
+        assert 0, (a, b)
+        return None
         
 
 
@@ -1806,6 +1811,21 @@ def test():
         assert (2+i)*(2-i)/5 == 1
         assert (3+2*i)*(3-2*i)/13 == 1
 
+    # -------------------------
+
+    ring = PolynomialRing(Z)
+    x = ring.x
+    R = ring / (x**2 + 1)
+
+    one = R.one
+    i = R.x
+
+    S = ModuloRing(R, one+2*i)
+    one = S.one
+    i = S.x
+    #assert one+2*i == 0
+
+    # See: number_ring.py
 
 
 if __name__ == "__main__":

@@ -296,7 +296,7 @@ class Disc(object):
 #
 
 
-def main_bring():
+def main_bring_1():
     # build the rotation group generators
     a, b = [g.todisc() for g in mktriangle(5, 2, 5)]
     
@@ -324,9 +324,29 @@ def main_bring():
         edges.append(g(z_edge))
         verts.append(g(z_vert))
 
-    for g in G:
-        disc.show_geodesic(g(z_vert), g(z_edge), attrs=st_round)
+    def key1(z):
+        s = "(%.6f,%.6f)"%(z.real, z.imag)
+        s = s.replace("-0.000", "0.000")
+        return s
+    def key(item):
+        a, b = item
+        k = [key1(a), key1(b)]
+        return k[0]+k[1]
+    
+    def quantize(items):
+        items = dict((key(item), item) for item in items)
+        return list(items.values())
+
+    items = [(g(z_vert), g(z_edge)) for g in G]
+    print(len(items))
+    items = quantize(items)
+    print(len(items))
+
+#    for g in G:
+#        disc.show_geodesic(g(z_vert), g(z_edge), attrs=st_round)
 #        break
+    for item in items:
+        disc.show_geodesic(*item, attrs=st_round)
 
     #disc.show_polygon([z_face, z_edge, z_vert], st_fill=[grey])
     #disc.show_point(z_vert, radius=0.1)
@@ -346,7 +366,9 @@ def main_bring():
 #        #disc.show_point(g(0))
 #        z1, z2 = z2, a(z2)
 
-    for z in edges:
+    #for z in edges:
+    #    disc.show_qubit(z)
+    for z in verts:
         disc.show_qubit(z)
 
     #for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
@@ -411,7 +433,7 @@ def main_bring():
         #disc.show_point(z1, [red], radius=0.02)
 
     disc.fini()
-    disc.save("brings-curve")
+    disc.save("brings-curve-1")
     
 
 def main():
@@ -449,12 +471,13 @@ def main():
 
 def main_poincare():
 
+    scale = argv.get("scale", 1.)
     for (l, m, n, maxsize) in [(5,2,5,8000), (5,2,4,12000)]:
 
         # build the rotation group generators
         a, b = [g.todisc() for g in mktriangle(l, m, n)]
         
-        cvs = Canvas()
+        cvs = Canvas([Scale(scale)])
         if n==4:
             cvs.append(Rotate(pi))
         disc = Disc(cvs)
@@ -827,7 +850,7 @@ def main_bring():
     #show_faces()
     show_bring()
     
-    disc.show_tiles(G)
+    disc.show_tiles(G) # broken XXX
     
     p = path.circle(0, 0, 1)
     cvs.clip(p)

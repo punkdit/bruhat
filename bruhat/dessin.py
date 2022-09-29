@@ -10,8 +10,9 @@ from functools import reduce
 from operator import matmul
 
 from bruhat.solve import array2, shortstr, dot2, linear_independent
-from bruhat.action import Perm, Group, Coset, mulclose, close_hom
+from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
 from bruhat.todd_coxeter import Schreier
+from bruhat.argv import argv
 
 from huygens.namespace import *
 from huygens.pov import Mat
@@ -571,6 +572,160 @@ def test_dessins():
     assert len(graph) == 168*2
 
 
+    # Bring's curve 
+    ngens = 3
+    a, b, c = range(ngens)
+    rels = [
+        (a,a), (b,b), (c,c),
+        (a,b)*5, (b,c)*5, (a,c)*2,
+        (3*(b,a)+(a,c))*3,
+    ]
+    graph = Schreier(ngens, rels)
+    graph.build()
+    assert len(graph) == 120
+
+    graph = Schreier(ngens, rels)
+    #graph.build([(a,b,a,b)]) # index 5 subgroup
+    #graph.build([(a,b,c,b)]) # index 3
+    graph.build([(a,b,c,a)]) # index 3
+    n = len(graph)
+    print("|G/H| =", n)
+    gens = graph.get_gens()
+
+    f = open("schreier.dot", "w")
+    import string, os
+    labels = string.ascii_lowercase
+    if len(labels) < n:
+        labels = []
+        i = 0
+        while len(labels) < n:
+            for c in string.ascii_lowercase:
+                labels.append("%s%d"%(c,i))
+            i += 1
+    print("graph\n{\n", file=f)
+    cls = "green blue red".split()
+    for k in range(3):
+        gen = gens[k]
+        for i in gen.items:
+            if i <= gen(i):
+                print("    %s -- %s [color=%s];" % (
+                    labels[i], labels[gen(i)], cls[k]), file=f)
+    print("}\n", file=f)
+    f.close()
+
+    os.system("neato -Tpdf schreier.dot > schreier.pdf")
+    #data = os.popen("dot -Tpdf schreier.dot").read()
+    #print("data:", data)
+    #open("schreier.pdf", "w").write(data)
+
+
+def build_group(idx=0, halve=False):
+    # start with hyperbolic Coxeter reflection group: a--5--b--5--c
+    # Then we add another generator "d" that halves these triangles.
+
+    ngens = 3
+    a, b, c, = range(ngens)
+    rels_552 = [
+        (a,)*2, (b,)*2, (c,)*2,
+        (a,b)*5, (b,c)*5, (a,c)*2,
+    ]
+
+    if halve:
+        d = ngens
+        ngens += 1
+        rels_552 += [ (d,)*2, (c,d,a,d), (a,d)*4, (b,d)*2, (d,c)*4, ]
+        # Now we get:
+        # d--4--a--5--b or,
+        # b--5--c--4--d
+        # where a equals c.
+
+    rels = [
+        (0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1),
+        (0, 1, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 2, 0, 1,
+            0, 2, 0, 1),
+        (1, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 1, 0, 2, 1, 2, 0, 1,
+            0, 1, 0, 1, 0, 2),
+        (0, 1, 0, 1, 0, 1, 0, 2, 0, 1, 0, 2, 1, 2, 1, 2, 0, 1,
+            0, 2, 1, 2, 0, 2, 1, 2, 0, 2, 1, 2, 0, 1, 0, 2, 0, 1,
+            0, 2, 1, 2, 0, 2, 1, 2),
+        (0, 1, 0, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 1, 0, 2, 0, 1,
+            0, 2, 1, 2, 1, 2, 1, 2),
+        (1, 2, 0, 2, 1, 2, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 1, 2,
+            0, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 1),
+        (1, 2, 1, 2, 0, 1, 0, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 2,
+            1, 2, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1,
+            0, 1, 0, 2, 1, 2, 0, 2, 1, 2, 0, 1, 0, 1, 0, 1),
+    ]
+
+    for rel in rels:
+        assert len(rel)%2 == 0
+
+    rel = rels[idx]
+    graph = Schreier(ngens, rels_552 + [rel])
+    graph.build()
+    G = graph.get_group()
+    return G
+
+def build_group_524():
+    ngens = 3
+    a, b, c, = range(ngens)
+    rels_524 = [
+        (a,)*2, (b,)*2, (c,)*2,
+        (a,b)*5, (b,c)*4, (a,c)*2,
+    ]
+
+    while 1:
+        rel = tuple(randint(0, ngens-1) for i in range(30))
+        graph = Schreier(ngens, rels_524 + [rel])
+        graph.build(maxsize=10000)
+        n = len(graph)
+        if n > 300:
+            print(".", end="", flush=True)
+        elif n > 20:
+            print(rel)
+            print(n)
+    
+
+
+def make_hyperbolic():
+
+    G = build_group_524()
+    return
+
+    G = build_group(2)
+    H = build_group(1)
+    print("|G| =", len(G))
+    print("|G.gens| =", len(G.gens))
+    #a, b, c, d = G.gens
+
+    count = 0
+    for g in G:
+        if g.order() != 2:
+            continue
+        for h in G:
+            if g*h != h*g:
+                break
+        else:
+            print(g)
+            print()
+            count += 1
+    print(count)
+
+    hom = dict(zip(G.gens, H.gens))
+    hom = close_hom(hom)
+    #assert is_hom(hom)
+
+    kernel = []
+    for g,h in hom.items():
+        if h.is_identity():
+            kernel.append(g)
+    print(len(kernel))
+    for g in kernel:
+        if not g.is_identity():
+            print(g)
+        else:
+            print("is_identity")
+
 
 if __name__ == "__main__":
 
@@ -578,11 +733,11 @@ if __name__ == "__main__":
 
     #test()
     #test_real_pauli()
-    render_1()
-    render_2()
+    #render_1()
+    #render_2()
     #main()
-
-    test_dessins()
+    #test_dessins()
+    make_hyperbolic()
 
     t = time() - start_time
     print("finished in %.3f seconds"%t)

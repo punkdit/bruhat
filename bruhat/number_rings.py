@@ -18,7 +18,7 @@ from functools import total_ordering
 from bruhat.gset import Perm, Group
 from bruhat.element import GenericElement, Ring
 from bruhat.lin import Space, Lin
-from argv import argv
+from bruhat.argv import argv
 
 
 
@@ -732,11 +732,40 @@ def test_gaussian():
             break
 
 
+def test_galois():
+
+    # ----------------------------
+
+    for (a, b) in [(1,-1), (2,-1), (3,1), (1,4), (6,0)]:
+        R = NumberRing((-1, 0))
+        v = a+b*R.i
+        print("S = Z[i]/<%s>"%(v,))
+        I = Ideal(R, v)
+        S = R/I
+    
+        zero, one, i = S.zero, S.one, S.i
+    
+        print("|S| =", len(S.items))
+        
+        gl_1 = set()
+        for a in S.items:
+          for b in S.items:
+            if a*b == one:
+                gl_1.add(a)
+                gl_1.add(b)
+        print("|GL(1,S)| =", len(gl_1))
+        #for u in gl_1:
+        #    print(u)
+
+        print()
+
 
 if __name__ == "__main__":
 
-    main()
-    test_gaussian()
+    #main()
+    #test_gaussian()
+    test_galois()
 
 
+    print("OK\n")
 
