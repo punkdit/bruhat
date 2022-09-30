@@ -4,15 +4,20 @@ build dessins d'enfants & their homology (CSS quantum codes),
 and draw some pictures..
 """
 
+import string, os
 from random import randint, choice
 from time import sleep, time
 from functools import reduce
 from operator import matmul
 
+import numpy
+from numpy import alltrue, zeros, dot
+
 from bruhat.solve import array2, shortstr, dot2, linear_independent
 from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
 from bruhat.todd_coxeter import Schreier
 from bruhat.argv import argv
+from bruhat.solve import shortstr, zeros2, dot2, array2, solve
 
 from huygens.namespace import *
 from huygens.pov import Mat
@@ -590,10 +595,13 @@ def test_dessins():
     graph.build([(a,b,c,a)]) # index 3
     n = len(graph)
     print("|G/H| =", n)
+
+
+def make_dot(graph, cmd="neato"):
+    n = len(graph)
     gens = graph.get_gens()
 
     f = open("schreier.dot", "w")
-    import string, os
     labels = string.ascii_lowercase
     if len(labels) < n:
         labels = []
@@ -603,7 +611,8 @@ def test_dessins():
                 labels.append("%s%d"%(c,i))
             i += 1
     print("graph\n{\n", file=f)
-    cls = "green blue red".split()
+    #cls = "green blue red".split()
+    cls = "red blue green".split()
     for k in range(3):
         gen = gens[k]
         for i in gen.items:
@@ -613,7 +622,7 @@ def test_dessins():
     print("}\n", file=f)
     f.close()
 
-    os.system("neato -Tpdf schreier.dot > schreier.pdf")
+    os.system("%s -Tpdf schreier.dot > schreier.pdf" % cmd)
     #data = os.popen("dot -Tpdf schreier.dot").read()
     #print("data:", data)
     #open("schreier.pdf", "w").write(data)
@@ -666,6 +675,25 @@ def build_group(idx=0, halve=False):
     G = graph.get_group()
     return G
 
+gap = """
+LoadPackage("recog");
+LoadPackage("LINS");
+F := FreeGroup("a", "b", "c");;
+AssignGeneratorVariables(F);;
+G := F/[a^2,b^2,c^2,(a*b)^5,(a*c)^2,(b*c)^4];;
+gr:=LowIndexNormalSubgroupsSearchForAll(G, 600);
+L := List(gr);
+S := Grp(L[9]);
+GeneratorsOfGroup(S);
+"""
+
+def parse(s, a, b, c):
+    s = s.replace("^-1", "")
+    s = s.replace("*", "+")
+    s = s.replace("^", "*")
+    s = s.replace(" ", "")
+    return eval(s)
+
 def build_group_524():
     ngens = 3
     a, b, c, = range(ngens)
@@ -674,16 +702,194 @@ def build_group_524():
         (a,b)*5, (b,c)*4, (a,c)*2,
     ]
 
-    while 1:
-        rel = tuple(randint(0, ngens-1) for i in range(30))
-        graph = Schreier(ngens, rels_524 + [rel])
-        graph.build(maxsize=10000)
-        n = len(graph)
-        if n > 300:
-            print(".", end="", flush=True)
-        elif n > 20:
-            print(rel)
-            print(n)
+    a, b, c = (a,), (b,), (c,)
+
+    relss = []
+
+    # order 160, non-checkerboard
+    rels = [ 
+        a+(b+a+c)*2+b+(c+a+b)*2+c, (a+c+b)*2+a+c+(b+c+a)*2+b, 
+        (b+c+b+a)*2+(b+c+b+a)*2, (c+b+a+b)*2+(c+b+a+b)*2, 
+        b+a+(b+a+c)*2+b+(c+a+b)*2+c+b, b+c+(b+a)*2+c+b+a+c+b+c+(a+b)*2+c,
+    ]
+    assert rels == parse("""
+    [ a*(b*a*c)^2*b*(c^-1*a^-1*b^-1)^2*c^-1, (a*c*b)^2*a*c*(b^-1*c^-1*a^-1)^2*b^-1,
+    (b*c*b*a)^2*(b^-1*c^-1*b^-1*a^-1)^2, (c*b*a*b)^2*(c^-1*b^-1*a^-1*b^-1)^2,
+    b*a*(b*a*c)^2*b*(c^-1*a^-1*b^-1)^2*c^-1*b^-1,
+    b*c*(b*a)^2*c*b*a*c^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1 ]
+    """, a, b, c)
+    relss.append(rels)
+
+    # order 240, checkerboard, [[30,8,3]] Bring's curve
+    relss.append(parse("""
+    [ (b*a*c)^3*(b^-1*c^-1*a^-1)^3, (c*b*a)^3*c^-1*(b^-1*c^-1*a^-1)^2*b^-1*a^-1, 
+    ((b*a)^2*c)^2*(b^-1*a^-1*b^-1*c^-1*a^-1)^2, 
+    b*a*b*c*(b*a)^2*c*b*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*b^-1*a^-1, 
+    (b*a*c*b*a)^2*(b^-1*c^-1*a^-1*b^-1*a^-1)^2, 
+    b*c*(b*a)^2*c*b*a*b*c^-1*(a^-1*b^-1)^2*c^-1*(b^-1*a^-1)^2, 
+    b*(c*b*a)^3*c^-1*(b^-1*c^-1*a^-1)^2*b^-1*a^-1*b^-1, 
+    a*b*(c*b*a)^3*c^-1*(b^-1*c^-1*a^-1)^2*(b^-1*a^-1)^2 ]
+    """, a, b, c))
+
+    idx = argv.get("idx", 0)
+    graph = Schreier(ngens, rels_524 + relss[idx])
+    graph.build(maxsize=100000)
+    n = len(graph)
+    print(n)
+
+    if argv.dot:
+        graph = Schreier(ngens, rels_524 + relss[idx])
+        #graph.build([b+c+b+c]) # halve a vert
+        graph.build([a+c]) # halve an edge
+        make_dot(graph, "neato")
+        return
+
+    G = graph.get_group()
+    a, b, c = G.gens
+    red, blue, green = G.gens
+
+#    count = 0
+#    for g in G:
+#        if g.order() == 2:
+#            count += 1
+#    print("order 2 elements:", count)
+
+    if 0:
+        assert g.order() == 2
+        H = [g, g*g]
+        pairs = G.left_cosets(H)
+
+
+    def get_adj(left, right):
+        A = zeros2((len(left), len(right)))
+        for i, l in enumerate(left):
+          for j, r in enumerate(right):
+            lr = l.intersection(r)
+            A[i, j] = len(lr)>0
+        return A
+
+    g = blue*green*blue*green # divide a vert in half
+    #g = red*green # divide an edge in half
+    assert g.order() == 2
+    H = Group.generate([g, g*g])
+    #pairs = G.left_cosets(H)
+    act = G.action_subgroup(H)
+    faces = act.orbits(Group.generate([blue, red]))
+    print("faces:", len(faces))
+    print([len(f) for f in faces])
+    edges = act.orbits(Group.generate([green, red]))
+    print("edges:", len(edges))
+    print([len(f) for f in edges])
+    verts = act.orbits(Group.generate([green, blue]))
+    print("verts:", len(verts))
+    print([len(f) for f in verts])
+
+    def canonical(items):
+        items = list(items)
+        items.sort(key=str)
+        return items
+
+    faces = canonical(faces)
+    edges = canonical(edges)
+    verts = canonical(verts)
+
+    A = get_adj(faces, edges)
+    B = get_adj(verts, edges)
+
+    AA = dot(A, A.transpose())
+    BB = dot(B, B.transpose())
+    print(BB.shape)
+    print(BB)
+
+    labels = string.ascii_lowercase
+
+    def show_incident(A):
+        print("graph")
+        print("{")
+        for (i,j) in numpy.ndindex(A.shape):
+            if A[i,j] and i<j:
+                print("\t", labels[i], "--", labels[j], ";")
+        print("}")
+    #print("face -- edge")
+    #print("vert -- edge")
+
+    #show_incident(AA)
+    show_incident(BB)
+
+    assert dot2(A, B.transpose()).sum() == 0
+    Hx, Hz = A, B
+    Hx = linear_independent(Hx)
+    Hz = linear_independent(Hz)
+    print(Hx.shape)
+    print(Hz.shape)
+
+    return
+
+    # checkerboard subgroup
+    H = mulclose([red, blue, blue*green*blue*green])
+    is_checkerboard = 2*len(H)==len(G)
+    print("is_checkerboard:", is_checkerboard)
+    checkerboard = G.left_cosets(H)
+
+    if 1:
+        # orientation subgroup
+        L = Group.generate([red*blue, blue*green])
+        print("L:", len(L))
+        orients = G.left_cosets(L)
+        is_orientable = len(orients) == 2
+        print("is_orientable:", is_orientable)
+        orients = list(orients)
+
+    # vert'ex subgroup
+    H = mulclose([blue, green])
+    verts = G.left_cosets(H)
+    print("verts:", len(verts))
+    n = len(verts) # qubits
+
+    # face subgroup
+    H = mulclose([red, blue])
+    assert len(H) == 10
+    faces = G.left_cosets(H)
+    print("faces:", len(faces))
+
+    # edge subgroup
+    H = mulclose([green, red])
+    assert len(H) == 4
+    edges = G.left_cosets(H)
+    print("edges:", len(edges))
+
+    if not is_checkerboard:
+        return
+
+    mx = len(faces)//2 - 1
+    mz = len(faces)//2 - 1
+    print("k =", n-mx-mz)
+
+#    for face in faces:
+#        print(face)
+#        for black in checkerboard:
+#            print('\t', face.intersect(black))
+
+
+    Hx = zeros2(mx, n)
+    Hz = zeros2(mz, n)
+    ix = iz = 0
+    black, white = checkerboard
+    black, white = [], []
+    for face in faces:
+        if face.intersect(checkerboard[0]):
+            black.append(face)
+        else:
+            white.append(face)
+
+    Hx = get_adj(black, verts)
+    Hz = get_adj(white, verts)
+    print(shortstr(Hx))
+    print()
+    print(shortstr(Hz))
+    assert dot2(Hx, Hz.transpose()).sum() == 0
+
+    
     
 
 

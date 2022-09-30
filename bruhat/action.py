@@ -1094,6 +1094,7 @@ class Coset(Group):
         assert self.items == other.items
         perms = self.set_perms.intersection(other.set_perms)
         return Coset(perms, self.items)
+    intersection = intersect
 
 
 
@@ -1208,11 +1209,12 @@ class Action(object):
                     marked.remove((ii, jj))
             yield H
 
-    def orbits(self):
+    def orbits(self, G=None):
         #print "orbits"
         #print self.perms
         #print self.items
-        G = self.G
+        if G is None:
+            G = self.G
         send_perms = self.send_perms
         remain = set(self.items)
         orbits = []
