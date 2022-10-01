@@ -768,8 +768,8 @@ def build_group_524():
             A[i, j] = len(lr)>0
         return A
 
-    g = blue*green*blue*green # divide a vert in half
-    #g = red*green # divide an edge in half
+    #g = blue*green*blue*green # divide a vert in half
+    g = red*green # divide an edge in half
     assert g.order() == 2
     H = Group.generate([g, g*g])
     #pairs = G.left_cosets(H)
@@ -784,22 +784,36 @@ def build_group_524():
     print("verts:", len(verts))
     print([len(f) for f in verts])
 
-    def canonical(items):
-        items = list(items)
-        items.sort(key=str)
-        return items
-
-    faces = canonical(faces)
-    edges = canonical(edges)
-    verts = canonical(verts)
+#    def setkey(items):
+#        items = list(items)
+#        items.sort(key=str)
+#        return str(items)
+#
+#    def canonical(items):
+#        # XXX FAIL: items is a list of set's
+#        items = list(items)
+#        items.sort(key=setkey)
+#        return items
+#
+#    faces = canonical(faces)
+#    edges = canonical(edges)
+#    verts = canonical(verts)
 
     A = get_adj(faces, edges)
     B = get_adj(verts, edges)
 
     AA = dot(A, A.transpose())
     BB = dot(B, B.transpose())
-    print(BB.shape)
-    print(BB)
+
+    print("face -- face")
+    print(AA.shape)
+    print(AA)
+
+    AB = dot(A, B.transpose())
+    print("face -- vert")
+    print(AB.shape)
+    print(AB)
+
 
     labels = string.ascii_lowercase
 
@@ -810,18 +824,27 @@ def build_group_524():
             if A[i,j] and i<j:
                 print("\t", labels[i], "--", labels[j], ";")
         print("}")
-    #print("face -- edge")
     #print("vert -- edge")
 
-    #show_incident(AA)
-    show_incident(BB)
+#    print("face -- face")
+#    show_incident(AA)
+#    print("vert -- vert")
+#    show_incident(BB)
+#    print("face -- edge")
+#    show_incident(A)
 
+    from bruhat.isomorph import Tanner, search
+    U = Tanner.build2(A, B)
+    V = Tanner.build2(A, B)
+    perms = []
+    for f in search(U, V):
+        perms.append(f)
+    print("autos:", len(perms))
+    
     assert dot2(A, B.transpose()).sum() == 0
     Hx, Hz = A, B
     Hx = linear_independent(Hx)
     Hz = linear_independent(Hz)
-    print(Hx.shape)
-    print(Hz.shape)
 
     return
 
