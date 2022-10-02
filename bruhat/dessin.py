@@ -14,11 +14,12 @@ import numpy
 from numpy import alltrue, zeros, dot
 
 from bruhat.util import cross
-from bruhat.solve import array2, shortstr, dot2, linear_independent
+from qupy.ldpc.solve import (
+    array2, zeros2, shortstr, dot2, linear_independent, row_reduce, find_kernel,
+    span, intersect, rank, enum2)
 from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
 from bruhat.todd_coxeter import Schreier
 from bruhat.argv import argv
-from bruhat.solve import shortstr, zeros2, dot2, array2, solve
 from bruhat.smap import SMap
 
 from huygens.namespace import *
@@ -768,7 +769,32 @@ def build_group_624():
         a*(b*a*c)^2*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*a^-1*b^-1*a^-1,
         c*b*a*(b*a*c)^2*b*a*b*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*(a^-1*b^-1)^2 ]
     """, a, b, c)
-    relss.append(rels)
+    relss.append(rels) # [[30,11,3]]
+
+    rels = parse("""
+[ ((b*a)^2*c)^2*(b^-1*a^-1*b^-1*c^-1*a^-1)^2, (b*a*c*b*a)^2*(b^-1*c^-1*a^-1*b^-1*a^-1)^2,
+  (c*(b*a)^2)^2*c^-1*b^-1*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*a^-1,
+  (b*a)^2*b*c*(b*a)^2*c*b^-1*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*b^-1*a^-1,
+  b*a*b*c*(b*a)^2*c*b*a*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*(b^-1*a^-1)^2,
+  (b*a*b*c)^2*b*a*c*b^-1*c^-1*(a^-1*b^-1*c^-1*b^-1)^2*a^-1,
+  b*c*(b*a)^2*b*c*b*a*b*c^-1*(b^-1*c^-1*a^-1)^2*b^-1*c^-1*b^-1*a^-1,
+  b*(c*(b*a)^2)^2*(c^-1*b^-1*a^-1*b^-1)^2*a^-1*b^-1*a^-1,
+  (b*c*b*a)^2*b*a*b*c^-1*b^-1*c^-1*a^-1*b^-1*c^-1*b^-1*a^-1*b^-1*c^-1*a^-1,
+  (b*c*b*a)^2*c*b*a*c^-1*(b^-1*c^-1*b^-1*a^-1)^2*b^-1*a^-1,
+  b*(c*b*a)^2*b*c*b*a*(c^-1*b^-1)^2*(a^-1*b^-1)^2*c^-1*b^-1*a^-1,
+  c*b*a*(b*a*b*c)^2*(b^-1*c^-1*a^-1)^2*b^-1*c^-1*b^-1*a^-1*b^-1,
+  (c*b*a*b)^2*a*b*c*b^-1*c^-1*a^-1*b^-1*c^-1*b^-1*a^-1*b^-1*c^-1*a^-1*b^-1,
+  (c*b*a*b)^2*c*b*a*(c^-1*b^-1*a^-1*b^-1)^2*c^-1*b^-1*a^-1,
+  c*(b*a*c*b*a)^2*b^-1*c^-1*a^-1*b^-1*(a^-1*b^-1*c^-1)^2*a^-1,
+  c*b*a*(c*b*a*b)^2*c^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*b^-1*a^-1*b^-1,
+  a*c*b*a*(b*a*b*c)^2*(b^-1*c^-1*a^-1)^2*b^-1*c^-1*(b^-1*a^-1)^2,
+  (b*a*c)^2*b*a*b*c*b*a*(b^-1*c^-1*a^-1)^2*b^-1*a^-1*b^-1*c^-1*b^-1*a^-1,
+  b*c*b*a*(b*a*c)^2*b*a*b^-1*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*a^-1*b^-1*a^-1,
+  c*b*a*(b*a*c)^2*b*a*b*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*(a^-1*b^-1)^2,
+  (c*b*a)^3*b*a*c*b^-1*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*a^-1*b^-1,
+  a*c*b*a*(b*a*c)^2*b*a*b*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*(a^-1*b^-1)^2*a^-1 ]
+    """, a, b, c)
+    relss.append(rels) # [[30,11,3]]
 
     idx = argv.get("idx", 0)
     graph = Schreier(ngens, rels_624 + relss[idx])
@@ -790,6 +816,13 @@ class QCode(object):
         self.shape = m, n
         self.check()
 
+    @property
+    def flatH(self):
+        H = self.H.view()
+        m, n = self.shape
+        H.shape = m, 2*n
+        return H
+
     def check(self):
         H = self.H
         m, n = self.shape
@@ -797,7 +830,18 @@ class QCode(object):
         J[:, :, :] = J[:, :, [1,0]]
         H = H.view()
         H.shape = J.shape = (m, 2*n)
-        assert dot2(H, J.transpose()).sum() == 0, "not symplectic"
+        HJt = dot2(H, J.transpose())
+        if HJt.sum() == 0:
+            return
+        print("not symplectic:")
+        print(self)
+        print(HJt)
+        assert 0
+
+    def dual(self):
+        D = array2([[0,1],[1,0]])
+        H = dot(self.H, D) % 2
+        return QCode(H)
 
     def apply(self, idx, gate):
         H = self.H.copy()
@@ -818,6 +862,78 @@ class QCode(object):
         # X-->Z-->Y-->X 
         SH = array2([[0,1],[1,1]])
         return self.apply(idx, SH)
+
+    def row_reduce(self):
+        H = self.H.copy()
+        m, n = self.shape
+        H.shape = m, 2*n
+        H = row_reduce(H)
+        m, nn = H.shape
+        H.shape = m, nn//2, 2
+        return QCode(H)
+
+    def get_logops(self):
+        self = self.row_reduce()
+        m, n = self.shape
+        nn = 2*n
+        H = self.flatH
+        #print(shortstr(H))
+        pivots = []
+        row = col = 0
+        while row < m:
+            while col < nn and H[row, col] == 0:
+                #print(row, col, H[row, col])
+                pivots.append(col)
+                col += 1
+            row += 1
+            col += 1
+        while col < nn:
+            pivots.append(col)
+            col += 1
+        #print(len(pivots))
+        #s = ['.']*nn
+        #for i in pivots:
+        #    s[i] = "*"
+        #print(''.join(s))
+        #print(pivots)
+        W = zeros2(len(pivots), nn)
+        for i, ii in enumerate(pivots):
+            W[i, ii] = 1
+        #print()
+        #print(shortstr(W))
+        Ht = self.dual().flatH
+        K = find_kernel(Ht)
+        L = intersect(W, K)
+        #print("L")
+        #print(shortstr(L))
+        kk = len(L)
+        assert kk%2 == 0
+        k = kk//2
+        assert dot2(Ht, L.transpose()).sum() == 0 # commutes w stabilizers
+        HL = numpy.concatenate((H, L))
+        assert rank(HL) == m + 2*k # linearly independant
+        return L
+
+    def get_params(self):
+        L = self.get_logops()
+        kk = len(L)
+        print("get_params: k=", kk//2)
+        if kk > 22:
+            return self.n, kk//2, None
+        #Lt = L.transpose()
+        #print("L:", L.shape)
+        d = self.n
+        #for v in span(L):
+        #for v in enum2(kk):
+        for v in numpy.ndindex((2,)*kk):
+            v = dot2(v, L)
+            count = 0
+            for i in range(self.n):
+              if v[2*i] or v[2*i+1]:
+                count += 1
+            if count:
+                d = min(count, d)
+        return self.n, kk//2, d
 
     def __str__(self):
         smap = SMap()
@@ -902,7 +1018,7 @@ def find_code(H):
     # commuting stabilizers
     for i0 in range(m):
       for i1 in range(i0+1, m):
-        bits = [j for j in range(n) if H[i0,j]==H[i1,j]>0]
+        bits = [j for j in range(n) if H[i0,j]>0 and H[i1,j]>0]
         if not bits:
             continue
         #print(bits)
@@ -921,6 +1037,7 @@ def find_code(H):
                 clause.append(X1 if bits1[j][0] else Not(X1))
                 clause.append(Z1 if bits1[j][1] else Not(Z1))
             clause = Not(And(*clause)) # not allowed
+            #print(str(clause).replace(" ", "").replace("\n", ""))
             solver.add(clause)
 
     result = solver.check()
@@ -930,40 +1047,16 @@ def find_code(H):
 
     H = zeros2(m, n, 2)
     model = solver.model()
-    for key, XZ in vs.items():
-        X, Z = XZ
+    for (i, j), (X, Z) in vs.items():
         X = model.evaluate(X)
         Z = model.evaluate(Z)
         assert X or Z
-        i, j = key
         if X:
             H[i, j, 0] = 1
         if Z:
             H[i, j, 1] = 1
     code = QCode(H)
     return code
-
-    H = numpy.empty((m, n), dtype=object)
-    H[:] = '.'
-    model = solver.model()
-    for key, XZ in vs.items():
-        #for v in XZ:
-            #print(v, model.evaluate(v))
-        X, Z = XZ
-        X = model.evaluate(X)
-        Z = model.evaluate(Z)
-        assert X or Z
-        if X and Z:
-            H[key] = 'Y'
-        elif X:
-            H[key] = 'X'
-        elif Z:
-            H[key] = 'Z'
-
-    print("H =", H.shape)
-    H = ("\n".join(''.join(row) for row in H))
-    print(H)
-    return H
 
 
 def test_surface():
@@ -1060,11 +1153,13 @@ def test_surface():
 
     if argv.find_code:
         code = find_code(AB)
+        if code is None:
+            return
         print(code)
-        code = code.apply_S(0)
-        print()
-        print(code)
-        print(code.shortstr())
+        n,k,d = code.get_params()
+        print("[[%s,%s,%s]]"%(n,k,d))
+        if d is None:
+            print(shortstr(code.get_logops()))
         return
 
     labels = string.ascii_lowercase
