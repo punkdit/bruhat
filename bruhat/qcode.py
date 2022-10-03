@@ -20,211 +20,7 @@ from bruhat.todd_coxeter import Schreier
 from bruhat.argv import argv
 from bruhat.smap import SMap
 
-
-def make_dot(graph, cmd="neato"):
-    n = len(graph)
-    gens = graph.get_gens()
-
-    f = open("schreier.dot", "w")
-    labels = string.ascii_lowercase
-    if len(labels) < n:
-        labels = []
-        i = 0
-        while len(labels) < n:
-            for c in string.ascii_lowercase:
-                labels.append("%s%d"%(c,i))
-            i += 1
-    print("graph\n{\n", file=f)
-    #cls = "green blue red".split()
-    cls = "red blue green".split()
-    for k in range(3):
-        gen = gens[k]
-        for i in gen.items:
-            if i <= gen(i):
-                print("    %s -- %s [color=%s];" % (
-                    labels[i], labels[gen(i)], cls[k]), file=f)
-    print("}\n", file=f)
-    f.close()
-
-    os.system("%s -Tpdf schreier.dot > schreier.pdf" % cmd)
-    #data = os.popen("dot -Tpdf schreier.dot").read()
-    #print("data:", data)
-    #open("schreier.pdf", "w").write(data)
-
-
-
-def build_group(idx=0, halve=False):
-    # start with hyperbolic Coxeter reflection group: a--5--b--5--c
-    # Then we add another generator "d" that halves these triangles.
-
-    ngens = 3
-    a, b, c, = range(ngens)
-    rels_552 = [
-        (a,)*2, (b,)*2, (c,)*2,
-        (a,b)*5, (b,c)*5, (a,c)*2,
-    ]
-
-    if halve:
-        d = ngens
-        ngens += 1
-        rels_552 += [ (d,)*2, (c,d,a,d), (a,d)*4, (b,d)*2, (d,c)*4, ]
-        # Now we get:
-        # d--4--a--5--b or,
-        # b--5--c--4--d
-        # where a equals c.
-
-    rels = [
-        (0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1),
-        (0, 1, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 2, 0, 1,
-            0, 2, 0, 1),
-        (1, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 1, 0, 2, 1, 2, 0, 1,
-            0, 1, 0, 1, 0, 2),
-        (0, 1, 0, 1, 0, 1, 0, 2, 0, 1, 0, 2, 1, 2, 1, 2, 0, 1,
-            0, 2, 1, 2, 0, 2, 1, 2, 0, 2, 1, 2, 0, 1, 0, 2, 0, 1,
-            0, 2, 1, 2, 0, 2, 1, 2),
-        (0, 1, 0, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 1, 0, 2, 0, 1,
-            0, 2, 1, 2, 1, 2, 1, 2),
-        (1, 2, 0, 2, 1, 2, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 1, 2,
-            0, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 1),
-        (1, 2, 1, 2, 0, 1, 0, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 2,
-            1, 2, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1,
-            0, 1, 0, 2, 1, 2, 0, 2, 1, 2, 0, 1, 0, 1, 0, 1),
-    ]
-
-    for rel in rels:
-        assert len(rel)%2 == 0
-
-    rel = rels[idx]
-    graph = Schreier(ngens, rels_552 + [rel])
-    graph.build()
-    G = graph.get_group()
-    return G
-
-gap = """
-LoadPackage("recog");
-LoadPackage("LINS");
-F := FreeGroup("a", "b", "c");;
-AssignGeneratorVariables(F);;
-G := F/[a^2,b^2,c^2,(a*b)^5,(a*c)^2,(b*c)^4];;
-gr:=LowIndexNormalSubgroupsSearchForAll(G, 600);
-L := List(gr);
-S := Grp(L[9]);
-GeneratorsOfGroup(S);
-"""
-
-def parse(s, a, b, c):
-    s = s.replace("^-1", "")
-    s = s.replace("*", "+")
-    s = s.replace("^", "*")
-    s = s.replace(" ", "")
-    return eval(s)
-
-
-def build_group_524():
-    ngens = 3
-    a, b, c, = range(ngens)
-    rels_524 = [
-        (a,)*2, (b,)*2, (c,)*2,
-        (a,b)*5, (b,c)*4, (a,c)*2,
-    ]
-    a, b, c = (a,), (b,), (c,)
-
-    relss = []
-
-    # order 160, non-checkerboard
-    rels = [ 
-        a+(b+a+c)*2+b+(c+a+b)*2+c, (a+c+b)*2+a+c+(b+c+a)*2+b, 
-        (b+c+b+a)*2+(b+c+b+a)*2, (c+b+a+b)*2+(c+b+a+b)*2, 
-        b+a+(b+a+c)*2+b+(c+a+b)*2+c+b, b+c+(b+a)*2+c+b+a+c+b+c+(a+b)*2+c,
-    ]
-    assert rels == parse("""
-    [ a*(b*a*c)^2*b*(c^-1*a^-1*b^-1)^2*c^-1, (a*c*b)^2*a*c*(b^-1*c^-1*a^-1)^2*b^-1,
-    (b*c*b*a)^2*(b^-1*c^-1*b^-1*a^-1)^2, (c*b*a*b)^2*(c^-1*b^-1*a^-1*b^-1)^2,
-    b*a*(b*a*c)^2*b*(c^-1*a^-1*b^-1)^2*c^-1*b^-1,
-    b*c*(b*a)^2*c*b*a*c^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1 ]
-    """, a, b, c)
-    relss.append(rels)
-
-    # order 240, checkerboard, [[30,8,3]] Bring's curve
-    relss.append(parse("""
-    [ (b*a*c)^3*(b^-1*c^-1*a^-1)^3, (c*b*a)^3*c^-1*(b^-1*c^-1*a^-1)^2*b^-1*a^-1, 
-    ((b*a)^2*c)^2*(b^-1*a^-1*b^-1*c^-1*a^-1)^2, 
-    b*a*b*c*(b*a)^2*c*b*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*b^-1*a^-1, 
-    (b*a*c*b*a)^2*(b^-1*c^-1*a^-1*b^-1*a^-1)^2, 
-    b*c*(b*a)^2*c*b*a*b*c^-1*(a^-1*b^-1)^2*c^-1*(b^-1*a^-1)^2, 
-    b*(c*b*a)^3*c^-1*(b^-1*c^-1*a^-1)^2*b^-1*a^-1*b^-1, 
-    a*b*(c*b*a)^3*c^-1*(b^-1*c^-1*a^-1)^2*(b^-1*a^-1)^2 ]
-    """, a, b, c))
-
-    idx = argv.get("idx", 0)
-    graph = Schreier(ngens, rels_524 + relss[idx])
-    graph.build(maxsize=100000)
-    n = len(graph)
-    print("|G| =", n)
-    G = graph.get_group()
-    return G
-
-
-def build_group_624():
-    ngens = 3
-    a, b, c, = range(ngens)
-    rels_624 = [
-        (a,)*2, (b,)*2, (c,)*2,
-        (a,b)*6, (b,c)*4, (a,c)*2,
-    ]
-    a, b, c = (a,), (b,), (c,)
-
-    relss = []
-
-    rels = parse("""
-        [b*c*b*a*b*c*b^-1*a^-1*b^-1*c^-1*b^-1*a^-1, 
-        c*b*a*b*c*b*a^-1*b^-1*c^-1*b^-1*a^-1*b^-1,
-        a*c*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2, 
-        b*a*c*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1,
-        a*b*a*c*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^3,
-        (b*a)^2*c*b*a*b*c*b^-1*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*a^-1,
-        (c*b*a)^2*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1,
-        (a*c*b)^2*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*a^-1,
-        b*(c*b*a)^2*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*b^-1,
-        (b*a*c)^2*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*a^-1*b^-1,
-        a*(b*a*c)^2*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*a^-1*b^-1*a^-1,
-        c*b*a*(b*a*c)^2*b*a*b*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*(a^-1*b^-1)^2 ]
-    """, a, b, c)
-    relss.append(rels) # [[30,11,3]]
-
-    rels = parse("""
-[ ((b*a)^2*c)^2*(b^-1*a^-1*b^-1*c^-1*a^-1)^2, (b*a*c*b*a)^2*(b^-1*c^-1*a^-1*b^-1*a^-1)^2,
-  (c*(b*a)^2)^2*c^-1*b^-1*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*a^-1,
-  (b*a)^2*b*c*(b*a)^2*c*b^-1*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*b^-1*a^-1,
-  b*a*b*c*(b*a)^2*c*b*a*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*(b^-1*a^-1)^2,
-  (b*a*b*c)^2*b*a*c*b^-1*c^-1*(a^-1*b^-1*c^-1*b^-1)^2*a^-1,
-  b*c*(b*a)^2*b*c*b*a*b*c^-1*(b^-1*c^-1*a^-1)^2*b^-1*c^-1*b^-1*a^-1,
-  b*(c*(b*a)^2)^2*(c^-1*b^-1*a^-1*b^-1)^2*a^-1*b^-1*a^-1,
-  (b*c*b*a)^2*b*a*b*c^-1*b^-1*c^-1*a^-1*b^-1*c^-1*b^-1*a^-1*b^-1*c^-1*a^-1,
-  (b*c*b*a)^2*c*b*a*c^-1*(b^-1*c^-1*b^-1*a^-1)^2*b^-1*a^-1,
-  b*(c*b*a)^2*b*c*b*a*(c^-1*b^-1)^2*(a^-1*b^-1)^2*c^-1*b^-1*a^-1,
-  c*b*a*(b*a*b*c)^2*(b^-1*c^-1*a^-1)^2*b^-1*c^-1*b^-1*a^-1*b^-1,
-  (c*b*a*b)^2*a*b*c*b^-1*c^-1*a^-1*b^-1*c^-1*b^-1*a^-1*b^-1*c^-1*a^-1*b^-1,
-  (c*b*a*b)^2*c*b*a*(c^-1*b^-1*a^-1*b^-1)^2*c^-1*b^-1*a^-1,
-  c*(b*a*c*b*a)^2*b^-1*c^-1*a^-1*b^-1*(a^-1*b^-1*c^-1)^2*a^-1,
-  c*b*a*(c*b*a*b)^2*c^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*b^-1*a^-1*b^-1,
-  a*c*b*a*(b*a*b*c)^2*(b^-1*c^-1*a^-1)^2*b^-1*c^-1*(b^-1*a^-1)^2,
-  (b*a*c)^2*b*a*b*c*b*a*(b^-1*c^-1*a^-1)^2*b^-1*a^-1*b^-1*c^-1*b^-1*a^-1,
-  b*c*b*a*(b*a*c)^2*b*a*b^-1*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*a^-1*b^-1*a^-1,
-  c*b*a*(b*a*c)^2*b*a*b*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*(a^-1*b^-1)^2,
-  (c*b*a)^3*b*a*c*b^-1*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*a^-1*b^-1,
-  a*c*b*a*(b*a*c)^2*b*a*b*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*(a^-1*b^-1)^2*a^-1 ]
-    """, a, b, c)
-    relss.append(rels) # [[30,11,3]]
-
-    idx = argv.get("idx", 0)
-    graph = Schreier(ngens, rels_624 + relss[idx])
-    graph.build(maxsize=100000)
-    n = len(graph)
-    print("|G| =", n)
-    G = graph.get_group()
-    return G
-
+infty = "\u221E"
 
 class QCode(object):
     def __init__(self, H):
@@ -379,7 +175,7 @@ class QCode(object):
         return shortstr(H)
 
     
-def find_code(H):
+def find_code(H, css=False, yop=False, degen=False):
     "build a QCode from face--vert adjacency matrix"
     import z3
     from z3 import Bool, And, Or, Not, Implies, If, Solver
@@ -393,6 +189,8 @@ def find_code(H):
     clauses = []
     solver = Solver()
 
+    yop = False if css else yop
+
     add = solver.add
 
     for i in range(m):
@@ -405,8 +203,10 @@ def find_code(H):
         xvars[i,j] = X
         zvars[i,j] = Z
         yvars[i,j] = And(X, Z)
-        # X or Z (or both)
+        # X or Z
         add(Or(X, Z))
+        if not yop:
+            add(Not(And(X, Z))) # not both
 
     # each qubit has X & Z check
     for j in range(n): # cols
@@ -417,24 +217,37 @@ def find_code(H):
         add(Not(And(*[yvars[i,j] for i in idxs])))
         # yes?
 
-#    # commuting stabilizers
-#    for i0 in range(m):
-#      for i1 in range(i0+1, m):
-#        bits = [j for j in range(n) if H[i0,j]==H[i1,j]>0]
-#        if not bits:
-#            continue
-#        print(bits)
-#        for lhs in cross([(0,1)]*len(bits)):
-#          lvars = [vs[i0, k][l] for (k,l) in zip(bits, lhs)]
-#          #print(lhs, lvars)
-#          for rhs in cross([(0,1)]*len(bits)):
-#            rvars = [vs[i1, k][r] for (k,r) in zip(bits, rhs)]
-#            syndrome = len([idx for idx in range(len(bits)) if lhs[idx]!=rhs[idx]]) % 2
-#            #print('\t', rhs, rvars, syndrome)
-#            if syndrome:
-#                clause = Not(And(*lvars, *rvars))
-#                #print('\t', clause)
-#                solver.add(clause)
+    if degen:
+      # product of all stabilizers is identity
+      for j in range(n): # cols
+        checks = [i for i in range(m) if H[i, j]] # rows
+        assert len(checks)>1
+        for k in [0, 1]: # X, Z
+          clauses = []
+          for bits in cross([(0,1)]*len(checks)):
+            clause = []
+            for idx, bit in enumerate(bits):
+                term = vs[checks[idx], j][k] 
+                term = term if bit else Not(term)
+                clause.append(term)
+            clause = And(*clause)
+            parity = sum(bits)%2
+            if not parity:
+                clauses.append(clause)
+          clause = Or(*clauses)
+          solver.add(clause)
+
+
+    if css:
+      for i in range(m):
+        xbits, zbits = [], []
+        for j in range(n):
+            if H[i,j] == 0:
+                continue
+            xbits.append(xvars[i,j])
+            zbits.append(zvars[i,j])
+        clause = Or(And(*xbits), And(*zbits))
+        solver.add(clause)
 
     # commuting stabilizers
     for i0 in range(m):
@@ -478,6 +291,243 @@ def find_code(H):
             H[i, j, 1] = 1
     code = QCode(H)
     return code
+
+
+def make_dot(graph, cmd="neato"):
+    n = len(graph)
+    gens = graph.get_gens()
+
+    f = open("schreier.dot", "w")
+    labels = string.ascii_lowercase
+    if len(labels) < n:
+        labels = []
+        i = 0
+        while len(labels) < n:
+            for c in string.ascii_lowercase:
+                labels.append("%s%d"%(c,i))
+            i += 1
+    print("graph\n{\n", file=f)
+    #cls = "green blue red".split()
+    cls = "red blue green".split()
+    for k in range(3):
+        gen = gens[k]
+        for i in gen.items:
+            if i <= gen(i):
+                print("    %s -- %s [color=%s];" % (
+                    labels[i], labels[gen(i)], cls[k]), file=f)
+    print("}\n", file=f)
+    f.close()
+
+    os.system("%s -Tpdf schreier.dot > schreier.pdf" % cmd)
+    #data = os.popen("dot -Tpdf schreier.dot").read()
+    #print("data:", data)
+    #open("schreier.pdf", "w").write(data)
+
+
+
+def build_group(idx=0, halve=False):
+    # start with hyperbolic Coxeter reflection group: a--5--b--5--c
+    # Then we add another generator "d" that halves these triangles.
+
+    ngens = 3
+    a, b, c, = range(ngens)
+    rels_552 = [
+        (a,)*2, (b,)*2, (c,)*2,
+        (a,b)*5, (b,c)*5, (a,c)*2,
+    ]
+
+    if halve:
+        d = ngens
+        ngens += 1
+        rels_552 += [ (d,)*2, (c,d,a,d), (a,d)*4, (b,d)*2, (d,c)*4, ]
+        # Now we get:
+        # d--4--a--5--b or,
+        # b--5--c--4--d
+        # where a equals c.
+
+    rels = [
+        (0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1),
+        (0, 1, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 2, 0, 1,
+            0, 2, 0, 1),
+        (1, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 1, 0, 2, 1, 2, 0, 1,
+            0, 1, 0, 1, 0, 2),
+        (0, 1, 0, 1, 0, 1, 0, 2, 0, 1, 0, 2, 1, 2, 1, 2, 0, 1,
+            0, 2, 1, 2, 0, 2, 1, 2, 0, 2, 1, 2, 0, 1, 0, 2, 0, 1,
+            0, 2, 1, 2, 0, 2, 1, 2),
+        (0, 1, 0, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 1, 0, 2, 0, 1,
+            0, 2, 1, 2, 1, 2, 1, 2),
+        (1, 2, 0, 2, 1, 2, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 1, 2,
+            0, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 0, 1, 0, 1),
+        (1, 2, 1, 2, 0, 1, 0, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 2,
+            1, 2, 0, 2, 1, 2, 0, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1,
+            0, 1, 0, 2, 1, 2, 0, 2, 1, 2, 0, 1, 0, 1, 0, 1),
+    ]
+
+    for rel in rels:
+        assert len(rel)%2 == 0
+
+    rel = rels[idx]
+    graph = Schreier(ngens, rels_552 + [rel])
+    graph.build()
+    G = graph.get_group()
+    return G
+
+gap_54 = """
+LoadPackage("recog");
+LoadPackage("LINS");
+F := FreeGroup("a", "b", "c");;
+AssignGeneratorVariables(F);;
+G := F/[a^2,b^2,c^2,(a*b)^5,(a*c)^2,(b*c)^4];;
+gr:=LowIndexNormalSubgroupsSearchForAll(G, 600);
+L := List(gr);
+S := Grp(L[9]);
+GeneratorsOfGroup(S);
+"""
+
+
+gap_344 = """
+LoadPackage("recog");
+LoadPackage("LINS");
+F := FreeGroup("a", "b", "c", "d");;
+AssignGeneratorVariables(F);;
+G := F/[a^2,b^2,c^2,d^2,(a*b)^3,(a*c)^2,(a*d)^2,(b*c)^4, (b*d)^2, (c*d)^4];;
+gr:=LowIndexNormalSubgroupsSearchForAll(G, 600);
+L := List(gr);
+S := Grp(L[35]);
+GeneratorsOfGroup(S);
+"""
+
+def parse(s, a, b, c, d=None):
+    s = s.replace("^-1", "")
+    s = s.replace("*", "+")
+    s = s.replace("^", "*")
+    s = s.replace(" ", "")
+    return eval(s)
+
+
+def build_group_524():
+    ngens = 3
+    a, b, c, = range(ngens)
+    rels_524 = [
+        (a,)*2, (b,)*2, (c,)*2,
+        (a,b)*5, (b,c)*4, (a,c)*2,
+    ]
+    a, b, c = (a,), (b,), (c,)
+
+    relss = []
+
+    # order 160, non-checkerboard
+    rels = [ 
+        a+(b+a+c)*2+b+(c+a+b)*2+c, (a+c+b)*2+a+c+(b+c+a)*2+b, 
+        (b+c+b+a)*2+(b+c+b+a)*2, (c+b+a+b)*2+(c+b+a+b)*2, 
+        b+a+(b+a+c)*2+b+(c+a+b)*2+c+b, b+c+(b+a)*2+c+b+a+c+b+c+(a+b)*2+c,
+    ]
+    assert rels == parse("""
+    [ a*(b*a*c)^2*b*(c^-1*a^-1*b^-1)^2*c^-1, (a*c*b)^2*a*c*(b^-1*c^-1*a^-1)^2*b^-1,
+    (b*c*b*a)^2*(b^-1*c^-1*b^-1*a^-1)^2, (c*b*a*b)^2*(c^-1*b^-1*a^-1*b^-1)^2,
+    b*a*(b*a*c)^2*b*(c^-1*a^-1*b^-1)^2*c^-1*b^-1,
+    b*c*(b*a)^2*c*b*a*c^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1 ]
+    """, a, b, c)
+    relss.append(rels)
+
+    # order 240, checkerboard, [[30,8,3]] Bring's curve
+    relss.append(parse("""
+    [ (b*a*c)^3*(b^-1*c^-1*a^-1)^3, (c*b*a)^3*c^-1*(b^-1*c^-1*a^-1)^2*b^-1*a^-1, 
+    ((b*a)^2*c)^2*(b^-1*a^-1*b^-1*c^-1*a^-1)^2, 
+    b*a*b*c*(b*a)^2*c*b*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*b^-1*a^-1, 
+    (b*a*c*b*a)^2*(b^-1*c^-1*a^-1*b^-1*a^-1)^2, 
+    b*c*(b*a)^2*c*b*a*b*c^-1*(a^-1*b^-1)^2*c^-1*(b^-1*a^-1)^2, 
+    b*(c*b*a)^3*c^-1*(b^-1*c^-1*a^-1)^2*b^-1*a^-1*b^-1, 
+    a*b*(c*b*a)^3*c^-1*(b^-1*c^-1*a^-1)^2*(b^-1*a^-1)^2 ]
+    """, a, b, c))
+
+    idx = argv.get("idx", 0)
+    graph = Schreier(ngens, rels_524 + relss[idx])
+    graph.build(maxsize=100000)
+    n = len(graph)
+    print("|G| =", n)
+    G = graph.get_group()
+    return G
+
+
+def build_group_624():
+    ngens = 3
+    a, b, c, = range(ngens)
+    rels_624 = [
+        (a,)*2, (b,)*2, (c,)*2,
+        (a,b)*6, (b,c)*4, (a,c)*2,
+    ]
+    a, b, c = (a,), (b,), (c,)
+
+    relss = []
+
+    rels = parse("""
+        [b*c*b*a*b*c*b^-1*a^-1*b^-1*c^-1*b^-1*a^-1, 
+        c*b*a*b*c*b*a^-1*b^-1*c^-1*b^-1*a^-1*b^-1,
+        a*c*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2, 
+        b*a*c*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1,
+        a*b*a*c*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^3,
+        (b*a)^2*c*b*a*b*c*b^-1*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*a^-1,
+        (c*b*a)^2*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1,
+        (a*c*b)^2*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*a^-1,
+        b*(c*b*a)^2*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*b^-1,
+        (b*a*c)^2*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*a^-1*b^-1,
+        a*(b*a*c)^2*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*a^-1*b^-1*a^-1,
+        c*b*a*(b*a*c)^2*b*a*b*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*(a^-1*b^-1)^2 ]
+    """, a, b, c)
+    relss.append(rels) # [[30,11,3]]
+
+    rels = parse("""
+[ ((b*a)^2*c)^2*(b^-1*a^-1*b^-1*c^-1*a^-1)^2, (b*a*c*b*a)^2*(b^-1*c^-1*a^-1*b^-1*a^-1)^2,
+  (c*(b*a)^2)^2*c^-1*b^-1*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*a^-1,
+  (b*a)^2*b*c*(b*a)^2*c*b^-1*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*b^-1*a^-1,
+  b*a*b*c*(b*a)^2*c*b*a*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*(b^-1*a^-1)^2,
+  (b*a*b*c)^2*b*a*c*b^-1*c^-1*(a^-1*b^-1*c^-1*b^-1)^2*a^-1,
+  b*c*(b*a)^2*b*c*b*a*b*c^-1*(b^-1*c^-1*a^-1)^2*b^-1*c^-1*b^-1*a^-1,
+  b*(c*(b*a)^2)^2*(c^-1*b^-1*a^-1*b^-1)^2*a^-1*b^-1*a^-1,
+  (b*c*b*a)^2*b*a*b*c^-1*b^-1*c^-1*a^-1*b^-1*c^-1*b^-1*a^-1*b^-1*c^-1*a^-1,
+  (b*c*b*a)^2*c*b*a*c^-1*(b^-1*c^-1*b^-1*a^-1)^2*b^-1*a^-1,
+  b*(c*b*a)^2*b*c*b*a*(c^-1*b^-1)^2*(a^-1*b^-1)^2*c^-1*b^-1*a^-1,
+  c*b*a*(b*a*b*c)^2*(b^-1*c^-1*a^-1)^2*b^-1*c^-1*b^-1*a^-1*b^-1,
+  (c*b*a*b)^2*a*b*c*b^-1*c^-1*a^-1*b^-1*c^-1*b^-1*a^-1*b^-1*c^-1*a^-1*b^-1,
+  (c*b*a*b)^2*c*b*a*(c^-1*b^-1*a^-1*b^-1)^2*c^-1*b^-1*a^-1,
+  c*(b*a*c*b*a)^2*b^-1*c^-1*a^-1*b^-1*(a^-1*b^-1*c^-1)^2*a^-1,
+  c*b*a*(c*b*a*b)^2*c^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*b^-1*a^-1*b^-1,
+  a*c*b*a*(b*a*b*c)^2*(b^-1*c^-1*a^-1)^2*b^-1*c^-1*(b^-1*a^-1)^2,
+  (b*a*c)^2*b*a*b*c*b*a*(b^-1*c^-1*a^-1)^2*b^-1*a^-1*b^-1*c^-1*b^-1*a^-1,
+  b*c*b*a*(b*a*c)^2*b*a*b^-1*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*a^-1*b^-1*a^-1,
+  c*b*a*(b*a*c)^2*b*a*b*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*(a^-1*b^-1)^2,
+  (c*b*a)^3*b*a*c*b^-1*a^-1*b^-1*c^-1*(b^-1*a^-1)^2*b^-1*c^-1*a^-1*b^-1,
+  a*c*b*a*(b*a*c)^2*b*a*b*c^-1*b^-1*(a^-1*b^-1*c^-1)^2*(a^-1*b^-1)^2*a^-1 ]
+    """, a, b, c)
+    relss.append(rels) # [[30,11,3]]
+
+    idx = argv.get("idx", 0)
+    graph = Schreier(ngens, rels_624 + relss[idx])
+    graph.build(maxsize=100000)
+    n = len(graph)
+    print("|G| =", n)
+    G = graph.get_group()
+    return G
+
+
+def test_prism():
+    from qupy.ldpc.solve import parse
+    H = parse("""
+    111..1..
+    1.11....
+    11.11...
+    .1..11..
+    ..11..1.
+    ...11.11
+    ....11.1
+    ..1..111
+    """)
+    code = find_code(H, False, True, True)
+    print(code)
+    n,k,d = code.get_params()
+    print("[[%s,%s,%s]]"%(n,k,d))
+
 
 
 def test_surface():
@@ -573,7 +623,7 @@ def test_surface():
     print(AB)
 
     if argv.find_code:
-        code = find_code(AB)
+        code = find_code(AB, argv.css, argv.yop)
         if code is None:
             return
         print(code)
@@ -681,6 +731,34 @@ def test_surface():
     assert dot2(Hx, Hz.transpose()).sum() == 0
 
 
+
+def build_group_344():
+
+    ngens = 4
+    a, b, c, d = range(ngens)
+    a, b, c, d = (a,), (b,), (c,), (d,)
+    rels_624 = [
+        2*a, 2*b, 2*c, 2*d,
+        (a+b)*3, (a+c)*2, (a+d)*2,
+        (b+c)*4, (b+d)*2, (c+d)*4
+    ]
+
+    relss = []
+
+    rels = parse("""
+    [ (c*b*d)^2*(c^-1*d^-1*b^-1)^2, (d*c*b)^2*d^-1*c^-1*d^-1*b^-1*c^-1*b^-1,
+    a*(c*b*d)^2*(c^-1*d^-1*b^-1)^2*a^-1, a*(d*c*b)^2*d^-1*c^-1*d^-1*b^-1*c^-1*b^-1*a^-1,
+    b*c*d*c*b*a*c*b^-1*c^-1*d^-1*c^-1*b^-1*c^-1*a^-1,
+    c*d*c*b*a*c*b*c^-1*d^-1*c^-1*b^-1*c^-1*a^-1*b^-1,
+    d*c*b*a*c*b*c*d^-1*c^-1*b^-1*c^-1*a^-1*b^-1*c^-1 ]
+    """, a, b, c, d)
+
+    graph = Schreier(ngens, rels_624 + rels)
+    graph.build()
+    n = len(graph)
+    print("|G| =", n)
+    G = graph.get_group()
+    return G
     
 
 
