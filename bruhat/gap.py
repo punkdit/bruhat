@@ -11,6 +11,8 @@ from subprocess import Popen, PIPE
 
 from argv import argv
 
+PROMPT = "gap> "
+
 class Gap(object):
     def __init__(self):
         self.proc = Popen("gap", bufsize=0, stdin=PIPE, stdout=PIPE)
@@ -37,7 +39,7 @@ class Gap(object):
     def expect(self, s):
         while s not in self.buf[self.pos:]:
             self.read_nb()
-            sleep(0.1)
+            sleep(0.001)
 
         pos = self.pos + self.buf[self.pos:].index(s)
         data = self.buf[self.pos : pos]
@@ -159,33 +161,33 @@ def gen_latex(output, perm=None):
     print(s)
 
 
-cmd = argv.cmd
-if cmd:
+if __name__ == "__main__":
+    cmd = argv.cmd
+    if cmd:
+        
+        gap = Gap()
+        gap.expect(PROMPT)
+        
+        #gap.send("G:=SmallGroup(28,1);")
     
-    gap = Gap()
-    PROMPT = "gap> "
-    gap.expect(PROMPT)
+        if cmd[-1] != ";":
+            cmd += ";"
+        gap.send(cmd)
+        
+        s = gap.expect(PROMPT)
+        
+        gap.send("Irr(G);")
+        
+        s = gap.expect(PROMPT)
+        
+        output = parse_Irr(s)
     
-    #gap.send("G:=SmallGroup(28,1);")
-
-    if cmd[-1] != ";":
-        cmd += ";"
-    gap.send(cmd)
+        perm = argv.perm
+        gen_latex(output, perm)
     
-    s = gap.expect(PROMPT)
+    else:
     
-    gap.send("Irr(G);")
-    
-    s = gap.expect(PROMPT)
-    
-    output = parse_Irr(s)
-
-    perm = argv.perm
-    gen_latex(output, perm)
-
-else:
-
-    print("USAGE:")
-    print('./gap.py  cmd="G:=SmallGroup(28,1);"')
+        print("USAGE:")
+        print('./gap.py  cmd="G:=SmallGroup(28,1);"')
 
 
