@@ -19,19 +19,30 @@ from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
 from bruhat.todd_coxeter import Schreier
 from bruhat.argv import argv
 from bruhat.smap import SMap
+from bruhat import lins_db
 
 infty = "\u221E"
 
 class QCode(object):
     def __init__(self, H):
         m, n, k = H.shape
-        assert k == 2
+        assert k == 2 # X, Z components
         assert H.max() <= 1
         self.H = H
         self.m = m
         self.n = n
         self.shape = m, n
         self.check()
+
+    @classmethod
+    def build_css(cls, Hx, Hz):
+        mx, n = Hx.shape
+        mz, n1 = Hz.shape
+        assert n==n1
+        H = zeros2(mx+mz, n, 2)
+        H[:mx, :, 0] = Hx
+        H[mx:, :, 1] = Hz
+        return QCode(H)
 
     @property
     def flatH(self):
@@ -325,6 +336,115 @@ def make_dot(graph, cmd="neato"):
 
 
 
+class Geometry(object):
+    "A geometry specified by a Coxeter reflection group"
+    def __init__(self, orders, lins_idx=0):
+        ngens = len(orders)+1
+        a, b, c, d = [(i,) for i in range(4)]
+        orders = tuple(orders)
+        rels = lins_db.db[orders][lins_idx]
+        rels = lins_db.parse(rels, **locals())
+        self.orders = orders
+        self.ngens = ngens
+        self.rels = rels
+        self.dim = len(orders)
+        self.build_group()
+
+    def build_group(self):
+        gens = [(i,) for i in range(4)]
+        ngens = self.ngens
+        rels = [gens[i]*2 for i in range(ngens)]
+        orders = self.orders
+        for i in range(ngens-1):
+            order = orders[i]
+            if order is not None:
+                rels.append( (gens[i]+gens[i+1])*order )
+            for j in range(i+2, ngens):
+                rels.append( (gens[i]+gens[j])*2 )
+        rels = rels + self.rels
+        #print(rels)
+        graph = Schreier(ngens, rels)
+        graph.build()
+        G = graph.get_group()
+        self.G = G
+        #return G
+
+    def get_cosets(self, figure):
+        G = self.G
+        gens = G.gens
+        assert len(figure) == len(gens)
+        gens = [gens[i] for i, fig in enumerate(figure) if fig]
+        #print("gens:", gens)
+        H = Group.generate(gens)
+        #pairs = G.left_cosets(H)
+        cosets = G.left_cosets(H)
+        return cosets
+
+
+def get_adj(left, right):
+    A = zeros2((len(left), len(right)))
+    for i, l in enumerate(left):
+      for j, r in enumerate(right):
+        lr = l.intersection(r)
+        A[i, j] = len(lr)>0
+    return A
+
+
+def build_geometry():
+
+    key = argv.get("key", (4,3,4))
+    print("key:", key)
+
+    idx = 0
+    while 1:
+        try:
+            geometry = Geometry(key, idx)
+        except IndexError:
+            break
+        idx += 1
+
+        G = geometry.G
+        if len(G)<10:
+            continue
+        print("|G| =", len(G))
+
+        if geometry.dim == 2:
+            faces = geometry.get_cosets([0,1,1])
+            edges = geometry.get_cosets([1,0,1])
+            verts = geometry.get_cosets([1,1,0])
+        else:
+            vols  = geometry.get_cosets([0,1,1,1])
+            faces = geometry.get_cosets([1,0,1,1])
+            edges = geometry.get_cosets([1,1,0,1])
+            verts = geometry.get_cosets([1,1,1,0])
+
+        Hx = Hz = None
+        if argv.homology:
+            #print(len(faces), len(edges), len(verts))
+            Hz = get_adj(faces, edges)
+            #print("Hz:")
+            #print(shortstr(Hz))
+            Hx = get_adj(verts, edges)
+            #print("Hx:")
+            #print(shortstr(Hx))
+
+        elif argv.flag:
+            pass # ???
+
+        if Hx is None:
+            continue
+    
+        A = dot2(Hx, Hz.transpose())
+        #print("chain condition:", A.sum() == 0)
+
+        if A.sum() == 0:
+            code = QCode.build_css(Hx, Hz)
+            print("\t\t[[%d, %d, %s]]" % (code.get_params()))
+
+    print("build_geometry: idx =", idx)
+
+
+
 def build_group(idx=0, halve=False):
     # start with hyperbolic Coxeter reflection group: a--5--b--5--c
     # Then we add another generator "d" that halves these triangles.
@@ -561,14 +681,6 @@ def test_surface():
         H = [g, g*g]
         pairs = G.left_cosets(H)
 
-
-    def get_adj(left, right):
-        A = zeros2((len(left), len(right)))
-        for i, l in enumerate(left):
-          for j, r in enumerate(right):
-            lr = l.intersection(r)
-            A[i, j] = len(lr)>0
-        return A
 
     if argv.fold_vert:
         g = blue*green*blue*green # divide a vert in half
