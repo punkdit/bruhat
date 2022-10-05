@@ -145,7 +145,7 @@ class QCode(object):
     def get_params(self):
         L = self.get_logops()
         kk = len(L)
-        print("get_params: k=", kk//2)
+        #print("get_params: k=", kk//2)
         if kk > 22:
             return self.n, kk//2, None
         #Lt = L.transpose()
@@ -373,7 +373,7 @@ class Geometry(object):
         G = self.G
         gens = G.gens
         assert len(figure) == len(gens)
-        gens = [gens[i] for i, fig in enumerate(figure) if fig]
+        gens = [gens[i] for i, fig in enumerate(figure) if fig] or [G.identity]
         #print("gens:", gens)
         H = Group.generate(gens)
         #pairs = G.left_cosets(H)
@@ -408,38 +408,100 @@ def build_geometry():
             continue
         print("|G| =", len(G))
 
-        if geometry.dim == 2:
+        dim = geometry.dim
+
+        if dim == 2:
             faces = geometry.get_cosets([0,1,1])
             edges = geometry.get_cosets([1,0,1])
             verts = geometry.get_cosets([1,1,0])
         else:
-            vols  = geometry.get_cosets([0,1,1,1])
+            bodis = geometry.get_cosets([0,1,1,1])
             faces = geometry.get_cosets([1,0,1,1])
             edges = geometry.get_cosets([1,1,0,1])
             verts = geometry.get_cosets([1,1,1,0])
+            partial_flags = [
+                bodis, faces, edges, verts,
+                geometry.get_cosets([0,0,1,1]),
+                geometry.get_cosets([0,1,0,1]),
+                geometry.get_cosets([0,1,1,0]),
+                geometry.get_cosets([1,0,0,1]),
+                geometry.get_cosets([1,0,1,0]),
+                geometry.get_cosets([1,1,0,0]),
+                geometry.get_cosets([1,0,0,0]),
+                geometry.get_cosets([0,1,0,0]),
+                geometry.get_cosets([0,0,1,0]),
+                geometry.get_cosets([0,0,0,1]),
+            ]
 
         Hx = Hz = None
-        if argv.homology:
-            #print(len(faces), len(edges), len(verts))
+        if argv.homology == 1:
             Hz = get_adj(faces, edges)
-            #print("Hz:")
-            #print(shortstr(Hz))
             Hx = get_adj(verts, edges)
-            #print("Hx:")
-            #print(shortstr(Hx))
 
-        elif argv.flag:
-            pass # ???
+        elif argv.homology == 2:
+            Hz = get_adj(bodis, faces)
+            Hx = get_adj(edges, faces)
 
+        elif argv.flag and dim==2:
+            flags = geometry.get_cosets([0]*(dim+1))
+            H0 = get_adj(faces, flags)
+            H1 = get_adj(edges, flags)
+            H2 = get_adj(verts, flags)
+            #print(shortstr(H0))
+            #print(shortstr(H1))
+            #print(shortstr(H2))
+            Hx = numpy.concatenate((H0, H1, H2))
+            Hz = Hx.copy()
+
+        elif argv.flag and dim==3:
+            flags = geometry.get_cosets([0]*(dim+1))
+            H0 = get_adj(bodis, flags)
+            H1 = get_adj(faces, flags)
+            A = dot(H0, H1.transpose())
+            print(shortstr(A))
+            H2 = get_adj(edges, flags)
+            H3 = get_adj(verts, flags)
+            #print(shortstr(H0))
+            #print(shortstr(H1))
+            #print(shortstr(H2))
+            Hx = numpy.concatenate((H0, H1, H2, H3))
+            Hz = Hx.copy()
+            #Hx = H0
+            #Hz = H2
+            print("Hx:", list(Hx.sum(1)))
+
+        elif argv.partial_flags and dim==3:
+            flags = geometry.get_cosets([0]*(dim+1))
+            Hs = [get_adj(p, flags) for p in partial_flags]
+            N = len(partial_flags)
+            #for i in range(N):
+            # for j in range(N):
+            #    print("%4s"%dot2(Hs[i], Hs[j].transpose()).sum(), end=" ")
+            # print()
+            Hx = numpy.concatenate(tuple(Hs[:4]))
+            Hz = numpy.concatenate(tuple(Hs[:10]))
         if Hx is None:
             continue
     
         A = dot2(Hx, Hz.transpose())
         #print("chain condition:", A.sum() == 0)
 
-        if A.sum() == 0:
-            code = QCode.build_css(Hx, Hz)
-            print("\t\t[[%d, %d, %s]]" % (code.get_params()))
+        if A.sum() != 0:
+            continue
+
+        Hxs = Hx.sum(1)
+        Hzs = Hz.sum(1)
+        print("Hx weights:", Hxs.min(), "to", Hxs.max())
+        print("Hz weights:", Hzs.min(), "to", Hzs.max())
+
+        code = QCode.build_css(Hx, Hz)
+        n, k, d = code.get_params()
+        print("[[%d, %d, %s]]" % (n, k, d))
+
+        if d is None:
+            L = code.get_logops()
+            print(list(L.sum(1)))
+        print()
 
     print("build_geometry: idx =", idx)
 
