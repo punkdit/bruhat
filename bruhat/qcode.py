@@ -23,12 +23,55 @@ from bruhat import lins_db
 
 infty = "\u221E"
 
+
+def css_to_symplectic(Hx, Hz):
+    mx, n = Hx.shape
+    mz, n1 = Hz.shape
+    assert n==n1
+    H = zeros2(mx+mz, n, 2)
+    H[:mx, :, 0] = Hx
+    H[mx:, :, 1] = Hz
+    return H
+
+def flatten(H):
+    if len(H.shape)==3:
+        H = H.view()
+        m, n, _ = H.shape
+        H.shape = m, 2*n
+    return H
+
+def complement(H):
+    H = flatten(H)
+    H = row_reduce(H)
+    m, nn = H.shape
+    #print(shortstr(H))
+    pivots = []
+    row = col = 0
+    while row < m:
+        while col < nn and H[row, col] == 0:
+            #print(row, col, H[row, col])
+            pivots.append(col)
+            col += 1
+        row += 1
+        col += 1
+    while col < nn:
+        pivots.append(col)
+        col += 1
+    W = zeros2(len(pivots), nn)
+    for i, ii in enumerate(pivots):
+        W[i, ii] = 1
+    #print()
+    return W
+
+
 class QCode(object):
-    def __init__(self, H):
+    def __init__(self, H, J=None):
         m, n, k = H.shape
         assert k == 2 # X, Z components
         assert H.max() <= 1
-        self.H = H
+        self.H = H # stabilizers
+        self.J = J # gauge generators
+        self.L = None # logicals
         self.m = m
         self.n = n
         self.shape = m, n
@@ -36,13 +79,32 @@ class QCode(object):
 
     @classmethod
     def build_css(cls, Hx, Hz):
-        mx, n = Hx.shape
-        mz, n1 = Hz.shape
-        assert n==n1
-        H = zeros2(mx+mz, n, 2)
-        H[:mx, :, 0] = Hx
-        H[mx:, :, 1] = Hz
+        H = css_to_symplectic(Hx, Hz)
         return QCode(H)
+
+    @classmethod
+    def build_gauge(cls, J):
+        m, n, _ = J.shape
+        J1 = J.copy()
+        J1[:, :, :] = J1[:, :, [1,0]]
+        J1.shape = (m, 2*n)
+        K = find_kernel(J1)
+        #print("K:", K.shape)
+        #print(shortstr(K))
+        J = J.view()
+        J.shape = m, 2*n
+        H = intersect(J, K)
+        #print("H:", H.shape)
+        H.shape = len(H), n, 2
+        J.shape = len(J), n, 2
+        code = QCode(H, J)
+        return code
+
+    @classmethod
+    def build_gauge_css(cls, Jx, Jz):
+        J = css_to_symplectic(Jx, Jz)
+        code = cls.build_gauge(J)
+        return code
 
     @property
     def flatH(self):
@@ -54,17 +116,20 @@ class QCode(object):
     def check(self):
         H = self.H
         m, n = self.shape
-        J = H.copy()
-        J[:, :, :] = J[:, :, [1,0]]
+        H1 = H.copy()
+        H1[:, :, :] = H1[:, :, [1,0]]
         H = H.view()
-        H.shape = J.shape = (m, 2*n)
-        HJt = dot2(H, J.transpose())
-        if HJt.sum() == 0:
-            return
-        print("not symplectic:")
-        print(self)
-        print(HJt)
-        assert 0
+        H.shape = H1.shape = (m, 2*n)
+        R = dot2(H, H1.transpose())
+        if R.sum() != 0:
+            assert 0
+        L = self.get_logops()
+        L = flatten(L)
+        R = dot2(L, H1.transpose())
+        if R.sum() != 0:
+            print("R:")
+            print(shortstr(R))
+            assert 0
 
     def dual(self):
         D = array2([[0,1],[1,0]])
@@ -101,45 +166,42 @@ class QCode(object):
         return QCode(H)
 
     def get_logops(self):
-        self = self.row_reduce()
-        m, n = self.shape
-        nn = 2*n
-        H = self.flatH
+        if self.L is not None:
+            return self.L
+        H = self.H
+        H1 = H.copy()
+        H1[:, :, :] = H1[:, :, [1,0]]
+        H1 = flatten(H1)
+        H = flatten(H)
+        H = row_reduce(H)
+        m = len(H)
+        #print("H:", H.shape)
         #print(shortstr(H))
-        pivots = []
-        row = col = 0
-        while row < m:
-            while col < nn and H[row, col] == 0:
-                #print(row, col, H[row, col])
-                pivots.append(col)
-                col += 1
-            row += 1
-            col += 1
-        while col < nn:
-            pivots.append(col)
-            col += 1
-        #print(len(pivots))
-        #s = ['.']*nn
-        #for i in pivots:
-        #    s[i] = "*"
-        #print(''.join(s))
-        #print(pivots)
-        W = zeros2(len(pivots), nn)
-        for i, ii in enumerate(pivots):
-            W[i, ii] = 1
-        #print()
+        W = complement(H)
+        #print("W:", W.shape)
         #print(shortstr(W))
-        Ht = self.dual().flatH
-        K = find_kernel(Ht)
+        K = find_kernel(H1)
+        #print("find_kernel(H):", K.shape)
         L = intersect(W, K)
+        #print("L:", L.shape)
         #print("L")
         #print(shortstr(L))
         kk = len(L)
         assert kk%2 == 0
         k = kk//2
-        assert dot2(Ht, L.transpose()).sum() == 0 # commutes w stabilizers
+        assert dot2(H1, L.transpose()).sum() == 0 # commutes w stabilizers
         HL = numpy.concatenate((H, L))
         assert rank(HL) == m + 2*k # linearly independant
+        J = self.J
+        if J is not None:
+            J1 = J.view()
+            J1.shape = len(J1), J1.shape[1]*2
+            Jc = complement(J)
+            #print("Jc:", Jc.shape)
+            #print("rank(J):", rank(J1))
+            L = intersect(L, Jc)
+            #print("L:", L.shape)
+        self.L = L
         return L
 
     def get_params(self):
@@ -390,120 +452,153 @@ def get_adj(left, right):
     return A
 
 
+def build_code(geometry):
+    dim = geometry.dim
+
+    if dim == 2:
+        faces = geometry.get_cosets([0,1,1])
+        edges = geometry.get_cosets([1,0,1])
+        verts = geometry.get_cosets([1,1,0])
+    else:
+        bodis = geometry.get_cosets([0,1,1,1])
+        faces = geometry.get_cosets([1,0,1,1])
+        edges = geometry.get_cosets([1,1,0,1])
+        verts = geometry.get_cosets([1,1,1,0])
+        partial_flags = [
+            bodis, faces, edges, verts,
+            geometry.get_cosets([0,0,1,1]),
+            geometry.get_cosets([0,1,0,1]),
+            geometry.get_cosets([0,1,1,0]),
+            geometry.get_cosets([1,0,0,1]),
+            geometry.get_cosets([1,0,1,0]),
+            geometry.get_cosets([1,1,0,0]),
+            geometry.get_cosets([1,0,0,0]),
+            geometry.get_cosets([0,1,0,0]),
+            geometry.get_cosets([0,0,1,0]),
+            geometry.get_cosets([0,0,0,1]),
+        ]
+
+    Hx = Hz = None
+    Jx = Jz = None
+    code = None
+
+    if argv.homology == 1:
+        Hz = get_adj(faces, edges)
+        Hx = get_adj(verts, edges)
+
+    elif argv.homology == 2:
+        Hz = get_adj(bodis, faces)
+        Hx = get_adj(edges, faces)
+
+    elif argv.flag and dim==2:
+        flags = geometry.get_cosets([0]*(dim+1))
+        H0 = get_adj(faces, flags)
+        H1 = get_adj(edges, flags)
+        H2 = get_adj(verts, flags)
+        #print(shortstr(H0))
+        #print(shortstr(H1))
+        #print(shortstr(H2))
+        Hx = numpy.concatenate((H0, H1, H2))
+        Hz = Hx.copy()
+
+    elif argv.flag and dim==3:
+        flags = geometry.get_cosets([0]*(dim+1))
+        H0 = get_adj(bodis, flags)
+        H1 = get_adj(faces, flags)
+        H2 = get_adj(edges, flags)
+        H3 = get_adj(verts, flags)
+        #print(shortstr(H0))
+        #print(shortstr(H1))
+        #print(shortstr(H2))
+        Hx = numpy.concatenate((H0, H1, H2, H3))
+        Hz = Hx.copy()
+
+    elif argv.partial_flags and dim==3:
+        flags = geometry.get_cosets([0]*(dim+1))
+        Hs = [get_adj(p, flags) for p in partial_flags]
+        N = len(partial_flags)
+        #for i in range(N):
+        # for j in range(N):
+        #    print("%4s"%dot2(Hs[i], Hs[j].transpose()).sum(), end=" ")
+        # print()
+        Hx = numpy.concatenate(tuple(Hs[:4]))
+        Hz = numpy.concatenate(tuple(Hs[:10]))
+
+    elif argv.gauge and dim==3:
+        flags = geometry.get_cosets([0]*(dim+1))
+        Hs = [get_adj(p, flags) for p in partial_flags]
+        N = len(partial_flags)
+        for i in range(N):
+         for j in range(N):
+            print("%4s"%dot2(Hs[i], Hs[j].transpose()).sum(), end=" ")
+         print()
+        print()
+        J = []
+        for i in range(N):
+            weights = list(Hs[i].sum(1))
+            if weights.count(4) == len(weights) or weights.count(6) == len(weights):
+                J.append(Hs[i])
+        J = numpy.concatenate(J)
+        #print(shortstr(J))
+        Jx = J
+        Jz = Jx.copy()
+
+    if Hx is not None:
+
+        A = dot2(Hx, Hz.transpose())
+        #print("chain condition:", A.sum() == 0)
+    
+        if A.sum() != 0:
+            return
+    
+        Hxs = Hx.sum(1)
+        Hzs = Hz.sum(1)
+        print("Hx weights:", Hxs.min(), "to", Hxs.max())
+        print("Hz weights:", Hzs.min(), "to", Hzs.max())
+    
+        code = QCode.build_css(Hx, Hz)
+
+    elif Jx is not None:
+        Jxs = Jx.sum(1)
+        Jzs = Jz.sum(1)
+        print("Jx weights:", Jxs.min(), "to", Jxs.max())
+        print("Jz weights:", Jzs.min(), "to", Jzs.max())
+    
+        code = QCode.build_gauge_css(Jx, Jz)
+    else:
+        return
+
+    n, k, d = code.get_params()
+    print("[[%d, %d, %s]]" % (n, k, d))
+
+    if d is None:
+        L = code.get_logops()
+        print(list(L.sum(1)))
+    print()
+
+
 def build_geometry():
 
     key = argv.get("key", (4,3,4))
     print("key:", key)
 
-    idx = 0
-    while 1:
+    idx = argv.get("idx")
+    idxs = [idx] if idx else list(range(1000))
+
+    for idx in idxs:
         try:
             geometry = Geometry(key, idx)
         except IndexError:
             break
-        idx += 1
 
         G = geometry.G
+        print("|G| =", len(G))
         if len(G)<10:
             continue
-        print("|G| =", len(G))
 
-        dim = geometry.dim
+        code = build_code(geometry)
 
-        if dim == 2:
-            faces = geometry.get_cosets([0,1,1])
-            edges = geometry.get_cosets([1,0,1])
-            verts = geometry.get_cosets([1,1,0])
-        else:
-            bodis = geometry.get_cosets([0,1,1,1])
-            faces = geometry.get_cosets([1,0,1,1])
-            edges = geometry.get_cosets([1,1,0,1])
-            verts = geometry.get_cosets([1,1,1,0])
-            partial_flags = [
-                bodis, faces, edges, verts,
-                geometry.get_cosets([0,0,1,1]),
-                geometry.get_cosets([0,1,0,1]),
-                geometry.get_cosets([0,1,1,0]),
-                geometry.get_cosets([1,0,0,1]),
-                geometry.get_cosets([1,0,1,0]),
-                geometry.get_cosets([1,1,0,0]),
-                geometry.get_cosets([1,0,0,0]),
-                geometry.get_cosets([0,1,0,0]),
-                geometry.get_cosets([0,0,1,0]),
-                geometry.get_cosets([0,0,0,1]),
-            ]
-
-        Hx = Hz = None
-        if argv.homology == 1:
-            Hz = get_adj(faces, edges)
-            Hx = get_adj(verts, edges)
-
-        elif argv.homology == 2:
-            Hz = get_adj(bodis, faces)
-            Hx = get_adj(edges, faces)
-
-        elif argv.flag and dim==2:
-            flags = geometry.get_cosets([0]*(dim+1))
-            H0 = get_adj(faces, flags)
-            H1 = get_adj(edges, flags)
-            H2 = get_adj(verts, flags)
-            #print(shortstr(H0))
-            #print(shortstr(H1))
-            #print(shortstr(H2))
-            Hx = numpy.concatenate((H0, H1, H2))
-            Hz = Hx.copy()
-
-        elif argv.flag and dim==3:
-            flags = geometry.get_cosets([0]*(dim+1))
-            H0 = get_adj(bodis, flags)
-            H1 = get_adj(faces, flags)
-            A = dot(H0, H1.transpose())
-            print(shortstr(A))
-            H2 = get_adj(edges, flags)
-            H3 = get_adj(verts, flags)
-            #print(shortstr(H0))
-            #print(shortstr(H1))
-            #print(shortstr(H2))
-            Hx = numpy.concatenate((H0, H1, H2, H3))
-            Hz = Hx.copy()
-            #Hx = H0
-            #Hz = H2
-            print("Hx:", list(Hx.sum(1)))
-
-        elif argv.partial_flags and dim==3:
-            flags = geometry.get_cosets([0]*(dim+1))
-            Hs = [get_adj(p, flags) for p in partial_flags]
-            N = len(partial_flags)
-            #for i in range(N):
-            # for j in range(N):
-            #    print("%4s"%dot2(Hs[i], Hs[j].transpose()).sum(), end=" ")
-            # print()
-            Hx = numpy.concatenate(tuple(Hs[:4]))
-            Hz = numpy.concatenate(tuple(Hs[:10]))
-        if Hx is None:
-            continue
-    
-        A = dot2(Hx, Hz.transpose())
-        #print("chain condition:", A.sum() == 0)
-
-        if A.sum() != 0:
-            continue
-
-        Hxs = Hx.sum(1)
-        Hzs = Hz.sum(1)
-        print("Hx weights:", Hxs.min(), "to", Hxs.max())
-        print("Hz weights:", Hzs.min(), "to", Hzs.max())
-
-        code = QCode.build_css(Hx, Hz)
-        n, k, d = code.get_params()
-        print("[[%d, %d, %s]]" % (n, k, d))
-
-        if d is None:
-            L = code.get_logops()
-            print(list(L.sum(1)))
-        print()
-
-    print("build_geometry: idx =", idx)
+    #print("build_geometry: idx =", idx)
 
 
 
