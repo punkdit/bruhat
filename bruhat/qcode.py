@@ -1030,6 +1030,15 @@ def build_group_344():
     return G
     
 
+def build_group_333():
+    ngens = 3
+    r, g, b = (0,), (1,), (2,)
+    rels = [r*2, g*2, b*2, (r+b)*3, (r+g)*3, (b+g)*3]
+    rels += [(b+r+g)*4]
+    graph = Schreier(ngens, rels)
+    graph.build(maxsize=100000)
+    print(len(graph))
+
 
 def make_hyperbolic():
 
