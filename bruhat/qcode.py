@@ -1077,6 +1077,160 @@ def make_hyperbolic():
             print("is_identity")
 
 
+def make_kagome():
+
+    N = 6
+    lookup = {}
+    
+    cubes = [(2*i, 2*j, 2*k) for i in range(N) for j in range(N) for k in range(N)]
+    for (x, y, z) in cubes:
+        key = x+1, y, z
+        lookup[key] = len(lookup)
+        key = x, y+1, z
+        lookup[key] = len(lookup)
+        key = x, y, z+1
+        lookup[key] = len(lookup)
+    def get(x, y, z):
+        return lookup[x%(2*N), y%(2*N), z%(2*N)]
+    n = len(lookup)
+    print("qubits:", n)
+    Hx = []
+    for (i, j, k) in cubes:
+        op = [0]*n
+        for idx in [
+            get(i+1, j, k),
+            get(i, j+1, k),
+            get(i, j, k+1),
+            get(i-1, j, k),
+            get(i, j-1, k),
+            get(i, j, k-1),
+        ]:
+            op[idx] = 1
+        Hx.append(op)
+    Hx = array2(Hx)
+    #print("Hx:")
+    #print(shortstr(Hx))
+    #print(Hx.sum(0))
+    Hx = linear_independent(Hx)
+    print("Hx:", len(Hx))
+
+    Hz = []
+
+    # diamond faces
+    for (i, j, k) in cubes:
+        op = [0]*n
+        for idx in [
+            get(i+0, j+1, k+0),
+            get(i+0, j+0, k+1),
+            get(i+0, j+1, k+2),
+            get(i+0, j+2, k+1),
+        ]:
+            op[idx] = 1
+        Hz.append(op)
+
+        op = [0]*n
+        for idx in [
+            get(i+1, j+0, k+0),
+            get(i+0, j+0, k+1),
+            get(i+1, j+0, k+2),
+            get(i+2, j+0, k+1),
+        ]:
+            op[idx] = 1
+        Hz.append(op)
+
+        op = [0]*n
+        for idx in [
+            get(i+1, j+0, k+0),
+            get(i+0, j+1, k+0),
+            get(i+1, j+2, k+0),
+            get(i+2, j+1, k+0),
+        ]:
+            op[idx] = 1
+        Hz.append(op)
+
+    for (i, j, k) in cubes:
+        break
+        op = [0]*n
+        for idx in [
+            get(i+0, j+2, k+1),
+            get(i+0, j+1, k+0),
+            get(i+1, j+0, k+0),
+            get(i+2, j+0, k+1),
+            get(i+2, j+1, k+2),
+            get(i+1, j+2, k+2),
+        ]:
+            op[idx] = 1
+        Hz.append(op)
+
+        op = [0]*n
+        for idx in [
+            get(i+0, j+0, k+1),
+            get(i+1, j+0, k+0),
+            get(i+2, j+1, k+0),
+            get(i+2, j+2, k+1),
+            get(i+1, j+2, k+2),
+            get(i+0, j+1, k+2),
+        ]:
+            op[idx] = 1
+        Hz.append(op)
+
+        op = [0]*n
+        for idx in [
+            get(i+0, j+1, k+0),
+            get(i+0, j+0, k+1),
+            get(i+1, j+0, k+2),
+            get(i+2, j+1, k+2),
+            get(i+2, j+2, k+1),
+            get(i+1, j+2, k+0),
+        ]:
+            op[idx] = 1
+        Hz.append(op)
+
+        op = [0]*n
+        for idx in [
+            get(i+0, j+2, k+1),
+            get(i+0, j+1, k+2),
+            get(i+1, j+0, k+2),
+            get(i+2, j+0, k+1),
+            get(i+2, j+1, k+0),
+            get(i+1, j+2, k+0),
+        ]:
+            op[idx] = 1
+        Hz.append(op)
+    Hz = array2(Hz)
+    #print("Hz:", len(Hz))
+    #print(shortstr(Hz))
+    #print(Hz.sum(0))
+
+    Hz = linear_independent(Hz)
+    print("Hz:", len(Hz))
+
+    assert dot2(Hz, Hx.transpose()).sum() == 0
+
+    code = QCode.build_css(Hx, Hz)
+    print(code.get_params())
+
+#    L = code.get_logops()
+#    #print("L:", L.sum(1))
+#    #print(shortstr(code.get_logops()))
+#    for l in code.get_logops():
+#        items = []
+#        for i in range(2*n):
+#            if l[i] == 0:
+#                continue
+#            idx = i//2
+#            for (key, value) in lookup.items():
+#                if value == idx:
+#                    break
+#            else:
+#                assert 0
+#            items.append((idx, key, "XZ"[i%2]))
+#        if len(items)<=4:
+#            print(items)
+
+    
+
+
 if __name__ == "__main__":
 
     start_time = time()
