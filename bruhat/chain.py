@@ -2,12 +2,56 @@
 
 from random import choice
 
-from bruhat import element
+import numpy
+
 from bruhat import elim
-from bruhat.lin import Lin, Space
-from bruhat.frobenius import GF
+from bruhat.lin import Lin, Space, AddSpace, element
 from bruhat.smap import SMap
 from bruhat.argv import argv
+
+#shortstr = elim.shortstr
+
+def shortstr(A):
+    s = str(elim.shortstr(A))
+    s = s.replace('0', '.')
+    s = s.replace(' ', '')
+    return s
+
+def shortstr(A, deco=False, zero='.'):
+    if isinstance(A, Lin):
+        A = A.A
+    #A = elim.array(A)
+    A = A.view()
+    assert len(A.shape), A.shape
+    assert len(A.shape)<=2
+    if 1 in A.shape:
+        A.shape = (1, A.shape[0]*A.shape[1])
+    if len(A.shape)==1:
+        A.shape = (1, A.shape[0])
+    m, n = A.shape
+    rows = []
+    for row in range(m):
+        idx = row
+        row = list(A[row, :])
+        row = ''.join(str(i) for i in row)
+        row = row.replace('0', zero)
+        if deco:
+            row = "%3d "%idx + row
+        rows.append(row)
+    if deco:
+        row = ''.join(str(i%10) for i in range(n))
+        rows.append('    '+row)
+    return '\n'.join(rows)
+
+
+def int_array(A):
+    if isinstance(A, Lin):
+        A = A.A
+    B = numpy.zeros(A.shape, dtype=int)
+    for idx in numpy.ndindex(A.shape):
+        B[idx] = int(str(A[idx]))
+    return B
+
 
 # ------------------------------------------------------------
 
@@ -222,6 +266,7 @@ class MulChain(Chain):
             grades.setdefault(space.grade, []).append(space)
 
     def _addlin(self, lin):
+        #print("_addlin", lin.homstr())
         tgt, src = lin.hom
         self._addspace(src)
         self.srcs.setdefault(lin.src, []).append(lin)
@@ -247,7 +292,7 @@ class MulChain(Chain):
 
         keys = list(self.grades.keys())
         keys.sort(reverse=True)
-        #print(keys)
+        #print("grades:", keys)
 
         N = len(keys)
         lins = []
@@ -256,13 +301,14 @@ class MulChain(Chain):
             assert keys[idx+1] == i-1, keys
             tgt = AddSpace(ring, *self.grades[i-1])
             src = AddSpace(ring, *self.grades[i])
-            #print(tgt)
-            #print(src)
+            #print(tgt, "<------", src)
             A = elim.zeros(ring, tgt.n, src.n)
             #print(shortstr(A))
-            for s in src.items:
+            items = src.items if isinstance(src, AddSpace) else [src]
+            for s in items:
                 for lin in self.srcs[s]:
                     assert lin.src is s
+                    #print("%s.get_slice(%s)"%(src, lin.src))
                     cols = src.get_slice(lin.src)
                     rows = tgt.get_slice(lin.tgt)
                     A[rows, cols] = lin.A
@@ -276,6 +322,7 @@ class MulChain(Chain):
 
 
 def test_gf():
+    from bruhat.frobenius import GF
     ring = GF(4)
     x = ring.x
     space = Space(ring)
@@ -368,7 +415,7 @@ def test_chain_tensor():
         A = Lin.rand(U, V)
 
     c = Chain([A])
-    print(c)
+    #print(c)
 
     #c.dump()
 
@@ -556,13 +603,36 @@ def test_chainmap():
 
 
 
+def test_tensor():
+
+    p = 2
+    ring = element.FiniteField(p)
+
+    U = Space(ring, 4, 1, "U")
+    V = Space(ring, 4, 0, "V")
+
+    A = elim.parse(ring, "11.. .11. ..11 1..1")
+    f = Lin(V, U, A)
+    c = Chain([f])
+    print(c.longstr())
+
+    cc = c@c
+    print(cc.longstr())
+
+    ccc = c@cc
+    print(ccc)
+
+    for f in ccc:
+        A = int_array(f)
+        print(A.shape, A.sum(0), A.sum(1))
 
 
 def test_all():
     test_gf()
-    test_chain()
+    #test_chain()
     test_chain_tensor()
     test_chainmap()
+    test_tensor()
 
 
 
@@ -579,6 +649,6 @@ if __name__ == "__main__":
         fn = eval(fn)
         fn()
 
-    print("OK")
+    print("OK\n")
 
 

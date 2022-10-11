@@ -204,19 +204,21 @@ class QCode(object):
         self.L = L
         return L
 
-    def get_params(self):
+    def get_params(self): # XXX broken, needs to search stabilizers too
         L = self.get_logops()
         kk = len(L)
-        #print("get_params: k=", kk//2)
-        if kk > 22:
+        H = self.flatH
+        m = len(H)
+        HL = numpy.concatenate((H, L))
+        mk = len(HL)
+        if mk > 22:
             return self.n, kk//2, None
-        #Lt = L.transpose()
-        #print("L:", L.shape)
         d = self.n
-        #for v in span(L):
-        #for v in enum2(kk):
-        for v in numpy.ndindex((2,)*kk):
-            v = dot2(v, L)
+        for w in numpy.ndindex((2,)*mk):
+            u, v = w[:m], w[m:]
+            if sum(v) == 0:
+                continue
+            v = dot2(w, HL)
             count = 0
             for i in range(self.n):
               if v[2*i] or v[2*i+1]:
@@ -349,7 +351,7 @@ def find_code(H, css=False, yop=False, degen=False):
 
     result = solver.check()
     if result != z3.sat:
-        print(result)
+        #print(result)
         return None
 
     H = zeros2(m, n, 2)
@@ -805,6 +807,39 @@ def test_prism():
     n,k,d = code.get_params()
     print("[[%s,%s,%s]]"%(n,k,d))
 
+
+def test_ldpc():
+    n = argv.get("n", 10)
+    m = n-1
+    rw = argv.get("rw", 4) # row weight
+    cw = argv.get("cw", 2) # minimum column weight
+    distance = argv.get("distance", 2) # minimum distance
+    yop = argv.get("yop", True)
+    css = False
+
+    while 1:
+        while 1:
+            H = zeros2(m, n)
+            while 1:
+                for i in range(m):
+                    H[i] = 0
+                    while H[i].sum() < rw:
+                        j = randint(0, n-1)
+                        H[i, j] = 1
+                cols = H.sum(0)
+                if cols.min() >= cw:
+                    break
+            code = find_code(H, css, yop)
+            if code is not None:
+                break
+            print(".", end="", flush=True)
+    
+        n, k, d = code.get_params()
+        print("[[%s,%s,%s]]"%(code.get_params()), end="", flush=True)
+        if d >= distance:
+            break
+    print()
+    print(code)
 
 
 def test_surface():

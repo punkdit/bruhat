@@ -79,6 +79,19 @@ def shortstrx(*items, **kw):
     return smap
 
 
+def parse(ring, s):
+    s = s.replace('.', '0')
+    lines = s.split()
+    lines = [l.strip() for l in lines if l.strip()]
+    rows = [list(ring.promote(int(c)) for c in l) for l in lines]
+    if rows:
+        n = len(rows[0])
+        for row in rows:
+            assert len(row)==n, "rows have varying lengths"
+    a = numpy.array(rows, dtype=object)
+    return a
+
+
 def zeros(ring, m, n):
     A = numpy.empty((m, n), dtype=object)
     A[:] = ring.zero
