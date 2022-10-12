@@ -24,6 +24,7 @@ from bruhat import elim
 from bruhat.elim import eq
 from bruhat import solve
 #from bruhat.frobenius import GF
+from bruhat.rep import Young
 from bruhat.action import Perm, Group, mulclose, mulclose_hom
 from bruhat.util import partitions, cross
 from bruhat.smap import SMap
@@ -147,7 +148,7 @@ class Space(object):
     def asgrade(self, grade, name="?"):
         return Space(self.ring, self.n, grade, name)
 
-    def get_normal(self, N, K, inverse=False, force=False):
+    def get_normal(self, N=None, K=None, inverse=False, force=False):
         return self.identity()
 
     def get_slice(self, space):
@@ -1012,7 +1013,6 @@ def test_structure():
 
 def test_young():
     # code ripped from qu.py
-    from bruhat.rep import Young
 
     d = argv.get("d", 2)
     n = argv.get("n", 3)

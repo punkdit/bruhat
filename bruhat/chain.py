@@ -9,6 +9,7 @@ from bruhat import elim
 from bruhat.lin import Lin, Space, AddSpace, element
 from bruhat.smap import SMap
 from bruhat.argv import argv
+from bruhat.vect2 import Rig, Cell0, Cell1, Cell2
 
 #shortstr = elim.shortstr
 
@@ -145,6 +146,41 @@ class Chain(Seq):
         result = str(smap)
         result = result.replace(" 0 ", " . ")
         return result
+
+    def encode(self, rig):
+        # encode self as a circulant 2-vector space matrix
+        grades = self.get_grades()
+        grades.sort(key = lambda space:space.grade)
+        print("grades:", grades)
+        n = len(grades)
+        # f : B <--- A
+        A = numpy.empty((n, n), dtype=object)
+        B = numpy.empty((n, n), dtype=object)
+        f = numpy.empty((n, n), dtype=object)
+        for i in range(n):
+          for j in range(n):
+            A[i, j] = rig.zero
+            B[i, j] = rig.zero
+        for i in range(n):
+          for j in range(i, n):
+            idx = j-i
+            A[i, j] = grades[idx]
+            if idx>0:
+                B[i, j] = grades[idx-1]
+        for i in range(n):
+          for j in range(n):
+            if i<j:
+                f[i,j] = self[j-i-1]
+            else:
+                f[i,j] = Lin.zero(B[i,j], A[i,j])
+        cell = Cell0(rig, n, "n")
+        A = Cell1(cell, cell, A)
+        B = Cell1(cell, cell, B)
+        f = Cell2(B, A, f)
+        print(A)
+        print(B)
+
+        return f
             
 
 class AddChain(Chain):
@@ -695,6 +731,20 @@ def test_chainmap():
     #print(c[0])
 
 
+def reassociate(ring, C, D, E):
+    "C@(D@E) <---- (C@D)@E"
+
+    rig = Rig(ring)
+    c = C.encode(rig)
+    d = D.encode(rig)
+
+    print(c)
+    print(d)
+
+    cd = c*d
+    print(cd)
+
+
 
 def test_tensor():
 
@@ -754,9 +804,12 @@ def test_tensor():
 
     #return
 
-    c0 = Chain([Lin.rand(V0, U0)])
-    c1 = Chain([Lin.rand(V1, U1)])
-    c2 = Chain([Lin.rand(V2, U2)])
+    C1 = Space(ring, 2, 1, "C_1")
+    C0 = Space(ring, 2, 0, "C_0")
+    C = Chain([Lin.rand(C0, C1)])
+
+    a = reassociate(ring, C, C, C)
+    return
 
     lhs = (c0@c1)@c2
     rhs = c0@(c1@c2)

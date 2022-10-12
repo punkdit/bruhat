@@ -558,7 +558,7 @@ class Cell2(Matrix):
         if self.src != other.tgt:
             self = self * self.src.from_normal() # recurse
             other = other.tgt.to_normal() * other # recurse
-        assert self.src == other.tgt
+        assert self.src == other.tgt, "%s != %s"%(self.src, other.tgt)
         rig = self.rig
         A = self.A * other.A # compose Lin's elementwise
         return Cell2(self.tgt, other.src, A)
