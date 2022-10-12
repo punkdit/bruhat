@@ -155,6 +155,18 @@ class Space(object):
             return slice(0, self.n)
         assert 0, "space %s not found in %s"%(space, self)
 
+    def get_add_items(self):
+        return [self]
+
+    def get_add_swap(self, perm=(0,)):
+        assert tuple(perm) == (0,)
+        return self.identity()
+
+    def get_mul_swap(self, perm=(0,)):
+        assert tuple(perm) == (0,)
+        return self.identity()
+
+
 
 class DualSpace(Space):
     def __init__(self, dual):
@@ -165,7 +177,7 @@ class DualSpace(Space):
 # We record the bimonoidal structure (+,*) into AddSpace and MulSpace below.
 # This is strictly associative, ie., these are multi-arity operations.
 # However, we don't make these two operations strictly unital,
-# which seems like a mistake as the unit's can be seen as nullary operations.
+# which may be a mistake as the unit's can be seen as nullary operations.
 
 class AddSpace(Space):
     "direct sum of vector spaces"
@@ -219,6 +231,9 @@ class AddSpace(Space):
             self._dual = AddSpace(self.ring, *[space.dual for space in self.items])
         return self._dual
 
+    def get_add_items(self):
+        return list(self.items)
+
     def nullitor(self, inverse=False):
         "remove all zero (null) summands"
         items = self.items
@@ -255,6 +270,8 @@ class AddSpace(Space):
         rows = [numpy.concatenate(row, axis=1) for row in rows]
         A = numpy.concatenate(rows)
         return Lin(tgt, self, A)
+
+    get_add_swap = get_swap
 
     def send_outof(self, lins):
         assert lins
@@ -545,6 +562,8 @@ class MulSpace(Space):
         A = A.reshape((tgt.n, self.n)) # its a square matrix
         return Lin(tgt, self, A)
 
+    get_mul_swap = get_swap
+
 
 class Lin(object):
     """
@@ -621,11 +640,15 @@ class Lin(object):
         return eq(self.A, other.A)
 
     def __eq__(self, other):
-        assert self.hom == other.hom, "%s != %s" % (self.hom, other.hom)
+        #assert self.hom == other.hom, "%s != %s" % (self.hom, other.hom) # too strict ?
+        if self.hom != other.hom:
+            return True
         return eq(self.A, other.A)
 
     def __ne__(self, other):
-        assert self.hom == other.hom
+        #assert self.hom == other.hom # too strict ...
+        if self.hom != other.hom:
+            return True
         return not eq(self.A, other.A)
 
     def __getitem__(self, idx):

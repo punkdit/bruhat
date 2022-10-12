@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from random import choice
+from functools import reduce
 
 import numpy
 
@@ -108,13 +109,21 @@ class Chain(Seq):
         return "%s(%s)"%(self.__class__.__name__,
             "-->".join(str(space) for space in spaces))
 
+    def __eq__(self, other):
+        if len(self.lins) != len(other.lins):
+            return False
+        for lhs, rhs in zip(self.lins, other.lins):
+            if lhs != rhs:
+                return False
+        return True
+
     def __add__(self, other):
         assert isinstance(other, Chain)
         return AddChain(self, other)
 
     def __matmul__(self, other):
         assert isinstance(other, Chain)
-        return MulChain(self, other)
+        return MulChain(self, other) # cache these ?
 
     def longstr(self):
         lins = self.lins
@@ -137,103 +146,6 @@ class Chain(Seq):
         result = result.replace(" 0 ", " . ")
         return result
             
-
-
-class ChainMap(object):
-    def __init__(self, tgt, src, lins=None, check=True):
-        assert isinstance(tgt, Chain)
-        assert isinstance(src, Chain)
-        n = len(src)
-        assert len(tgt) == n
-        if lins is None:
-            # zero map
-            lins = [Lin(tgt.get(i), src.get(i)) for i in range(n+1)]
-        assert len(lins) == n+1
-        for i in range(n):
-            assert src[i].src == lins[i].src
-            assert tgt[i].src == lins[i].tgt
-        if n:
-            assert src[n-1].tgt == lins[n].src
-            assert tgt[n-1].tgt == lins[n].tgt
-        self.ring = tgt.ring
-        self.tgt = tgt
-        self.src = src
-        self.hom = (tgt, src) # yes it's backwards, just like shape is.
-        self.lins = list(lins)
-        if check:
-            self._check()
-
-    def _check(self):
-        tgt, src = self.hom
-        lins = self.lins
-        n = len(src)
-        for i in range(n):
-            assert tgt[i]*lins[i] == lins[i+1]*src[i], "not a chain map"
-
-    def __str__(self):
-        return "ChainMap(%s<---%s)"%(self.tgt, self.src)
-    __repr__ = __str__
-
-    def __len__(self):
-        return len(self.lins)
-
-    def __getitem__(self, idx):
-        return self.lins[idx]
-
-    def __eq__(self, other):
-        assert self.hom == other.hom
-        n = len(self)
-        for i in range(n):
-            if self[i] != other[i]:
-                return False
-        return True
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __add__(self, other):
-        assert self.hom == other.hom
-        n = len(self)
-        lins = [self[i]+other[i] for i in range(n)]
-        chain = ChainMap(self.tgt, self.src, lins)
-        return chain
-
-    def __sub__(self, other):
-        assert self.hom == other.hom
-        n = len(self)
-        lins = [self[i]-other[i] for i in range(n)]
-        chain = ChainMap(self.tgt, self.src, lins)
-        return chain
-
-    def __rmul__(self, r):
-        r = self.ring.promote(r)
-        lins = [r*lin for lin in self.lins]
-        return ChainMap(self.tgt, self.src, lins)
-
-    def coequalizer(self, other):
-        assert self.hom == other.hom
-        n = len(self)
-        tgt = [] # construct new chain
-        lins = [] # construct chain map
-        idx = n-1 # working backwards down to idx=0
-        while idx >= 0:
-            if not lins:
-                lin = self[idx].coequalizer(other[idx])
-                lins.insert(0, lin)
-            else:
-                ref = lins[0] * self.tgt[idx]
-                lin, f = self[idx].coequalizer(other[idx], ref=ref)
-                lins.insert(0, lin)
-                tgt.insert(0, f)
-            idx -= 1
-        tgt = Chain(tgt)
-        cmap = ChainMap(tgt, self.tgt, lins)
-        return cmap
-
-    def cokernel(self):
-        zero = ChainMap(self.tgt, self.src)
-        return self.coequalizer(zero)
-
 
 class AddChain(Chain):
     "direct sum of Chain complexes"
@@ -304,7 +216,7 @@ class MulChain(Chain):
             #print(tgt, "<------", src)
             A = elim.zeros(ring, tgt.n, src.n)
             #print(shortstr(A))
-            items = src.items if isinstance(src, AddSpace) else [src]
+            items = src.get_add_items()
             for s in items:
                 for lin in self.srcs[s]:
                     assert lin.src is s
@@ -317,7 +229,188 @@ class MulChain(Chain):
             #print(repr(lin))
             lins.append(lin)
             #print()
+        self.lhs = lhs
+        self.rhs = rhs
         Chain.__init__(self, lins)
+
+    def get_swap(self):
+        #print("MulChain.get_swap")
+        ring = self.ring
+        lookup = self.grades
+        idxs = list(lookup.keys())
+        idxs.sort(reverse=True)
+        #print(idxs)
+        items = [] # construct ChainMap
+        for grade in idxs:
+            #print(grade, lookup[grade])
+            src = lookup[grade]
+            N = len(src)
+            src = AddSpace(ring, *src)
+            perm = list(reversed(range(N)))
+            swap = src.get_add_swap(perm)
+            fs = [space.get_mul_swap() for space in swap.tgt.get_add_items()]
+            #print([f.homstr() for f in fs])
+            f = reduce(Lin.direct_sum, fs)
+            #print("mul swap:", f.homstr())
+            f = f*swap
+            #print(f.homstr())
+            items.append(f)
+        tgt = self.rhs @ self.lhs
+        return ChainMap(tgt, self, items)
+
+
+class ChainMap(object):
+    def __init__(self, tgt, src, lins=None, check=True):
+        assert isinstance(tgt, Chain)
+        assert isinstance(src, Chain)
+        n = len(src)
+        assert len(tgt) == n
+        if lins is None:
+            # zero map
+            lins = [Lin(tgt.get(i), src.get(i)) for i in range(n+1)]
+        assert len(lins) == n+1
+        for i in range(n):
+            assert src[i].src == lins[i].src
+            assert tgt[i].src == lins[i].tgt
+        if n:
+            assert src[n-1].tgt == lins[n].src
+            assert tgt[n-1].tgt == lins[n].tgt
+        self.ring = tgt.ring
+        self.tgt = tgt
+        self.src = src
+        self.hom = (tgt, src) # yes it's backwards, just like shape is.
+        self.lins = list(lins)
+        if check:
+            self._check()
+
+    def _check(self):
+        tgt, src = self.hom
+        lins = self.lins
+        n = len(src)
+        for i in range(n):
+            assert tgt[i]*lins[i] == lins[i+1]*src[i], "not a chain map"
+
+    @classmethod
+    def rand(cls, tgt, src):
+        # XXX only works for small Chain's !!
+        assert isinstance(tgt, Chain)
+        assert isinstance(src, Chain)
+        assert len(tgt) == len(src)
+        n = len(tgt)
+        homs = []
+        for f, g in zip(tgt, src):
+            assert f.src.grade == g.src.grade
+            assert f.tgt.grade == g.tgt.grade
+            homs.append((f.src, g.src))
+        homs.append((f.tgt, g.tgt))
+        while 1:
+            lins = [Lin.rand(*hom) for hom in homs]
+            for i in range(n):
+                if tgt[i]*lins[i] != lins[i+1]*src[i]:
+                    break
+            else:
+                break
+        return ChainMap(tgt, src, lins)
+
+    def __str__(self):
+        return "ChainMap(%s<---%s)"%(self.tgt, self.src)
+    __repr__ = __str__
+
+    def __len__(self):
+        return len(self.lins)
+
+    def __getitem__(self, idx):
+        return self.lins[idx]
+
+    def __eq__(self, other):
+        assert self.hom == other.hom
+        n = len(self)
+        for i in range(n):
+            if self[i] != other[i]:
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __add__(self, other):
+        assert self.hom == other.hom
+        n = len(self)
+        lins = [self[i]+other[i] for i in range(n)]
+        chain = ChainMap(self.tgt, self.src, lins)
+        return chain
+
+    def __sub__(self, other):
+        assert self.hom == other.hom
+        n = len(self)
+        lins = [self[i]-other[i] for i in range(n)]
+        chain = ChainMap(self.tgt, self.src, lins)
+        return chain
+
+    def __rmul__(self, r):
+        r = self.ring.promote(r)
+        lins = [r*lin for lin in self.lins]
+        return ChainMap(self.tgt, self.src, lins)
+
+    def __mul__(lhs, rhs):
+        assert lhs.src == rhs.tgt
+        lins = [f*g for (f,g) in zip(lhs, rhs)]
+        return ChainMap(lhs.tgt, rhs.src, lins) 
+
+    def __matmul__(lhs, rhs):
+        assert isinstance(rhs, ChainMap)
+        tgt = lhs.tgt @ rhs.tgt
+        src = lhs.src @ rhs.src
+        #print("__matmul__")
+        #print(tgt)
+        #print(src)
+        idxs = list(src.grades.keys())
+        idxs.sort(reverse=True)
+        lookup = dict((idx, []) for idx in idxs)
+        for r in rhs:
+          for l in lhs:
+            lr = l@r
+            idx = lr.src.grade
+            assert idx == lr.tgt.grade
+            lookup[idx].append(lr)
+        #for k,v in lookup.items():
+        #    print(k, len(v))
+        lins = []
+        for idx in idxs:
+            lin = reduce(Lin.direct_sum, lookup[idx])
+            lins.append(lin)
+
+        #srcs = src.get_grades()
+        #tgts = tgt.get_grades()
+        #for (s,t) in zip(srcs, tgts):
+        #    print("%s <--- %s" % (t,s))
+
+        return ChainMap(tgt, src, lins)
+
+
+    def coequalizer(self, other):
+        assert self.hom == other.hom
+        n = len(self)
+        tgt = [] # construct new chain
+        lins = [] # construct chain map
+        idx = n-1 # working backwards down to idx=0
+        while idx >= 0:
+            if not lins:
+                lin = self[idx].coequalizer(other[idx])
+                lins.insert(0, lin)
+            else:
+                ref = lins[0] * self.tgt[idx]
+                lin, f = self[idx].coequalizer(other[idx], ref=ref)
+                lins.insert(0, lin)
+                tgt.insert(0, f)
+            idx -= 1
+        tgt = Chain(tgt)
+        cmap = ChainMap(tgt, self.tgt, lins)
+        return cmap
+
+    def cokernel(self):
+        zero = ChainMap(self.tgt, self.src)
+        return self.coequalizer(zero)
 
 
 
@@ -345,17 +438,17 @@ def test_gf():
     #    print(f)
 
 
-def randchain(ring, n, m):
-    V = Space(ring, n, 1, "V")
-    U = Space(ring, m, 0, "U")
+def randchain(ring, n, m, stem="C"):
+    V = Space(ring, n, 2, "%s_2"%stem)
+    U = Space(ring, m, 1, "%s_1"%stem)
     B = Lin.rand(U, V)
 
     A = B.kernel()
-    A = Lin(A.tgt, A.src.asgrade(2), A.A) # yikes
+    A = Lin(A.tgt, A.src.asgrade(3, "%s_3"%stem), A.A) # yikes
     assert (B*A).is_zero()
 
     C = B.cokernel()
-    C = Lin(C.tgt.asgrade(-1), C.src, C.A)
+    C = Lin(C.tgt.asgrade(0, "%s_0"%stem), C.src, C.A)
     assert (C*B).is_zero()
 
     c = Chain([A, B, C])
@@ -614,17 +707,68 @@ def test_tensor():
     A = elim.parse(ring, "11.. .11. ..11 1..1")
     f = Lin(V, U, A)
     c = Chain([f])
-    print(c.longstr())
+    #print(c.longstr())
 
-    cc = c@c
-    print(cc.longstr())
+    U0 = Space(ring, 2, 1, "U_0")
+    U1 = Space(ring, 2, 1, "U_1")
+    U2 = Space(ring, 2, 1, "U_2")
 
-    ccc = c@cc
-    print(ccc)
+    V0 = Space(ring, 2, 0, "V_0")
+    V1 = Space(ring, 2, 0, "V_1")
+    V2 = Space(ring, 2, 0, "V_2")
 
-    for f in ccc:
-        A = int_array(f)
-        print(A.shape, A.sum(0), A.sum(1))
+    W0 = Space(ring, 2, 0, "W_0")
+    W1 = Space(ring, 2, 0, "W_1")
+    W2 = Space(ring, 2, 0, "W_2")
+
+    C = randchain(ring, 2, 2, "C")
+    D = randchain(ring, 2, 2, "D")
+    E = randchain(ring, 2, 2, "E")
+    F = randchain(ring, 2, 2, "F")
+
+    assert C.identity() * C.identity() == C.identity()
+
+    f = ChainMap.rand(E, C)
+    assert f * C.identity() == f
+    assert E.identity() * f == f
+
+    CD = C@D
+    DC = D@C
+
+    s = CD.get_swap()
+    assert s.tgt == DC
+    assert s.src == CD
+    si = DC.get_swap()
+    assert CD != DC
+    assert s * si == DC.identity()
+    assert si * s == CD.identity()
+
+    g = ChainMap.rand(F, D)
+    fg = f@g
+    EF = E@F
+    assert fg.tgt == EF
+
+    lhs = EF.get_swap() * fg * DC.get_swap()
+    rhs = g@f
+    assert lhs == rhs
+
+    #return
+
+    c0 = Chain([Lin.rand(V0, U0)])
+    c1 = Chain([Lin.rand(V1, U1)])
+    c2 = Chain([Lin.rand(V2, U2)])
+
+    lhs = (c0@c1)@c2
+    rhs = c0@(c1@c2)
+
+    #print(lhs)
+    #print(rhs)
+
+    f = lhs[0]
+    #print(f.homstr())
+    tgt = f.tgt
+    u = tgt.get_normal()
+    #print(u.homstr())
 
 
 def test_all():
