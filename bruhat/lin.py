@@ -795,6 +795,25 @@ class Lin(object):
         return lin
 
     @staticmethod
+    def diagonal(src):
+        assert isinstance(src, Space)
+        n = src.n
+        tgt = src + src
+        ring = src.ring
+        one = ring.one
+        A = elim.zeros(ring, tgt.n, src.n)
+        for i in range(n):
+           A[i, i] = one
+           A[i+n, i] = one
+        lin = Lin(tgt, src, A)
+        return lin
+
+    @staticmethod
+    def codiagonal(tgt):
+        lin = Lin.diagonal(tgt)
+        return lin.transpose()
+
+    @staticmethod
     def copy(src):
         assert isinstance(src, Space)
         n = src.n

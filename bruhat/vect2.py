@@ -161,6 +161,7 @@ class Cell0(object):
         return self.n == other.n
 
 
+
 #
 #class AddCell0(Cell0):
 #
@@ -390,6 +391,25 @@ class Cell1(Matrix):
             A[row, col] = rig.one
         return Cell1(tgt, src, A)
 
+    @staticmethod
+    def diagonal(cell0):
+        "this is the copy 1-cell"
+        src = cell0
+        tgt = cell0 + cell0
+        rig = cell0.rig
+        n = cell0.n
+        A = numpy.empty((n + n, n), dtype=object)
+        for row in cell0:
+          for col in cell0:
+            A[row, col] = rig.one if row==col else rig.zero
+            A[row + n, col] = rig.one if row==col else rig.zero
+        return Cell1(tgt, src, A)
+
+    @staticmethod
+    def codiagonal(cell0):
+        d = Cell1.diagonal(cell0)
+        return d.transpose
+        
 #    @staticmethod
 #    def get_addswap(cell0, perm):
 #        assert len(perm) == cell0.n
@@ -626,6 +646,19 @@ class Cell2(Matrix):
         tgt, src = cell1, cell1
         rows, cols = cell1.shape
         A = [[cell1[i,j].identity() for j in range(cols)] for i in range(rows)]
+        return Cell2(tgt, src, A)
+
+    @classmethod
+    def diagonal(cls, cell1):
+        n, m = cell1.hom
+        diagonal = Cell1.diagonal(m) # copy
+        codiagonal = Cell1.codiagonal(n) # add
+        src = cell1
+        #tgt = codiagonal << (cell1 + cell1) << diagonal
+        rows, cols = cell1.shape
+        A = [[Lin.diagonal(cell1[i,j]) for j in range(cols)] for i in range(rows)]
+        tgt = [[A[i][j].tgt for j in range(cols)] for i in range(rows)]
+        tgt = Cell1(cell1.tgt, cell1.src, tgt)
         return Cell2(tgt, src, A)
 
     @classmethod
