@@ -12,6 +12,7 @@ import numpy
 from numpy import alltrue, zeros, dot
 
 from bruhat.util import cross
+from qupy.ldpc import solve
 from qupy.ldpc.solve import (
     array2, zeros2, shortstr, dot2, linear_independent, row_reduce, find_kernel,
     span, intersect, rank, enum2)
@@ -1263,6 +1264,49 @@ def make_kagome():
 #        if len(items)<=4:
 #            print(items)
 
+
+def test_toric():
+    def parse(s):
+        for c in " [],":
+            s = s.replace(c, '')
+        return solve.parse(s)
+
+    Hx = parse("""
+[[ 1  1  .  .  .  .  .  .  .  1  .  .  1  .  .  .  .  . ],
+ [ .  1  1  .  .  .  .  .  .  .  1  .  .  1  .  .  .  . ],
+ [ 1  .  1  .  .  .  .  .  .  .  .  1  .  .  1  .  .  . ],
+ [ .  .  .  1  1  .  .  .  .  .  .  .  1  .  .  1  .  . ],
+ [ .  .  .  .  1  1  .  .  .  .  .  .  .  1  .  .  1  . ],
+ [ .  .  .  1  .  1  .  .  .  .  .  .  .  .  1  .  .  1 ],
+ [ .  .  .  .  .  .  1  1  .  1  .  .  .  .  .  1  .  . ],
+ [ .  .  .  .  .  .  .  1  1  .  1  .  .  .  .  .  1  . ],
+ [ .  .  .  .  .  .  1  .  1  .  .  1  .  .  .  .  .  1 ]]
+    """)
+    Hz = parse("""
+[[ 1  .  .  1  .  .  .  .  . ],
+ [ .  1  .  .  1  .  .  .  . ],
+ [ .  .  1  .  .  1  .  .  . ],
+ [ .  .  .  1  .  .  1  .  . ],
+ [ .  .  .  .  1  .  .  1  . ],
+ [ .  .  .  .  .  1  .  .  1 ],
+ [ 1  .  .  .  .  .  1  .  . ],
+ [ .  1  .  .  .  .  .  1  . ],
+ [ .  .  1  .  .  .  .  .  1 ],
+ [ 1  1  .  .  .  .  .  .  . ],
+ [ .  1  1  .  .  .  .  .  . ],
+ [ 1  .  1  .  .  .  .  .  . ],
+ [ .  .  .  1  1  .  .  .  . ],
+ [ .  .  .  .  1  1  .  .  . ],
+ [ .  .  .  1  .  1  .  .  . ],
+ [ .  .  .  .  .  .  1  1  . ],
+ [ .  .  .  .  .  .  .  1  1 ],
+ [ .  .  .  .  .  .  1  .  1 ]]
+    """).transpose()
+
+    code = QCode.build_css(Hx, Hz)
+    L = code.get_logops()
+    print(L)
+    print(code.get_params())
     
 
 

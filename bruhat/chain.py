@@ -148,11 +148,12 @@ class Chain(Seq):
         return result
 
     def encode(self, rig):
-        # encode self as a circulant 2-vector space matrix
+        # encode self as a "circulant" 2-vector space matrix
         grades = self.get_grades()
         grades.sort(key = lambda space:space.grade)
-        print("grades:", grades)
-        n = len(grades)
+        #print("grades:", grades)
+        bdys = list(reversed(self))
+        n = len(grades)+1
         # f : B <--- A
         A = numpy.empty((n, n), dtype=object)
         B = numpy.empty((n, n), dtype=object)
@@ -164,22 +165,27 @@ class Chain(Seq):
         for i in range(n):
           for j in range(i, n):
             idx = j-i
-            A[i, j] = grades[idx]
+            if idx < len(grades):
+                A[i, j] = grades[idx]
             if idx>0:
                 B[i, j] = grades[idx-1]
         for i in range(n):
           for j in range(n):
-            if i<j:
-                f[i,j] = self[j-i-1]
+            if 0<=j-i-1<len(bdys):
+                f[i,j] = bdys[j-i-1]
+                #print("f[i,j]", i, j)
             else:
                 f[i,j] = Lin.zero(B[i,j], A[i,j])
         cell = Cell0(rig, n, "n")
         A = Cell1(cell, cell, A)
+        #print(A)
         B = Cell1(cell, cell, B)
+        #print(B)
+        #for i in range(n):
+        #  for j in range(n):
+        #    print("%12s"%f[i,j].homstr(), end=" ")
+        #  print()
         f = Cell2(B, A, f)
-        print(A)
-        print(B)
-
         return f
             
 
@@ -731,19 +737,61 @@ def test_chainmap():
     #print(c[0])
 
 
-def reassociate(ring, C, D, E):
-    "C@(D@E) <---- (C@D)@E"
+#def reassociate(ring, _C, _D, _E):
+#    "C@(D@E) <---- (C@D)@E"
+
+def chain_tensor(_C, _D):
+    ring = _C.ring
 
     rig = Rig(ring)
-    c = C.encode(rig)
-    d = D.encode(rig)
 
-    print(c)
-    print(d)
+    bdyC = _C.encode(rig)
+    XC, C = bdyC.hom
+    n = C.src
+    assert C.tgt == n
+    assert XC.hom == (n, n)
 
-    cd = c*d
-    print(cd)
+    N, K = rig.zero, rig.one
+    X = [[(K if i-1==j else N) for i in n] for j in n]
+    X = Cell1(n, n, X)
+    assert XC == (X<<C).normalized
+    assert XC == (C<<X).normalized # commutes !
 
+    bdyD = _D.encode(rig)
+    XD, D = bdyD.hom
+    assert D.hom == (n, n)
+    assert XD.hom == (n, n)
+
+    CD = C<<D
+    CD = CD.normalized
+
+    front = bdyC << Cell2.identity(D)
+    front = front.normalized
+    assert front.src == CD
+
+    back = Cell2.identity(C) << bdyD
+    back = back.normalized
+    assert back.src == CD
+
+    XCD = (XC << D).normalized
+    assert front.tgt == XCD
+    assert back.tgt == XCD
+
+    mid = front + back
+    left = Cell1.codiagonal(n)
+    right = Cell1.diagonal(n)
+    mid = left << mid << right
+    mid = mid.normalized
+
+    bot = Cell2.diagonal(CD)
+
+    cell = mid * bot
+
+    top = Cell2.codiagonal(XCD)
+    assert top.tgt == XCD
+    
+    cell = top * cell
+    return cell
 
 
 def test_tensor():
@@ -802,13 +850,20 @@ def test_tensor():
     rhs = g@f
     assert lhs == rhs
 
-    #return
+    cell = chain_tensor(C, D)
+    #print(cell.homstr())
+    #CC = Chain([cell[0,2], cell[0,1], cell[0,0]])
+    _, n = cell.shape
+    CC = Chain([cell[0,n-i-1] for i in range(n)])
 
-    C1 = Space(ring, 2, 1, "C_1")
-    C0 = Space(ring, 2, 0, "C_0")
-    C = Chain([Lin.rand(C0, C1)])
+    C1 = Space(ring, 3, 1, "C_1")
+    C0 = Space(ring, 3, 0, "C_0")
+    C = Chain([Lin(C0, C1, [[1,1,0],[0,1,1],[1,0,1]])])
 
-    a = reassociate(ring, C, C, C)
+    cell = chain_tensor(C, C)
+
+    CC = Chain([cell[0,2], cell[0,1], cell[0,0]])
+
     return
 
     lhs = (c0@c1)@c2

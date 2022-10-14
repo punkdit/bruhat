@@ -662,6 +662,12 @@ class Cell2(Matrix):
         return Cell2(tgt, src, A)
 
     @classmethod
+    def codiagonal(cls, cell1):
+        f = cls.diagonal(cell1)
+        f = f.transpose2()
+        return f
+
+    @classmethod
     def left_unitor(cls, cell1, inverse=False):
         m, n = cell1.hom
         I_m = Cell1.identity(m)
