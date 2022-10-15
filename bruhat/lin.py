@@ -26,7 +26,7 @@ from bruhat import solve
 #from bruhat.frobenius import GF
 from bruhat.rep import Young
 from bruhat.action import Perm, Group, mulclose, mulclose_hom
-from bruhat.util import partitions, cross
+from bruhat.util import partitions, cross, allperms
 from bruhat.smap import SMap
 
 
@@ -150,6 +150,11 @@ class Space(object):
 
     def get_normal(self, N=None, K=None, inverse=False, force=False):
         return self.identity()
+
+    def get_add_slice(self, idx):
+        if idx == 0:
+            return slice(0, self.n)
+        assert 0, "space %s not found in %s"%(idx, self)
 
     def get_slice(self, space):
         if space is self:
@@ -302,13 +307,25 @@ class AddSpace(Space):
         lin = Lin(self, src, A)
         return lin
 
+    def get_add_slice(self, idx):
+        i = 0
+        for jdx, item in enumerate(self.items):
+            if jdx == idx:
+                return slice(i, i+item.n)
+            i += item.n
+        assert 0, "index %d out of bounds"%(idx,)
+
     def get_slice(self, space):
+        #assert 0, "only works for list of unique spaces!"
+        found = None
         i = 0
         for idx, item in enumerate(self.items):
             if item == space:
-                return slice(i, i+item.n)
+                assert found is None, "ambiguous slice!"
+                found = slice(i, i+item.n)
             i += item.n
-        assert 0, "space %s not found in %s"%(space, self)
+        assert found is not None, "space %s not found in %s"%(space, self)
+        return found
 
     def get_normal(self, N=None, K=None, inverse=False, force=False):
         # remove null summands, and recurse
@@ -1425,6 +1442,226 @@ def test_symmetric_square():
       #print()
 
 
+def chain_product(ring, fs):
+    N = len(fs)
+
+    grades = [[] for i in range(N+1)]
+    #slookup = {}
+    #tlookup = {}
+    for items in cross([f.hom for f in fs]):
+        space = MulSpace(ring, *items)
+        grades[space.grade].append(space)
+    grades = [AddSpace(ring, *spaces) for spaces in grades]
+    #print([space.name for space in grades])
+
+    srcs = [[] for i in range(N+1)]
+    tgts = [[] for i in range(N+1)]
+    items = [(f.src.identity(), f.tgt.identity()) for f in fs]
+    for idx in range(N):
+        _items = list(items)
+        _items[idx] = (fs[idx],)
+        for lins in cross(_items):
+            lin = reduce(matmul, lins)
+            srcs[lin.src.grade].append(lin)
+            tgts[lin.tgt.grade].append(lin)
+            #print([lin.homstr() for lin in lins])
+            #print(lin.homstr())
+            #print()
+    
+    #print([len(grade) for grade in srcs])
+
+    chain = []
+    for i in range(N):
+        tgt = grades[i]
+        src = grades[i+1]
+        #print([space.name for space in tgt.get_add_items()])
+        #print([space.name for space in src.get_add_items()])
+        A = elim.zeros(ring, tgt.n, src.n)
+        for lin in tgts[i]:
+            #print("\t", lin.homstr())
+            cols = src.get_slice(lin.src)
+            rows = tgt.get_slice(lin.tgt)
+            assert numpy.alltrue(A[rows, cols] == ring.zero)
+            A[rows, cols] = lin.A
+        lin = Lin(tgt, src, A)
+        #print(shortstr(A))
+        #print()
+        chain.append(lin)
+
+    return chain
+
+
+def chain_perm(ring, fs, perm):
+    #print("chain_perm")
+            
+    N = len(fs)
+    assert N == len(perm)
+    gs = [fs[i] for i in perm]
+
+    def product(fs):
+        grades = [[] for i in range(N+1)]
+        for items in cross([f.hom for f in fs]):
+            space = MulSpace(ring, *items)
+            grades[space.grade].append(space)
+        grades = [AddSpace(ring, *spaces) for spaces in grades]
+        return grades
+
+    sgrades = product(fs)
+    tgrades = product(gs)
+
+    cmap = []
+    for i in range(N+1):
+        tgt, src = tgrades[i], sgrades[i]
+        #print(tgt.name, "<---", src.name)
+        tgts = tgt.get_add_items()
+        srcs = src.get_add_items()
+        lins = [src.get_mul_swap(perm) for src in srcs]
+
+        f = reduce(Lin.direct_sum, lins)
+        #print(f.homstr())
+        assert f.src == src
+
+        swap = [None]*len(lins)
+        for i, lin in enumerate(lins):
+            assert tgts.count(lin.tgt) == 1 # careful !
+            idx = tgts.index(lin.tgt)
+            swap[idx] = i
+        #print("swap:", swap)
+        swap = f.tgt.get_add_swap(swap)
+        f = swap * f
+
+        #print(f.homstr())
+
+        assert f.hom == (tgt, src)
+        cmap.append(f)
+
+        #print()
+
+
+    return cmap
+
+
+def test_chain_map(tgt, src, cmap):
+    n = len(tgt)
+    assert n == len(src) == len(cmap)-1
+    #for i in range(n):
+    #    print(tgt[i].homstr())
+    #    print('\t', cmap[i].homstr())
+    
+    for i in range(n):
+        lhs = cmap[i] * src[i]
+        rhs = tgt[i] * cmap[i+1]
+        assert lhs == rhs
+
+
+def test_chain_symmetry(ring, lins):
+    N = len(lins)
+    src = chain_product(ring, lins)
+    #print([lin.homstr() for lin in src])
+    for perm in allperms(list(range(N))):
+        #print("perm:", perm)
+        tgt = chain_product(ring, [lins[i] for i in perm])
+        #print([lin.homstr() for lin in tgt])
+        cmap = chain_perm(ring, lins, perm)
+        test_chain_map(tgt, src, cmap)
+
+
+def cmap_product(ring, cmaps):
+    for cmap in cmaps:
+        assert len(cmap) == 2
+        f0, f1 = cmap
+        #print(f0.homstr(), f1.homstr())
+    N = len(cmaps)
+
+#    srcs = [[] for i in range(N+1)]
+#    for items in cross([(cmap[0].src, cmap[1].src) for cmap in cmaps]):
+#        space = MulSpace(ring, *items)
+#        srcs[space.grade].append(space)
+#    srcs = [AddSpace(ring, *spaces) for spaces in srcs]
+#    #print([space.name for space in srcs])
+#
+#    tgts = [[] for i in range(N+1)]
+#    for items in cross([(cmap[0].tgt, cmap[1].tgt) for cmap in cmaps]):
+#        space = MulSpace(ring, *items)
+#        tgts[space.grade].append(space)
+#    tgts = [AddSpace(ring, *spaces) for spaces in tgts]
+#    #print([space.name for space in tgts])
+
+    linss = [[] for i in range(N+1)]
+    for items in cross(cmaps):
+        #print([f.homstr() for f in items])
+        f = reduce(matmul, items)
+        #print(f.homstr())
+        assert f.src.grade == f.tgt.grade
+        linss[f.src.grade].append(f)
+    chain = [reduce(Lin.direct_sum, lins) for lins in linss]
+    #print([lin.homstr() for lin in chain])
+    return chain
+
+
+def test_chain_product():
+
+    p = 2
+    ring = element.FiniteField(p)
+
+    C1 = Space(ring, 1, 1, "C_1")
+    C0 = Space(ring, 1, 0, "C_0")
+    f = Lin(C0, C1, [[1]])
+
+    chain = chain_product(ring, [f, f])
+
+    D1 = Space(ring, 1, 1, "D_1")
+    D0 = Space(ring, 1, 0, "D_0")
+    g = Lin(D0, D1, [[1]])
+
+    E1 = Space(ring, 1, 1, "E_1")
+    E0 = Space(ring, 1, 0, "E_0")
+    h = Lin(E0, E1, [[1]])
+
+    test_chain_symmetry(ring, [f, g])
+    test_chain_symmetry(ring, [f, g, h])
+    test_chain_symmetry(ring, [f, f])
+    test_chain_symmetry(ring, [f, f, h])
+    test_chain_symmetry(ring, [f, f, f])
+
+
+    C1 = Space(ring, 3, 1, "C_1")
+    C0 = Space(ring, 2, 0, "C_0")
+    f = Lin(C0, C1, [[1,1,0],[0,1,1]])
+
+    chain = chain_product(ring, [f, f, f])
+    #test_chain_symmetry(ring, [f, f, f])
+
+    C1 = Space(ring, 3, 1, "C_1")
+    C0 = Space(ring, 3, 0, "C_0")
+    f = Lin(C0, C1, [[1,1,0],[0,1,1],[1,0,1]])
+
+    D1 = Space(ring, 3, 1, "D_1")
+    D0 = Space(ring, 3, 0, "D_0")
+    g = Lin(D0, D1, [[1,1,0],[0,1,1],[1,0,1]])
+
+    cmap = [
+        Lin(D0, C0, [[0,1,0],[0,0,1],[1,0,0]]),
+        Lin(D1, C1, [[0,1,0],[0,0,1],[1,0,0]]),
+    ]
+
+    test_chain_map([g], [f], cmap)
+
+    ident = [
+        Lin(D0, C0, [[1,0,0],[0,1,0],[0,0,1]]),
+        Lin(D1, C1, [[1,0,0],[0,1,0],[0,0,1]]),
+    ]
+    test_chain_map([g], [f], ident)
+
+
+    src = chain_product(ring, [f, f, f])
+    tgt = chain_product(ring, [g, g, g])
+
+    c3 = cmap_product(ring, [cmap, cmap, cmap])
+    test_chain_map(tgt, src, c3)
+
+    c3 = cmap_product(ring, [cmap, cmap, ident])
+    test_chain_map(tgt, src, c3)
 
 
 
