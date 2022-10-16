@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 """
-see also: kvchain.py
+see also: kvchain.py, comp.py
+
 """
 
 

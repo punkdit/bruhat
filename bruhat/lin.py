@@ -1672,7 +1672,10 @@ def test_kagome():
     C0 = Space(ring, 3, 0, "C_0")
     f = Lin(C0, C1, [[1,1,0],[0,1,1],[1,0,1]])
 
-    f3 = chain_product(ring, [f]*3)
+    chain = chain_product(ring, [f]*3)
+
+    for bdy in chain:
+        print(bdy.homstr())
 
 
 def test_all():
