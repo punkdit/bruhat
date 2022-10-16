@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+"""
+see also: kvchain.py
+"""
+
+
 from random import choice
 from functools import reduce
 

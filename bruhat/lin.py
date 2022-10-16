@@ -1653,7 +1653,6 @@ def test_chain_product():
     ]
     test_chain_map([g], [f], ident)
 
-
     src = chain_product(ring, [f, f, f])
     tgt = chain_product(ring, [g, g, g])
 
@@ -1663,6 +1662,17 @@ def test_chain_product():
     c3 = cmap_product(ring, [cmap, cmap, ident])
     test_chain_map(tgt, src, c3)
 
+
+def test_kagome():
+
+    p = 2
+    ring = element.FiniteField(p)
+
+    C1 = Space(ring, 3, 1, "C_1")
+    C0 = Space(ring, 3, 0, "C_0")
+    f = Lin(C0, C1, [[1,1,0],[0,1,1],[1,0,1]])
+
+    f3 = chain_product(ring, [f]*3)
 
 
 def test_all():
