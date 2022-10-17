@@ -747,6 +747,22 @@ class Subspace(object):
         return Subspace(self.ring, W)
 
 
+def intersect(ring, W1, W2):
+    W1 = row_reduce(ring, W1, True)
+    W2 = row_reduce(ring, W2, True)
+    W = numpy.concatenate((W1, W2))
+    K = kernel(ring, W.transpose()).transpose()
+    #print("K:")
+    #print(K.shape)
+    #print(shortstr(K))
+    W = dot(ring, K[:, :len(W1)], W1)
+    #W = row_reduce(ring, W, truncate=True)
+    #print(shortstr(W))
+    return W
+
+
+
+
 
 def test():
 

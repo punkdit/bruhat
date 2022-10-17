@@ -534,6 +534,13 @@ class Subspace(object):
         return Subspace(W)
 
 
+def intersect(W1, W2):
+    W = numpy.concatenate((W1, W2))
+    K = kernel(W.transpose())#.transpose()
+    W = dot(K[:, :len(W1)], W1)
+    return W
+
+
 def rand(m, n, p=3, q=3):
     A = zeros(m, n)
     for i in range(m):

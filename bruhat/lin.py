@@ -181,7 +181,7 @@ class DualSpace(Space):
 
 
 # We record the bimonoidal structure (+,*) into AddSpace and MulSpace below.
-# This is strictly associative, ie., these are multi-arity operations.
+# This is strictly _associative, ie., these are multi-arity operations.
 # However, we don't make these two operations strictly unital,
 # which may be a mistake as the unit's can be seen as nullary operations.
 
@@ -680,6 +680,7 @@ class Lin(object):
         assert self.hom == other.hom
         A = self.A + other.A
         return Lin(*self.hom, A)
+    add = __add__
 
     def __sub__(self, other):
         assert self.hom == other.hom
@@ -716,9 +717,26 @@ class Lin(object):
             #print("\t", C.shape)
         return Lin(tgt, src, C)
 
+    def sum(self, dim):
+        A = self.A.sum(dim)
+        assert len(A.shape) == 1
+        K = Space(self.ring, 1, self.hom[dim].grade, "K")
+        hom = list(self.hom)
+        hom[dim] = K
+        shape = list(self.shape)
+        shape[dim] = 1
+        A.shape = tuple(shape)
+        return Lin(*hom, A)
+
+    def intersect(self, other):
+        assert self.src == other.src
+        A = elim.intersect(self.A, other.A)
+        tgt = Space(self.ring, len(A), self.tgt.grade)
+        return Lin(tgt, self.src, A)
+
     @staticmethod
     def get_mulswap(ring, spaces, perm):
-        # This is where strict associative tensor product gets annoying
+        # This is where strict _associative tensor product gets annoying
         assert len(spaces) == len(perm)
         if not len(spaces):
             return MulSpace(ring).identity()

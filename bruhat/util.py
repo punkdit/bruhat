@@ -295,6 +295,15 @@ def all_binary_trees(els):
                 yield (ltree, rtree)
 
 
+def distinct(items):
+    n = len(items)
+    for i in range(n):
+      for j in range(i+1, n):
+        if items[i] == items[j]:
+            return False
+    return True
+
+
 def set_seed(i=0):
     import numpy
     from random import seed
