@@ -5,7 +5,8 @@
 An attempt at basic 
 Ring's Field's, Polynomial rings, etc.
 
-See also _element.pyx for another attempt at Fraction's .
+See also _element.pyx for a faster implementation of some of this.
+
 """
 
 from functools import total_ordering

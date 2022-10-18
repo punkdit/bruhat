@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from _element import Fraction
+from _element import Fraction, FiniteField
 
 
 a = Fraction(2,3)
@@ -52,6 +52,25 @@ try:
 except OverflowError:
     b = None
 assert b is None
+
+
+ring = FiniteField(3)
+zero = ring.zero
+one = ring.one
+assert zero + zero == zero
+assert zero + one == one
+#assert one + one == 3*one
+assert 1 + one == one+one
+assert one + 1 == one+one
+assert 2*one == one+one
+assert one*2 == one+one
+assert one*one == one
+two = one+one
+assert two*two == one
+assert two+two == one
+
+assert two//two == one
+assert two/two == one
 
 print("OK")
 

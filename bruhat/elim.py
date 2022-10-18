@@ -770,10 +770,7 @@ def test():
     if _seed is not None:
         seed(_seed)
 
-    if argv.fast:
-        from bruhat import _element as element
-    else:
-        from bruhat import element
+    from bruhat import element
 
     ring = element.Q # field of rationals
     zero = ring.zero

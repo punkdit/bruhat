@@ -15,16 +15,12 @@ from operator import mul, add, matmul
 import numpy
 
 from bruhat.argv import argv
-if argv.fast:
-    from bruhat import _element as element
-else:
-    from bruhat import element
+from bruhat import element
 
 from bruhat import elim
 from bruhat.elim import eq
 from bruhat import solve
 #from bruhat.frobenius import GF
-from bruhat.rep import Young
 from bruhat.action import Perm, Group, mulclose, mulclose_hom
 from bruhat.util import partitions, cross, allperms
 from bruhat.smap import SMap
@@ -1067,6 +1063,7 @@ def test_structure():
 
 def test_young():
     # code ripped from qu.py
+    from bruhat.rep import Young
 
     d = argv.get("d", 2)
     n = argv.get("n", 3)
@@ -1148,6 +1145,7 @@ def test_young():
 
 
 def test_young0():
+    from bruhat.rep import Young
     ring = element.Q
 
     n = argv.get("n", 3)
@@ -1304,6 +1302,7 @@ def test(ring=element.Q):
 dsum = lambda U, V : U.direct_sum(V)
 
 def super_young(U, V, part):
+    from bruhat.rep import Young
     ring = U.ring
 
     n = sum(part)

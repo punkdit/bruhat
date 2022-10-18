@@ -237,10 +237,13 @@ cdef class Fraction:
         return Fraction(top, bot)
 
 
-class Type(object):
+cdef class Type(object):
     pass
 
-class Ring(Type):
+cdef class Ring(Type):
+    pass
+
+class Rational(Ring):
     def __init__(self):
         self.one = Fraction(1, 1)
         self.zero = Fraction(0, 1)
@@ -249,7 +252,174 @@ class Ring(Type):
         return Fraction.promote(value)
 
 
-Q = Ring()
+cdef class FFElement(object):
+    cdef readonly int value
+    cdef readonly FiniteField ring
+    def __init__(self, ring, value):
+        self.ring = ring
+        self.value = value % ring.p
+
+    def __hash__(self):
+        return hash((self.ring, self.value,))
+
+    def __nonzero__(self):
+        return self.value != 0
+
+    def __eq__(self, object _other):
+        cdef FFElement other
+        other = self.ring.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.value == other.value
+
+    def __ne__(self, object _other):
+        cdef FFElement other
+        other = self.ring.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.value != other.value
+
+    def __lt__(self, object _other):
+        cdef FFElement other
+        other = self.ring.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.value < other.value
+
+    def __gt__(self, object _other):
+        cdef FFElement other
+        other = self.ring.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.value > other.value
+
+    def __le__(self, object _other):
+        cdef FFElement other
+        other = self.ring.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.value <= other.value
+
+    def __ge__(self, object _other):
+        cdef FFElement other
+        other = self.ring.promote(_other)
+        if other is None:
+            return NotImplemented
+        return self.value >= other.value
+
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return "FFElement(%s)"%(self.value,)
+
+    def __add__(_self, _other):
+        cdef FFElement self, other
+        if isinstance(_other, FFElement):
+            other = _other
+            self = other.ring.promote(_self)
+        else:
+            self = _self
+            other = self.ring.promote(_other)
+            if other is None:
+                return NotImplemented
+        return FFElement(self.ring, self.value + other.value)
+
+    def __sub__(_self, _other):
+        cdef FFElement self, other
+        if isinstance(_other, FFElement):
+            other = _other
+            self = other.ring.promote(_self)
+        else:
+            self = _self
+            other = self.ring.promote(_other)
+            if other is None:
+                return NotImplemented
+        return FFElement(self.ring, self.value - other.value)
+
+    def __mul__(_self, _other):
+        cdef FFElement self, other
+        if isinstance(_other, FFElement):
+            other = _other
+            self = other.ring.promote(_self)
+        else:
+            self = _self
+            other = self.ring.promote(_other)
+            if other is None:
+                return NotImplemented
+        return FFElement(self.ring, self.value * other.value)
+
+    def __floordiv__(_self, _other):
+        cdef FFElement self, other
+        if isinstance(_other, FFElement):
+            other = _other
+            self = other.ring.promote(_self)
+        else:
+            self = _self
+            other = self.ring.promote(_other)
+            if other is None:
+                return NotImplemented
+        return self.ring.div(self, other)
+
+    def __truediv__(_self, _other):
+        cdef FFElement self, other
+        if isinstance(_other, FFElement):
+            other = _other
+            self = other.ring.promote(_self)
+        else:
+            self = _self
+            other = self.ring.promote(_other)
+            if other is None:
+                return NotImplemented
+        return self.ring.div(self, other)
+
+    def __pos__(self):
+        return self
+
+    def __neg__(self):
+        return FFElement(self.ring, -self.value)
+
+    def __pow__(self, int n, modulo):
+        if modulo is not None:
+            return NotImplemented
+        return FFElement(self.ring, self.value ** n)
+
+
+
+cdef class FiniteField(Ring):
+    cdef readonly int p
+    cdef readonly object zero
+    cdef readonly object one
+    cdef readonly object inv
+
+    def __init__(self, int p):
+        self.p = p
+        one = FFElement(self, 1)
+        mul = [FFElement(self, i) for i in range(1, p)]
+        inv = {}
+        for a in mul:
+          for b in mul:
+            if a*b == one:
+                inv[a] = b
+                inv[b] = a
+        self.zero = FFElement(self, 0)
+        self.one = one
+        self.inv = inv
+
+    cpdef FFElement promote(self, object other):
+        if type(other) is FFElement:
+            return other
+        if type(other) is long:
+            return FFElement(self, other)
+        return None
+
+    cdef FFElement div(self, FFElement left, FFElement right):
+        if right == self.zero:
+            raise ZeroDivisionError()
+        return left * self.inv[right]
+
+
+Q = Rational()
         
 
 
