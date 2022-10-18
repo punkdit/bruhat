@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 """
+Chain complexes.
+
 rewrite of chain.py, reversing order of Chain lins
 
 """
@@ -11,7 +13,7 @@ start_time = time()
 
 from random import choice
 from functools import reduce
-from operator import matmul
+from operator import matmul, mul
 
 import numpy
 
@@ -431,25 +433,35 @@ def test_kagome():
     else:
         ring = element.Z
 
-    C1 = Space(ring, 3, 1, "C_1")
-    C0 = Space(ring, 3, 0, "C_0")
-    f = Lin(C0, C1, [[1,1,0],[0,1,1],[1,0,1]])
+    dims = argv.get("dims", 3)
+    L = argv.get("L", 3)
+
+
+    C1 = Space(ring, L, 1, "C_1")
+    C0 = Space(ring, L, 0, "C_0")
+    f = elim.zeros(ring, L, L)
+    for i in range(L):
+        f[i,i] = ring.one
+        f[i,(i+1)%L] = ring.one
+    f = Lin(C0, C1, f)
     f = Chain([f])
 
-    send = ChainMap(f, f, [
-        Lin(C0, C0, [[0,1,0],[0,0,1],[1,0,0]]),
-        Lin(C1, C1, [[0,1,0],[0,0,1],[1,0,0]]),
-    ])
+    A = elim.zeros(ring, L, L)
+    for i in range(L):
+        A[i,(i+1)%L] = ring.one
+
+    send = ChainMap(f, f, [ Lin(C0, C0, A), Lin(C1, C1, A), ])
     inv = ChainMap(f, f, [lin.transpose() for lin in send])
 
-    dim = 3
-    lins = [f]*dim
+    lins = [f]*dims
     toric = Chain.product(ring, lins)
-    perm = tuple((i+1)%dim for i in range(dim))
+    perm = tuple((i+1)%dims for i in range(dims))
     rotate = ChainMap.perm(ring, lins, perm)
+    assert rotate.src == rotate.tgt
 
     print(toric)
-    Hx, Hzt = toric[:2]
+    grade = dims//2
+    Hx, Hzt = toric[grade-1 : grade+1]
     #Hx, Hzt = Hx.A, Hzt.A
     Hz = Hzt.transpose()
     print("Hx:")
@@ -467,46 +479,52 @@ def test_kagome():
     assert i*i == i
     assert send != i
     assert send*send != i
-    assert send*send*send == i
+    assert reduce(mul, [send]*L) == i
 
     assert send != inv
     assert inv != i
     assert inv*inv != i
-    assert inv*inv*inv == i
+    assert reduce(mul, [inv]*L) == i
 
     assert send*inv == i
     assert inv*send == i
 
-    I = ChainMap.product(ring, [i, i, i])
-    a = ChainMap.product(ring, [send, inv, i])
-    b = ChainMap.product(ring, [send, i, inv])
-    c = ChainMap.product(ring, [i, send, inv])
+    I = ChainMap.product(ring, [i]*dims)
+    gens = [rotate]
+    for j in range(dims):
+        g = [i]*dims
+        g[j] = send
+        g[(j+1)%dims] = inv
+        g = ChainMap.product(ring, g)
+        gens.append(g)
 
-    assert a.src == a.tgt
-    assert rotate.src == rotate.tgt
+        assert g.src == g.tgt
 
-    N0 = Space(ring, 0, 0, "N0")
-    N1 = Space(ring, 0, 1, "N1")
-    N2 = Space(ring, 0, 2, "N2")
-    N3 = Space(ring, 0, 3, "N3")
+        #for count in range(1, L+1):
+        #    op = reduce(mul, [g]*count)
+        #    assert (op == I) == (count==L)
 
     tgt = toric
     C1 = toric.get(1)
     point = get_point(C1)
 
-    ChainMap.CHECK = False
-    #G = mulclose(gens, verbose=True)
-    #print("|G| =", len(G))
+    ChainMap.CHECK = argv.get("CHECK", False)
 
-    G = [
-        I, a, a*a, 
-        b, a*b, a*a*b, 
-        b*b, a*b*b, a*a*b*b, 
-    ]
-    rr = rotate*rotate
-    G += [rotate*g for g in G] + [rr*g for g in G]
-    assert distinct(G)
-    assert len(G) == 27
+    if dims==3 and L==3:
+        a, b, c = gens[1:]
+        G = [
+            I, a, a*a, 
+            b, a*b, a*a*b, 
+            b*b, a*b*b, a*a*b*b, 
+        ]
+        rr = rotate*rotate
+        G += [rotate*g for g in G] + [rr*g for g in G]
+    else:
+        G = mulclose(gens, verbose=True)
+    print("|G| =", len(G))
+
+    #assert distinct(G)
+    print( len(G) == dims * (L**(dims-1)) ) # assert 
 
     # Hx: weight 6 checks
     # Hz: weight 4 checks
@@ -581,6 +599,11 @@ def test_kagome():
     return locals()
 
     return
+
+    N0 = Space(ring, 0, 0, "N0")
+    N1 = Space(ring, 0, 1, "N1")
+    N2 = Space(ring, 0, 2, "N2")
+    N3 = Space(ring, 0, 3, "N3")
 
     #toric = toric.sub(0, 2)
     src = Chain([Lin.zero(N0, point.src), Lin.zero(point.src, N2)])
