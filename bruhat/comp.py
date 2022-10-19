@@ -460,7 +460,7 @@ def test_kagome():
     assert rotate.src == rotate.tgt
 
     print(toric)
-    grade = dims//2
+    grade = argv.get("grade", dims//2)
     Hx, Hzt = toric[grade-1 : grade+1]
     #Hx, Hzt = Hx.A, Hzt.A
     Hz = Hzt.transpose()
@@ -505,8 +505,8 @@ def test_kagome():
         #    assert (op == I) == (count==L)
 
     tgt = toric
-    C1 = toric.get(1)
-    point = get_point(C1)
+    Cn = toric.get(grade)
+    point = get_point(Cn)
 
     ChainMap.CHECK = argv.get("CHECK", False)
 
@@ -534,7 +534,7 @@ def test_kagome():
     #points = [g[1]*point for g in gens]
     points = []
     for g in G:
-        A = (g[1]*point).A
+        A = (g[grade]*point).A
         A.shape = len(A),
         points.append(A)
     points = elim.array(points)
