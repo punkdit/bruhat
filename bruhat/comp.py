@@ -11,7 +11,6 @@ rewrite of chain.py, reversing order of Chain lins
 from time import time
 start_time = time()
 
-from random import choice
 from functools import reduce
 from operator import matmul, mul
 
@@ -459,8 +458,12 @@ def test_kagome():
     rotate = ChainMap.perm(ring, lins, perm)
     assert rotate.src == rotate.tgt
 
+    ChainMap.CHECK = argv.get("CHECK", False)
+
     print(toric)
-    grade = argv.get("grade", dims//2)
+    #grade = argv.get("grade", dims//2)
+    grade = argv.get("grade", 1)
+    print("grade:", grade)
     Hx, Hzt = toric[grade-1 : grade+1]
     #Hx, Hzt = Hx.A, Hzt.A
     Hz = Hzt.transpose()
@@ -490,7 +493,7 @@ def test_kagome():
     assert inv*send == i
 
     I = ChainMap.product(ring, [i]*dims)
-    gens = [rotate]
+    gens = []
     for j in range(dims):
         g = [i]*dims
         g[j] = send
@@ -504,32 +507,60 @@ def test_kagome():
         #    op = reduce(mul, [g]*count)
         #    assert (op == I) == (count==L)
 
-    tgt = toric
-    Cn = toric.get(grade)
-    point = get_point(Cn)
-
-    ChainMap.CHECK = argv.get("CHECK", False)
-
-    if dims==3 and L==3:
-        a, b, c = gens[1:]
-        G = [
-            I, a, a*a, 
-            b, a*b, a*a*b, 
-            b*b, a*b*b, a*a*b*b, 
-        ]
+    if dims == 3:
+        G = []
+        a, b = gens[:2]
+        for ia in range(L):
+         for ib in range(L):
+            ma = reduce(mul, [a]*ia, I)
+            mb = reduce(mul, [b]*ib, I)
+            G.append(ma*mb)
         rr = rotate*rotate
         G += [rotate*g for g in G] + [rr*g for g in G]
+
+    elif dims == 4:
+        G = []
+        a, b, c = gens[:3]
+        for ia in range(L):
+         for ib in range(L):
+          for ic in range(L):
+            ma = reduce(mul, [a]*ia, I)
+            mb = reduce(mul, [b]*ib, I)
+            mc = reduce(mul, [c]*ic, I)
+            G.append(ma*mb*mc)
+        rr = rotate*rotate
+        rrr = rr*rotate
+        G += [rotate*g for g in G] + [rr*g for g in G] + [rrr*g for g in G]
+
     else:
-        G = mulclose(gens, verbose=True)
+        assert 0
+
+#    if dims==3 and L==3:
+#        a, b, c = gens[1:]
+#        G = [
+#            I, a, a*a, 
+#            b, a*b, a*a*b, 
+#            b*b, a*b*b, a*a*b*b, 
+#        ]
+#        rr = rotate*rotate
+#        G += [rotate*g for g in G] + [rr*g for g in G]
+#    else:
+#        G = mulclose(gens, verbose=True)
+
     print("|G| =", len(G))
 
-    #assert distinct(G)
-    print( len(G) == dims * (L**(dims-1)) ) # assert 
+    if argv.check:
+        assert distinct(G)
+    assert( len(G) == dims * (L**(dims-1)) ) # assert 
 
     # Hx: weight 6 checks
     # Hz: weight 4 checks
     Hx = Hx.A
     Hz = Hz.A
+
+    tgt = toric
+    Cn = toric.get(grade)
+    point = get_point(Cn)
 
     #points = [g[1]*point for g in gens]
     points = []
@@ -590,11 +621,11 @@ def test_kagome():
 
     lhs = elim.dot(ring, cmap1, Hx1.transpose())
     rhs = elim.dot(ring, Hx.transpose(), cmap0)
-    print(elim.eq(lhs, rhs))
+    #print(elim.eq(lhs, rhs)) # False
 
     lhs = elim.dot(ring, cmap2, Hz1)
     rhs = elim.dot(ring, Hz, cmap1)
-    print(elim.eq(lhs, rhs))
+    #print(elim.eq(lhs, rhs)) # False
 
     return locals()
 
