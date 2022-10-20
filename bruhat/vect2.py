@@ -9,6 +9,8 @@ Here we call these types Cell0, Cell1, Cell2.
 
 """
 
+from time import time
+start_time = time()
 from functools import reduce
 import operator
 import itertools
@@ -297,16 +299,25 @@ class Cell1(Matrix):
         return numpy.alltrue(self.A == other.A)
 
     def __mul__(self, other):
-        "composition of 1-morphism's"
+        assert 0
+
+    def __lshift__(self, other):
+        "horizontal composition of 1-morphism's"
         if isinstance(other, Cell2):
             self = Cell2.promote(self)
-            return self.__mul__(other) # <-------- return
+            return self.__lshift__(other) # <-------- return
         other = Cell1.promote(other)
         assert self.rig == other.rig
         assert self.src == other.tgt
         rig = self.rig
         A = rig.dot(self.A, other.A)
         return Cell1(self.tgt, other.src, A)
+
+#    def __lshift__(self, other):
+#        if isinstance(other, Cell1):
+#            return self.__mul__(other) # <-------- return
+#        self = Cell2.promote(self)
+#        return self << other
 
     def __add__(self, other):
         "direct sum of 1-morphism's"
@@ -339,12 +350,6 @@ class Cell1(Matrix):
           for k, l in numpy.ndindex(other.shape): # little
             A[i*m+k, j*n+l ] = self[i,j] @ other[k,l]
         return Cell1(tgt, src, A)
-
-    def __lshift__(self, other):
-        if isinstance(other, Cell1):
-            return self.__mul__(other) # <-------- return
-        self = Cell2.promote(self)
-        return self << other
 
     @property
     def transpose(self):
@@ -586,8 +591,8 @@ class Cell2(Matrix):
     def __lshift__(left, right):
         "horizontal composition of 2-morphism's"
         right = Cell2.promote(right)
-        tgt = left.tgt * right.tgt
-        src = left.src * right.src
+        tgt = left.tgt << right.tgt
+        src = left.src << right.src
         lins = []
         for i in range(left.shape[0]):
           row = []
@@ -671,7 +676,7 @@ class Cell2(Matrix):
     def left_unitor(cls, cell1, inverse=False):
         m, n = cell1.hom
         I_m = Cell1.identity(m)
-        tgt, src = cell1, I_m * cell1
+        tgt, src = cell1, I_m << cell1
         if inverse:
             tgt, src = src, tgt
         # Bit of a hack just using .iso here!
@@ -685,7 +690,7 @@ class Cell2(Matrix):
     def right_unitor(cls, cell1, inverse=False):
         m, n = cell1.hom
         I_n = Cell1.identity(n)
-        tgt, src = cell1, cell1 * I_n
+        tgt, src = cell1, cell1 << I_n
         if inverse:
             tgt, src = src, tgt
         # Bit of a hack just using .iso here!
@@ -705,7 +710,7 @@ class Cell2(Matrix):
 
     @staticmethod
     def reassociate(A, B, C, inverse=False):
-        "A*(B*C) <--- (A*B)*C"
+        "A<<(B<<C) <--- (A<<B)<<C"
 
         assert C.tgt == B.src
         assert B.tgt == A.src
@@ -713,7 +718,7 @@ class Cell2(Matrix):
         p, q = C.shape
 
         if n*p == 0:
-            tgt, src = A*(B*C), (A*B)*C
+            tgt, src = A<<(B<<C), (A<<B)<<C
             if inverse:
                 tgt, src = src, tgt
             return Cell2.zero(tgt, src)
@@ -829,7 +834,7 @@ class Cell2(Matrix):
     def unit(A):
         assert isinstance(A, Cell1)
         src = Cell1.identity(A.src)
-        tgt = A.dual * A
+        tgt = A.dual << A
         assert tgt.hom == src.hom
         shape = tgt.shape
         n = shape[0]
@@ -860,7 +865,7 @@ class Cell2(Matrix):
     @staticmethod
     def counit(A):
         assert isinstance(A, Cell1)
-        src = A * A.dual
+        src = A << A.dual
         tgt = Cell1.identity(A.tgt)
         assert tgt.hom == src.hom
         shape = tgt.shape
@@ -897,8 +902,8 @@ class Cell2(Matrix):
         In = Cell1.identity(n)
         Fm = Cell1.fold(one, m)
         Fn = Cell1.fold(one, n)
-        tgt = (Im @ A.transpose) * Fm
-        src = (A @ In) * Fn
+        tgt = (Im @ A.transpose) << Fm
+        src = (A @ In) << Fn
         tgt = tgt.get_normal().tgt
         src = src.get_normal().tgt
         assert tgt == src
@@ -913,8 +918,8 @@ class Cell2(Matrix):
         In = Cell1.identity(n)
         Gm = Cell1.unfold(one, m)
         Gn = Cell1.unfold(one, n)
-        tgt = Gn * (In @ A.transpose)
-        src = Gm * (A @ Im)
+        tgt = Gn << (In @ A.transpose)
+        src = Gm << (A @ Im)
         tgt = tgt.get_normal().tgt
         src = src.get_normal().tgt
         assert tgt == src
@@ -934,7 +939,7 @@ class Cell2(Matrix):
         fA = Cell2.fold(one, A)
         assert fA.src == ((A @ In) << Fn).normalized
         cap = Cell2.counit(Atd)
-        assert cap.src == Atd * At
+        assert cap.src == Atd << At
         assert cap.tgt == Im
         bot = (Im @ Atd) << fA
         lhs, rhs = bot.src.normalized , ((A @ Atd)<<Fn).normalized
@@ -963,7 +968,7 @@ class Cell2(Matrix):
         Gn = Cell1.unfold(one, n)
         gA = Cell2.unfold(one, A)
         cap = Cell2.counit(At)
-        assert cap.src == At * Atd
+        assert cap.src == At << Atd
         assert cap.tgt == In
         bot = gA << (In @ Atd)
         top = Gn << (In @ cap)
@@ -996,7 +1001,7 @@ def make_frobenius(A):
     r_dA = Cell2.right_unitor(A.dual)
 
     # getting down to business
-    X = A * A.dual # the 'object' supporting the algebra
+    X = A << A.dual # the 'object' supporting the algebra
     i_X = Cell2.identity(X)
     unit = r_cup
     counit = l_cap
@@ -1006,36 +1011,39 @@ def make_frobenius(A):
     left_unitor = l_A << i_dA
     left_unitor = left_unitor * Cell2.reassociate(I_m, A, A.dual, inverse=True)
     assert left_unitor.tgt == X
-    assert left_unitor.src == I_m * X
+    assert left_unitor.src == I_m << X
 
     right_unitor = i_A << r_dA
     right_unitor = right_unitor * Cell2.reassociate(A, A.dual, I_m)
     assert right_unitor.tgt == X
-    assert right_unitor.src == X * I_m
+    assert right_unitor.src == X << I_m
 
     mul = i_A << r_cap << i_dA
-    assert mul.tgt == (A * I_n) * A.dual
+    assert mul.tgt == (A << I_n) << A.dual
     mul = (r_A << i_dA)*mul
     assert mul.tgt == X
-    assert mul.src == A * (A.dual * A) * A.dual
+    assert mul.src == A << (A.dual << A) << A.dual
     a = Cell2.reassociate(A, A.dual, A) << i_dA
     mul = mul*a
-    assert mul.src == ((A * A.dual) * A) * A.dual
-    a = Cell2.reassociate(A*A.dual, A, A.dual, inverse=True)
+    assert mul.src == ((A << A.dual) << A) << A.dual
+    a = Cell2.reassociate(A<<A.dual, A, A.dual, inverse=True)
     mul = mul*a
-    assert mul.src == X*X
+    assert mul.src == X<<X
 
     comul = i_A << l_cup << i_dA
     comul = comul * (Cell2.right_unitor(A, inverse=True) << i_dA)
     a = Cell2.reassociate(A, A.dual, A, inverse=True) << i_dA
     comul = a * comul
-    a = Cell2.reassociate(A*A.dual, A, A.dual)
+    a = Cell2.reassociate(A<<A.dual, A, A.dual)
     comul = a * comul
     assert comul.src == X
-    assert comul.tgt == X*X
+    assert comul.tgt == X<<X
 
-    a = Cell2.reassociate(X, X, X)                # X*(X*X) <--- (X*X)*X 
-    ai = Cell2.reassociate(X, X, X, inverse=True) # (X*X)*X <--- X*(X*X)
+    a = Cell2.reassociate(X, X, X)                # X<<(X<<X) <--- (X<<X)<<X 
+    assert a.src == (X<<X)<<X
+    assert a.tgt == X<<(X<<X)
+
+    ai = Cell2.reassociate(X, X, X, inverse=True) # (X<<X)<<X <--- X<<(X<<X)
 
     # Verify Frobenius algebra axioms
     # (1) monoid axioms
@@ -1201,7 +1209,7 @@ def test_hopf():
     rhs = cap << cap
     #print( lhs.normalized[0,0] )
     #print( rhs.normalized[0,0] )
-    print( lhs.normalized == rhs.normalized )
+    #print( lhs.normalized == rhs.normalized ) # False
     
 
 def test_frobenius():
@@ -1251,11 +1259,13 @@ def test_reassociate():
             B = Cell1(n, p, [[spaces.__next__() for k in p] for j in n])
             C = Cell1(p, q, [[spaces.__next__() for l in q] for k in p])
             a = Cell2.reassociate(A, B, C)
+            assert a.src == (A<<B)<<C
+            assert a.tgt == A<<(B<<C)
             ai = Cell2.reassociate(A, B, C, inverse=True)
             left = a*ai
-            assert left == Cell2.identity(A*(B*C))
+            assert left == Cell2.identity(A<<(B<<C))
             right = ai*a
-            assert right == Cell2.identity((A*B)*C)
+            assert right == Cell2.identity((A<<B)<<C)
 
             A = Cell1.rand(m, n, name="A")
             B = Cell1.rand(n, p, name="B")
@@ -1284,19 +1294,19 @@ def test_bialgebra():
     Delete = Cell1.zero(zero, m)
 
     # assoc
-    lhs = Add * (Add + I)
-    rhs = Add * (I + Add)
+    lhs = Add << (Add + I)
+    rhs = Add << (I + Add)
     assert lhs != rhs # not strict
 
-    lhs = (Copy + I) * Copy
-    rhs = (I + Copy) * Copy
+    lhs = (Copy + I) << Copy
+    rhs = (I + Copy) << Copy
     assert lhs != rhs # not strict
 
-    print( Add * (Zero + I), I)
-    #assert Add * (Zero + I) == I
+    #print( Add << (Zero + I), I)
+    #assert Add << (Zero + I) == I
 
-    lhs = (Delete * Add)
-    rhs = NAdd*(Delete + Delete)
+    lhs = (Delete << Add)
+    rhs = NAdd<<(Delete + Delete)
     assert lhs == rhs
 
     return
@@ -1304,17 +1314,17 @@ def test_bialgebra():
     # --------------------
     # bialgebrator
 
-    lhs = Copy * Add
+    lhs = Copy << Add
     print(lhs)
 
     CC = Copy + Copy
     S = CC.tgt.get_swap((0, 2, 1, 3))
 
     AA =Add + Add
-    rhs = AA * S * CC
+    rhs = AA << S << CC
     print(rhs)
 
-    #print((Delete*Zero).hom)
+    #print((Delete<<Zero).hom)
 
     
 
@@ -1371,12 +1381,12 @@ def test_frobeniator():
     #print(tgt.dimstr())
 
     V = Cell1.rand(n, n, name="V")
-    print(V)
-    print(V.dimstr())
+    #print(V)
+    #print(V.dimstr())
     src = Comul << V
     tgt = (V @ V) << Comul
-    print(src)
-    print(tgt)
+    #print(src)
+    #print(tgt)
     #copy_V = Cell2(tgt, src, A)
 
 
@@ -1415,11 +1425,11 @@ def test():
     D = Cell1.rand(o, p, name="D")
 
     assert A == A
-    assert A*I_m == A*I_m
-    assert A != A*I_m
+    assert A<<I_m == A<<I_m
+    assert A != A<<I_m
 
     # Does not hold strictly, only up to 2-cell 
-    #assert (A*I_m)*B == A*(I_m*B) # nope
+    #assert (A<<I_m)<<B == A<<(I_m<<B) # nope
 
     i_A = Cell2.identity(A)
     i_B = Cell2.identity(B)
@@ -1427,22 +1437,22 @@ def test():
     i_D = Cell2.identity(D)
     assert i_A * i_A == i_A
 
-    tgt, src = A*(B*C), (A*B)*C
-    a = Cell2.reassociate(A, B, C)  #  A*(B*C) <--- (A*B)*C
+    tgt, src = A<<(B<<C), (A<<B)<<C
+    a = Cell2.reassociate(A, B, C)  #  A<<(B<<C) <--- (A<<B)<<C
     assert a.tgt == tgt
     assert a.src == src
 
     if argv.reassociate:
         b = Cell2.reassociate(A, B, C, inverse=True)
-        assert a*b == Cell2.identity(A*(B*C))
-        assert b*a == Cell2.identity((A*B)*C)
+        assert a*b == Cell2.identity(A<<(B<<C))
+        assert b*a == Cell2.identity((A<<B)<<C)
 
     ru_A = Cell2.right_unitor(A)
-    assert ru_A.src == A * I_m
+    assert ru_A.src == A << I_m
     assert ru_A.tgt == A
 
     lu_B = Cell2.left_unitor(B)
-    assert lu_B.src == I_m * B
+    assert lu_B.src == I_m << B
     assert lu_B.tgt == B
 
     a = Cell2.reassociate(A, I_m, B)
@@ -1455,16 +1465,16 @@ def test():
     a = Cell2.reassociate(A, B, C)
     b = Cell2.reassociate(A, B, C, inverse=True)
     lhs = b*a
-    assert lhs == Cell2.identity((A*B)*C)
+    assert lhs == Cell2.identity((A<<B)<<C)
 
     if argv.pentagon:
         # check the pentagon equation (slow !)
-        a = Cell2.reassociate(A*B, C, D)
-        b = Cell2.reassociate(A, B, C*D)
+        a = Cell2.reassociate(A<<B, C, D)
+        b = Cell2.reassociate(A, B, C<<D)
         lhs = b*a
     
         a = (i_A << Cell2.reassociate(B, C, D))
-        b = Cell2.reassociate(A, B*C, D)
+        b = Cell2.reassociate(A, B<<C, D)
         c = (Cell2.reassociate(A, B, C) << i_D)
         rhs = a*b*c
         assert lhs==rhs
@@ -1543,6 +1553,8 @@ def test_all():
     test_frobenius()
     test_reassociate()
     test_bialgebra()
+    test_frobeniator()
+    test_hopf()
     test()
 
 
@@ -1567,7 +1579,7 @@ if __name__ == "__main__":
         fn = eval(fn)
         fn()
 
-    print("OK")
+    print("OK: finished in %.3f seconds"%(time() - start_time))
     print()
 
 
