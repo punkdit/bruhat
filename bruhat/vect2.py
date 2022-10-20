@@ -18,10 +18,12 @@ from random import randint, seed
 
 import numpy
 
+from bruhat.argv import argv
+argv.fast = True
+
 from bruhat import element
 from bruhat import elim
 from bruhat.lin import Space, Lin, AddSpace, MulSpace
-from bruhat.argv import argv
 
 def array(A, cols=None):
     #A = numpy.array(A) # not good enough...
@@ -1075,13 +1077,7 @@ def make_frobenius(A):
 
 def test_monoidal():
 
-    class Ring(element.Type):
-        one = 1
-        zero = 0
-        @classmethod
-        def promote(cls, a):
-            return a
-    ring = Ring()
+    ring = element.Z
     rig = Rig(ring)
 
     zero = Cell0(rig, 0, "z")
@@ -1139,15 +1135,8 @@ def test_monoidal():
 
 def test_hopf():
 
-    class Ring(element.Type):
-        one = 1
-        zero = 0
-        @classmethod
-        def promote(cls, a):
-            return a
-    ring = Ring()
+    ring = element.Z
 
-    #ring = element.Q # slooooow
     rig = Rig(ring)
     zero = Cell0(rig, 0, "z")
     one = Cell0(rig, 1, "i")
@@ -1218,11 +1207,7 @@ def test_frobenius():
     # Here we construct a Frobenius algebra object 
     # See: https://math.ucr.edu/home/baez/week174.html
 
-    #ring = element.Z # too slow
-    class Ring(element.Type):
-        one = 1
-        zero = 0
-    ring = Ring()
+    ring = element.Z
 
     rig = Rig(ring)
     m = Cell0(rig, 2, "m")
@@ -1235,11 +1220,7 @@ def test_frobenius():
 
 
 def test_reassociate():
-    #ring = element.Z # too slow
-    class Ring(element.Type):
-        one = 1
-        zero = 0
-    ring = Ring()
+    ring = element.Z
 
     rig = Rig(ring)
     zero = Cell0(rig, 0, "z")
@@ -1275,10 +1256,7 @@ def test_reassociate():
 
 
 def test_bialgebra():
-    class Ring(element.Type):
-        one = 1
-        zero = 0
-    ring = Ring()
+    ring = element.Z
 
     rig = Rig(ring)
     zero = Cell0(rig, 0, "0")
@@ -1330,14 +1308,7 @@ def test_bialgebra():
 
 def test_frobeniator():
 
-    #ring = element.Z # too slow
-    class Ring(element.Type):
-        one = 1
-        zero = 0
-        @classmethod
-        def promote(cls, a):
-            return a
-    ring = Ring()
+    ring = element.Z
 
     rig = Rig(ring)
     N, K = rig.zero, rig.one
@@ -1392,14 +1363,7 @@ def test_frobeniator():
 
 def test():
 
-    #ring = element.Z # too slow
-    class Ring(element.Type):
-        one = 1
-        zero = 0
-        @classmethod
-        def promote(cls, a):
-            return a
-    ring = Ring()
+    ring = element.Z
 
     rig = Rig(ring)
 

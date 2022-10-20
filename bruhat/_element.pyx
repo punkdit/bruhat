@@ -422,4 +422,13 @@ cdef class FiniteField(Ring):
 Q = Rational()
         
 
+class IntegerRing(Type):
+    one = 1
+    zero = 0
+    @classmethod
+    def promote(cls, a):
+        return a
+Z = IntegerRing()
+
+
 
