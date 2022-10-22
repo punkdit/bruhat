@@ -496,6 +496,9 @@ class Cell2(Matrix):
     """
     The 2-cell's (2-morphism's) : a Matrix of Lin's
     """
+
+    strict = False # used in __mul__ below
+
     def __init__(self, tgt, src, linss):
         assert isinstance(tgt, Cell1)
         assert isinstance(src, Cell1)
@@ -582,7 +585,7 @@ class Cell2(Matrix):
         "(vertical) composition of 2-morphism's"
         other = Cell2.promote(other)
         assert self.rig == other.rig
-        if self.src != other.tgt:
+        if self.src != other.tgt and not Cell2.strict:
             self = self * self.src.from_normal() # recurse
             other = other.tgt.to_normal() * other # recurse
         assert self.src == other.tgt, "%s != %s"%(self.src, other.tgt)
@@ -1509,7 +1512,61 @@ def test():
     rhs = (c*a) << (d*b)
 
     assert lhs == rhs
-    
+
+
+def test_biproducts():
+
+    Cell2.strict = True
+
+    ring = element.Z
+
+    rig = Rig(ring)
+
+    l = 3
+
+    l = Cell0(rig, l, "l")
+    zero = Cell0(rig, 0, "zero")
+
+    A = numpy.empty((l.n+l.n, l.n), dtype=object)
+    for i in range(l.n+l.n):
+      for j in range(l.n):
+        A[i,j] = Space(ring, 2, 0, "A[%d,%d]"%(i,j))
+    A = Cell1(l+l, l, A)
+    print(A)
+
+    I = Cell1.identity(l)
+    N = Cell1.zero(zero, l)
+
+    lhs = (I+N)<<A
+    lhs = lhs.normalized
+    print(lhs)
+    print( ((N+I)<<A).normalized )
+    print()
+
+    D = Cell1.diagonal(l) # comul
+
+    C = Cell1.codiagonal(l) # mul
+
+    lhs = ((I+D) << D)
+    rhs = ((D+I) << D)
+
+    assert lhs.tgt == rhs.tgt 
+    assert lhs != rhs
+
+    assert lhs.normalized == rhs.normalized
+
+    assoc = rhs.from_normal() * lhs.to_normal()
+    assert assoc.shape == (l.n*l.n, l.n)
+
+
+    if 0:
+        m, n = assoc.shape
+        for i in range(m):
+          for j in range(n):
+            print(assoc[i,j])
+
+    Cell2.strict = False
+    return 
 
 
 def test_all():
