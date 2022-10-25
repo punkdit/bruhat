@@ -624,7 +624,13 @@ def find_kernel(A, inplace=False, check=False, verbose=False):
             assert dot(A0, v).sum()%2 == 0, shortstr(v)
         basis.append(v)
 
-    return basis
+    K = numpy.array(basis, dtype=int_scalar)
+    if not basis:
+        K.shape = (0, A.shape[1])
+    else:
+        assert K.shape[1] == A.shape[1]
+
+    return K
 
 
 class RowReduction(object):
@@ -694,7 +700,7 @@ def image(H):
     image = set()
     for v in enum2(n):
         u = dot2(H, v)
-        su = u.tostring()
+        su = u.tobytes()
         if su in image:
             continue
         image.add(su)
@@ -730,7 +736,7 @@ def find_logops(Hx, Hz, check=False, verbose=False):
     if verbose:
         print("find_logops: basis len", len(basis))
 
-    logops = basis
+    logops = list(basis)
 
     if not logops:
         shape = 0, Hx.shape[1]
@@ -1322,6 +1328,15 @@ def pushout(J, K, J1=None, K1=None, check=False):
 
     else:
         return JJ, KK
+
+
+def intersect(W1, W2): # from bruhat.gelim
+    "find maximal subspace within rowspace W1 & rowspace W2"
+    W = numpy.concatenate((W1, W2))
+    K = find_kernel(W.transpose())
+    W = dot2(K[:, :len(W1)], W1)
+    W = row_reduce(W)
+    return W
 
 
 # _________________________________________________________ #

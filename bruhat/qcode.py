@@ -12,8 +12,8 @@ import numpy
 from numpy import alltrue, zeros, dot
 
 from bruhat.util import cross
-from qupy.ldpc import solve
-from qupy.ldpc.solve import (
+from bruhat import solve 
+from bruhat.solve import (
     array2, zeros2, shortstr, dot2, linear_independent, row_reduce, find_kernel,
     span, intersect, rank, enum2)
 from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
@@ -792,8 +792,7 @@ def build_group_624():
 
 
 def test_prism():
-    from qupy.ldpc.solve import parse
-    H = parse("""
+    H = solve.parse("""
     111..1..
     1.11....
     11.11...
@@ -1332,13 +1331,6 @@ if __name__ == "__main__":
 
     else:
         test()
-        #test_real_pauli()
-        #render_1()
-        #render_2()
-        #main()
-        #test_dessins()
-        #make_hyperbolic()
-
 
 
     t = time() - start_time
