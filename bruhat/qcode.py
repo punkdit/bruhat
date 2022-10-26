@@ -250,6 +250,7 @@ class QCode(object):
         H.shape = (self.m, 2*self.n)
         return shortstr(H)
 
+
     
 def find_code(H, css=False, yop=False, degen=False):
     "build a QCode from face--vert adjacency matrix"
@@ -462,6 +463,7 @@ def build_code(geometry):
         faces = geometry.get_cosets([0,1,1])
         edges = geometry.get_cosets([1,0,1])
         verts = geometry.get_cosets([1,1,0])
+        print("faces=%d, edges=%d, verts=%d"%(len(faces), len(edges), len(verts)))
     else:
         bodis = geometry.get_cosets([0,1,1,1])
         faces = geometry.get_cosets([1,0,1,1])
@@ -547,6 +549,8 @@ def build_code(geometry):
         Jz = Jx.copy()
 
     if Hx is not None:
+        Hx = linear_independent(Hx)
+        Hz = linear_independent(Hz)
 
         A = dot2(Hx, Hz.transpose())
         #print("chain condition:", A.sum() == 0)
@@ -560,6 +564,8 @@ def build_code(geometry):
         print("Hz weights:", Hzs.min(), "to", Hzs.max())
     
         code = QCode.build_css(Hx, Hz)
+        print("rank(Hx) =", rank(Hx))
+        print("rank(Hz) =", rank(Hz))
 
     elif Jx is not None:
         Jxs = Jx.sum(1)
@@ -579,6 +585,8 @@ def build_code(geometry):
         print(list(L.sum(1)))
     print()
 
+    print(code)
+
 
 def build_geometry():
 
@@ -595,7 +603,7 @@ def build_geometry():
             break
 
         G = geometry.G
-        print("|G| =", len(G))
+        print("|G| = %d, idx = %d" % (len(G), idx))
         if len(G)<10:
             continue
 

@@ -21,16 +21,31 @@ from bruhat.lin import Lin, Space, AddSpace, MulSpace, element
 from bruhat.smap import SMap
 from bruhat.argv import argv
 from bruhat.util import cross, allperms, distinct
+from bruhat.action import Perm, Group
 
 
 def shortstr(A):
     s = elim.shortstr(A)
     s = str(s)
     s = s.replace(" 0 ", " . ")
-    if A.shape[1] == 1:
+    if len(A.shape)>1 and A.shape[1] == 1:
         s = s.replace("\n", "")
     return s
 
+
+def xstr(A):
+    s = shortstr(A)
+    for c in " [],":
+        s = s.replace(c, "")
+    s = s.replace("1", "X")
+    return s
+
+def zstr(A):
+    s = shortstr(A)
+    for c in " [],":
+        s = s.replace(c, "")
+    s = s.replace("1", "Z")
+    return s
 
 
 # does not need hashable operators
@@ -422,6 +437,13 @@ def test_chain_product():
     c3 = ChainMap.product(ring, [cmap, cmap, ident])
 
 
+def get_point(tgt, idx=0):
+    ring = tgt.ring
+    src = Space(ring, 1, tgt.grade, "src")
+    A = elim.zeros(ring, tgt.n, src.n)
+    A[idx,0] = ring.one
+    return Lin(tgt, src, A)
+
 
 def test_kagome():
     print("test_kagome")
@@ -471,12 +493,6 @@ def test_kagome():
     print(Hx.shape) #, shortstr(Hx.sum(0)), shortstr(Hx.sum(1)))
     print("Hz:")
     print(Hz.shape) #, shortstr(Hz.sum(0)), shortstr(Hz.sum(1)))
-
-    def get_point(tgt):
-        src = Space(ring, 1, tgt.grade, "src")
-        A = elim.zeros(ring, tgt.n, src.n)
-        A[0,0] = ring.one
-        return Lin(tgt, src, A)
 
     i = f.identity()
     assert i*i == i
@@ -658,6 +674,295 @@ def test_kagome():
             assert g*h == h*g
     
 
+def test_kagome_floquet():
+    print("test_kagome_floquet")
+
+    if 1:
+        p = 2
+        ring = element.FiniteField(p)
+    else:
+        ring = element.Z
+
+    dims = argv.get("dims", 3)
+    L = argv.get("L", 3)
+
+    dot = lambda *args : elim.dot(ring, *args)
+
+    C1 = Space(ring, L, 1, "C_1")
+    C0 = Space(ring, L, 0, "C_0")
+    f = elim.zeros(ring, L, L)
+    for i in range(L):
+        f[i,i] = ring.one
+        f[i,(i+1)%L] = ring.one
+    f = Lin(C0, C1, f)
+    f = Chain([f])
+
+    A = elim.zeros(ring, L, L)
+    for i in range(L):
+        A[i,(i+1)%L] = ring.one
+
+    send = ChainMap(f, f, [ Lin(C0, C0, A), Lin(C1, C1, A), ])
+    inv = ChainMap(f, f, [lin.transpose() for lin in send])
+
+    lins = [f]*dims
+    toric = Chain.product(ring, lins)
+    perm = tuple((i+1)%dims for i in range(dims))
+    rotate = ChainMap.perm(ring, lins, perm)
+    assert rotate.src == rotate.tgt
+
+    ChainMap.CHECK = argv.get("CHECK", False)
+
+    print(toric)
+    #grade = argv.get("grade", dims//2)
+    grade = argv.get("grade", 1)
+    print("grade:", grade)
+
+    i = f.identity()
+    assert i*i == i
+    assert send != i
+    assert send*send != i
+    assert reduce(mul, [send]*L) == i
+
+    assert send != inv
+    assert inv != i
+    assert inv*inv != i
+    assert reduce(mul, [inv]*L) == i
+
+    assert send*inv == i
+    assert inv*send == i
+
+    Cn = toric.get(grade)
+    n = Cn.n
+
+    I = ChainMap.product(ring, [i]*dims)
+
+    if 0:
+        # this group is transitive on the cubes
+        gens = []
+        for j in range(dims):
+            g = [i]*dims
+            g[j] = send
+            g = ChainMap.product(ring, g)
+            gens.append(g)
+        G = mulclose(gens, verbose=True)
+        assert len(G) == Hz.shape[1] // 3
+
+    # this group is transitive on the qubits (edges)
+    gens = [rotate, rotate*rotate]
+    for j in range(dims):
+        g = [i]*dims
+        g[j] = send
+        g = ChainMap.product(ring, g)
+        gens.append(g)
+    gens = [g[grade] for g in gens]
+    G0 = mulclose(gens, verbose=True)
+    assert len(G0) == n
+
+    T = ChainMap.product(ring, [send, i, i])
+    assert T*rotate != rotate*T
+
+    # build a lookup
+    lookup = {} # idx -> g such that g[idx] == 0
+    for g in G0:
+        #assert g * g.transpose() == Cn.identity()
+        gi = g.transpose()
+        point = get_point(Cn)
+        point = gi*point
+        idxs = numpy.where(point.A==ring.one)[0]
+        assert len(idxs) == 1
+        idx = idxs[0]
+        assert idx not in lookup
+        lookup[idx] = g
+        #print(idx, end=" ")
+    #print()
+
+    perm = {}
+    found = set()
+    for idx in range(n):
+        g = lookup[idx]
+        g = g.transpose() * T[grade] * g
+        point = get_point(Cn, idx)
+        point = g*point
+        idxs = numpy.where(point.A==ring.one)[0]
+        assert len(idxs) == 1
+        jdx = idxs[0]
+        #print(jdx, end=" ")
+        perm[idx] = jdx
+        assert jdx not in found
+        found.add(jdx)
+    T = Perm(perm, list(range(n)))
+    assert T.order() == 3
+
+    gens = []
+    for j in range(dims):
+        g = [i]*dims
+        g[j] = send
+        g[(j+1)%dims] = inv
+        g = ChainMap.product(ring, g)
+        gens.append(g)
+
+        assert g.src == g.tgt
+
+        #for count in range(1, L+1):
+        #    op = reduce(mul, [g]*count)
+        #    assert (op == I) == (count==L)
+
+    assert dims==3, "todo"
+    #h = [send, send, send] # automorphism of the slice...
+    h = [send, send, inv]
+    h = ChainMap.product(ring, h)
+    assert (h != I)
+    assert (h*h != I)
+    assert (h*h*h == I)
+
+    if dims == 3:
+        G = []
+        a, b = gens[:2]
+        for ia in range(L):
+         for ib in range(L):
+            ma = reduce(mul, [a]*ia, I)
+            mb = reduce(mul, [b]*ib, I)
+            G.append(ma*mb)
+        rr = rotate*rotate
+        G += [rotate*g for g in G] + [rr*g for g in G]
+
+    elif dims == 4:
+        G = []
+        a, b, c = gens[:3]
+        for ia in range(L):
+         for ib in range(L):
+          for ic in range(L):
+            ma = reduce(mul, [a]*ia, I)
+            mb = reduce(mul, [b]*ib, I)
+            mc = reduce(mul, [c]*ic, I)
+            G.append(ma*mb*mc)
+        rr = rotate*rotate
+        rrr = rr*rotate
+        G += [rotate*g for g in G] + [rr*g for g in G] + [rrr*g for g in G]
+
+    else:
+        assert 0
+
+    print("|G| =", len(G))
+
+    if argv.check:
+        assert distinct(G)
+    assert( len(G) == dims * (L**(dims-1)) ) # assert 
+
+    perm = [perm[i] for i in range(n)]
+    T = elim.zeros(ring, n, n)
+    for i, j in enumerate(perm):
+        T[j, i] = ring.one
+    T = Lin(Cn, Cn, T)
+
+    cmap1s = []
+    codes = []
+    T1s = []
+    for order in range(3):
+
+        Hx, Hzt = toric[grade-1 : grade+1]
+        #Hx, Hzt = Hx.A, Hzt.A
+        Hz = Hzt.transpose()
+
+        # Hx: weight 6 checks
+        # Hz: weight 4 checks
+        Hx = Hx.A.copy()
+        Hz = Hz.A.copy()
+
+        T1 = T**order
+        #point = get_point(Cn, (T**order)[0])
+        #point = (h[grade]**order)*point
+        point = T1*get_point(Cn)
+    
+        #points = [g[1]*point for g in gens]
+        points = []
+        for g in G:
+            A = (g[grade]*point).A
+            A.shape = len(A),
+            points.append(A)
+        points = elim.array(points)
+        print("points:", points.shape)
+        print(shortstr(points.sum(0)))
+        zstabs = elim.intersect(ring, points, Hz)
+        print("zstabs:", zstabs.shape)
+    
+        Hz1t = dot(points, zstabs.transpose())
+        Hz1 = Hz1t.transpose()
+    
+        cmap1 = points.transpose()
+        print("cmap1", cmap1.shape)
+    
+        inv = elim.pseudo_inverse(ring, Hz.transpose())
+        cmap2 = dot(inv, zstabs.transpose())
+        
+        lhs = dot(cmap1, Hz1t)
+        rhs = dot(Hz.transpose(), cmap2)
+        assert elim.eq(lhs, rhs)
+    
+        Hx1 = dot(Hx, cmap1)
+        print("Hx1:", Hx1.shape)
+        H = (Hx1==1).astype(int)
+        idxs = []
+        cmap0 = []
+        for idx, row in enumerate(H):
+            if row.sum() == 0:
+                continue
+            idxs.append(idx)
+            v = [ring.zero]*H.shape[0]
+            v[idx] = ring.one
+            cmap0.append(v)
+    
+        cmap0 = elim.array(cmap0).transpose()
+        print("cmap0:", cmap0.shape)
+                
+        Hx1 = Hx1[idxs, :]
+        print("Hx1:", Hx1.shape)
+
+        lhs = dot(cmap0, Hx1)
+        rhs = dot(Hx, cmap1)
+        assert elim.eq(lhs, rhs)
+
+        #print("Hx1:")
+        #print(shortstr(Hx1))
+        #print("Hz1:")
+        #print(shortstr(Hz1))
+        codes.append((Hx1, Hz1))
+        cmap1s.append(cmap1)
+        T1s.append(T1)
+
+#    for idx in range(3):
+#        Hx1, Hz1 = codes[idx]
+#
+#        for jdx in range(3):
+#            P = dot(cmap1s[jdx].transpose(), dot(T1s[idx].A, cmap1s[idx]))
+#            if P.sum() != 0:
+#                break
+#        else:
+#            continue
+        #print("idx =", idx, "jdx =", jdx)
+        #print("P:")
+        #print(shortstr(P))
+        #print("Hx1:")
+        #print(xstr(dot(Hx1, P)))
+        #print("Hz1:")
+        #print(zstr(dot(Hz1, P)))
+
+    for idx in range(3):
+      for jdx in range(idx+1,3):
+        l, r = codes[idx][0], codes[jdx][0]
+        H = elim.intersect(ring, l, r)
+        print(len(H), end=" ")
+        l, r = codes[idx][1], codes[jdx][1]
+        H = elim.intersect(ring, l, r)
+        print(len(H))
+
+#    for idx in range(3):
+#      for jdx in range(3):
+#        H = dot(codes[idx][0], codes[jdx][1].transpose())
+#        #print(numpy.alltrue(H==0))
+#        if idx != jdx:
+#            print(idx, jdx)
+#            print(shortstr(H))
 
 def test():
 

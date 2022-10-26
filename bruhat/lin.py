@@ -696,6 +696,19 @@ class Lin(object):
         A = r*self.A
         return Lin(self.tgt, self.src, A)
 
+    def __pow__(self, n):
+        assert self.tgt == self.src, "not an endomorphism"
+        assert n>=0
+        if n==0:
+            return self.tgt.identity()
+        if n==1:
+            return self
+        op = self
+        while n>1:
+            op = op*self
+            n -= 1
+        return op
+
     def __neg__(self):
         A = -self.A
         return Lin(self.tgt, self.src, A)
