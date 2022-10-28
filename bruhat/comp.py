@@ -15,6 +15,7 @@ from functools import reduce
 from operator import matmul, mul
 
 import numpy
+where = lambda u : numpy.where(u)[0]
 
 from bruhat import elim
 from bruhat.lin import Lin, Space, AddSpace, MulSpace, element
@@ -62,13 +63,11 @@ def mulclose(gen, verbose=False, maxsize=None):
                 if k not in ops:
                     ops.append(k)
                     _bdy.append(k)
-            #if maxsize and len(ops) >= maxsize:
-            #    break
+                    if maxsize and len(ops) >= maxsize:
+                        return ops # <---------- return
         bdy = _bdy
         if verbose:
             print("mulclose:", len(ops))
-        if maxsize and len(ops) >= maxsize:
-            break
     return ops
 
 
@@ -755,8 +754,9 @@ def test_kagome_floquet():
         g = ChainMap.product(ring, g)
         gens.append(g)
     gens = [g[grade] for g in gens]
-    G0 = mulclose(gens, verbose=True)
+    G0 = mulclose(gens, maxsize=n, verbose=True)
     assert len(G0) == n
+    print("|G0| =", len(G0))
 
     T = ChainMap.product(ring, [send, i, i])
     assert T*rotate != rotate*T
@@ -768,7 +768,7 @@ def test_kagome_floquet():
         gi = g.transpose()
         point = get_point(Cn)
         point = gi*point
-        idxs = numpy.where(point.A==ring.one)[0]
+        idxs = where(point.A==ring.one)
         assert len(idxs) == 1
         idx = idxs[0]
         assert idx not in lookup
@@ -783,7 +783,7 @@ def test_kagome_floquet():
         g = g.transpose() * T[grade] * g
         point = get_point(Cn, idx)
         point = g*point
-        idxs = numpy.where(point.A==ring.one)[0]
+        idxs = where(point.A==ring.one)
         assert len(idxs) == 1
         jdx = idxs[0]
         #print(jdx, end=" ")
@@ -930,22 +930,25 @@ def test_kagome_floquet():
         cmap1s.append(cmap1)
         T1s.append(T1)
 
-#    for idx in range(3):
-#        Hx1, Hz1 = codes[idx]
-#
-#        for jdx in range(3):
-#            P = dot(cmap1s[jdx].transpose(), dot(T1s[idx].A, cmap1s[idx]))
-#            if P.sum() != 0:
-#                break
-#        else:
-#            continue
-        #print("idx =", idx, "jdx =", jdx)
-        #print("P:")
-        #print(shortstr(P))
-        #print("Hx1:")
-        #print(xstr(dot(Hx1, P)))
-        #print("Hz1:")
-        #print(zstr(dot(Hz1, P)))
+    Hzt = toric[grade]
+    Hz = Hzt.transpose()
+    #print([list(row).count(1) for row in Hz]) # 4
+    #print([list(row).count(1) for row in Hzt]) # 4
+
+    for i in range(27):
+        print("i =", i)
+        idxs = []
+        for cmap1 in cmap1s:
+            jdxs = where(cmap1[:, i])
+            assert len(jdxs) == 1
+            idxs.append(jdxs[0])
+        hz = Hz[:, idxs]
+        for row in hz:
+            if (row==1).sum() == 2:
+                print(shortstr(row))
+        #print(shortstr(Hz[:, idxs]))
+
+    return
 
     for idx in range(3):
       for jdx in range(idx+1,3):
@@ -955,6 +958,11 @@ def test_kagome_floquet():
         l, r = codes[idx][1], codes[jdx][1]
         H = elim.intersect(ring, l, r)
         print(len(H))
+
+    a, b, c = [codes[i][0] for i in range(3)]
+    H = elim.intersect(ring, a, b)
+    H = elim.intersect(ring, H, c)
+    print(len(H))
 
 #    for idx in range(3):
 #      for jdx in range(3):
