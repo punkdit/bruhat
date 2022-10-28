@@ -15,7 +15,16 @@ from functools import reduce
 from operator import matmul, mul
 
 import numpy
-where = lambda u : numpy.where(u)[0]
+#where = lambda u : numpy.where(u)[0]
+def where(u):
+    if isinstance(u, Lin):
+        u = u.A
+    return numpy.where(u==1)[0]
+
+def uwhere(u): # unique where
+    idxs = where(u)
+    assert len(idxs)==1
+    return idxs[0]
 
 from bruhat import elim
 from bruhat.lin import Lin, Space, AddSpace, MulSpace, element
@@ -736,7 +745,7 @@ def test_kagome_floquet():
     I = ChainMap.product(ring, [i]*dims)
 
     if 0:
-        # this group is transitive on the cubes
+        # this group is _transitive on the cubes
         gens = []
         for j in range(dims):
             g = [i]*dims
@@ -746,7 +755,28 @@ def test_kagome_floquet():
         G = mulclose(gens, verbose=True)
         assert len(G) == Hz.shape[1] // 3
 
-    # this group is transitive on the qubits (edges)
+    # translate in Z direction
+    TZ = ChainMap.product(ring, [i, i, send])
+
+    Hx, Hzt = toric[grade-1 : grade+1]
+    Hz = Hzt.transpose()
+
+    if 0:
+        for i in range(n):
+            p0 = get_point(Cn, i)
+            assert uwhere(p0) == i
+            p1 = TZ[grade] * p0
+            #p1 = rotate[grade] * p0
+            j = uwhere(p1)
+            #hz = Hx[:, [i,j]]
+            hz = Hz[:, [i,j]]
+            for row in hz:
+                if (row==1).sum()==2:
+                    print(shortstr(row), "%d --> %d"%(i,j))
+    
+        return
+    
+    # this group is _transitive on the qubits (edges)
     gens = [rotate, rotate*rotate]
     for j in range(dims):
         g = [i]*dims
@@ -758,9 +788,6 @@ def test_kagome_floquet():
     assert len(G0) == n
     print("|G0| =", len(G0))
 
-    T = ChainMap.product(ring, [send, i, i])
-    assert T*rotate != rotate*T
-
     # build a lookup
     lookup = {} # idx -> g such that g[idx] == 0
     for g in G0:
@@ -768,11 +795,10 @@ def test_kagome_floquet():
         gi = g.transpose()
         point = get_point(Cn)
         point = gi*point
-        idxs = where(point.A==ring.one)
-        assert len(idxs) == 1
-        idx = idxs[0]
+        idx = uwhere(point.A==ring.one)
         assert idx not in lookup
         lookup[idx] = g
+        assert 0 == uwhere((g*get_point(Cn, idx)).A==1)
         #print(idx, end=" ")
     #print()
 
@@ -780,18 +806,32 @@ def test_kagome_floquet():
     found = set()
     for idx in range(n):
         g = lookup[idx]
-        g = g.transpose() * T[grade] * g
+        g = g.transpose() * TZ[grade] * rotate[grade] * g
         point = get_point(Cn, idx)
         point = g*point
-        idxs = where(point.A==ring.one)
-        assert len(idxs) == 1
-        jdx = idxs[0]
+        jdx = uwhere(point)
         #print(jdx, end=" ")
         perm[idx] = jdx
         assert jdx not in found
         found.add(jdx)
+    assert perm[0] == 29, perm
+    assert perm[27] == 60, perm
+    assert perm[54] == 18, perm
+    assert perm == {0: 29, 1: 27, 2: 28, 3: 32, 4: 30, 5:
+        31, 6: 35, 7: 33, 8: 34, 9: 38, 10: 36, 11: 37, 12: 41,
+        13: 39, 14: 40, 15: 44, 16: 42, 17: 43, 18: 47, 19: 45,
+        20: 46, 21: 50, 22: 48, 23: 49, 24: 53, 25: 51, 26: 52,
+        27: 60, 28: 61, 29: 62, 30: 54, 31: 55, 32: 56, 33: 57,
+        34: 58, 35: 59, 36: 69, 37: 70, 38: 71, 39: 63, 40: 64,
+        41: 65, 42: 66, 43: 67, 44: 68, 45: 78, 46: 79, 47: 80,
+        48: 72, 49: 73, 50: 74, 51: 75, 52: 76, 53: 77, 54: 18,
+        55: 19, 56: 20, 57: 21, 58: 22, 59: 23, 60: 24, 61: 25,
+        62: 26, 63: 0, 64: 1, 65: 2, 66: 3, 67: 4, 68: 5, 69:
+        6, 70: 7, 71: 8, 72: 9, 73: 10, 74: 11, 75: 12, 76: 13,
+        77: 14, 78: 15, 79: 16, 80: 17}
+
     T = Perm(perm, list(range(n)))
-    assert T.order() == 3
+    print("T.order() ==", T.order())
 
     gens = []
     for j in range(dims):
@@ -855,7 +895,7 @@ def test_kagome_floquet():
         T[j, i] = ring.one
     T = Lin(Cn, Cn, T)
 
-    cmap1s = []
+    cmaps = []
     codes = []
     T1s = []
     for order in range(3):
@@ -922,33 +962,37 @@ def test_kagome_floquet():
         rhs = dot(Hx, cmap1)
         assert elim.eq(lhs, rhs)
 
-        #print("Hx1:")
-        #print(shortstr(Hx1))
-        #print("Hz1:")
-        #print(shortstr(Hz1))
+        print("Hx1:")
+        print(xstr(Hx1))
+        print("Hz1:")
+        print(zstr(Hz1))
         codes.append((Hx1, Hz1))
-        cmap1s.append(cmap1)
+        cmaps.append((cmap0, cmap1, cmap2))
         T1s.append(T1)
+
+    return codes, cmaps, toric
+
+    return
 
     Hzt = toric[grade]
     Hz = Hzt.transpose()
     #print([list(row).count(1) for row in Hz]) # 4
     #print([list(row).count(1) for row in Hzt]) # 4
 
-    for i in range(27):
-        print("i =", i)
-        idxs = []
-        for cmap1 in cmap1s:
-            jdxs = where(cmap1[:, i])
-            assert len(jdxs) == 1
-            idxs.append(jdxs[0])
-        hz = Hz[:, idxs]
-        for row in hz:
-            if (row==1).sum() == 2:
-                print(shortstr(row))
-        #print(shortstr(Hz[:, idxs]))
-
-    return
+    if 0:
+        for i in range(27):
+            print("i =", i)
+            idxs = []
+            for cmap1 in cmap1s:
+                jdx = uwhere(cmap1[:, i])
+                idxs.append(jdx)
+            hz = Hz[:, idxs]
+            for row in hz:
+                if (row==1).sum() == 2:
+                    print(shortstr(row))
+            #print(shortstr(Hz[:, idxs]))
+    
+        return
 
     for idx in range(3):
       for jdx in range(idx+1,3):
