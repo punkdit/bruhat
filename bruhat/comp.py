@@ -279,6 +279,17 @@ class ChainMap(Seq):
         lins = [l*r for (l,r) in zip(self, other)]
         return ChainMap(self.tgt, other.src, lins)
 
+    def __pow__(self, n):
+        assert self.tgt == self.src
+        assert n>=0
+        if n==0:
+            return self.tgt.identity()
+        result = self
+        while n>1:
+            result = self*result
+            n -= 1
+        return result
+
     def add(self, other):
         assert isinstance(other, ChainMap)
         assert other.hom == self.hom
@@ -756,7 +767,9 @@ def test_kagome_floquet():
         assert len(G) == Hz.shape[1] // 3
 
     # translate in Z direction
-    TZ = ChainMap.product(ring, [i, i, send])
+    cms = [i]*dims
+    cms[-1] = send
+    TZ = ChainMap.product(ring, cms)
 
     Hx, Hzt = toric[grade-1 : grade+1]
     Hz = Hzt.transpose()
@@ -777,16 +790,44 @@ def test_kagome_floquet():
         return
     
     # this group is _transitive on the qubits (edges)
-    gens = [rotate, rotate*rotate]
-    for j in range(dims):
-        g = [i]*dims
-        g[j] = send
+    if 0:
+        # slow
+        gens = [rotate]
+        for j in range(dims-3):
+            gens.append(rotate * gens[-1])
+    
+        for j in range(dims):
+            g = [i]*dims
+            g[j] = send
+            g = ChainMap.product(ring, g)
+            gens.append(g)
+        gens = [g[grade] for g in gens]
+        G0 = mulclose(gens, maxsize=n, verbose=True)
+        assert len(G0) == n
+        print("|G0| =", len(G0))
+
+    gens = []
+    Ls = tuple(range(L))
+    for jdxs in cross([Ls]*dims):
+        g = [send**jdx for jdx in jdxs]
         g = ChainMap.product(ring, g)
         gens.append(g)
-    gens = [g[grade] for g in gens]
-    G0 = mulclose(gens, maxsize=n, verbose=True)
-    assert len(G0) == n
+    print("|gens| =", len(gens))
+    G0 = list(gens)
+    g = rotate
+    for j in range(dims-1):
+        G0 += [g*g1 for g1 in gens]
+        g = rotate*g
     print("|G0| =", len(G0))
+    assert len(G0) == n
+    #for g in G0:
+    #  for h in G0:
+    #    if g is h:
+    #        continue
+    #    assert g != h
+
+    # extract grade component of ChainMap's
+    G0 = [g[grade] for g in G0]
 
     # build a lookup
     lookup = {} # idx -> g such that g[idx] == 0
@@ -814,25 +855,27 @@ def test_kagome_floquet():
         perm[idx] = jdx
         assert jdx not in found
         found.add(jdx)
-    assert perm[0] == 29, perm
-    assert perm[27] == 60, perm
-    assert perm[54] == 18, perm
-    assert perm == {0: 29, 1: 27, 2: 28, 3: 32, 4: 30, 5:
-        31, 6: 35, 7: 33, 8: 34, 9: 38, 10: 36, 11: 37, 12: 41,
-        13: 39, 14: 40, 15: 44, 16: 42, 17: 43, 18: 47, 19: 45,
-        20: 46, 21: 50, 22: 48, 23: 49, 24: 53, 25: 51, 26: 52,
-        27: 60, 28: 61, 29: 62, 30: 54, 31: 55, 32: 56, 33: 57,
-        34: 58, 35: 59, 36: 69, 37: 70, 38: 71, 39: 63, 40: 64,
-        41: 65, 42: 66, 43: 67, 44: 68, 45: 78, 46: 79, 47: 80,
-        48: 72, 49: 73, 50: 74, 51: 75, 52: 76, 53: 77, 54: 18,
-        55: 19, 56: 20, 57: 21, 58: 22, 59: 23, 60: 24, 61: 25,
-        62: 26, 63: 0, 64: 1, 65: 2, 66: 3, 67: 4, 68: 5, 69:
-        6, 70: 7, 71: 8, 72: 9, 73: 10, 74: 11, 75: 12, 76: 13,
-        77: 14, 78: 15, 79: 16, 80: 17}
-
+    if dims == 3:
+        assert perm[0] == 29, perm
+        assert perm[27] == 60, perm
+        assert perm[54] == 18, perm
+        assert perm == {0: 29, 1: 27, 2: 28, 3: 32, 4: 30, 5:
+            31, 6: 35, 7: 33, 8: 34, 9: 38, 10: 36, 11: 37, 12: 41,
+            13: 39, 14: 40, 15: 44, 16: 42, 17: 43, 18: 47, 19: 45,
+            20: 46, 21: 50, 22: 48, 23: 49, 24: 53, 25: 51, 26: 52,
+            27: 60, 28: 61, 29: 62, 30: 54, 31: 55, 32: 56, 33: 57,
+            34: 58, 35: 59, 36: 69, 37: 70, 38: 71, 39: 63, 40: 64,
+            41: 65, 42: 66, 43: 67, 44: 68, 45: 78, 46: 79, 47: 80,
+            48: 72, 49: 73, 50: 74, 51: 75, 52: 76, 53: 77, 54: 18,
+            55: 19, 56: 20, 57: 21, 58: 22, 59: 23, 60: 24, 61: 25,
+            62: 26, 63: 0, 64: 1, 65: 2, 66: 3, 67: 4, 68: 5, 69:
+            6, 70: 7, 71: 8, 72: 9, 73: 10, 74: 11, 75: 12, 76: 13,
+            77: 14, 78: 15, 79: 16, 80: 17}
+    
     T = Perm(perm, list(range(n)))
     print("T.order() ==", T.order())
 
+    # now we build a group G whose orbits are the slices
     gens = []
     for j in range(dims):
         g = [i]*dims
@@ -847,13 +890,13 @@ def test_kagome_floquet():
         #    op = reduce(mul, [g]*count)
         #    assert (op == I) == (count==L)
 
-    assert dims==3, "todo"
-    #h = [send, send, send] # automorphism of the slice...
-    h = [send, send, inv]
-    h = ChainMap.product(ring, h)
-    assert (h != I)
-    assert (h*h != I)
-    assert (h*h*h == I)
+    if dims == 3:
+        #h = [send, send, send] # automorphism of the slice...
+        h = [send, send, inv]
+        h = ChainMap.product(ring, h)
+        assert (h != I)
+        assert (h*h != I)
+        assert (h*h*h == I)
 
     if dims == 3:
         G = []
@@ -898,7 +941,7 @@ def test_kagome_floquet():
     cmaps = []
     codes = []
     T1s = []
-    for order in range(3):
+    for order in range(dims):
 
         Hx, Hzt = toric[grade-1 : grade+1]
         #Hx, Hzt = Hx.A, Hzt.A
