@@ -23,7 +23,7 @@ import numpy
 
 from bruhat import element
 from bruhat import elim
-from bruhat.element import Keyed, Type, Element, GenericElement
+from bruhat.element import Keyed, Type, Element
 
 
 class Space(Keyed, Type):

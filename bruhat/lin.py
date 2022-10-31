@@ -20,7 +20,7 @@ from bruhat import element
 from bruhat import elim
 from bruhat.elim import eq
 from bruhat import solve
-#from bruhat.frobenius import GF
+
 from bruhat.action import Perm, Group, mulclose, mulclose_hom
 from bruhat.util import partitions, cross, allperms
 from bruhat.smap import SMap
@@ -1716,10 +1716,9 @@ def test_all():
     test_symmetric_square()
     test(element.Q)
 
-    if not argv.fast:
-        p = argv.get("p", 3)
-        ring = element.FiniteField(p)
-        test(ring)
+    p = argv.get("p", 3)
+    ring = element.FiniteField(p)
+    test(ring)
 
 
 

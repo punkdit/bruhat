@@ -18,6 +18,41 @@ cdef int gcd(int a, int b):
     return a
 
 
+cdef class Type(object):
+    pass
+
+
+class Keyed(object): # mixin, used for Type's
+
+    def __init__(self, key):
+        if not type(key) is tuple:
+            key = (key,)
+        self.key = (self.__class__,) + key
+
+    def __hash__(self):
+        return hash(self.key)
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self.key == other.key
+
+    def __ne__(self, other):
+        return self.__class__ != other.__class__ or self.key != other.key
+
+    def __str__(self):
+        return str(self.key)
+    __repr__ = __str__
+
+
+class Element(Type):
+    def __init__(self, tp):
+        assert isinstance(tp, Type)
+        self.tp = tp
+        #self.promote = tp.promote # ??
+
+
+cdef class Ring(Type):
+    pass
+
 cdef class Fraction:
 
     cdef readonly int top
@@ -40,6 +75,10 @@ cdef class Fraction:
         if type(other) is long:
             return Fraction(other, 1)
         return None
+
+    @property
+    def tp(self):
+        return Q
 
     def __hash__(self):
         return hash((self.top, self.bot))
@@ -237,12 +276,6 @@ cdef class Fraction:
         return Fraction(top, bot)
 
 
-cdef class Type(object):
-    pass
-
-cdef class Ring(Type):
-    pass
-
 class Rational(Ring):
     def __init__(self):
         self.one = Fraction(1, 1)
@@ -250,6 +283,12 @@ class Rational(Ring):
 
     def promote(self, value):
         return Fraction.promote(value)
+
+    def __str__(self):
+        return "Q"
+
+Q = Rational()
+
 
 
 cdef class FFElement(object):
@@ -419,7 +458,6 @@ cdef class FiniteField(Ring):
         return left * self.inv[right]
 
 
-Q = Rational()
         
 
 class IntegerRing(Type):
