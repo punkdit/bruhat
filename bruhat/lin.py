@@ -19,11 +19,23 @@ from bruhat import element
 
 from bruhat import elim
 from bruhat.elim import eq
-from bruhat import solve
 
 from bruhat.action import Perm, Group, mulclose, mulclose_hom
 from bruhat.util import partitions, cross, allperms
 from bruhat.smap import SMap
+
+
+def parse(s):
+    s = s.replace('.', '0')
+    lines = s.split()
+    lines = [l.strip() for l in lines if l.strip()]
+    rows = [list(int(c) for c in l) for l in lines]
+    if rows:
+        n = len(rows[0])
+        for row in rows:
+            assert len(row)==n, "rows have varying lengths"
+    a = numpy.array(rows, dtype=object)
+    return a
 
 
 def shortstr(A):
@@ -114,7 +126,7 @@ class Space(object):
         return self._dual
 
     def parse(self, decl):
-        A = solve.parse(decl)
+        A = parse(decl)
         decl = decl.replace('.', '0')
         rows = decl.split()
         rows = [l.strip() for l in rows if l.strip()]
