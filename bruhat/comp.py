@@ -5,6 +5,9 @@ Chain complexes.
 
 rewrite of chain.py, reversing order of Chain lins
 
+see also: qupy.ldpc.kagome
+
+
 """
 
 
