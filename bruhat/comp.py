@@ -858,7 +858,7 @@ def test_kagome_floquet():
         perm[idx] = jdx
         assert jdx not in found
         found.add(jdx)
-    if dims == 3:
+    if dims == 3 and L==3:
         assert perm[0] == 29, perm
         assert perm[27] == 60, perm
         assert perm[54] == 18, perm
@@ -893,7 +893,7 @@ def test_kagome_floquet():
         #    op = reduce(mul, [g]*count)
         #    assert (op == I) == (count==L)
 
-    if dims == 3:
+    if dims == 3 and L==3:
         #h = [send, send, send] # automorphism of the slice...
         h = [send, send, inv]
         h = ChainMap.product(ring, h)
@@ -941,10 +941,11 @@ def test_kagome_floquet():
         T[j, i] = ring.one
     T = Lin(Cn, Cn, T)
 
+    qubits = elim.zeros(ring, 1, n)
     cmaps = []
     codes = []
     T1s = []
-    for order in range(dims):
+    for order in range(L):
 
         Hx, Hzt = toric[grade-1 : grade+1]
         #Hx, Hzt = Hx.A, Hzt.A
@@ -969,6 +970,7 @@ def test_kagome_floquet():
         points = elim.array(points)
         print("points:", points.shape)
         print(shortstr(points.sum(0)))
+        qubits += points.sum(0)
         zstabs = elim.intersect(ring, points, Hz)
         print("zstabs:", zstabs.shape)
     
@@ -1016,6 +1018,9 @@ def test_kagome_floquet():
         cmaps.append((cmap0, cmap1, cmap2))
         T1s.append(T1)
 
+    print("qubits:")
+    print(shortstr(qubits))
+
     Hzt = toric[grade]
     Hz = Hzt.transpose()
     #print([list(row).count(1) for row in Hz]) # 4
@@ -1036,19 +1041,27 @@ def test_kagome_floquet():
     
         return
 
-    for idx in range(3):
-      for jdx in range(idx+1,3):
-        l, r = codes[idx][0], codes[jdx][0]
-        H = elim.intersect(ring, l, r)
-        print(len(H), end=" ")
-        l, r = codes[idx][1], codes[jdx][1]
-        H = elim.intersect(ring, l, r)
-        print(len(H))
+    for XZ in [0,1]:
+     print("Hx: Hz:".split()[XZ])
+     for idx in range(L):
+      for jdx in range(idx+1,L):
+        a, b = codes[idx][XZ], codes[jdx][XZ]
+        H = elim.intersect(ring, a, b)
+        print(idx, jdx, "=", len(H))
+        for kdx in range(jdx+1,L):
+            c = codes[kdx][XZ]
+            H = elim.intersect(ring, H, c)
+            print(idx, jdx, kdx, "=", len(H))
+            for ldx in range(kdx+1,L):
+                d = codes[ldx][XZ]
+                H = elim.intersect(ring, H, d)
+                print(idx, jdx, kdx, ldx, "=", len(H))
+     print()
 
-    a, b, c = [codes[i][0] for i in range(3)]
-    H = elim.intersect(ring, a, b)
-    H = elim.intersect(ring, H, c)
-    print(len(H))
+#    a, b, c = [codes[i][0] for i in range(3)]
+#    H = elim.intersect(ring, a, b)
+#    H = elim.intersect(ring, H, c)
+#    print(len(H))
 
     return codes, cmaps, toric
 
