@@ -3,7 +3,7 @@
 """
 
 import string, os
-from random import randint, choice
+from random import randint, choice, random
 from time import sleep, time
 from functools import reduce
 from operator import matmul
@@ -23,6 +23,14 @@ from bruhat.smap import SMap
 from bruhat import lins_db
 
 infty = "\u221E"
+
+def parse(s):
+    for c in "XZY":
+        s = s.replace(c, '1')
+    s = s.replace("I", "0")
+    for c in " [],":
+        s = s.replace(c, '')
+    return solve.parse(s)
 
 
 def css_to_symplectic(Hx, Hz):
@@ -63,6 +71,57 @@ def complement(H):
         W[i, ii] = 1
     #print()
     return W
+
+def get_weight_slow(v):
+    count = 0
+    for i in range(len(v)//2):
+      if v[2*i] or v[2*i+1]:
+        count += 1
+    c1 = get_weight_fast(v)
+    if count != c1:
+        print("v =")
+        print(v)
+        print(count, c1)
+        assert 0
+    return count
+
+def get_weight_fast(v): # not much faster for n=18
+    n = len(v)//2
+    v.shape = n,2
+    w = v[:,0] + v[:,1]
+    v.shape = 2*n,
+    return numpy.count_nonzero(w)
+
+get_weight = get_weight_fast
+
+
+def monte_carlo(H, v, p=0.5, trials=10000):
+    m, n, o = H.shape
+    assert o==2
+    H = H.view()
+    nn = 2*n
+    H.shape = m, nn
+    assert v.shape == (nn,)
+    d0 = get_weight_fast(v)
+    #print("[",d0, end=",", flush=True)
+    p0 = p**d0
+    #randint = numpy.random.randint
+    for trial in range(trials):
+        #u = randint(2, size=m)
+        #h = dot2(u, H)
+        i = randint(0, m-1)
+        h = H[i]
+        w = (v+h)%2
+        d1 = get_weight_fast(w)
+        p1 = p**d1
+        a = random()
+        if (p0/p1) < a:
+            v = w
+            d0 = d1
+            p0 = p**d0
+            #print(d0, end=",", flush=True)
+    #print("]")
+    return d0
 
 
 class QCode(object):
@@ -205,7 +264,7 @@ class QCode(object):
         self.L = L
         return L
 
-    def get_params(self): # XXX broken, needs to search stabilizers too
+    def get_params(self):
         L = self.get_logops()
         kk = len(L)
         H = self.flatH
@@ -220,10 +279,7 @@ class QCode(object):
             if sum(v) == 0:
                 continue
             v = dot2(w, HL)
-            count = 0
-            for i in range(self.n):
-              if v[2*i] or v[2*i+1]:
-                count += 1
+            count = get_weight(v) # destructive
             if count:
                 d = min(count, d)
         return self.n, kk//2, d
@@ -685,7 +741,7 @@ S := Grp(L[35]);
 GeneratorsOfGroup(S);
 """
 
-def parse(s, a, b, c, d=None):
+def gap_parse(s, a, b, c, d=None):
     s = s.replace("^-1", "")
     s = s.replace("*", "+")
     s = s.replace("^", "*")
@@ -710,7 +766,7 @@ def build_group_524():
         (b+c+b+a)*2+(b+c+b+a)*2, (c+b+a+b)*2+(c+b+a+b)*2, 
         b+a+(b+a+c)*2+b+(c+a+b)*2+c+b, b+c+(b+a)*2+c+b+a+c+b+c+(a+b)*2+c,
     ]
-    assert rels == parse("""
+    assert rels == gap_parse("""
     [ a*(b*a*c)^2*b*(c^-1*a^-1*b^-1)^2*c^-1, (a*c*b)^2*a*c*(b^-1*c^-1*a^-1)^2*b^-1,
     (b*c*b*a)^2*(b^-1*c^-1*b^-1*a^-1)^2, (c*b*a*b)^2*(c^-1*b^-1*a^-1*b^-1)^2,
     b*a*(b*a*c)^2*b*(c^-1*a^-1*b^-1)^2*c^-1*b^-1,
@@ -719,7 +775,7 @@ def build_group_524():
     relss.append(rels)
 
     # order 240, checkerboard, [[30,8,3]] Bring's curve
-    relss.append(parse("""
+    relss.append(gap_parse("""
     [ (b*a*c)^3*(b^-1*c^-1*a^-1)^3, (c*b*a)^3*c^-1*(b^-1*c^-1*a^-1)^2*b^-1*a^-1, 
     ((b*a)^2*c)^2*(b^-1*a^-1*b^-1*c^-1*a^-1)^2, 
     b*a*b*c*(b*a)^2*c*b*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*b^-1*a^-1, 
@@ -749,7 +805,7 @@ def build_group_624():
 
     relss = []
 
-    rels = parse("""
+    rels = gap_parse("""
         [b*c*b*a*b*c*b^-1*a^-1*b^-1*c^-1*b^-1*a^-1, 
         c*b*a*b*c*b*a^-1*b^-1*c^-1*b^-1*a^-1*b^-1,
         a*c*b*a*b*c*b*a^-1*b^-1*c^-1*(b^-1*a^-1)^2, 
@@ -765,7 +821,7 @@ def build_group_624():
     """, a, b, c)
     relss.append(rels) # [[30,11,3]]
 
-    rels = parse("""
+    rels = gap_parse("""
 [ ((b*a)^2*c)^2*(b^-1*a^-1*b^-1*c^-1*a^-1)^2, (b*a*c*b*a)^2*(b^-1*c^-1*a^-1*b^-1*a^-1)^2,
   (c*(b*a)^2)^2*c^-1*b^-1*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*a^-1,
   (b*a)^2*b*c*(b*a)^2*c*b^-1*a^-1*b^-1*c^-1*(a^-1*b^-1)^2*c^-1*b^-1*a^-1,
@@ -1057,7 +1113,7 @@ def build_group_344():
 
     relss = []
 
-    rels = parse("""
+    rels = gap_parse("""
     [ (c*b*d)^2*(c^-1*d^-1*b^-1)^2, (d*c*b)^2*d^-1*c^-1*d^-1*b^-1*c^-1*b^-1,
     a*(c*b*d)^2*(c^-1*d^-1*b^-1)^2*a^-1, a*(d*c*b)^2*d^-1*c^-1*d^-1*b^-1*c^-1*b^-1*a^-1,
     b*c*d*c*b*a*c*b^-1*c^-1*d^-1*c^-1*b^-1*c^-1*a^-1,
@@ -1273,11 +1329,6 @@ def make_kagome():
 
 
 def test_toric():
-    def parse(s):
-        for c in " [],":
-            s = s.replace(c, '')
-        return solve.parse(s)
-
     Hx = parse("""
 [[ 1  1  .  .  .  .  .  .  .  1  .  .  1  .  .  .  .  . ],
  [ .  1  1  .  .  .  .  .  .  .  1  .  .  1  .  .  .  . ],
@@ -1315,6 +1366,162 @@ def test_toric():
     print(L)
     print(code.get_params())
     
+
+def test_color_24():
+
+    n = 24
+
+    R = parse("""
+    ....11..11..11..........
+    ......11..11..11........
+    11..............11..11..
+    ..11..............11..11
+    """)
+    G = parse("""
+    11...11..11.............
+    ..111..11..1............
+    ............11...11..11.
+    ..............111..11..1
+    """)
+    B = parse("""
+    1..111..............1..1
+    .11...11.............11.
+    ........1..11..111......
+    .........11..11...11....
+    """)
+    for A in [R, G, B]:
+      for B in [R, G, B]:
+        assert dot2(A, B.transpose()).sum() == 0
+
+    H = numpy.concatenate((R, G, B), axis=0)
+    assert H.shape[1] == n
+    code = QCode.build_css(H, H)
+    print(code.get_params())
+    L = code.get_logops()
+    print(shortstr(L))
+
+
+def test_color():
+
+    lattice = {}
+    width = 6
+    height = 6
+
+    assert width % 3 == 0 
+    assert height % 3 == 0 
+
+    pt = lambda x, y : (x%width, y%height)
+    def pt(x,y):
+        i, j = (x%width, y%height)
+        if (i,j) not in lattice:
+            lattice[i,j] = len(lattice)
+        idx = lattice[i, j]
+        return idx
+
+    hexagons = {}
+    for x in range(width):
+      for y in range(height):
+        if x%3 != y%3:
+            continue
+        # clockwise:
+        h = [
+            pt(x+1,y),
+            pt(x+1,y-1),
+            pt(x,y-1),
+            pt(x-1,y),
+            pt(x-1,y+1),
+            pt(x,y+1),
+        ]
+        assert len(set(h)) == 6
+        hexagons[x,y] = h
+
+    assert len(hexagons) == width*height // 3
+    n = len(lattice)
+
+    print("n =", n)
+
+    if 0:
+        H = []
+        for h in hexagons.values():
+            v = zeros2(n)
+            v[h] = 1
+            H.append(v)
+
+    elif 0:
+        # XZXZXZ version of the color code...
+        H = []
+        for h in hexagons.values():
+            v = zeros2(n, 2)
+            for i in h:
+                v[i, i%2] = 1
+            H.append(v)
+            v = zeros2(n, 2)
+            for i in h:
+                v[i, 1-i%2] = 1
+            H.append(v)
+    
+    elif 1:
+        swap = [0, 1, 1, 1, 0, 0]
+        H = []
+        for key, h in hexagons.items():
+            if key in [ (1,1), (3,0), (1,4), (3,3), (5,2), (5,5), ]:
+                idxs = swap
+            else:
+                idxs = [0]*6
+            v = zeros2(n, 2)
+            for ii, i in enumerate(h):
+                v[i, idxs[ii]] = 1
+            H.append(v)
+            v = zeros2(n, 2)
+            for ii, i in enumerate(h):
+                v[i, 1-idxs[ii]] = 1
+            H.append(v)
+
+    elif 0:
+        swap00 = [0, 0, 0, 0, 0, 0]
+        swap10 = [0, 1, 1, 1, 0, 0]
+        swap01 = [0, 0, 1, 1, 1, 0]
+        swap11 = [0, 1, 0, 0, 1, 0]
+        H = []
+        for key, h in hexagons.items():
+            if key in [(1,4), (3,0), (5,2)]:
+                idxs = swap10
+            elif key in [(0,3), (2,5), (4,1)]:
+                idxs = swap01
+            elif key in [(1,1), (3,3), (5,5)]:
+                idxs = swap11
+            elif key in [(0,0), (2,2), (4,4)]:
+                idxs = [0]*6
+            else:
+                assert 0, key
+            v = zeros2(n, 2)
+            for ii, i in enumerate(h):
+                v[i, idxs[ii]] = 1
+            H.append(v)
+            v = zeros2(n, 2)
+            for ii, i in enumerate(h):
+                v[i, 1-idxs[ii]] = 1
+            H.append(v)
+
+    H = array2(H)
+    #print(shortstr(H))
+    code = QCode(H)
+    #print(shortstr(code.flatH))
+    print(code.get_params())
+
+    L = code.get_logops()
+    print(shortstr(L))
+
+    print()
+    ws = []
+    for l in span(L):
+        if l.sum() == 0:
+            continue
+        w = monte_carlo(code.H, l)
+        ws.append(w)
+    print(ws)
+    print(ws.count(4))
+
 
 
 if __name__ == "__main__":
