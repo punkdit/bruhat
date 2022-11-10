@@ -237,6 +237,9 @@ class Matrix(object):
     def __str__(self):
         return str(self.A)
 
+    def shortstr(self):
+        return shortstr(self.A)
+
     def __hash__(self):
         return self._hash
 
@@ -272,6 +275,10 @@ class Matrix(object):
             return Matrix(A, self.p)
         else:
             return NotImplemented
+
+    def __getitem__(self, idx):
+        A = self.A[idx]
+        return Matrix(A, self.p)
 
     def transpose(self):
         A = self.A
@@ -987,6 +994,181 @@ class Sp(Group):
             flag = Figure(flag)
             yield flag
 
+    def test_slow_grassmanian():
+    
+        p = argv.get("p", 2)
+        n = argv.get("n", 3)
+        m = argv.get("m", 2)
+    
+        G = Group.Sp(2*n, p)
+
+    def slow_grassmanian(self, m):
+        n = self.n//2
+        p = self.p
+        F = self.invariant_form
+    
+        bits = 2*n*m
+        found = {}
+    
+        A = numpy.zeros((m, 2*n), dtype=int)
+        jdxs = list(numpy.ndindex(A.shape))
+        assert len(jdxs) == bits
+        for idxs in cross( [tuple(range(p))]*bits ):
+            for (bit, jdx) in zip(idxs, jdxs):
+                A[jdx] = bit
+            M = Matrix(A)
+            B = M*F*M.transpose()
+            if not B.is_zero():
+                continue
+            M = M.normal_form()
+            if rank(M.A) < m:
+                continue
+            if M not in found:
+                yield M
+            found[M] = M
+
+    def grassmanian(self, m):
+        p = self.p
+        if p != 2:
+            #return self.qchoose(m)
+            for M in self.qchoose(m):
+                yield M
+            return
+        n = self.n//2
+        F = self.invariant_form
+        found = set()
+        for left in all_codes(m, n):
+          for right in all_matrices(m, n):
+            M = numpy.concatenate((left, right), axis=1)
+            assert M.shape == (m, 2*n), M.shape
+            M = normal_form(M, p)
+            if rank(M) < m:
+                continue
+            M = Matrix(M, p)
+            A = M*F*M.transpose()
+            if A.is_zero() and M not in found:
+                found.add(M)
+                yield M
+
+    def get_pairs(self):
+        n = self.n//2
+        pairs = [(i, 2*n-i-1) for i in range(n)]
+        return pairs
+
+    def get_blocks(self, M):
+        pairs = self.get_pairs()
+        A = M.A[:, [pair[0] for pair in pairs]]
+        B = M.A[:, [pair[1] for pair in pairs]]
+        #A = Matrix(A, self.p)
+        #B = Matrix(B, self.p)
+        return A, B
+
+    def from_blocks(self, A, B):
+        n = self.n//2
+        m = len(A)
+        assert A.shape == (m, n)
+        assert B.shape == (m, n)
+        M = numpy.zeros((m, 2*n))
+        pairs = self.get_pairs()
+        M[:, [pair[0] for pair in pairs]] = A
+        M[:, [pair[1] for pair in pairs]] = B
+        #M = numpy.concatenate((A, B), axis=1)
+        #assert M.shape == (m, 2*n)
+        #print(M)
+        M = Matrix(M, self.p)
+        return M
+
+    def is_symplectic(self, M):
+        F = self.invariant_form
+        MM = M*F*M.transpose()
+        return MM.is_zero()
+
+
+def test_grassmanian():
+    # here we are building bigger grassmanian's from smaller ones
+    # looking for the Sp(q)-deformed pascal triangle (and so far failing)
+
+    p = argv.get("p", 2)
+    n = argv.get("n", 3)
+    m = argv.get("m", 2)
+
+    G = Group.Sp(2*n, p)
+    G1 = Group.Sp(2*(n+1), p)
+
+    items = list(G.grassmanian(m))
+    print(len(items))
+
+    #gr1 = set(G1.grassmanian(m+1))
+    #print(len(gr1))
+
+    if 0:
+        items1 = set()
+        for M in items:
+            assert G.is_symplectic(M)
+            A, B = G.get_blocks(M)
+            M1 = G.from_blocks(A, B)
+            assert M1 == M
+    
+            # try adding a col
+            A1 = numpy.zeros((m, n+1))
+            B1 = numpy.zeros((m, n+1))
+    
+            bits = [tuple(range(p))]*m
+            found = set()
+            for left in cross(bits):
+              A1[:, :n] = A
+              A1[:, n] = left
+              for right in cross(bits):
+                B1[:, :n] = B
+                B1[:, n] = right
+        
+                M1 = G1.from_blocks(A1, B1)
+                if G1.is_symplectic(M1):
+                    M1 = M1.normal_form()
+                    found.add(M1)
+            items1.update(found)
+            print(len(found), end=" ", flush=True)
+        print()
+        print(len(items1))
+
+    items1 = set()
+    for M in items:
+        assert G.is_symplectic(M)
+        A, B = G.get_blocks(M)
+        M1 = G.from_blocks(A, B)
+        assert M1 == M
+
+        # try adding a col & a row
+        A1 = numpy.zeros((m+1, n+1))
+        B1 = numpy.zeros((m+1, n+1))
+
+        n1_bits = [tuple(range(p))]*(n+1)
+        m_bits = [tuple(range(p))]*m
+        found = set()
+        for n1_left in cross(n1_bits):
+         #for m_bit in cross(m_bits):
+          A1[:m, :n] = A
+          A1[m, :n+1] = n1_left
+          #A1[:m, n] = m_bit # yes this finds all the bigger grassmanian's
+          for n1_right in cross(n1_bits):
+            B1[:m, :n] = B
+            B1[m, :n+1] = n1_right
+    
+            M1 = G1.from_blocks(A1, B1)
+            if not G1.is_symplectic(M1):
+                continue
+            M1 = M1.normal_form()
+            if rank(M1.A) == m+1:
+                #assert M1 in gr1
+                found.add(M1)
+        items1.update(found)
+        print(len(found), end=" ", flush=True)
+        #break
+    print()
+    print(len(items1))
+
+        
+
 
 def test_symplectic():
 
@@ -1055,29 +1237,7 @@ def test_symplectic():
     print(len(items))
 
 
-def test():
-    n = argv.get("n", 3)
-    m = argv.get("m", 2)
-    p = argv.get("p", 2)
 
-    G = Group.Sp(2*n, p)
-    F = G.invariant_form
-
-    # WORKS:
-    items = []
-    for left in all_codes(m, n):
-      for right in all_matrices(m, n):
-        M = numpy.concatenate((left, right), axis=1)
-        assert M.shape == (m, 2*n), M.shape
-        M = normal_form(M, p)
-        if rank(M) < m:
-            continue
-        M = Matrix(M, p)
-        A = M*F*M.transpose()
-        if A.is_zero():
-            items.append(str(M))
-        
-    print(len(set(items)))
 
     
 def test_1():
@@ -1110,7 +1270,6 @@ def test_1():
     print(len(items))
             
 
-        
         
         
 def get_subgroup(G, desc, check=False):
@@ -1598,6 +1757,7 @@ if __name__ == "__main__":
         fn = eval(fn)
         fn()
 
+    print("OK\n")
 
     
 

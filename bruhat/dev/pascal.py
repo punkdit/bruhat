@@ -57,7 +57,7 @@ def main():
       for col in range(row+1):
         p = fn(row, col)
         if value is not None:
-            p = p.substitute({"q": value})
+            p = p.substitute((("q", value),))
             s = str(p).replace(" + ", "+")
         else:
             s = p.qstr("q")
