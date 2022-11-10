@@ -742,12 +742,12 @@ def test_kagome_floquet():
     i = f.identity()
     assert i*i == i
     assert send != i
-    assert send*send != i
+    assert send*send != i or L==2
     assert reduce(mul, [send]*L) == i
 
-    assert send != inv
+    assert send != inv or L==2
     assert inv != i
-    assert inv*inv != i
+    assert inv*inv != i or L==2
     assert reduce(mul, [inv]*L) == i
 
     assert send*inv == i
@@ -901,7 +901,16 @@ def test_kagome_floquet():
         assert (h*h != I)
         assert (h*h*h == I)
 
-    if dims == 3:
+    if dims == 2:
+        G = []
+        a, = gens[:1]
+        for ia in range(L):
+            ma = reduce(mul, [a]*ia, I)
+            G.append(ma)
+        rr = rotate*rotate
+        G += [rotate*g for g in G]
+
+    elif dims == 3:
         G = []
         a, b = gens[:2]
         for ia in range(L):
