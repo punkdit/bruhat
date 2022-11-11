@@ -9,6 +9,8 @@ Algebraic groups: matrix groups over Z/pZ.
 import sys, os
 import random
 from random import randint
+from functools import reduce
+from operator import add
 
 import numpy
 
@@ -23,6 +25,7 @@ from bruhat.argv import argv
 from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx
 from bruhat.dev import geometry
 from bruhat.util import cross
+from bruhat.smap import SMap
 
 EPSILON = 1e-8
 
@@ -287,8 +290,23 @@ class Matrix(object):
     def mask(self, A):
         return Matrix(self.A * A, self.p)
 
-    def normal_form(self):
-        A = normal_form(self.A, self.p)
+    def normal_form(self, cols=None):
+        A = self.A
+        m, n = A.shape
+        if cols is not None:
+            assert len(cols)==n
+            A0 = A
+            A = A[:, cols]
+            inv = [cols.index(i) for i in range(n)]
+            B = A[:, inv]
+            #print()
+            #print(A0)
+            #print(A, cols)
+            #print(B, inv)
+            assert str(A0) == str(B)
+        A = normal_form(A, self.p)
+        if cols is not None:
+            A = A[:, inv]
         return Matrix(A, self.p)
 
     @classmethod
@@ -296,6 +314,20 @@ class Matrix(object):
         assert p==2
         for A in geometry.all_codes(m, n):
             yield cls(A, p)
+
+    def get_pivots(M):
+        A = M.A
+        m, n = A.shape
+        pivots = []
+        col = 0
+        for row in range(m):
+            while col < n:
+                if A[row, col]:
+                    pivots.append(col)
+                    col += 1
+                    break
+                col += 1
+        return tuple(pivots)
 
 
 def test_matrix():
@@ -413,6 +445,22 @@ class Group(object):
         B = numpy.array([[0,0,1,0],[1,0,0,0],[0,0,0,1],[0,1,0,0]], dtype=scalar)
         gen = [Matrix(A, 2), Matrix(B, 2)]
         return Sp(gen, 720, p=2, invariant_form=F, **kw)
+
+    @classmethod
+    def Symplectic(cls, nn, p=DEFAULT_P, **kw):
+        gen = []
+        assert nn%2 == 0
+        n = nn//2
+        assert isprime(p)
+        F = numpy.zeros((nn, nn), dtype=scalar)
+        for i in range(n):
+            F[i, n+i] = 1
+            F[n+i, i] = p-1
+        F = Matrix(F, p)
+        I = numpy.identity(nn, dtype=scalar)
+        I = Matrix(I, p)
+        G = Symplectic([I], order_sp(nn, p), p=p, invariant_form=F, **kw)
+        return G
 
     @classmethod
     def Sp(cls, n, p=DEFAULT_P, **kw):
@@ -1011,6 +1059,11 @@ class Sp(Group):
         found = {}
     
         A = numpy.zeros((m, 2*n), dtype=int)
+        pairs = self.get_pairs()
+        cols = None
+        #cols = reduce(add, pairs) # fail
+        #cols = [pair[0] for pair in pairs] + [pair[1] for pair in pairs] # fail
+        #print("slow_grassmanian:", cols)
         jdxs = list(numpy.ndindex(A.shape))
         assert len(jdxs) == bits
         for idxs in cross( [tuple(range(p))]*bits ):
@@ -1020,7 +1073,7 @@ class Sp(Group):
             B = M*F*M.transpose()
             if not B.is_zero():
                 continue
-            M = M.normal_form()
+            M = M.normal_form(cols)
             if rank(M.A) < m:
                 continue
             if M not in found:
@@ -1083,14 +1136,22 @@ class Sp(Group):
         MM = M*F*M.transpose()
         return MM.is_zero()
 
+class Symplectic(Sp):
+    def get_pairs(self):
+        n = self.n//2
+        pairs = [(i, i+n) for i in range(n)]
+        return pairs
 
-def test_grassmanian():
+
+def test_grassmanian_fail():
     # here we are building bigger grassmanian's from smaller ones
     # looking for the Sp(q)-deformed pascal triangle (and so far failing)
 
     p = argv.get("p", 2)
     n = argv.get("n", 3)
     m = argv.get("m", 2)
+
+    print("test_grassmanian: n=%d, m=%d"%(n, m))
 
     G = Group.Sp(2*n, p)
     G1 = Group.Sp(2*(n+1), p)
@@ -1131,43 +1192,141 @@ def test_grassmanian():
         print()
         print(len(items1))
 
+    if 0:
+        items1 = set()
+        for M in items:
+            assert G.is_symplectic(M)
+            A, B = G.get_blocks(M)
+            M1 = G.from_blocks(A, B)
+            assert M1 == M
+    
+            # try adding a col & a row
+            A1 = numpy.zeros((m+1, n+1))
+            B1 = numpy.zeros((m+1, n+1))
+    
+            n1_bits = [tuple(range(p))]*(n+1)
+            m_bits = [tuple(range(p))]*m
+            found = set()
+            for n1_left in cross(n1_bits):
+             #for m_bit in cross(m_bits):
+              A1[:m, :n] = A
+              A1[m, :n+1] = n1_left
+              #A1[:m, n] = m_bit # yes this finds all the bigger grassmanian's
+              for n1_right in cross(n1_bits):
+                B1[:m, :n] = B
+                B1[m, :n+1] = n1_right
+        
+                M1 = G1.from_blocks(A1, B1)
+                if not G1.is_symplectic(M1):
+                    continue
+                M1 = M1.normal_form()
+                if rank(M1.A) == m+1:
+                    #assert M1 in gr1
+                    found.add(M1)
+            items1.update(found)
+            print(len(found), end=" ", flush=True)
+            #break
+        print()
+        print(len(items1))
+    
+        
+    F1 = G1.invariant_form
+    ps = tuple(range(p))
     items1 = set()
     for M in items:
         assert G.is_symplectic(M)
         A, B = G.get_blocks(M)
         M1 = G.from_blocks(A, B)
         assert M1 == M
+        print(M.shortstr())
 
         # try adding a col & a row
         A1 = numpy.zeros((m+1, n+1))
         B1 = numpy.zeros((m+1, n+1))
 
-        n1_bits = [tuple(range(p))]*(n+1)
-        m_bits = [tuple(range(p))]*m
         found = set()
-        for n1_left in cross(n1_bits):
-         #for m_bit in cross(m_bits):
-          A1[:m, :n] = A
-          A1[m, :n+1] = n1_left
-          #A1[:m, n] = m_bit # yes this finds all the bigger grassmanian's
-          for n1_right in cross(n1_bits):
+        A1[:m, :n] = A
+        A1[m, n] = 1
+        for bits in cross([ps]*(m+1)):
             B1[:m, :n] = B
-            B1[m, :n+1] = n1_right
+            B1[:, n] = bits
     
             M1 = G1.from_blocks(A1, B1)
             if not G1.is_symplectic(M1):
                 continue
+            
             M1 = M1.normal_form()
-            if rank(M1.A) == m+1:
-                #assert M1 in gr1
-                found.add(M1)
+            #assert M2==M1 # fail...
+            assert( rank(M1.A) == m+1 )
+            found.add(M1)
+            print(M1.shortstr())
+            print((M1 * F1 * M1.transpose()).shortstr())
+            print()
         items1.update(found)
-        print(len(found), end=" ", flush=True)
+        #print(len(found), end=" ", flush=True)
+        print("="*79)
         #break
     print()
     print(len(items1))
 
-        
+
+def show_cell(items):
+    items = [M.A for M in items]
+    M = numpy.array(items)
+
+    smap = SMap()
+    for (i, j) in numpy.ndindex(M.shape[1:]):
+        if numpy.alltrue(M[:, i, j] == 0):
+            smap[i,j] = "."
+        elif numpy.alltrue(M[:, i, j] == 1):
+            smap[i,j] = "1"
+        else:
+            smap[i,j] = "*"
+    return str(smap)
+    
+
+def test_grassmanian():
+    # here we are building bigger grassmanian's from smaller ones
+    # looking for the Sp(q)-deformed pascal triangle (and so far failing)
+
+    p = argv.get("p", 2)
+    n = argv.get("n", 3)
+    m = argv.get("m", 2)
+
+    print("test_grassmanian: n=%d, m=%d"%(n, m))
+
+    G = Group.Sp(2*n, p)
+    #Ms = list(G.grassmanian(m))
+    Ms = list(G.slow_grassmanian(m))
+
+    # wrong symplectic form ... scrambles the bruhat cells
+    #G = Group.Symplectic(2*n, p)
+    #Ms = list(G.grassmanian(m))
+
+    print(len(Ms))
+
+    bruhat = {}
+
+    for M in Ms:
+        #assert M == M.normal_form()
+        key = M.get_pivots()
+        items = bruhat.setdefault(key, set())
+        items.add(M)
+
+    print(len(bruhat))
+    values = list(bruhat.values())
+    values = [len(val) for val in values]
+    values.sort()
+    print(values)
+    for key, values in bruhat.items():
+        s = show_cell(values)
+        print(key, len(values), "*", p**s.count("*")//len(values), "=", p**s.count("*"))
+        print(s)
+#        for M in values:
+#            A, B = G.get_blocks(M)
+#            print(shortstrx(A, B))
+#            print()
+#        print("="*79)
 
 
 def test_symplectic():
