@@ -288,7 +288,7 @@ class Matrix(object):
         return Matrix(A.transpose(), self.p)
 
     def mask(self, A):
-        return Matrix(self.A * A, self.p)
+        return Matrix(self.A * A, self.p) # pointwise multiply !
 
     def normal_form(self, cols=None):
         A = self.A
@@ -1431,8 +1431,12 @@ def test_1():
 
         
         
-def get_subgroup(G, desc, check=False):
-    A = parse(desc)
+def get_subgroup(G, geom, check=False):
+    if type(geom) is str:
+        A = parse(geom)
+    else:
+        A = geom
+
     H = []
     for op in G:
         if op.mask(A) == op:
@@ -1442,6 +1446,8 @@ def get_subgroup(G, desc, check=False):
         for a in H:
           for b in H:
             assert (a*b).mask(A) == (a*b)
+    assert len(G) % len(H) == 0
+
     return H
 
 
@@ -1462,7 +1468,7 @@ def get_permrep(G):
 
 def test_dynkin():
 
-    G = GL(4, 2)
+    G = Group.GL(4, 2)
     subgroups = []
 
     n = len(G)
@@ -1488,7 +1494,7 @@ def test_dynkin():
     print("*--*--. =", len(H), n//len(H))
     subgroups.append(H)
 
-    PonA = "1111 .111 ..11 ..11"
+    PonA = "1111 .111 .111 ..11"
     H = get_subgroup(G, PonA)
     print("*--.--* =", len(H), n//len(H))
     subgroups.append(H)
@@ -1508,7 +1514,61 @@ def test_dynkin():
 #        H = get_permrep(H)
 #        X = G.action_subgroup(H) # XX far too slow...
 #        print(X)
+
+
+def test_sp():
+    p = argv.get("p", 2)
+    G = Group.Sp(6, p)
+    n = len(G)
+
+    print("|G| =", n)
+
+    count = 0
+    W = []
+    for g in G:
+        A = g.A
+        if numpy.alltrue(A.sum(0)==1) and numpy.alltrue(A.sum(1)==1):
+            #print(A)
+            W.append(g)
+    print("|W| =", len(W))
     
+    A = Matrix(parse("....1.  .....1"))
+    H = []
+    for g in G:
+        if A*g == A:
+            H.append(g)
+    print("others:", n//len(H))
+
+    POINT = parse("111111 .11111 .11111 .11111  .11111  .11111")
+    LINE = parse("111111 111111 ..1111 ..1111  ..1111  ..1111")
+    PLANE = parse("111111 111111 111111 ...111  ...111  ...111")
+
+    H = get_subgroup(G, POINT)
+    print("points:", n//len(H))
+
+    H = get_subgroup(G, LINE)
+    print("lines:", n//len(H))
+
+    H = get_subgroup(G, PLANE)
+    print("planes:", n//len(H))
+
+    H = get_subgroup(G, POINT * LINE)
+    print("point on line:", n//len(H))
+
+    H = get_subgroup(G, POINT * PLANE)
+    print("point on plane:", n//len(H))
+
+    H = get_subgroup(G, LINE * PLANE)
+    print("line on plane:", n//len(H))
+
+    H = get_subgroup(G, POINT * LINE * PLANE)
+    print("point on line on plane:", n//len(H))
+
+    FLAG = "111111 .11111 ..1111 ...111  ....11  .....1"
+    H = get_subgroup(G, FLAG)
+    print("flags:", n//len(H))
+    assert n%len(H) == 0
+
 
 CHECK = argv.get("check", False)
 
@@ -1818,7 +1878,7 @@ def test_bruhat():
     else:
         return
 
-    G = GL(n)
+    G = Group.GL(n)
 
     Hs = []
     Xs = []
