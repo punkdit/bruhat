@@ -24,7 +24,7 @@ from bruhat.spec import isprime
 from bruhat.argv import argv
 from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx
 from bruhat.dev import geometry
-from bruhat.util import cross
+from bruhat.util import cross, allperms
 from bruhat.smap import SMap
 
 EPSILON = 1e-8
@@ -236,6 +236,14 @@ class Matrix(object):
         self.key = (self.p, self.A.tobytes())
         self._hash = hash(self.key)
         self.shape = A.shape
+
+    @classmethod
+    def perm(self, items, p=DEFAULT_P):
+        n = len(items)
+        A = numpy.zeros((n, n), dtype=scalar)
+        for i, ii in enumerate(items):
+            A[ii, i] = 1
+        return Matrix(A, p)
 
     def __str__(self):
         return str(self.A)
@@ -1517,57 +1525,110 @@ def test_dynkin():
 
 
 def test_sp():
+    n = argv.get("n", 3)
+    nn = 2*n
     p = argv.get("p", 2)
     G = Group.Sp(6, p)
-    n = len(G)
+    N = len(G)
 
-    print("|G| =", n)
+    print("|G| =", N)
 
-    count = 0
     W = []
-    for g in G:
-        A = g.A
-        if numpy.alltrue(A.sum(0)==1) and numpy.alltrue(A.sum(1)==1):
-            #print(A)
-            W.append(g)
-    print("|W| =", len(W))
-    
-    A = Matrix(parse("....1.  .....1"))
-    H = []
-    for g in G:
-        if A*g == A:
-            H.append(g)
-    print("others:", n//len(H))
+    pairs = G.get_pairs()
+    idxs = list(range(n))
+    for items in allperms(idxs):
+        perm = [None]*nn
+        for i in range(n):
+            src, tgt = pairs[i][0], pairs[items[i]][0]
+            perm[src] = tgt
+            src, tgt = pairs[i][1], pairs[items[i]][1]
+            perm[src] = tgt
+        M = Matrix.perm(perm)
+        for items in cross([(0,1)]*n):
+            perm = [None]*nn
+            for i in range(n):
+                if items[i]:
+                    src, tgt = pairs[i][0], pairs[i][1]
+                    perm[src] = tgt
+                    perm[tgt] = src
+                else:
+                    perm[pairs[i][0]] = pairs[i][0]
+                    perm[pairs[i][1]] = pairs[i][1]
+            #print(perm)
+            M1 = Matrix.perm(perm)
+            W.append(M*M1)
+
+    assert len(W) == len(set(W))
+
+    M = numpy.identity(nn, dtype=scalar)
+    M[0,2] = 1
+    M[3,5] = 1
+    M = Matrix(M)
+    F = G.invariant_form
+    print( (M*F*M.transpose()).is_zero() )
+
+
+    if 0:
+        # Weyl group
+        count = 0
+        for g in G:
+            A = g.A
+            if numpy.alltrue(A.sum(0)==1) and numpy.alltrue(A.sum(1)==1):
+                #print(A)
+                assert g in W
+    if 0:
+        # what is this structure ?
+        A = Matrix(parse("....1.  .....1"))
+        H = []
+        for g in G:
+            if A*g == A:
+                H.append(g)
+        print("others:", n//len(H))
 
     POINT = parse("111111 .11111 .11111 .11111  .11111  .11111")
-    LINE = parse("111111 111111 ..1111 ..1111  ..1111  ..1111")
+    LINE  = parse("111111 111111 ..1111 ..1111  ..1111  ..1111")
     PLANE = parse("111111 111111 111111 ...111  ...111  ...111")
+    FLAG  = parse("111111 .11111 ..1111 ...111  ....11  .....1")
+
+    # flags:
+    H = get_subgroup(G, POINT * LINE * PLANE)
+    print("point on line on plane:", N//len(H))
+    #for g in H:
+    #    assert g.mask(FLAG) == g
+    print("Borel:", len(H))
+    for g in H:
+        s = (g.shortstr())
+        k = s.count('1')
+        if k>8:
+            continue
+        for i in range(nn):
+         for j in range(i+1,nn):
+            if g.A[i,j]:
+                print("%d<-%d"%(i,j), end=" ")
+        print()
+        #print(k)
+        #print(s)
+        print()
+    return
 
     H = get_subgroup(G, POINT)
-    print("points:", n//len(H))
+    print("points:", N//len(H))
 
     H = get_subgroup(G, LINE)
-    print("lines:", n//len(H))
+    print("lines:", N//len(H))
 
     H = get_subgroup(G, PLANE)
-    print("planes:", n//len(H))
+    print("planes:", N//len(H))
 
     H = get_subgroup(G, POINT * LINE)
-    print("point on line:", n//len(H))
+    print("point on line:", N//len(H))
 
     H = get_subgroup(G, POINT * PLANE)
-    print("point on plane:", n//len(H))
+    print("point on plane:", N//len(H))
 
     H = get_subgroup(G, LINE * PLANE)
-    print("line on plane:", n//len(H))
+    print("line on plane:", N//len(H))
 
-    H = get_subgroup(G, POINT * LINE * PLANE)
-    print("point on line on plane:", n//len(H))
-
-    FLAG = "111111 .11111 ..1111 ...111  ....11  .....1"
-    H = get_subgroup(G, FLAG)
-    print("flags:", n//len(H))
-    assert n%len(H) == 0
 
 
 CHECK = argv.get("check", False)
