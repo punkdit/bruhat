@@ -7,10 +7,12 @@ Algebraic groups: matrix groups over Z/pZ.
 
 
 import sys, os
+from time import time
+start_time = time()
 import random
-from random import randint
+from random import randint, choice
 from functools import reduce
-from operator import add
+from operator import add, mul
 
 import numpy
 
@@ -22,7 +24,7 @@ from bruhat import gset
 from bruhat.action import mulclose
 from bruhat.spec import isprime
 from bruhat.argv import argv
-from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx
+from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse
 from bruhat.dev import geometry
 from bruhat.util import cross, allperms
 from bruhat.smap import SMap
@@ -217,7 +219,7 @@ def all_codes(m, n, p=DEFAULT_P):
 
 
 class Matrix(object):
-    def __init__(self, A, p=DEFAULT_P, shape=None):
+    def __init__(self, A, p=DEFAULT_P, shape=None, name="?"):
         if type(A) == list or type(A) == tuple:
             A = numpy.array(A, dtype=scalar)
         else:
@@ -236,14 +238,20 @@ class Matrix(object):
         self.key = (self.p, self.A.tobytes())
         self._hash = hash(self.key)
         self.shape = A.shape
+        self.name = name
 
     @classmethod
-    def perm(self, items, p=DEFAULT_P):
+    def perm(cls, items, p=DEFAULT_P):
         n = len(items)
         A = numpy.zeros((n, n), dtype=scalar)
         for i, ii in enumerate(items):
             A[ii, i] = 1
         return Matrix(A, p)
+
+    @classmethod
+    def identity(cls, n, p=DEFAULT_P):
+        A = numpy.identity(n, dtype=scalar)
+        return Matrix(A, p, name="I")
 
     def __str__(self):
         return str(self.A)
@@ -283,12 +291,15 @@ class Matrix(object):
     def __mul__(self, other):
         if isinstance(other, Matrix):
             A = numpy.dot(self.A, other.A)
-            return Matrix(A, self.p)
+            return Matrix(A, self.p, name=self.name+other.name)
         else:
             return NotImplemented
 
     def __getitem__(self, idx):
         A = self.A[idx]
+        #print("__getitem__", idx, type(A))
+        if type(A) is scalar:
+            return A
         return Matrix(A, self.p)
 
     def transpose(self):
@@ -336,6 +347,11 @@ class Matrix(object):
                     break
                 col += 1
         return tuple(pivots)
+
+    def inverse(self):
+        assert self.p == 2
+        B = pseudo_inverse(self.A)
+        return Matrix(B, self.p)
 
 
 def test_matrix():
@@ -387,12 +403,23 @@ class Group(object):
         A = gen[0]
         self.n = len(A)
         assert p == A.p
+        self.I = Matrix.identity(self.n, p)
 
     def get_elements(self):
         if self.G is None:
-            self.G = mulclose(self.gen, maxsize=self.order)
+            G = mulclose(self.gen, maxsize=self.order)
+            G = list(G)
+            self.G = G
             self.order = len(self.G)
         return self.G
+
+    def sample(self):
+        gen = self.gen
+        N = 10*len(gen)
+        A = choice(gen)
+        for i in range(N):
+            A = A*choice(gen)
+        return A
 
     def __len__(self):
         if self.order is None:
@@ -1139,10 +1166,88 @@ class Sp(Group):
         M = Matrix(M, self.p)
         return M
 
-    def is_symplectic(self, M):
+    def is_isotropic(self, M):
         F = self.invariant_form
         MM = M*F*M.transpose()
         return MM.is_zero()
+
+    def get_weyl(self):
+        nn = self.n
+        pairs = self.get_pairs()
+        k = len(pairs)
+        I = Matrix.identity(nn, self.p)
+        flips = []
+        for (a, b) in pairs:
+            perm = list(range(nn))
+            perm[a], perm[b] = b, a
+            M = Matrix.perm(perm)
+            flips.append((I, M))
+        W = []
+        for qairs in allperms(pairs):
+            perm = [None]*nn
+            for src, tgt in zip(pairs, qairs):
+                perm[src[0]] = tgt[0]
+                perm[src[1]] = tgt[1]
+            assert None not in perm
+            M = Matrix.perm(perm, self.p)
+            for items in cross(flips):
+                N = reduce(mul, items)
+                W.append(M*N)
+        return W
+
+    def get_borel(self):
+        pairs = self.get_pairs()
+        gen = []
+        lookup = {}
+        for (i, j) in pairs:
+            assert i<j
+            A = numpy.identity(self.n, dtype=scalar)
+            A[i, j] = 1
+            M = Matrix(A, self.p, name="E%d%d"%(j,i))
+            gen.append(M)
+            lookup[j, i] = M
+    
+        k = len(pairs)
+        for i in range(k):
+          for j in range(i+1, k):
+    
+            a, b = pairs[i]
+            c, d = pairs[j]
+            assert d < b
+            assert a < c
+    
+            A = numpy.identity(self.n, dtype=scalar)
+            A[a, c] = 1
+            A[d, b] = 1
+    
+            M = Matrix(A, self.p, name="E%d%d"%(b,d))
+            gen.append(M)
+            lookup[b, d] = M # b>d
+            assert (c, a) not in lookup
+            lookup[c, a] = M
+
+            # we don't need these gen's but we need the lookup
+            c, d = d, c
+            assert d < b
+            assert a < c
+            A = numpy.identity(self.n, dtype=scalar)
+            A[a, c] = 1
+            A[d, b] = 1
+    
+            M = Matrix(A, self.p, name="E%d%d"%(b,d))
+            gen.append(M)
+            lookup[b, d] = M
+            assert (c, a) not in lookup
+            lookup[c, a] = M
+    
+        F = self.invariant_form
+        for M in gen:
+            assert M*F*M.transpose() == F
+    
+        B = Group(gen)
+        B.lookup = lookup
+        return B
+
 
 class Symplectic(Sp):
     def get_pairs(self):
@@ -1153,7 +1258,7 @@ class Symplectic(Sp):
 
 def test_grassmanian_fail():
     # here we are building bigger grassmanian's from smaller ones
-    # looking for the Sp(q)-deformed pascal triangle (and so far failing)
+    # _looking for the Sp(q)-deformed pascal triangle (and so far failing)
 
     p = argv.get("p", 2)
     n = argv.get("n", 3)
@@ -1173,7 +1278,7 @@ def test_grassmanian_fail():
     if 0:
         items1 = set()
         for M in items:
-            assert G.is_symplectic(M)
+            assert G.is_isotropic(M)
             A, B = G.get_blocks(M)
             M1 = G.from_blocks(A, B)
             assert M1 == M
@@ -1192,7 +1297,7 @@ def test_grassmanian_fail():
                 B1[:, n] = right
         
                 M1 = G1.from_blocks(A1, B1)
-                if G1.is_symplectic(M1):
+                if G1.is_isotropic(M1):
                     M1 = M1.normal_form()
                     found.add(M1)
             items1.update(found)
@@ -1203,7 +1308,7 @@ def test_grassmanian_fail():
     if 0:
         items1 = set()
         for M in items:
-            assert G.is_symplectic(M)
+            assert G.is_isotropic(M)
             A, B = G.get_blocks(M)
             M1 = G.from_blocks(A, B)
             assert M1 == M
@@ -1225,7 +1330,7 @@ def test_grassmanian_fail():
                 B1[m, :n+1] = n1_right
         
                 M1 = G1.from_blocks(A1, B1)
-                if not G1.is_symplectic(M1):
+                if not G1.is_isotropic(M1):
                     continue
                 M1 = M1.normal_form()
                 if rank(M1.A) == m+1:
@@ -1242,7 +1347,7 @@ def test_grassmanian_fail():
     ps = tuple(range(p))
     items1 = set()
     for M in items:
-        assert G.is_symplectic(M)
+        assert G.is_isotropic(M)
         A, B = G.get_blocks(M)
         M1 = G.from_blocks(A, B)
         assert M1 == M
@@ -1260,7 +1365,7 @@ def test_grassmanian_fail():
             B1[:, n] = bits
     
             M1 = G1.from_blocks(A1, B1)
-            if not G1.is_symplectic(M1):
+            if not G1.is_isotropic(M1):
                 continue
             
             M1 = M1.normal_form()
@@ -1295,7 +1400,7 @@ def show_cell(items):
 
 def test_grassmanian():
     # here we are building bigger grassmanian's from smaller ones
-    # looking for the Sp(q)-deformed pascal triangle (and so far failing)
+    # _looking for the Sp(q)-deformed pascal triangle (and so far failing)
 
     p = argv.get("p", 2)
     n = argv.get("n", 3)
@@ -1524,92 +1629,109 @@ def test_dynkin():
 #        print(X)
 
 
+class Building(object):
+    def __init__(self, G):
+        self.G = G
+        self.nn = G.n
+        self.W = G.get_weyl()
+        self.B = G.get_borel()
+
+    def decompose(self, g):
+        nn = self.nn
+        n = nn//2
+        lookup = self.B.lookup
+        b1 = b2 = self.G.I
+        src = nn-1
+        pivots = [] # cols
+        while src >= 0:
+            for col in range(nn):
+                if g[src, col]:
+                    break
+            else:
+                assert 0
+            pivots.append((src, col))
+            tgt = src-1
+            while tgt >= 0:
+                if g[tgt, col]:
+                    g = lookup[src, tgt]*g
+                    b1 = lookup[src, tgt]*b1
+                tgt -= 1
+            src -= 1
+
+        for row, src in pivots:
+            for tgt in range(src+1, nn):
+                if g[row, tgt]==0:
+                    continue
+                b = lookup.get((tgt, src))
+                if b is not None:
+                    g = g*b
+                    b2 = b2*b
+        return b1, b2
+
+
+def test_building():
+    n = argv.get("n", 3)
+    nn = 2*n
+    p = argv.get("p", 2)
+    G = Group.Sp(nn, p)
+    I = G.I
+    F = G.invariant_form
+    N = len(G)
+    building = Building(G)
+
+    print("|G| =", N)
+
+    W = building.W
+    print("|W| =", len(W))
+
+    B = building.B
+    print("|B| =", len(B))
+
+    if argv.slow:
+        found = {}
+        for b1 in B:
+         for w in W:
+          b1w = b1*w
+          for b2 in B:
+            g = b1w*b2
+            path = found.get(g)
+            if path is None:
+                found[g] = b1, w, b2
+                continue
+            b11, ww, b22 = path
+            lhs = (len(b1.name), len(b2.name))
+            rhs = (len(b11.name), len(b22.name))
+            if lhs < rhs:
+                found[g] = b1, w, b2
+        assert len(found) == len(G)
+    else:
+        found = None
+    
+    lookup = B.lookup
+    for trial in range(100):
+        g = G.sample()
+        b1, b2 = building.decompose(g)
+        w = b1*g*b2
+        assert b1 in B
+        assert b2 in B
+        assert w in W
+        if found is not None:
+            assert w == found[g][1]
+    
+
+
 def test_sp():
     n = argv.get("n", 3)
     nn = 2*n
     p = argv.get("p", 2)
-    G = Group.Sp(6, p)
+    G = Group.Sp(nn, p)
+    I = G.I
+    F = G.invariant_form
     N = len(G)
 
-    print("|G| =", N)
-
-    W = []
-    pairs = G.get_pairs()
-    idxs = list(range(n))
-    for items in allperms(idxs):
-        perm = [None]*nn
-        for i in range(n):
-            src, tgt = pairs[i][0], pairs[items[i]][0]
-            perm[src] = tgt
-            src, tgt = pairs[i][1], pairs[items[i]][1]
-            perm[src] = tgt
-        M = Matrix.perm(perm)
-        for items in cross([(0,1)]*n):
-            perm = [None]*nn
-            for i in range(n):
-                if items[i]:
-                    src, tgt = pairs[i][0], pairs[i][1]
-                    perm[src] = tgt
-                    perm[tgt] = src
-                else:
-                    perm[pairs[i][0]] = pairs[i][0]
-                    perm[pairs[i][1]] = pairs[i][1]
-            #print(perm)
-            M1 = Matrix.perm(perm)
-            W.append(M*M1)
-
-    assert len(W) == len(set(W))
-
-    M = numpy.identity(nn, dtype=scalar)
-    M[0,2] = 1
-    M[3,5] = 1
-    M = Matrix(M)
-    F = G.invariant_form
-    print( (M*F*M.transpose()).is_zero() )
-
-
-    if 0:
-        # Weyl group
-        count = 0
-        for g in G:
-            A = g.A
-            if numpy.alltrue(A.sum(0)==1) and numpy.alltrue(A.sum(1)==1):
-                #print(A)
-                assert g in W
-    if 0:
-        # what is this structure ?
-        A = Matrix(parse("....1.  .....1"))
-        H = []
-        for g in G:
-            if A*g == A:
-                H.append(g)
-        print("others:", n//len(H))
-
     POINT = parse("111111 .11111 .11111 .11111  .11111  .11111")
-    LINE  = parse("111111 111111 ..1111 ..1111  ..1111  ..1111")
+    LINE = parse("111111 111111 ..1111 ..1111  ..1111  ..1111")
     PLANE = parse("111111 111111 111111 ...111  ...111  ...111")
-    FLAG  = parse("111111 .11111 ..1111 ...111  ....11  .....1")
-
-    # flags:
-    H = get_subgroup(G, POINT * LINE * PLANE)
-    print("point on line on plane:", N//len(H))
-    #for g in H:
-    #    assert g.mask(FLAG) == g
-    print("Borel:", len(H))
-    for g in H:
-        s = (g.shortstr())
-        k = s.count('1')
-        if k>8:
-            continue
-        for i in range(nn):
-         for j in range(i+1,nn):
-            if g.A[i,j]:
-                print("%d<-%d"%(i,j), end=" ")
-        print()
-        #print(k)
-        #print(s)
-        print()
-    return
 
     H = get_subgroup(G, POINT)
     print("points:", N//len(H))
@@ -1629,6 +1751,12 @@ def test_sp():
     H = get_subgroup(G, LINE * PLANE)
     print("line on plane:", N//len(H))
 
+    H = get_subgroup(G, POINT * LINE * PLANE)
+    print("point on line on plane:", N//len(H))
+
+    FLAG = "111111 .11111 ..1111 ...111  ....11  .....1"
+    H = get_subgroup(G, FLAG)
+    print("flags:", N//len(H))
 
 
 CHECK = argv.get("check", False)
@@ -2037,7 +2165,7 @@ if __name__ == "__main__":
         fn = eval(fn)
         fn()
 
-    print("OK\n")
+    print("finished in %.3f seconds.\n"%(time() - start_time))
 
     
 
