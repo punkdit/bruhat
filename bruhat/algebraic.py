@@ -1761,7 +1761,15 @@ def test_weyl():
      for b in gen:
         assert hom[a*b] == hom[a]*hom[b]
 
-    gom = mulclose_hom(W0.gen, W.gen[1:])
+    if argv.gom == "left":
+        a, b = W0.gen
+        c, d, e = W.gen
+        gom = mulclose_hom([a, b], [c, d*e*d])
+    else:
+        gom = mulclose_hom(W0.gen, W.gen[1:])
+    for a in gom:
+     for b in gom:
+        assert gom[a*b] == gom[a]*gom[b]
 
     #for h in H:
     #    g = hom[h]
