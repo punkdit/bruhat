@@ -7,11 +7,10 @@ see also: gset.py
 
 """
 
-from __future__ import print_function
-
 import sys
 import string
 from random import randint, shuffle
+from functools import reduce
 
 from bruhat.util import factorial, all_subsets, write, uniqtuples
 from bruhat.equ import Equ, quotient_rep
@@ -2928,16 +2927,20 @@ def test_group():
 
 if __name__ == "__main__":
 
-    if argv.profile:
-        import cProfile as profile
-        profile.run("main()")
-    else:
-        main()
-
     if argv.test:
         test_action()
         test()
         test_group()
         print("OK")
+
+    elif argv.profile:
+        import cProfile as profile
+        profile.run("main()")
+    else:
+        name = argv.next() or "main"
+        fn = eval(name)
+        fn()
+
+        print("OK\n")
 
 

@@ -19,9 +19,8 @@ import numpy
 #scalar = numpy.int64
 scalar = numpy.int8 # CAREFUL !!
 
-#from bruhat.gset import Group, Perm, GSet
 from bruhat import gset
-from bruhat.action import mulclose
+from bruhat.action import mulclose, mulclose_hom
 from bruhat.spec import isprime
 from bruhat.argv import argv
 from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse
@@ -241,12 +240,12 @@ class Matrix(object):
         self.name = name
 
     @classmethod
-    def perm(cls, items, p=DEFAULT_P):
+    def perm(cls, items, p=DEFAULT_P, name="?"):
         n = len(items)
         A = numpy.zeros((n, n), dtype=scalar)
         for i, ii in enumerate(items):
             A[ii, i] = 1
-        return Matrix(A, p)
+        return Matrix(A, p, name=name)
 
     @classmethod
     def identity(cls, n, p=DEFAULT_P):
@@ -393,11 +392,14 @@ assert order_sp(4, 2)==720   # 6!
 
 
 class Group(object):
-    def __init__(self, gen, order=None, p=DEFAULT_P, **kw):
+    def __init__(self, gen, order=None, p=DEFAULT_P, G=None, **kw):
         self.__dict__.update(kw)
         self.gen = list(gen)
+        if G is not None:
+            assert order is None or order==len(G)
+            order = len(G)
         self.order = order
-        self.G = None
+        self.G = G # elements
         self.p = p
         assert gen
         A = gen[0]
@@ -430,6 +432,9 @@ class Group(object):
         if self.G is None:
             self.get_elements()
         return self.G[idx]
+
+    def __contains__(self, g):
+        return g in self.get_elements()
     
     @classmethod
     def SL(cls, n, p=DEFAULT_P, **kw):
@@ -1043,7 +1048,7 @@ def test_so():
 
     return
     
-    ops = build_hecke(G, items, items)
+    ops = make_hecke(G, items, items)
     print("hecke:", len(ops))
 
 
@@ -1172,6 +1177,38 @@ class Sp(Group):
         return MM.is_zero()
 
     def get_weyl(self):
+        nn = self.n
+        pairs = self.get_pairs()
+        k = len(pairs)
+        gen = []
+        for ii in range(k-1):
+            idxs = list(range(k))
+            idxs[ii:ii+2] = idxs[ii+1], idxs[ii]
+            qairs = [pairs[idx] for idx in idxs]
+            src = reduce(add, pairs)
+            tgt = reduce(add, qairs)
+            #print(src, "-->", tgt)
+            perm = list(range(nn))
+            for i, j in zip(src, tgt):
+                perm[i] = j
+            #print('\t', perm)
+            M = Matrix.perm(perm, self.p, name="w%d"%ii)
+            gen.append(M)
+            #print(M.name)
+            #print(M.shortstr())
+        perm = list(range(nn))
+        a, b = pairs[-1]
+        perm[a], perm[b] = perm[b], perm[a]
+        M = Matrix.perm(perm, self.p, name="w%d"%(k-1))
+        gen.append(M)
+        #print(M.name)
+        #print(M.shortstr())
+        #return self.get_all_weyl()
+        #print(len(gen))
+        #print(len(mulclose(gen)))
+        return Group(gen, p=self.p)
+
+    def get_all_weyl(self):
         nn = self.n
         pairs = self.get_pairs()
         k = len(pairs)
@@ -1495,7 +1532,7 @@ def test_symplectic():
         left = list(G.all_flags([3, 2, 1]))
         right = list(G.all_flags([3, 2, 1]))
 
-    ops = build_hecke(G, left, right)
+    ops = make_hecke(G, left, right)
     print(len(ops))
 
     return
@@ -1669,7 +1706,121 @@ class Building(object):
         return b1, b2
 
 
+def test_weyl():
+    from bruhat.action import Perm
+    from bruhat.action import Group as Grp
+
+    n = argv.get("n", 3)
+    letters = "abcdef"[:n]
+    items = ["+"+c for c in letters] + ["-"+c for c in letters]
+    pairs = [("+"+c, "-"+c) for c in letters]
+
+    print(items)
+
+    gen = []
+    for i in range(n-1):
+        perm = {c:c for c in items}
+        a, b = pairs[i]
+        c, d = pairs[i+1]
+        perm[a] = c
+        perm[c] = a
+        perm[b] = d
+        perm[d] = b
+        gen.append(Perm(perm, items))
+    perm = {c:c for c in items}
+    a, b = pairs[-1]
+    perm[a] = b
+    perm[b] = a
+    gen.append(Perm(perm, items))
+    G = Grp.generate(gen)
+    print("|G| =", len(G))
+
+    #for H in G.subgroups():
+    #    print("\t", len(H))
+
+    H = []
+    a, b, c, aa, bb, cc = items
+    #fix = [bb, aa]
+    fix = {a, b}
+    #print("fix:", fix)
+    for g in G:
+        send = {g[x] for x in fix}
+        if fix == send:
+            H.append(g)
+            #print("send:", send)
+    H = Grp(H, items)
+    print("|H| =", len(H))
+    X = G.left_cosets(H)
+    print("|X| =", len(X))
+
+    nn = 2*n
+    W0 = Group.Sp(nn-2).get_weyl()
+    W = Group.Sp(nn).get_weyl()
+    hom = mulclose_hom(gen, W.gen)
+    for a in gen:
+     for b in gen:
+        assert hom[a*b] == hom[a]*hom[b]
+
+    gom = mulclose_hom(W0.gen, W.gen[1:])
+
+    #for h in H:
+    #    g = hom[h]
+    #    print(g.shortstr(), '\n')
+
+    smap = SMap()
+    for row, coset in enumerate(X):
+        #print([(g[a],g[b]) for g in coset])
+        for i, g in enumerate(coset):
+            g = hom[g]
+            smap[row*(nn+2), (i+2)*(nn+2)] = g.shortstr()
+
+    cols = [0]*len(X)
+    for g0 in W0:
+        h = gom[g0]
+        for row, coset in enumerate(X):
+            for i, g in enumerate(coset):
+                if h == hom[g]:
+                    smap[row*(nn+2)+1, cols[row]+1] = g0.shortstr()
+                    smap[(row+1)*(nn+2)-2, (i+2)*(nn+2)] = "*"
+                    cols[row] += nn+2
+
+    print(smap)
+    print(len(W0))
+    print()
+
+
 def test_building():
+
+    B1 = Group.Sp(2).get_weyl()
+    B2 = Group.Sp(4).get_weyl()
+    B3 = Group.Sp(6).get_weyl()
+
+    if 1:
+        hom = mulclose_hom(B2.gen, B3.gen[1:])
+    else:
+        a, b, c = B3.gen
+        a, b = a, b*c*b
+        assert b*b == B3.I
+        assert a*b != B3.I
+        assert a*b*a*b != B3.I
+        assert a*b*a*b*a*b != B3.I
+        assert a*b*a*b*a*b*a*b == B3.I
+        hom = mulclose_hom(B2.gen, [a, b])
+    assert len(hom) == len(B2)
+
+    for g in B2:
+        h = hom[g]
+
+        smap = SMap()
+        smap[1,1] = g.shortstr()
+
+        smap[0,8] = h.shortstr()
+        
+        print(smap)
+        print()
+
+    return
+
     n = argv.get("n", 3)
     nn = 2*n
     p = argv.get("p", 2)
@@ -1717,7 +1868,21 @@ def test_building():
         assert w in W
         if found is not None:
             assert w == found[g][1]
+
+    return
+
+    W = building.W
+    found = set()
+    for w in W:
+        g = w[4:, :]
+        s = g.shortstr()
+        if s not in found:
+            found.add(s)
     
+    found = list(found)
+    found.sort(key=str)
+    for s in found:
+        print(s, '\n')
 
 
 def test_sp():
@@ -1881,7 +2046,7 @@ def test_hecke():
     left = list(Figure.qchoose(left))
     right = list(Figure.qchoose(right))
 
-    ops = build_hecke(G, left, right)
+    ops = make_hecke(G, left, right)
     print("Hecke operators:", len(ops))
 
     if argv.eigvals:
@@ -1905,7 +2070,7 @@ def test_hecke():
 
 
 
-def build_hecke(G, left, right, verbose=argv.get("verbose", False)):
+def make_hecke(G, left, right, verbose=argv.get("verbose", False)):
 
     if verbose:
         print("left:", len(left))

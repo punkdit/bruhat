@@ -20,6 +20,19 @@ class SMap(object):
                 self.data[ii, jj] = s.data[_key]
                 rows = max(rows, ii)
                 cols = max(cols, jj)
+        elif '\n' in s:
+            row, col = i, j
+            rows = max(rows, row)
+            cols = max(cols, col)
+            for c in s:
+                if c=='\n':
+                    row += 1
+                    col = j
+                    rows = max(rows, row)
+                else:
+                    self.data[row, col] = c
+                    col += 1
+                    cols = max(cols, col)
         else:
             for idx, c in enumerate(s):
                 self.data[i, j+idx] = c
