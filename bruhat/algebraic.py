@@ -275,6 +275,10 @@ class Matrix(object):
         assert self.p == other.p
         return self.key != other.key
 
+    def __lt__(self, other):
+        assert self.p == other.p
+        return self.key < other.key
+
     def __add__(self, other):
         A = self.A + other.A
         return Matrix(A, self.p)
@@ -351,6 +355,14 @@ class Matrix(object):
         assert self.p == 2
         B = pseudo_inverse(self.A)
         return Matrix(B, self.p)
+
+    def span(self):
+        V = []
+        assert self.p == 2
+        for v in span(self.A):
+            v = Matrix(v, self.p)
+            V.append(v)
+        return V
 
 
 def test_matrix():
@@ -435,7 +447,45 @@ class Group(object):
 
     def __contains__(self, g):
         return g in self.get_elements()
+
+    def left_stabilizer(self, M):
+        # find subgroup that stabilize the rowspace of M
+        V = M.span()
+        H = []
+        for g in self:
+            for v in V:
+                if g*v not in V:
+                    break
+            else:
+                H.append(g)
+        return Group(H)
     
+    def right_stabilizer(self, M):
+        # find subgroup that stabilize the rowspace of M
+        V = M.span()
+        H = []
+        for g in self:
+            for v in V:
+                if v*g not in V:
+                    break
+            else:
+                H.append(g)
+        return Group(H)
+    
+    def show(self):
+        items = [M.A for M in self]
+        M = numpy.array(items)
+    
+        smap = SMap()
+        for (i, j) in numpy.ndindex(M.shape[1:]):
+            if numpy.alltrue(M[:, i, j] == 0):
+                smap[i,j] = "."
+            elif numpy.alltrue(M[:, i, j] == 1):
+                smap[i,j] = "1"
+            else:
+                smap[i,j] = "*"
+        return str(smap)
+
     @classmethod
     def SL(cls, n, p=DEFAULT_P, **kw):
         "special linear group"
@@ -473,7 +523,7 @@ class Group(object):
         return cls(gen, order, p=p, **kw)
 
     # See:
-    # Pairs of Generators for Matrix Groups. I
+    # Pairs of Generators for Matrix _Groups. I
     # D. E. Taylor 2006
     # https://www.maths.usyd.edu.au/u/don/papers/genAC.pdf
     # Also:
@@ -1780,7 +1830,8 @@ def test_weyl():
         #print([(g[a],g[b]) for g in coset])
         for i, g in enumerate(coset):
             g = hom[g]
-            smap[row*(nn+2), (i+2)*(nn+2)] = g.shortstr()
+            g = g.transpose()
+            smap[(i+2)*(nn+2), row*(nn+3)] = g.shortstr()
 
     cols = [0]*len(X)
     for g0 in W0:
@@ -1788,8 +1839,8 @@ def test_weyl():
         for row, coset in enumerate(X):
             for i, g in enumerate(coset):
                 if h == hom[g]:
-                    smap[row*(nn+2)+1, cols[row]+1] = g0.shortstr()
-                    smap[(row+1)*(nn+2)-2, (i+2)*(nn+2)] = "*"
+                    smap[cols[row]+1, row*(nn+3)+1] = g0.transpose().shortstr()
+                    smap[(i+2)*(nn+2), (row+1)*(nn+3)-3] = "*"
                     cols[row] += nn+2
 
     print(smap)
@@ -1893,7 +1944,137 @@ def test_building():
         print(s, '\n')
 
 
-def test_sp():
+def test_stabilizer():
+
+    n = argv.get("n", 3)
+    nn = 2*n
+    p = argv.get("p", 2)
+    G = Group.Sp(nn, p)
+
+    I = G.I
+
+    #POINT = Matrix([[0,0,0,1]])
+    #LINE = Matrix([[0,0,1,0],[0,0,0,1]])
+
+    print("|G| =", len(G))
+
+    B = G.get_borel()
+    #P = G.right_stabilizer(LINE)
+    if n==3:
+        LINE = parse("111111 111111 ..1111 ..1111  ..1111  ..1111")
+    else:
+        LINE = parse("1111 1111 ..11 ..11")
+    P = get_subgroup(G, LINE)
+    P = Group(P)
+
+    print("LINE:", len(G)//len(P))
+    print(P.show())
+
+    for b in B:
+        assert b in P
+
+    W = G.get_weyl()
+    cosets = set()
+    bruhat = {}
+    for w in W:
+        C = set(p1*w*p2 for p1 in P for p2 in B)
+        C = list(C)
+        C.sort()
+        C = tuple(C)
+        cosets.add(C)
+        bruhat.setdefault(C, []).append(w)
+        print("[%d]"%(len(cosets)), end="", flush=True)
+    print()
+    print("double cosets:", len(cosets))
+    cosets = list(cosets)
+    cosets.sort(key = len)
+    size = 0
+    for C in cosets:
+        size += len(C)
+        #for D in cosets:
+        #    if C is D:
+        #        continue
+        #    for c in C:
+        #        for d in D:
+        #            assert c != d
+    print("cosets:")
+    for C in cosets:
+        print("size:", len(C))
+        smap = SMap()
+        ws = bruhat[C]
+        ws.sort()
+        for i, w in enumerate(ws):
+            smap[0, i*(nn+2)] = w.shortstr()
+        print(smap)
+        print()
+
+    assert size==len(G)
+
+    return
+
+    P = G.right_stabilizer(LINE)
+    print("LINE:", len(G)//len(P))
+    print(P.show())
+
+
+    return
+
+
+    n = argv.get("n", 4)
+    p = argv.get("p", 2)
+    G = Group.GL(n, p)
+
+    I = G.I
+
+    POINT = Matrix([[0,0,0,1]])
+    LINE = Matrix([[0,0,1,0],[0,0,0,1]])
+    PLANE = Matrix([[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+
+    print("|G| =", len(G))
+
+    P = G.right_stabilizer(POINT)
+    print("POINT:", len(G)//len(P))
+    print(P.show())
+
+    P = G.right_stabilizer(LINE)
+    print("LINE:", len(G)//len(P))
+    print(P.show())
+
+    P = G.right_stabilizer(PLANE)
+    print("PLANE:", len(G)//len(P))
+    print(P.show())
+
+    return
+
+    n = argv.get("n", 3)
+    nn = 2*n
+    p = argv.get("p", 2)
+    G = Group.Sp(nn, p)
+    I = G.I
+    F = G.invariant_form
+    N = len(G)
+
+    POINT = Matrix([[0,0,0,0,0,1]])
+    LINE = Matrix([[0,0,0,0,1,0],[0,0,0,0,0,1]])
+    PLANE = Matrix([[0,0,0,1,0,0],[0,0,0,0,1,0],[0,0,0,0,0,1]])
+
+    print("|G| =", len(G))
+
+    H = G.right_stabilizer(POINT)
+    print("POINT:", len(G)//len(H))
+    print(H.show())
+
+    H = G.right_stabilizer(LINE)
+    print("LINE:", len(G)//len(H))
+    print(H.show())
+
+    H = G.right_stabilizer(PLANE)
+    print("PLANE:", len(G)//len(H))
+    print(H.show())
+
+
+
+def test_partial_flag():
     n = argv.get("n", 3)
     nn = 2*n
     p = argv.get("p", 2)
