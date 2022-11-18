@@ -58,6 +58,16 @@ def build_B(n):
     G = Group.generate(gen, items=items)
     return G
 
+def show(coset):
+    items = []
+    for g in coset.perms:
+        keys = list(g.perm.keys())
+        keys.sort()
+        #s = " ".join("%s:%s"%(key,g[key]) for key in keys)
+        s = " ".join("%s"%(g[key]) for key in keys)
+        items.append("{%s}"%s)
+    return "[%s]"%(", ".join(items))
+
 
 def test_weyl():
 
@@ -113,7 +123,7 @@ def test_weyl():
      for m in range(n):
         src = Ys[n, m]
         tgt = Xs[n, m]
-        #assert src.isomorphic(tgt)
+        #assert src.isomorphic(tgt) # yes
 
         # Construct an isomorphism of G-sets
         k = ks[n, m]
@@ -123,9 +133,10 @@ def test_weyl():
             x = tgt[g*~k](tgt.basepoint)
             assert x in tgt.items
             send[y] = x
-        src.check_isomorphism(tgt, send) # FAIL
+        src.check_isomorphism(tgt, send)
         isos[n, m] = send
 
+        # this also works
         #iso = iter(src.isomorphisms(tgt)).__next__()
         #assert iso is not None
         #isos[n, m] = iso
@@ -217,7 +228,6 @@ def test_weyl():
         src = Xs[n, m]
         Y = Ys[n+1, m]
         tgt = Xs[n+1, m]
-        k = ks[n+1, m]
         func = {} # map src --> tgt
         for x in src.items:
             # find a coset representative
@@ -249,25 +259,6 @@ def test_weyl():
             found.remove(item)
         assert not found
 
-    return
-
-    def show(coset):
-        items = []
-        for g in coset.perms:
-            keys = list(g.perm.keys())
-            keys.sort()
-            #s = " ".join("%s:%s"%(key,g[key]) for key in keys)
-            s = " ".join("%s"%(g[key]) for key in keys)
-            items.append("{%s}"%s)
-        return "[%s]"%(", ".join(items))
-
-    def dump(n, m):
-        X = Xs[n, m]
-        print("|%d choose %d| = %d"%(n, m, len(X.items)))
-        for x in X.items:
-            print('\t', show(x))
-    dump(3, 2)
-    dump(4, 2)
 
 
 if __name__ == "__main__":
