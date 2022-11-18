@@ -943,7 +943,7 @@ class Group(object):
                 cosets.add(coset)
         return list(cosets)
 
-    def left_action(self, items):
+    def left_action(self, items, basepoint=None):
         send_perms = {}
         perms = []
         lookup = dict((item, item) for item in items)
@@ -957,14 +957,14 @@ class Group(object):
         f = quotient_rep(perms)
         send_perms = dict((k, f[v]) for (k, v) in send_perms.items())
         perms = list(f.values())
-        hom = Action(self, send_perms, items)
+        hom = Action(self, send_perms, items, basepoint)
         return hom
 
     def action_subgroup(self, H):
         assert self.items == H.items
         assert self.is_subgroup(H)
         cosets = self.left_cosets(H)
-        hom = self.left_action(cosets)
+        hom = self.left_action(cosets, H)
         return hom
 
     def is_subgroup(self, H):
@@ -1099,15 +1099,22 @@ class Coset(Group):
 
 class Action(object):
     """
-        A Group acting on a set.
+        A Group acting on a set, possibly with a basepoint.
         For each perm in the source Group G we map to a perm of items.
     """
-    def __init__(self, G, send_perms, items, check=False):
+    def __init__(self, G, send_perms, items, basepoint=None, check=False):
         assert isinstance(G, Group)
         self.G = G
         assert isinstance(send_perms, dict)
         self.send_perms = dict(send_perms)
         self.items = list(items)
+        self.basepoint = basepoint
+        self.repr = {}
+        if basepoint is not None:
+            assert basepoint in items
+            for g in G:
+                item = self.send_perms[g](basepoint)
+                self.repr[item] = g
         if check:
             self.check()
 

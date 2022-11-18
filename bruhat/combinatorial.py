@@ -65,13 +65,17 @@ def test_weyl():
 
     Gs = {} # Group's
     Hs = {} # stabilizer Coset's
+    Js = {} # stabilizer Coset's
     Xs = {} # Action's
+    Ys = {} # Action's
+    ks = {} # send Y --> X
     for n in range(N):
         G = build_A(n)
         Gs[n] = G
         items = G.items
         #print(len(G))
         for m in range(n+1):
+            # fix 0,....,m-1
             H = []
             fix = {items[j] for j in range(m)}
             for g in G:
@@ -81,8 +85,50 @@ def test_weyl():
             Hs[n, m] = H
             H = Coset(H, G.items)
             X = G.action_subgroup(H)
-            X.basepoint = H
+            assert X.basepoint == H
             Xs[n, m] = X
+        for m in range(n):
+            # fix 1,...,m
+            J = []
+            fix = {items[j] for j in range(1,m+1)}
+            for g in G:
+                send = {g[x] for x in fix}
+                if fix==send:
+                    J.append(g)
+            Js[n, m] = J
+            J = Coset(J, G.items)
+            Y = G.action_subgroup(J)
+            assert Y.basepoint == J
+            Ys[n, m] = Y
+
+            assert len(items) == n
+            k = {items[j]:items[j-1] for j in range(1,n)}
+            k[items[0]] = items[-1]
+            k = Perm(k, items)
+            assert k in G
+            ks[n,m] = k
+
+    isos = {} # send Y --> X
+    for n in range(N):
+     for m in range(n):
+        src = Ys[n, m]
+        tgt = Xs[n, m]
+        #assert src.isomorphic(tgt)
+
+        # Construct an isomorphism of G-sets
+        k = ks[n, m]
+        send = {}
+        for y in src.items:
+            g = src.repr[y]
+            x = tgt[g*~k](tgt.basepoint)
+            assert x in tgt.items
+            send[y] = x
+        src.check_isomorphism(tgt, send) # FAIL
+        isos[n, m] = send
+
+        #iso = iter(src.isomorphisms(tgt)).__next__()
+        #assert iso is not None
+        #isos[n, m] = iso
 
     def get_pos(n, m):
         K = 4
@@ -140,65 +186,68 @@ def test_weyl():
         #print("hom:", len(hom))
         lhoms[n] = hom
 
+    def check_injection(src, tgt, func):
+        assert set(func.keys()) == set(src)
+        output = set(func.values())
+        assert len(output) == len(func)
+        assert output.issubset(tgt)
+
     lfuncs = {}
     rfuncs = {}
     for n in range(N-1):
       for m in range(n+1):
-        print("\n%d choose %d" % (n, m))
+        #print("\n%d choose %d" % (n, m))
 
         # construct a right map
         src = Xs[n, m]
         tgt = Xs[n+1, m+1]
-        print(len(src.items), ">-->", len(tgt.items))
+        #print(len(src.items), ">-->", len(tgt.items))
         func = {} # map src --> tgt
         for x in src.items:
             # find a coset representative
-            for g in src.G:
-                if src[g](src.basepoint) == x:
-                    break
-            else:
-                assert 0
+            g = src.repr[x]
+            assert src[g](src.basepoint) == x
             h = lhoms[n][g]
             y = tgt[h](tgt.basepoint)
             func[x] = y
-        assert len(func) == len(src.items)
-        assert len(set(func.values())) == len(func)
+        check_injection(src.items, tgt.items, func)
         rfuncs[n, m] = func
 
         # construct a left map
         src = Xs[n, m]
+        Y = Ys[n+1, m]
         tgt = Xs[n+1, m]
+        k = ks[n+1, m]
         func = {} # map src --> tgt
         for x in src.items:
             # find a coset representative
-            for g in src.G:
-                if src[g](src.basepoint) == x:
-                    break
-            else:
-                assert 0
+            g = src.repr[x]
+            assert src[g](src.basepoint) == x
             h = lhoms[n][g]
-            y = tgt[h](tgt.basepoint)
+            y = Y[h](Y.basepoint)
+            y = isos[n+1,m][y] # send Y --> tgt
             func[x] = y
-        assert len(func) == len(src.items)
-        assert len(set(func.values())) == len(func)
+        check_injection(src.items, tgt.items, func)
         lfuncs[n, m] = func
 
-    n, m = 4, 2
-    rmap = rfuncs[n-1, m-1]
-    lmap = lfuncs[n-1, m]
+        hom = {}
 
-    tgt = Xs[n, m]
-    print(len(tgt.items))
-    found = set(tgt.items)
-    image = set(rmap.values())
-    print(len(set(rmap.keys())), "-->", len(image))
-    for item in rmap.values():
-        print(item in found)
-        #assert item in found
-        #found.remove(item)
-    for item in lmap.values():
-        assert item in found
-        found.remove(item)
+    n, m = 4, 2
+    for n in range(2, N):
+      for m in range(1, n):
+        rmap = rfuncs[n-1, m-1]
+        lmap = lfuncs[n-1, m]
+    
+        tgt = Xs[n, m]
+        found = set(tgt.items)
+        for item in rmap.values():
+            assert item in found
+            found.remove(item)
+    
+        for item in lmap.values():
+            assert item in found
+            found.remove(item)
+        assert not found
 
     return
 
