@@ -13,7 +13,6 @@ start_time = time()
 from functools import reduce, lru_cache
 from operator import add, mul
 from string import ascii_lowercase
-letters = ascii_lowercase
 
 from bruhat.action import Perm, Group, Coset, mulclose, Action
 from bruhat.smap import SMap
@@ -46,6 +45,25 @@ def check_injection(src, tgt, func):
     assert output.issubset(tgt)
 
 
+class Choice(object):
+    "make a choice as a subset that is fix'ed by a Group action."
+    def __init__(self, G, fix):
+        items = G.items
+        fix = set(fix)
+        assert fix.issubset(items)
+        H = []
+        for g in G:
+            send = {g[x] for x in fix}
+            if fix==send:
+                H.append(g)
+        H = Coset(H, G.items)
+        X = G.action_subgroup(H)
+        assert X.basepoint == H
+        self.X = X
+        self.H = H
+        self.fix = fix
+
+
 
 class Pascal(object):
     "Pascal's triangle for thin geometry Weyl group"
@@ -61,9 +79,8 @@ class Pascal(object):
         smap = SMap()
         for n in range(N):
             for m in range(n+1):
-                G = Gs[n]
-                H = Hs[n, m]
-                smap[get_pos(n, m)] = str(len(G)//len(H))
+                X = self.get_X(n, m)
+                smap[get_pos(n, m)] = str(len(X.items))
         return str(smap)
 
     def get_G(self, n):
@@ -81,11 +98,9 @@ class Pascal(object):
             send = {g[x] for x in fix}
             if fix==send:
                 H.append(g)
-        #Hs[n, m] = H
         H = Coset(H, G.items)
         X = G.action_subgroup(H)
         assert X.basepoint == H
-        #Xs[n, m] = X
         return X
 
     @cache
@@ -100,11 +115,9 @@ class Pascal(object):
             send = {g[x] for x in fix}
             if fix==send:
                 J.append(g)
-        #Js[n, m] = J
         J = Coset(J, G.items)
         Y = G.action_subgroup(J)
         assert Y.basepoint == J
-        #Ys[n, m] = Y
         return Y
 
     @cache
@@ -112,14 +125,7 @@ class Pascal(object):
         src = self.get_Y(n, m)
         tgt = self.get_X(n, m)
         #assert src.isomorphic(tgt) # yes
-
-        G = self.get_G(n)
-        items = G.items
-        assert len(items) == n
-        k = {items[j]:items[j-1] for j in range(1,n)}
-        k[items[0]] = items[-1]
-        k = Perm(k, items)
-        assert k in G
+        k = self.get_k(n)
 
         # Construct an isomorphism of G-sets X-->Y
         send = {}
@@ -129,34 +135,12 @@ class Pascal(object):
             assert x in tgt.items
             send[y] = x
         src.check_isomorphism(tgt, send)
-        #isos[n, m] = send
 
         # this also works
         #iso = iter(src.isomorphisms(tgt)).__next__()
         #assert iso is not None
-        #isos[n, m] = iso
 
         return send
-
-    @cache
-    def get_rhom(self, n):
-        # construct Group hom, G0 --> G1
-        G0 = self.get_G(n)
-        G1 = self.get_G(n+1)
-        items = G1.items
-
-        # add new item on the right
-        hom = {}
-        for g in G0:
-            perm = dict(g.perm)
-            perm[items[-1]] = items[-1]
-            h = Perm(perm, items)
-            assert h in G1
-            hom[g] = h
-        #print("hom:", len(hom))
-        check_group_hom(G0, G1, hom)
-        rhoms[n] = hom
-        return hom
 
     @cache
     def get_lhom(self, n):
@@ -166,42 +150,22 @@ class Pascal(object):
         items = G1.items
 
         # add new item on the left
+        letters = G1.items
         lookup = {src : letters[letters.index(src)+1] for src in G0.items}
         hom = {}
         for g in G0:
             perm = {lookup[src] : lookup[g.perm[src]] for src in G0.items}
             #print(g.perm, perm)
-            perm[items[0]] = items[0]
+            for item in items:
+                if item not in perm:
+                    perm[item] = item
             #print(g.perm, perm)
             h = Perm(perm, items)
             assert h in G1
             hom[g] = h
         check_group_hom(G0, G1, hom)
         #print("hom:", len(hom))
-        #lhoms[n] = hom
         return hom
-
-    @cache
-    def get_rfunc(self, n, m):
-        assert 0<=n
-        assert 0<=m<=n
-        #print("\n%d choose %d" % (n, m))
-
-        # construct a right map
-        src = self.get_X(n, m)
-        tgt = self.get_X(n+1, m+1)
-        #print(len(src.items), ">-->", len(tgt.items))
-        func = {} # map src --> tgt
-        for x in src.items:
-            # find a coset representative
-            g = src.repr[x]
-            assert src[g](src.basepoint) == x
-            h = self.get_lhom(n)[g]
-            y = tgt[h](tgt.basepoint)
-            func[x] = y
-        check_injection(src.items, tgt.items, func)
-        #rfuncs[n, m] = func
-        return func
 
     @cache
     def get_lfunc(self, n, m):
@@ -213,15 +177,13 @@ class Pascal(object):
         tgt = self.get_X(n+1, m)
         func = {} # map src --> tgt
         for x in src.items:
-            # find a coset representative
-            g = src.repr[x]
+            g = src.repr[x] # a coset representative for x
             assert src[g](src.basepoint) == x
             h = self.get_lhom(n)[g]
             y = Y[h](Y.basepoint)
             y = self.get_iso(n+1,m)[y] # send Y --> tgt
             func[x] = y
         check_injection(src.items, tgt.items, func)
-        #lfuncs[n, m] = func
         return func
 
 
@@ -241,6 +203,56 @@ class PascalA(Pascal):
         G = Group.generate(gen, items=items)
         return G
     
+    @cache
+    def get_k(self, n):
+        G = self.get_G(n)
+        items = G.items
+        assert len(items) == n
+        k = {items[j]:items[j-1] for j in range(1,n)}
+        k[items[0]] = items[-1]
+        k = Perm(k, items)
+        assert k in G
+        return k
+
+    @cache
+    def get_rhom(self, n): # XXX not used
+        # construct Group hom, G0 --> G1
+        G0 = self.get_G(n)
+        G1 = self.get_G(n+1)
+        items = G1.items
+
+        # add new item on the right
+        hom = {}
+        for g in G0:
+            perm = dict(g.perm)
+            perm[items[-1]] = items[-1]
+            h = Perm(perm, items)
+            assert h in G1
+            hom[g] = h
+        #print("hom:", len(hom))
+        check_group_hom(G0, G1, hom)
+        return hom
+
+    @cache
+    def get_rfunc(self, n, m):
+        assert 0<=n
+        assert 0<=m<=n
+        #print("\n%d choose %d" % (n, m))
+
+        # construct a right map
+        src = self.get_X(n, m)
+        tgt = self.get_X(n+1, m+1)
+        #print(len(src.items), ">-->", len(tgt.items))
+        func = {} # map src --> tgt
+        for x in src.items:
+            g = src.repr[x] # a coset representative for x
+            assert src[g](src.basepoint) == x
+            h = self.get_lhom(n)[g]
+            y = tgt[h](tgt.basepoint)
+            func[x] = y
+        check_injection(src.items, tgt.items, func)
+        return func
+
     
 class PascalB(Pascal):
 
@@ -269,17 +281,54 @@ class PascalB(Pascal):
         G = Group.generate(gen, items=items)
         return G
 
+    @cache
+    def get_k(self, n):
+        G = self.get_G(n)
+        items = G.items
+        assert len(items) == 2*n
+        k = {}
+        for j in range(1, n):
+            k[items[j]] = items[j-1]
+            k[items[j+n]] = items[j+n-1]
+        k[items[0]] = items[n-1]
+        k[items[n]] = items[2*n-1]
+        k = Perm(k, items)
+        assert k in G
+        return k
 
-def test_weyl():
+    @cache
+    def get_rfunc(self, n, m, idx):
+        assert 0<=n
+        assert 0<=m<=n
+        assert 0<=idx<=1
 
-    print("test_weyl:")
+        # construct a right map
+        src = self.get_X(n, m)
+        tgt = self.get_X(n+1, m+1)
+        #print(len(src.items), ">-->", len(tgt.items))
+        func = {} # map src --> tgt
+        for x in src.items:
+            g = src.repr[x] # a coset representative for x
+            assert src[g](src.basepoint) == x
+            h = self.get_lhom(n)[g]
+            y = tgt[h](tgt.basepoint)
+            func[x] = y
+        check_injection(src.items, tgt.items, func)
+        return func
+
+
+def test_weyl_A():
+
+    print("test_weyl_A:")
 
     triangle = PascalA()
     assert triangle.get_G(3) is triangle.get_G(3)
     assert triangle.get_G(3) is not PascalA().get_G(3)
 
     N = 6
-    n, m = 4, 2
+    print(triangle.str(N))
+    print()
+
     for n in range(2, N):
       for m in range(1, n):
         rfunc = triangle.get_rfunc(n-1, m-1)
@@ -297,6 +346,60 @@ def test_weyl():
         assert not found
         print("(%d %d)"%(n,m), end=" ")
       print()
+    print()
+
+
+
+def test_weyl_B():
+
+    print("test_weyl_B:")
+
+    triangle = PascalB()
+
+    N = 4
+    print(triangle.str(N))
+    print()
+
+    for n in range(N):
+        hom = triangle.get_lhom(n)
+        for m in range(n):
+            Y = triangle.get_Y(n, m)
+            iso = triangle.get_iso(n, m)
+
+    for n in range(2, N):
+      for m in range(1, n):
+        print("(%d %d)"%(n,m), end=" ")
+        tgt = triangle.get_X(n, m)
+        found = set(tgt.items)
+
+        rfunc = triangle.get_rfunc(n-1, m-1, 0)
+        for item in rfunc.values():
+            assert item in found
+            found.remove(item)
+
+        continue
+    
+        rfunc = triangle.get_rfunc(n-1, m-1, 1)
+        for item in rfunc.values():
+            assert item in found
+            found.remove(item)
+    
+        lfunc = triangle.get_lfunc(n-1, m)
+        for item in lfunc.values():
+            assert item in found
+            found.remove(item)
+        assert not found
+      print()
+    print()
+
+
+    print()
+
+
+
+def test():
+    test_weyl_A()
+    test_weyl_B()
 
 
 
