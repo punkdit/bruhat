@@ -63,7 +63,7 @@ class Space(Action):
         self.__dict__.update(X.__dict__) # doh..
         self.H = H
         self.fix = fix
-        self.remain = set(G.items).difference(fix)
+        #self.remain = set(G.items).difference(fix)
 
     def get_iso(src, tgt):
         # Construct an isomorphism of G-sets
