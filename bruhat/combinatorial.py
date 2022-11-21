@@ -45,8 +45,9 @@ def check_injection(src, tgt, func):
     assert output.issubset(tgt)
 
 
-class Choice(object):
-    "make a choice as a subset that is fix'ed by a Group action."
+class Space(Action):
+    "Homogeneous Space."
+    "Make a choice as a subset that is fix'ed by a Group action."
     def __init__(self, G, fix):
         items = G.items
         fix = set(fix)
@@ -59,9 +60,40 @@ class Choice(object):
         H = Coset(H, G.items)
         X = G.action_subgroup(H)
         assert X.basepoint == H
-        self.X = X
+        self.__dict__.update(X.__dict__) # doh..
         self.H = H
         self.fix = fix
+        self.remain = set(G.items).difference(fix)
+
+    def get_iso(src, tgt):
+        # Construct an isomorphism of G-sets
+        assert isinstance(tgt, Space)
+        assert tgt.G is src.G
+        assert len(tgt.fix) == len(src.fix)
+        G = src.G
+
+        for g in G:
+            for x in src.fix:
+                if g(x) not in tgt.fix:
+                    break
+            else:
+                break
+        else:
+            assert 0
+
+        send = {}
+        for y in src.items:
+            h = src.repr[y]
+            x = tgt[h*~g](tgt.basepoint)
+            assert x in tgt.items
+            send[y] = x
+        src.check_isomorphism(tgt, send)
+
+        # this also works
+        #iso = iter(src.isomorphisms(tgt)).__next__()
+        #assert iso is not None
+
+        return send
 
 
 
@@ -69,7 +101,7 @@ class Pascal(object):
     "Pascal's triangle for thin geometry Weyl group"
 
     def __init__(self):
-        pass
+        self.choices = {} # map fix -> Space
 
     def str(self, N):
         def get_pos(n, m):
@@ -86,60 +118,38 @@ class Pascal(object):
     def get_G(self, n):
         assert 0, "abstract base class"
 
+    def get_fix(self, G, fix):
+        key = list(fix)
+        key.sort()
+        key = G, tuple(key)
+        if key in self.choices:
+            return self.choices[key]
+        choice = Space(G, fix)
+        self.choices[key] = choice
+        return choice
+
     @cache
     def get_X(self, n, m):
         # fix 0,....,m-1
-        G = self.get_G(n)
-        items = G.items
         assert 0<=m<=n
-        H = []
-        fix = {items[j] for j in range(m)}
-        for g in G:
-            send = {g[x] for x in fix}
-            if fix==send:
-                H.append(g)
-        H = Coset(H, G.items)
-        X = G.action_subgroup(H)
-        assert X.basepoint == H
-        return X
+        G = self.get_G(n)
+        fix = {G.items[j] for j in range(m)}
+        return self.get_fix(G, fix)
 
     @cache
     def get_Y(self, n, m):
         # fix 1,...,m
-        G = self.get_G(n)
-        items = G.items
         assert 0<=m<n
-        J = []
-        fix = {items[j] for j in range(1,m+1)}
-        for g in G:
-            send = {g[x] for x in fix}
-            if fix==send:
-                J.append(g)
-        J = Coset(J, G.items)
-        Y = G.action_subgroup(J)
-        assert Y.basepoint == J
-        return Y
+        G = self.get_G(n)
+        fix = {G.items[j] for j in range(1,m+1)}
+        return self.get_fix(G, fix)
 
     @cache
     def get_iso(self, n, m):
         src = self.get_Y(n, m)
         tgt = self.get_X(n, m)
-        #assert src.isomorphic(tgt) # yes
-        k = self.get_k(n)
 
-        # Construct an isomorphism of G-sets X-->Y
-        send = {}
-        for y in src.items:
-            g = src.repr[y]
-            x = tgt[g*~k](tgt.basepoint)
-            assert x in tgt.items
-            send[y] = x
-        src.check_isomorphism(tgt, send)
-
-        # this also works
-        #iso = iter(src.isomorphisms(tgt)).__next__()
-        #assert iso is not None
-
+        send = src.get_iso(tgt)
         return send
 
     @cache
@@ -204,36 +214,6 @@ class PascalA(Pascal):
         return G
     
     @cache
-    def get_k(self, n):
-        G = self.get_G(n)
-        items = G.items
-        assert len(items) == n
-        k = {items[j]:items[j-1] for j in range(1,n)}
-        k[items[0]] = items[-1]
-        k = Perm(k, items)
-        assert k in G
-        return k
-
-    @cache
-    def get_rhom(self, n): # XXX not used
-        # construct Group hom, G0 --> G1
-        G0 = self.get_G(n)
-        G1 = self.get_G(n+1)
-        items = G1.items
-
-        # add new item on the right
-        hom = {}
-        for g in G0:
-            perm = dict(g.perm)
-            perm[items[-1]] = items[-1]
-            h = Perm(perm, items)
-            assert h in G1
-            hom[g] = h
-        #print("hom:", len(hom))
-        check_group_hom(G0, G1, hom)
-        return hom
-
-    @cache
     def get_rfunc(self, n, m):
         assert 0<=n
         assert 0<=m<=n
@@ -282,19 +262,12 @@ class PascalB(Pascal):
         return G
 
     @cache
-    def get_k(self, n):
+    def get_Z(self, n, m):
         G = self.get_G(n)
-        items = G.items
-        assert len(items) == 2*n
-        k = {}
-        for j in range(1, n):
-            k[items[j]] = items[j-1]
-            k[items[j+n]] = items[j+n-1]
-        k[items[0]] = items[n-1]
-        k[items[n]] = items[2*n-1]
-        k = Perm(k, items)
-        assert k in G
-        return k
+        fix = {G.items[j] for j in range(1, m)}
+        fix.add(G.items[n])
+        Z = self.get_fix(G, fix)
+        return Z
 
     @cache
     def get_rfunc(self, n, m, idx):
@@ -302,19 +275,35 @@ class PascalB(Pascal):
         assert 0<=m<=n
         assert 0<=idx<=1
 
-        # construct a right map
         src = self.get_X(n, m)
         tgt = self.get_X(n+1, m+1)
-        #print(len(src.items), ">-->", len(tgt.items))
+
+        if idx==0:
+            # construct a right map
+            #print(len(src.items), ">-->", len(tgt.items))
+            func = {} # map src --> tgt
+            for x in src.items:
+                g = src.repr[x] # a coset representative for x
+                assert src[g](src.basepoint) == x
+                h = self.get_lhom(n)[g]
+                y = tgt[h](tgt.basepoint)
+                func[x] = y
+            check_injection(src.items, tgt.items, func)
+            return func
+
+        # construct a another right map
+        Z = self.get_Z(n+1, m+1)
+        iso = Z.get_iso(tgt)
         func = {} # map src --> tgt
         for x in src.items:
             g = src.repr[x] # a coset representative for x
             assert src[g](src.basepoint) == x
             h = self.get_lhom(n)[g]
-            y = tgt[h](tgt.basepoint)
-            func[x] = y
+            y = Z[h](Z.basepoint)
+            func[x] = iso[y]
         check_injection(src.items, tgt.items, func)
         return func
+
 
 
 def test_weyl_A():
@@ -328,6 +317,14 @@ def test_weyl_A():
     N = 6
     print(triangle.str(N))
     print()
+
+    for n in range(N):
+        G = triangle.get_G(n)
+        items = G.items
+        for m in range(1, n):
+            src = Space(G, items[:m])
+            tgt = Space(G, items[1:m+1])
+            iso = src.get_iso(tgt)
 
     for n in range(2, N):
       for m in range(1, n):
@@ -356,9 +353,18 @@ def test_weyl_B():
 
     triangle = PascalB()
 
-    N = 4
+    N = 5
     print(triangle.str(N))
     print()
+
+    for n in range(N):
+        G = triangle.get_G(n)
+        items = G.items
+        for m in range(1, n):
+            src = Space(G, items[:m])
+            tgt = Space(G, items[1:m+1])
+            iso = src.get_iso(tgt)
+
 
     for n in range(N):
         hom = triangle.get_lhom(n)
@@ -367,28 +373,29 @@ def test_weyl_B():
             iso = triangle.get_iso(n, m)
 
     for n in range(2, N):
-      for m in range(1, n):
-        print("(%d %d)"%(n,m), end=" ")
+      for m in range(1, n+1):
         tgt = triangle.get_X(n, m)
         found = set(tgt.items)
+        print("(%d %d)=%d"%(n,m,len(found)), end=" ", flush=True)
 
         rfunc = triangle.get_rfunc(n-1, m-1, 0)
         for item in rfunc.values():
             assert item in found
             found.remove(item)
 
-        continue
-    
         rfunc = triangle.get_rfunc(n-1, m-1, 1)
         for item in rfunc.values():
             assert item in found
             found.remove(item)
     
-        lfunc = triangle.get_lfunc(n-1, m)
-        for item in lfunc.values():
-            assert item in found
-            found.remove(item)
+        if m<n:
+            lfunc = triangle.get_lfunc(n-1, m)
+            for item in lfunc.values():
+                assert item in found
+                found.remove(item)
+
         assert not found
+
       print()
     print()
 
