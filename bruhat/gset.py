@@ -1241,15 +1241,24 @@ def Sp(nn, p=2):
             X.add(gv)
             print(gv)
     X = list(X)
+    B = G.get_borel()
     G = Group.from_action(G, X)
+    B = Group.from_action(B, X)
+    print("G.rank =", G.rank)
+    print("|G| =", len(G))
+    print("|B| =", len(B))
+    for g in B:
+        assert g in G
+    action = G.action_subgroup(B)
+    aa = action * action
+    orbits = aa.get_orbits()
+    print(len(orbits))
     return G
 
 
 def test_bruhat():
     print("test_bruhat")
     G = Sp(4)
-    print(G.rank)
-    print(len(G))
 
 
 def test_set():
