@@ -403,7 +403,7 @@ assert order_sp(2, 2)==6     # 3!
 assert order_sp(4, 2)==720   # 6!
 
 
-class Group(object):
+class Algebraic(object):
     def __init__(self, gen, order=None, p=DEFAULT_P, G=None, **kw):
         self.__dict__.update(kw)
         self.gen = list(gen)
@@ -458,7 +458,7 @@ class Group(object):
                     break
             else:
                 H.append(g)
-        return Group(H)
+        return Algebraic(H)
     
     def right_stabilizer(self, M):
         # find subgroup that stabilize the rowspace of M
@@ -470,7 +470,7 @@ class Group(object):
                     break
             else:
                 H.append(g)
-        return Group(H)
+        return Algebraic(H)
     
     def show(self):
         items = [M.A for M in self]
@@ -523,7 +523,7 @@ class Group(object):
         return cls(gen, order, p=p, **kw)
 
     # See:
-    # Pairs of Generators for Matrix _Groups. I
+    # Pairs of Generators for Matrix _Algebraics. I
     # D. E. Taylor 2006
     # https://www.maths.usyd.edu.au/u/don/papers/genAC.pdf
     # Also:
@@ -630,7 +630,7 @@ class Group(object):
             [[1,0,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0],[1,1,0,0,1,0,0,0,1],[0,0,0,0,0,1,0,0,1],[0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,1]],
             [[1,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0],[0,0,0,0,1,0,0,0,0],[0,0,0,0,0,1,0,0,0],[0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,1],[0,1,0,0,0,0,0,0,0]]]
         gens = [Matrix(A, p) for A in gens]
-        G = Group(gens, order=47377612800, p=p,
+        G = Algebraic(gens, order=47377612800, p=p,
             invariant_bilinear_form = Matrix(
                 [[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0],[0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,1],[0,1,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0],[0,0,0,0,1,0,0,0,0]]),
             invariant_quadratic_form = Matrix(
@@ -646,7 +646,7 @@ class Group(object):
 [[1,2,2,0,0,0,0],[2,2,1,2,0,0,0],[0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1],[0,2,1,0,0,0,0],[2,1,1,1,0,0,0]],
         ]
         gens = [Matrix(A, p) for A in gens]
-        G = Group(gens, order=9170703360, p=p,
+        G = Algebraic(gens, order=9170703360, p=p,
             invariant_bilinear_form = Matrix(
 [[0,1,0,0,0,0,0],[1,0,0,0,0,0,0],[0,0,2,0,0,0,0],[0,0,0,2,0,0,0],[0,0,0,0,2,0,0],[0,0,0,0,0,2,0],[0,0,0,0,0,0,2]], p),
             invariant_quadratic_form = Matrix(
@@ -662,7 +662,7 @@ class Group(object):
             [[1,0,0,0,0,0,0],[0,0,1,0,0,0,0],[0,0,0,1,0,0,0],[0,0,0,0,1,0,0],
              [0,0,0,0,0,1,0],[0,0,0,0,0,0,1],[0,1,0,0,0,0,0]]]
         gens = [Matrix(A, p) for A in gens]
-        G = Group(gens, order=1451520, p=p,
+        G = Algebraic(gens, order=1451520, p=p,
             invariant_bilinear_form = Matrix(
                 [[0,0,0,0,0,0,0],[0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1],
                  [0,1,0,0,0,0,0],[0,0,1,0,0,0,0],[0,0,0,1,0,0,0]], p),
@@ -678,7 +678,7 @@ class Group(object):
             [[1,0,0,0,0],[1,0,1,0,1],[1,0,1,1,1],[0,1,0,0,1],[0,1,1,1,1]],
             [[1,0,0,0,0],[0,0,1,0,0],[0,0,0,1,0],[0,0,0,0,1],[0,1,0,0,0]]]
         gens = [Matrix(A, p) for A in gens]
-        G = Group(gens, p=p,
+        G = Algebraic(gens, p=p,
             invariant_bilinear_form = Matrix(
                 [[0,0,0,0,0],[0,0,0,1,0],[0,0,0,0,1],[0,1,0,0,0],[0,0,1,0,0]], p),
             invariant_quadratic_form = Matrix(
@@ -694,7 +694,7 @@ class Group(object):
                 [[1,2,2,0,0],[2,2,1,2,0],[0,0,0,0,1],[0,2,1,0,0],[2,1,1,1,0]],
         ]
         gens = [Matrix(A, p) for A in gens]
-        G = Group(gens, p=p,
+        G = Algebraic(gens, p=p,
             invariant_bilinear_form = Matrix(
                 [[0,1,0,0,0],[1,0,0,0,0],[0,0,2,0,0],[0,0,0,2,0],[0,0,0,0,2]], p),
             invariant_quadratic_form = Matrix(
@@ -709,7 +709,7 @@ class Group(object):
         gens = [
             [[2,0,0],[0,3,0],[0,0,1]], [[3,2,3],[0,2,0],[0,3,1]], [[1,4,4],[4,0,0],[2,0,4]]]
         gens = [Matrix(A, p) for A in gens]
-        G = Group(gens, p=p,
+        G = Algebraic(gens, p=p,
             invariant_bilinear_form = Matrix([[0,1,0],[1,0,0],[0,0,2]], p),
             invariant_quadratic_form = Matrix([[0,1,0],[0,0,0],[0,0,1]], p))
         return G
@@ -723,7 +723,7 @@ class Group(object):
             [[1,2,2],[2,0,0],[2,0,2]],
             ]
         gens = [Matrix(A, p) for A in gens]
-        G = Group(gens, p=p,
+        G = Algebraic(gens, p=p,
             invariant_bilinear_form = Matrix([[0,1,0],[1,0,0],[0,0,2]], 3),
             invariant_quadratic_form = Matrix([[0,1,0],[0,0,0],[0,0,1]], 3))
         return G
@@ -733,7 +733,7 @@ class Group(object):
         p = 2
         gens = [[[1,0,0],[1,1,1],[0,0,1]],[[1,0,0],[0,0,1],[0,1,0]]]
         gens = [Matrix(A, p) for A in gens]
-        G = Group(gens, p=p,
+        G = Algebraic(gens, p=p,
             invariant_bilinear_form = Matrix([[0,0,0],[0,0,1],[0,1,0]], p),
             invariant_quadratic_form = Matrix([[1,0,0],[0,0,0],[0,1,0]], p))
         return G
@@ -741,7 +741,7 @@ class Group(object):
     @classmethod
     def make(cls, gens, invariant_bilinear_form, invariant_quadratic_form, order=None, p=DEFAULT_P, **kw):
         gens = [Matrix(A, p) for A in gens]
-        G = Group(gens, order, p=p,
+        G = Algebraic(gens, order, p=p,
             invariant_bilinear_form = Matrix(invariant_bilinear_form, p),
             invariant_quadratic_form = Matrix(invariant_quadratic_form, p))
         return G
@@ -1028,7 +1028,7 @@ def test_so():
     p = argv.get("p", 2)
     e = argv.get("e", 1)
 
-    G = Group.SO(n, p, e)
+    G = Algebraic.SO(n, p, e)
     print("|G| =", G.order)
 
     B = G.invariant_bilinear_form
@@ -1102,7 +1102,7 @@ def test_so():
     print("hecke:", len(ops))
 
 
-class Sp(Group):
+class Sp(Algebraic):
 
     def qchoose(self, m):
         F = self.invariant_form
@@ -1138,7 +1138,7 @@ class Sp(Group):
         n = argv.get("n", 3)
         m = argv.get("m", 2)
     
-        G = Group.Sp(2*n, p)
+        G = Algebraic.Sp(2*n, p)
 
     def slow_grassmanian(self, m):
         n = self.n//2
@@ -1256,7 +1256,7 @@ class Sp(Group):
         #return self.get_all_weyl()
         #print(len(gen))
         #print(len(mulclose(gen)))
-        return Group(gen, p=self.p)
+        return Algebraic(gen, p=self.p)
 
     def get_all_weyl(self):
         nn = self.n
@@ -1331,7 +1331,7 @@ class Sp(Group):
         for M in gen:
             assert M*F*M.transpose() == F
     
-        B = Group(gen)
+        B = Algebraic(gen)
         B.lookup = lookup
         return B
 
@@ -1353,8 +1353,8 @@ def test_grassmanian_fail():
 
     print("test_grassmanian: n=%d, m=%d"%(n, m))
 
-    G = Group.Sp(2*n, p)
-    G1 = Group.Sp(2*(n+1), p)
+    G = Algebraic.Sp(2*n, p)
+    G1 = Algebraic.Sp(2*(n+1), p)
 
     items = list(G.grassmanian(m))
     print(len(items))
@@ -1495,12 +1495,12 @@ def test_grassmanian():
 
     print("test_grassmanian: n=%d, m=%d"%(n, m))
 
-    G = Group.Sp(2*n, p)
+    G = Algebraic.Sp(2*n, p)
     #Ms = list(G.grassmanian(m))
     Ms = list(G.slow_grassmanian(m))
 
     # wrong symplectic form ... scrambles the bruhat cells
-    #G = Group.Symplectic(2*n, p)
+    #G = Algebraic.Symplectic(2*n, p)
     #Ms = list(G.grassmanian(m))
 
     print(len(Ms))
@@ -1538,7 +1538,7 @@ def test_symplectic():
 
     p = argv.get("p", 2)
 
-    G = Group.Sp(n, p)
+    G = Algebraic.Sp(n, p)
     F = G.invariant_form
     for g in G.gen:
         assert g * F * g.transpose()  == F
@@ -1604,10 +1604,10 @@ def test_1():
     m = argv.get("m", 2)
     p = argv.get("p", 2)
 
-    G = Group.Sp(2*n, p)
+    G = Algebraic.Sp(2*n, p)
     F = G.invariant_form
 
-    G1 = Group.Sp(2*n + 2, p)
+    G1 = Algebraic.Sp(2*n + 2, p)
     F1 = G1.invariant_form
 
     items = set()
@@ -1668,7 +1668,7 @@ def get_permrep(G):
 
 def test_dynkin():
 
-    G = Group.GL(4, 2)
+    G = Algebraic.GL(4, 2)
     subgroups = []
 
     n = len(G)
@@ -1758,7 +1758,7 @@ class Building(object):
 
 def test_weyl():
     from bruhat.action import Perm
-    from bruhat.action import Group as Grp
+    from bruhat.action import Group
 
     n = argv.get("n", 3)
     letters = "abcdef"[:n]
@@ -1782,7 +1782,7 @@ def test_weyl():
     perm[a] = b
     perm[b] = a
     gen.append(Perm(perm, items))
-    G = Grp.generate(gen)
+    G = Group.generate(gen)
     print("|G| =", len(G))
 
     #for H in G.subgroups():
@@ -1798,14 +1798,14 @@ def test_weyl():
         if fix == send:
             H.append(g)
             #print("send:", send)
-    H = Grp(H, items)
+    H = Group(H, items)
     print("|H| =", len(H))
     X = G.left_cosets(H)
     print("|X| =", len(X))
 
     nn = 2*n
-    W0 = Group.Sp(nn-2).get_weyl()
-    W = Group.Sp(nn).get_weyl()
+    W0 = Algebraic.Sp(nn-2).get_weyl()
+    W = Algebraic.Sp(nn).get_weyl()
     hom = mulclose_hom(gen, W.gen)
     for a in gen:
      for b in gen:
@@ -1850,9 +1850,9 @@ def test_weyl():
 
 def test_building():
 
-    B1 = Group.Sp(2).get_weyl()
-    B2 = Group.Sp(4).get_weyl()
-    B3 = Group.Sp(6).get_weyl()
+    B1 = Algebraic.Sp(2).get_weyl()
+    B2 = Algebraic.Sp(4).get_weyl()
+    B3 = Algebraic.Sp(6).get_weyl()
 
     if 1:
         hom = mulclose_hom(B2.gen, B3.gen[1:])
@@ -1883,7 +1883,7 @@ def test_building():
     n = argv.get("n", 3)
     nn = 2*n
     p = argv.get("p", 2)
-    G = Group.Sp(nn, p)
+    G = Algebraic.Sp(nn, p)
     I = G.I
     F = G.invariant_form
     N = len(G)
@@ -1949,7 +1949,7 @@ def test_stabilizer():
     n = argv.get("n", 3)
     nn = 2*n
     p = argv.get("p", 2)
-    G = Group.Sp(nn, p)
+    G = Algebraic.Sp(nn, p)
 
     I = G.I
 
@@ -1965,7 +1965,7 @@ def test_stabilizer():
     else:
         LINE = parse("1111 1111 ..11 ..11")
     P = get_subgroup(G, LINE)
-    P = Group(P)
+    P = Algebraic(P)
 
     print("LINE:", len(G)//len(P))
     print(P.show())
@@ -2022,7 +2022,7 @@ def test_stabilizer():
 
     n = argv.get("n", 4)
     p = argv.get("p", 2)
-    G = Group.GL(n, p)
+    G = Algebraic.GL(n, p)
 
     I = G.I
 
@@ -2049,7 +2049,7 @@ def test_stabilizer():
     n = argv.get("n", 3)
     nn = 2*n
     p = argv.get("p", 2)
-    G = Group.Sp(nn, p)
+    G = Algebraic.Sp(nn, p)
     I = G.I
     F = G.invariant_form
     N = len(G)
@@ -2078,7 +2078,7 @@ def test_partial_flag():
     n = argv.get("n", 3)
     nn = 2*n
     p = argv.get("p", 2)
-    G = Group.Sp(nn, p)
+    G = Algebraic.Sp(nn, p)
     I = G.I
     F = G.invariant_form
     N = len(G)
@@ -2226,7 +2226,7 @@ class Figure(object):
 def test_hecke():
 
     n = argv.get("n", 3)
-    G = Group.SL(n)
+    G = Algebraic.SL(n)
     print("|G| =", len(G))
 
     left = argv.get("left", [n,1]) 
@@ -2339,7 +2339,7 @@ def test_orbit():
     assert len(figures) == 105
 
     n = argv.get("n", 3)
-    G = Group.SL(n)
+    G = Algebraic.SL(n)
     print("|G| =", len(G))
 
     left = argv.get("left", [n,1]) 
@@ -2421,7 +2421,7 @@ def test_bruhat():
     else:
         return
 
-    G = Group.GL(n)
+    G = Algebraic.GL(n)
 
     Hs = []
     Xs = []
@@ -2500,11 +2500,11 @@ def main():
         print("|Sp(%d, %d)| = %d"%(p, n, order_sp(n, p)))
 
     if argv.SL:
-        G = Group.SL(n, p)
+        G = Algebraic.SL(n, p)
         print("|G| =", len(G))
 
     if argv.GL:
-        G = Group.GL(n, p)
+        G = Algebraic.GL(n, p)
         print("|G| =", len(G))
 
 

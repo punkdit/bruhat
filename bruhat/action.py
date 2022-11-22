@@ -1161,6 +1161,9 @@ class Action(object):
         perm = self.send_perms[g]
         return perm
 
+    def get_repr(self, x):
+        return self.repr[x]
+
     def rename(self, send_items, items):
         #G, items, send_perms = self.G, self.items, self.send_perms
         for item in self.items:
