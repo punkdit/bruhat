@@ -19,7 +19,6 @@ import numpy
 #scalar = numpy.int64
 scalar = numpy.int8 # CAREFUL !!
 
-from bruhat import gset
 from bruhat.action import mulclose, mulclose_hom
 from bruhat.spec import isprime
 from bruhat.argv import argv
@@ -1655,6 +1654,7 @@ def get_subgroup(G, geom, check=False):
 
 
 def get_permrep(G):
+    from bruhat import gset
     assert len(G)
     op = G[0]
     n, _ = op.shape
@@ -2399,6 +2399,7 @@ def test_orbit():
 
 
 def test_bruhat():
+    from bruhat import gset
     n = argv.get("n", 4)
 
     if n==4:

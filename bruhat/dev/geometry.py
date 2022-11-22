@@ -15,7 +15,6 @@ from bruhat.solve import parse, shortstr, shortstrx, span, int_scalar, find_kern
 from bruhat.solve import row_reduce, dot2
 from bruhat.poly import Poly
 from bruhat import element
-from bruhat.gset import Group
 from bruhat import algebraic
 
 from bruhat.argv import argv

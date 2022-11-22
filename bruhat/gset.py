@@ -12,10 +12,14 @@ there's no typechecking on inexes. Fail.
 """
 
 
+from time import time
+start_time = time()
+
 import numpy
 from numpy import alltrue
 scalar = numpy.int64
 
+from bruhat.algebraic import Algebraic, Matrix
 from bruhat.util import factorial
 from bruhat.action import mulclose
 from bruhat.argv import argv
@@ -1208,8 +1212,7 @@ class Orbiplex(Simplicial):
             self.check()
 
 
-def general_linear(n=3, p=2):
-    from bruhat.algebraic import Algebraic, Matrix
+def GL(n=3, p=2):
     G = Algebraic.GL(n, p)
     v = numpy.array([0]*n, dtype=scalar)
     v[0] = 1
@@ -1218,8 +1221,35 @@ def general_linear(n=3, p=2):
     for g in G:
         X.add(g*v)
     X = list(X)
+    for x in X:
+        print(x)
     G = Group.from_action(G, X)
     return G
+
+
+def Sp(nn, p=2):
+    assert nn%2 == 0
+    n = nn//2
+    G = Algebraic.Sp(nn, p)
+    v = numpy.array([0]*nn, dtype=scalar)
+    v[0] = 1
+    v = Matrix(v, p)
+    X = set([])
+    for g in G:
+        gv = g*v
+        if gv not in X:
+            X.add(gv)
+            print(gv)
+    X = list(X)
+    G = Group.from_action(G, X)
+    return G
+
+
+def test_bruhat():
+    print("test_bruhat")
+    G = Sp(4)
+    print(G.rank)
+    print(len(G))
 
 
 def test_set():
@@ -1312,7 +1342,7 @@ def test_gset():
     G = Group.symmetric(3)
     assert list(G.get_sequence(5)) == [1, 2, 5, 14, 41, 122]
 
-    G = general_linear(3, 2)
+    G = GL(3, 2)
     assert len(G) == 168
 
     #for size in G.get_sequence():
@@ -1491,13 +1521,19 @@ def test():
     test_homology()
 
     
-if __name__ == "__main__":
 
-    name = argv.next()
-    if name is not None:
-        f = eval(name)
-        f()
+if __name__ == "__main__":
+    fn = argv.next() or "main"
+
+    if argv.profile:
+        import cProfile as profile
+        profile.run("%s()"%fn)
     else:
-        main()
+        fn = eval(fn)
+        fn()
+
+    print("OK: finished in %.3f seconds.\n"%(time() - start_time))
+
+
 
 

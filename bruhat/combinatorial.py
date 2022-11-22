@@ -609,9 +609,10 @@ def test_bruhat_order():
             refls.add(h)
     print(len(refls))
 
-    for i in range(len(refls)+1):
-        print(list(length.values()).count(i))
+    #for i in range(len(refls)+1):
+    #    print(list(length.values()).count(i))
 
+    # the Poset is graded by word lengths
     pairs = set()
     for u in W:
      for v in W:
