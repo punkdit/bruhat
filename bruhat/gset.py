@@ -1239,26 +1239,44 @@ def Sp(nn, p=2):
         gv = g*v
         if gv not in X:
             X.add(gv)
-            print(gv)
     X = list(X)
+    X.sort(key = str)
+    for v in X:
+        print(v)
+    print("|X| =", len(X))
     B = G.get_borel()
     G = Group.from_action(G, X)
     B = Group.from_action(B, X)
     print("G.rank =", G.rank)
     print("|G| =", len(G))
     print("|B| =", len(B))
-    for g in B:
-        assert g in G
-    action = G.action_subgroup(B)
-    aa = action * action
-    orbits = aa.get_orbits()
-    print(len(orbits))
+    X = G.action_subgroup(B)
+    print("|G/B| =", X.rank)
+    assert len(X.get_orbits()) == 1
+    for m in range(1, n+1):
+        print()
+        print("(%d %d)"%(n, m))
+        P = []
+        fix = set(i for i in range(m))
+        for g in G:
+            if set(g[i] for i in fix) == fix:
+                P.append(g)
+        P = Group(P)
+        print("|P| =", len(P))
+        Y = G.action_subgroup(P)
+        print("|G/P| =", Y.rank)
+        assert len(Y.get_orbits()) == 1
+        XY = X*Y
+        orbits = XY.get_orbits()
+        print(len(orbits))
     return G
 
 
 def test_bruhat():
     print("test_bruhat")
-    G = Sp(4)
+    n = argv.get("n", 2)
+    nn = 2*n
+    G = Sp(nn)
 
 
 def test_set():
