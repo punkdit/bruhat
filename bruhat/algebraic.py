@@ -421,7 +421,10 @@ class Algebraic(object):
 
     def get_elements(self):
         if self.G is None:
+            I = self.I
             G = mulclose(self.gen, maxsize=self.order)
+            G.remove(I)
+            G.add(I)
             G = list(G)
             self.G = G
             self.order = len(self.G)

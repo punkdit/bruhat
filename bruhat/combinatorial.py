@@ -17,6 +17,7 @@ from string import ascii_lowercase
 
 from bruhat.action import Perm, Group, Coset, mulclose, mulclose_hom, Action
 from bruhat.algebraic import Matrix, Algebraic
+from bruhat.poset import Poset
 from bruhat.smap import SMap
 from bruhat.argv import argv
 
@@ -570,6 +571,55 @@ def test_32B():
     for func in triangle.get_rfunc(2, 1, None): # X21 --> X32
         print()
         show_func(X21, X32, func)
+
+
+def test_bruhat_order():
+
+    # See:
+    # Combinatorics of Coxeter Groups
+    # Anders Bjorner
+    # Francesco Brenti
+    # Chapter 2.
+
+    n = argv.get("n", 3)
+    nn = 2*n
+
+    G = Algebraic.Sp(nn)
+    W = G.get_weyl()
+    length = {}
+    for w in W:
+        l = w.name.count('w')
+        length[w] = l
+    assert length[G.I] == 0
+
+    items = list(W)
+    items.sort( key = lambda M : length[M] )
+    for M in items:
+        print(length[M], end=" ")
+    print()
+    #for M in items:
+    #    print("name:", M.name)
+    #    print(M.shortstr())
+
+    print(len(W))
+    refls = set()
+    for g in W.gen:
+        for w in W:
+            h = w*g*w.transpose()
+            refls.add(h)
+    print(len(refls))
+
+    for i in range(len(refls)+1):
+        print(list(length.values()).count(i))
+
+    pairs = set()
+    for u in W:
+     for v in W:
+        if u.transpose()*v in refls and length[u]<length[v]:
+            pairs.add((u.shortstr(), v.shortstr())) # u-->v
+    hom = Poset.generate(pairs, check=True)
+    poset = hom.tgt
+    #poset.show()
 
 
 def test_thick():

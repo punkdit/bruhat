@@ -234,9 +234,15 @@ class Perm(object):
         return hash(self.perm.tobytes())
 
     def __eq__(self, other):
+        if self.rank != other.rank:
+            return False
+        #if type( self.perm == other.perm ) is bool:
+        #    print(self, other)
         return numpy.alltrue(self.perm == other.perm)
 
     def __ne__(self, other):
+        if self.rank != other.rank:
+            return True
         return not numpy.alltrue(self.perm == other.perm)
 
     def __lt__(self, other):
@@ -1203,11 +1209,11 @@ class Orbiplex(Simplicial):
 
 
 def general_linear(n=3, p=2):
-    from bruhat import algebraic
-    G = algebraic.GL(n, p)
+    from bruhat.algebraic import Algebraic, Matrix
+    G = Algebraic.GL(n, p)
     v = numpy.array([0]*n, dtype=scalar)
     v[0] = 1
-    v = algebraic.Op(v, p)
+    v = Matrix(v, p)
     X = set([])
     for g in G:
         X.add(g*v)

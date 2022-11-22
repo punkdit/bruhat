@@ -36,7 +36,7 @@ def mulclose_fast(gen, verbose=False, maxsize=None):
                     els.add(C)
                     _bdy.append(C)
                     if maxsize and len(els)>=maxsize:
-                        return list(els)
+                        return els
         bdy = _bdy
     return els 
 
