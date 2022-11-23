@@ -457,6 +457,9 @@ class Algebraic(object):
     def __contains__(self, g):
         return g in self.get_elements()
 
+    def __eq__(self, other):
+        return set(self.get_elements()) == set(other.get_elements())
+
     def left_stabilizer(self, M):
         # find subgroup that stabilize the rowspace of M
         V = M.span()
@@ -529,7 +532,7 @@ class Algebraic(object):
             A = Matrix(i*numpy.identity(n, scalar), p)
             gen.append(A)
         order = order_gl(n, p)
-        return cls(gen, order, p=p, **kw)
+        return GL(gen, order, p=p, **kw)
 
     # See:
     # Pairs of Generators for Matrix _Algebraics. I
@@ -1111,6 +1114,12 @@ def test_so():
     print("hecke:", len(ops))
 
 
+class GL(Algebraic):
+    def all_flags(self, dims, p=DEFAULT_P):
+        dims = [self.n] + dims
+        return Figure.qchoose(dims, p)
+
+
 class Sp(Algebraic):
 
     def qchoose(self, m):
@@ -1131,6 +1140,8 @@ class Sp(Algebraic):
             items.append(list(qchoose_2(m, m1)))
             m = m1
         n = len(items)
+        #print("Sp.all_flags")
+        #print('\t', items)
         for select in cross(items):
             A = select[0]
             flag = [A]
@@ -1536,75 +1547,6 @@ def test_grassmanian():
 #            print(shortstrx(A, B))
 #            print()
 #        print("="*79)
-
-
-def test_symplectic():
-
-    n = argv.get("n", 4)
-    assert n%2==0
-    m = argv.get("m", 1)
-    assert m<=n
-
-    p = argv.get("p", 2)
-
-    G = Algebraic.Sp(n, p)
-    F = G.invariant_form
-    for g in G.gen:
-        assert g * F * g.transpose()  == F
-        #print(g)
-
-    #gs = list(G.get_elements())
-    #print(len(gs))
-    #for g in gs:
-    #    A = g.A
-    #    if numpy.alltrue(A.sum(0) == 1):
-    #        print(A)
-    #        A = numpy.array(g.A, dtype=float)
-    #        a = numpy.linalg.det(A)
-    #        print("det:", a)
-    #return
-
-    lookup = {}
-    items = []
-    for idx, v in enumerate(enum2(n)):
-        v = numpy.array(v)
-        v.shape = (n, 1)
-        v = Matrix(v)
-        lookup[v] = idx
-        items.append(v)
-    for g in G.gen:
-        for idx, v in enumerate(items):
-            u = g*v
-            jdx = lookup[u]
-            print("%s:%s"%(idx+1,jdx+1), end=" ")
-        print()
-
-    #for flag in G.all_flags([2, 1]):
-    #    print(flag)
-    print(len(G))
-
-    if n==4:
-        left = list(G.all_flags([2, 1]))
-        print(len(left))
-        right = list(G.all_flags([2, 1]))
-    elif n==6:
-        left = list(G.all_flags([3, 2, 1]))
-        right = list(G.all_flags([3, 2, 1]))
-
-    ops = make_hecke(G, left, right)
-    print(len(ops))
-
-    return
-
-    items = list(G.qchoose(m))
-
-    items.sort(key = str)
-    if argv.show:
-        for M in items:
-            print(M)
-    print(len(items))
-
-
 
 
     
@@ -2160,6 +2102,10 @@ class Figure(object):
         return "Figure(%s, %s)"%(s, self.p)
     __repr__ = __str__
 
+    def shortstr(self):
+        items = ["[%s]"%shortstr(A).replace('\n', ' ') for A in self.items]
+        return "[%s]"%(' '.join(items))
+
     def __hash__(self):
         return hash(self._str)
 
@@ -2233,43 +2179,37 @@ class Figure(object):
             yield flag
 
 
-def test_hecke():
+class Hecke(object):
+    def __init__(self, G, A, left, right):
+        
+        m = len(left)
+        n = len(right)
+        assert A.shape == (m, n)
 
-    n = argv.get("n", 3)
-    G = Algebraic.SL(n)
-    print("|G| =", len(G))
+        self.G = G
+        self.A = A
+        self.left = left
+        self.right = right
 
-    left = argv.get("left", [n,1]) 
-    right = argv.get("right", left)
+        self.llookup = dict((i, fig) for (fig, i) in enumerate(left))
+        self.rlookup = dict((i, fig) for (fig, i) in enumerate(right))
 
-    left = list(Figure.qchoose(left))
-    right = list(Figure.qchoose(right))
+    def __str__(self):
+        return shortstr(self.A)+"\n"
 
-    ops = make_hecke(G, left, right)
-    print("Hecke operators:", len(ops))
-
-    if argv.eigvals:
-      for J in ops:
-
-        print(J.shape, int(round(J.sum())))
-        vals = numpy.linalg.eigvals(J)
-        #print(vals)
-        ss = []
-        for x in vals:
-            if abs(x.imag)>EPSILON and abs(x.real)>EPSILON:
-                ss.append(str(x))
-            elif abs(x.imag)>EPSILON:
-                ss.append("%.4f"%(x.imag)+"j")
-            elif abs(x.real - int(round(x.real))) < EPSILON:
-                ss.append("%.0f"%x.real)
-            else:
-                ss.append("%.4f"%x.real)
-        ss = set(ss)
-        print(' '.join(ss), '\n')
-
+    def get_right(self, left):
+        lidx = self.llookup[left]
+        row = self.A[lidx, :]
+        #print(row)
+        ridxs = numpy.where(row)[0]
+        #print(ridxs)
+        right = self.right
+        figs = [right[ridx] for ridx in ridxs]
+        return figs
 
 
 def make_hecke(G, left, right, verbose=argv.get("verbose", False)):
+    "build all the Hecke operators between the left and right figures"
 
     if verbose:
         print("left:", len(left))
@@ -2292,7 +2232,7 @@ def make_hecke(G, left, right, verbose=argv.get("verbose", False)):
         #assert H[i, j] == 0
 
         #fig = left[i] + right[j]
-        J = numpy.zeros((m, n))
+        J = numpy.zeros((m, n), dtype=int)
 
         bdy = set([(i, j)])
         while bdy:
@@ -2302,7 +2242,7 @@ def make_hecke(G, left, right, verbose=argv.get("verbose", False)):
               l, r = left[i], right[j]
               for g in G.gen:
                 i = llookup[g*l]
-                j = llookup[g*r]
+                j = rlookup[g*r]
                 if J[i, j]:
                     continue
                 _bdy.add((i, j))
@@ -2311,10 +2251,125 @@ def make_hecke(G, left, right, verbose=argv.get("verbose", False)):
             bdy = _bdy
         #print(shortstr(J))
         #print()
-        ops.append(J)
+        op = Hecke(G, J, left, right)
+        ops.append(op)
 
-    ops.sort(key = lambda J : J.sum())
+    ops.sort(key = lambda op : op.A.sum())
     return ops
+
+
+def test_hecke_GL():
+    n = 4
+    G = Algebraic.GL(n)
+
+    tps = [
+        list(G.all_flags([m])) for m in [1, 2, 3]
+    ]
+    points, lines, planes = tps
+    print(len(points))
+    print(len(lines))
+    print(len(planes))
+
+    N = len(tps)
+    for i in range(N):
+      for j in range(N):
+        left = tps[i]
+        right = tps[j]
+        ops = make_hecke(G, left, right)
+        print(len(ops), end=' ')
+      print()
+
+
+def test_symplectic():
+
+    n = argv.get("n", 2)
+    nn = n*2
+    m = argv.get("m", 1)
+    assert m<=n
+
+    p = argv.get("p", 2)
+
+    G = Algebraic.Sp(nn, p)
+
+    print("|G| =", len(G))
+
+    if n==2:
+        left = list(G.all_flags([2, 1]))
+        right = list(G.all_flags([m]))
+    elif n==3:
+        left = list(G.all_flags([3, 2, 1]))
+        #right = list(G.all_flags([3, 2, 1]))
+        right = list(G.all_flags([m]))
+
+    print("left:", len(left))
+    print("right:", len(right))
+
+    W = G.get_weyl()
+    B = G.get_borel()
+    fig = right[0]
+    P = set()
+    for g in G:
+        if g*fig == fig:
+            P.add(g)
+    print(len(G)//len(P))
+
+    PW = [w for w in W if w in P]
+    #gen = PW + list(B)
+    #P1 = Algebraic(gen)
+    #P = Algebraic(list(P))
+    #assert P1==P
+    #for g in P1:
+    #    assert g in P # yes
+
+    ops = make_hecke(G, left, right)
+    print("left*right:", len(ops))
+
+    for op in ops:
+        print("bruhat class")
+        for flag in left:
+            print(flag.shortstr(), "->", end=" ")
+            for fig in op.get_right(flag):
+                print(fig.shortstr(), end=" ")
+            print()
+            break
+
+
+
+def test_hecke_eigs():
+
+    n = argv.get("n", 3)
+    G = Algebraic.SL(n)
+    print("|G| =", len(G))
+
+    left = argv.get("left", [n,1]) 
+    right = argv.get("right", left)
+
+    left = list(Figure.qchoose(left))
+    right = list(Figure.qchoose(right))
+
+    ops = make_hecke(G, left, right)
+    print("Hecke operators:", len(ops))
+
+    if argv.eigvals:
+      for op in ops:
+
+        J = op.A
+        print(J.shape, int(round(J.sum())))
+        vals = numpy.linalg.eigvals(J)
+        #print(vals)
+        ss = []
+        for x in vals:
+            if abs(x.imag)>EPSILON and abs(x.real)>EPSILON:
+                ss.append(str(x))
+            elif abs(x.imag)>EPSILON:
+                ss.append("%.4f"%(x.imag)+"j")
+            elif abs(x.real - int(round(x.real))) < EPSILON:
+                ss.append("%.0f"%x.real)
+            else:
+                ss.append("%.4f"%x.real)
+        ss = set(ss)
+        print("eigs:", ' '.join(ss), '\n')
+
 
 
 class Orbit(object):

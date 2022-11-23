@@ -521,6 +521,7 @@ def test_weyl_B():
 
 
 def test_32B():
+    # show what these functions look like on the Matrix repr of the Weyl's
 
     get_perm = lambda g : Matrix.perm(g.get_idxs())
 
