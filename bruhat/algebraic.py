@@ -2263,21 +2263,25 @@ def test_hecke_GL():
     G = Algebraic.GL(n)
 
     tps = [
-        list(G.all_flags([m])) for m in [1, 2, 3]
+        list(G.all_flags([1])),
+        list(G.all_flags([2])),
+        list(G.all_flags([3])),
+        list(G.all_flags([3,2,1])),
     ]
-    points, lines, planes = tps
+    points, lines, planes, flags = tps
     print(len(points))
     print(len(lines))
     print(len(planes))
+    print(len(flags))
+    desc = "point line plane flag".split()
 
     N = len(tps)
     for i in range(N):
-      for j in range(N):
+      for j in range(i, N):
         left = tps[i]
         right = tps[j]
         ops = make_hecke(G, left, right)
-        print(len(ops), end=' ')
-      print()
+        print("%s*%s = %s"%(desc[i], desc[j], len(ops)))
 
 
 def test_symplectic():
