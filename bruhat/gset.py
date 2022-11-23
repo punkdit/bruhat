@@ -14,13 +14,15 @@ there's no typechecking on inexes. Fail.
 
 from time import time
 start_time = time()
+from functools import reduce
+from operator import add
 
 import numpy
 from numpy import alltrue
 scalar = numpy.int64
 
 from bruhat.algebraic import Algebraic, Matrix
-from bruhat.util import factorial
+from bruhat.util import factorial, cross
 from bruhat.action import mulclose
 from bruhat.argv import argv
 
@@ -1231,22 +1233,27 @@ def Sp(nn, p=2):
     assert nn%2 == 0
     n = nn//2
     G = Algebraic.Sp(nn, p)
-    v = numpy.array([0]*nn, dtype=scalar)
+    v = [0]*nn
     v[0] = 1
     v = Matrix(v, p)
-    X = set([])
+    items = set([])
     for g in G:
         gv = g*v
-        if gv not in X:
-            X.add(gv)
-    X = list(X)
-    X.sort(key = str)
-    for v in X:
-        print(v)
-    print("|X| =", len(X))
+        assert type(gv) is Matrix
+        if gv not in items:
+            items.add(gv)
+    items = list(items)
+    items.sort(key = str)
+    lookup = {}
+    basis = []
+    for i, v in enumerate(items):
+        lookup[v] = i
+        if str(v).count('1') == 1:
+            basis.append(v)
+    assert len(basis) == nn
     B = G.get_borel()
-    G = Group.from_action(G, X)
-    B = Group.from_action(B, X)
+    G = Group.from_action(G, items)
+    B = Group.from_action(B, items)
     print("G.rank =", G.rank)
     print("|G| =", len(G))
     print("|B| =", len(B))
@@ -1256,19 +1263,33 @@ def Sp(nn, p=2):
     for m in range(1, n+1):
         print()
         print("(%d %d)"%(n, m))
+        gen = basis[:m]
+        space = []
+        for idxs in cross([(0,1)]*m):
+            v = reduce(add, [idx*v for (idx,v) in zip(idxs,basis)])
+            space.append(v)
+        assert len(space) == 2**m
         P = []
-        fix = set(i for i in range(m))
         for g in G:
-            if set(g[i] for i in fix) == fix:
+            found = []
+            for v in gen:
+                gv = items[g[lookup[v]]] # argh, this sucks
+                #print(v, "-->", gv, gv in space)
+                if gv not in space:
+                    break
+                #found.append("%s-->%s"%(v, gv))
+            else:
+                #print(found)
                 P.append(g)
-        P = Group(P)
         print("|P| =", len(P))
+        continue
+        P = Group(P)
         Y = G.action_subgroup(P)
         print("|G/P| =", Y.rank)
         assert len(Y.get_orbits()) == 1
         XY = X*Y
         orbits = XY.get_orbits()
-        print(len(orbits))
+        print("B-P double cosets:", len(orbits))
     return G
 
 

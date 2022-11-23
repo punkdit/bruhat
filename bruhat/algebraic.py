@@ -254,6 +254,9 @@ class Matrix(object):
     def __str__(self):
         return str(self.A)
 
+    def __repr__(self):
+        return "Matrix(%s)"%str(self.A)
+
     def shortstr(self):
         return shortstr(self.A)
 
@@ -296,6 +299,10 @@ class Matrix(object):
             return Matrix(A, self.p, name=self.name+other.name)
         else:
             return NotImplemented
+
+    def __rmul__(self, r):
+        A = r*self.A
+        return Matrix(A, self.p)
 
     def __getitem__(self, idx):
         A = self.A[idx]
