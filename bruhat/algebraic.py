@@ -2180,13 +2180,13 @@ class Figure(object):
 
 
 class Hecke(object):
-    def __init__(self, G, A, left, right):
+    "a matrix relation between left and right sets"
+    def __init__(self, A, left, right):
         
         m = len(left)
         n = len(right)
         assert A.shape == (m, n)
 
-        self.G = G
         self.A = A
         self.left = left
         self.right = right
@@ -2208,13 +2208,16 @@ class Hecke(object):
         return figs
 
 
-def make_hecke(G, left, right, verbose=argv.get("verbose", False)):
+def make_hecke(G, left, right, hom=None, verbose=argv.get("verbose", False)):
     "build all the Hecke operators between the left and right figures"
 
     if verbose:
         print("left:", len(left))
         print("right:", len(right))
         print("figures:", len(left)*len(right))
+
+    if hom is None:
+        hom = {g:g for g in G.gen}
 
     llookup = dict((i, fig) for (fig, i) in enumerate(left))
     rlookup = dict((i, fig) for (fig, i) in enumerate(right))
@@ -2242,7 +2245,7 @@ def make_hecke(G, left, right, verbose=argv.get("verbose", False)):
               l, r = left[i], right[j]
               for g in G.gen:
                 i = llookup[g*l]
-                j = rlookup[g*r]
+                j = rlookup[hom[g]*r]
                 if J[i, j]:
                     continue
                 _bdy.add((i, j))
@@ -2251,7 +2254,7 @@ def make_hecke(G, left, right, verbose=argv.get("verbose", False)):
             bdy = _bdy
         #print(shortstr(J))
         #print()
-        op = Hecke(G, J, left, right)
+        op = Hecke(J, left, right)
         ops.append(op)
 
     ops.sort(key = lambda op : op.A.sum())
@@ -2259,6 +2262,9 @@ def make_hecke(G, left, right, verbose=argv.get("verbose", False)):
 
 
 def test_hecke_GL():
+
+    print("test_hecke_GL")
+
     n = 4
     G = Algebraic.GL(n)
 
@@ -2268,12 +2274,22 @@ def test_hecke_GL():
         list(G.all_flags([3])),
         list(G.all_flags([3,2,1])),
     ]
-    points, lines, planes, flags = tps
-    print(len(points))
-    print(len(lines))
-    print(len(planes))
-    print(len(flags))
+    point, line, plane, flag = tps
     desc = "point line plane flag".split()
+
+    print(len(line), len(flag))
+
+    ops = make_hecke(G, flag, line)
+    print(len(ops))
+    fig = flag[0]
+    for op in ops:
+        #print(shortstr(op.A))
+        #print(op.A.sum())
+        for other in op.get_right(fig):
+            print(other)
+        print()
+
+    return
 
     N = len(tps)
     for i in range(N):
@@ -2281,7 +2297,51 @@ def test_hecke_GL():
         left = tps[i]
         right = tps[j]
         ops = make_hecke(G, left, right)
-        print("%s*%s = %s"%(desc[i], desc[j], len(ops)))
+        print("%6s*%6s = %s"%(desc[i], desc[j], len(ops)))
+
+
+def test_hecke_induce():
+
+    n = 4
+    G0 = Algebraic.GL(n-1)
+    hom = {}
+    gen = []
+    for g0 in G0.gen:
+        A = numpy.identity(n, dtype=scalar)
+        A[:n-1, :n-1] = g0.A
+        g = Matrix(A)
+        gen.append(g)
+        hom[g0] = g
+    G01 = Algebraic(gen)
+    G1 = Algebraic.GL(n)
+
+    print(len(G01), ">-->", len(G1))
+    for g in G01.gen:
+        assert g in G1
+
+    print("(3 1):")
+    for fig in G0.all_flags([1]):
+        print('\t', fig)
+    print("(3 2):")
+    for fig in G0.all_flags([2]):
+        print('\t', fig)
+
+    print(len(list(G1.all_flags([1]))))
+    print(len(list(G1.all_flags([2]))))
+    print(len(list(G1.all_flags([3]))))
+
+    left = list(G0.all_flags([2,1]))
+    right = list(G1.all_flags([3,2,1]))
+    ops = make_hecke(G0, left, right, hom)
+    print("ops:", len(ops))
+    for op in ops[:7]:
+        A = op.A
+        #print(shortstr(A))
+        print(A.sum(0))
+        print(A.sum(1))
+
+    #B = reduce(add, [op.A for op in ops[:7]])
+    #print(shortstr(B))
 
 
 def test_symplectic():
@@ -2337,6 +2397,35 @@ def test_symplectic():
             print()
             break
 
+
+def test_hecke_Sp():
+
+    print("test_hecke_Sp")
+
+    n = 3
+    nn = 2*n
+    G = Algebraic.Sp(nn)
+
+    tps = [
+        list(G.all_flags([1])),
+        list(G.all_flags([2])),
+        list(G.all_flags([3])),
+        list(G.all_flags([3,2,1])),
+    ]
+    point, line, plane, flag = tps
+    desc = "point line plane flag".split()
+
+    print(len(line), len(flag))
+
+    ops = make_hecke(G, flag, line)
+    print(len(ops))
+    fig = flag[0]
+    for op in ops:
+        #print(shortstr(op.A))
+        #print(op.A.sum())
+        for other in op.get_right(fig):
+            print(other)
+        print()
 
 
 def test_hecke_eigs():
