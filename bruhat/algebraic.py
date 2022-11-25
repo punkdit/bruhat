@@ -2374,16 +2374,29 @@ def test_hecke_GL3():
         (G.all_flags([2])),
         (G.all_flags([2,1])),
     ]
-    point, line, flag = tps
+    points, lines, flags = tps
+    assert len(points) == 7
+    assert len(lines) == 7
+    assert len(flags) == 21
 
-    FF = make_hecke(G, flag, flag)
-    FL = make_hecke(G, flag, line)
-    LL = make_hecke(G, line, line)
+    FF = make_hecke(G, flags, flags)
+    FL = make_hecke(G, flags, lines)
+    LL = make_hecke(G, lines, lines)
+
+    assert len(FL) == 3
+
+    flag = flags[0]
+    for op in FL:
+        print(len(op.get_right(flag)))
+
+    return
 
     l = line[0]
     print(l)
 
-    fig = FL[0].get_left(l)[0]
+    figs = FL[0].get_left(l)
+    print(len(figs))
+    assert len(figs) == 1
     print(fig)
 
     fig = FF[1].get_left(fig)[0]
