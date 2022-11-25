@@ -12,6 +12,8 @@ start_time = time()
 import random
 from random import randint, choice
 from functools import reduce
+from functools import reduce, lru_cache
+cache = lru_cache(maxsize=None)
 from operator import add, mul
 
 import numpy
@@ -2196,8 +2198,15 @@ class Hecke(object):
         self.hom = (left, right)
         self.shape = A.shape
 
-        self.llookup = {fig:i for (i, fig) in enumerate(left)}
-        self.rlookup = {fig:i for (i, fig) in enumerate(right)}
+    @cache
+    def get_llookup(self):
+        llookup = {fig:i for (i, fig) in enumerate(self.left)}
+        return llookup
+
+    @cache
+    def get_rlookup(self):
+        rlookup = {fig:i for (i, fig) in enumerate(self.right)}
+        return rlookup
 
     @classmethod
     def top(cls, left, right):
@@ -2214,6 +2223,12 @@ class Hecke(object):
         A = numpy.zeros((m, n), dtype=int)
         return cls(A, left, right)
 
+    @classmethod
+    def identity(cls, items):
+        m = len(items)
+        A = numpy.identity(m, dtype=int)
+        return cls(A, items, items)
+
     def __str__(self):
         return shortstr(self.A)+"\n"
 
@@ -2222,7 +2237,7 @@ class Hecke(object):
         assert self.right is other.right
         return numpy.alltrue(self.A==other.A)
 
-    def __hash__(self, other):
+    def __hash__(self):
         key = (
             id(self.left),
             id(self.right),
@@ -2245,6 +2260,7 @@ class Hecke(object):
         A = self.A + other.A
         A = numpy.clip(A, 0, 1)
         return Hecke(A, self.left, self.right)
+    __or__ = __add__
 
     def __sub__(self, other):
         assert self.left is other.left
@@ -2254,19 +2270,32 @@ class Hecke(object):
         return Hecke(A, self.left, self.right)
 
     def __mul__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        A = self.A * other.A
+        return Hecke(A, self.left, self.right)
+    __and__ = __mul__
+
+    def __matmul__(self, other):
         assert self.right is other.left
         A = numpy.dot(self.A, other.A)
         A = numpy.clip(A, 0, 1)
         return Hecke(A, self.left, other.right)
 
+    @cache
     def transpose(self):
         A = self.A.transpose()
         A = A.copy() # clean up tobytes
         op = Hecke(A, self.right, self.left)
         return op
 
+    @property
+    def op(self):
+        return self.transpose()
+
     def get_right(self, left):
-        lidx = self.llookup[left]
+        llookup = self.get_llookup()
+        lidx = llookup[left]
         row = self.A[lidx, :]
         #print(row)
         ridxs = numpy.where(row)[0]
@@ -2274,6 +2303,10 @@ class Hecke(object):
         right = self.right
         figs = [right[ridx] for ridx in ridxs]
         return figs
+
+    def get_left(self, fig):
+        op = self.op
+        return op.get_right(fig)
 
 
 def make_hecke(G, left, right, hom=None, verbose=argv.get("verbose", False)):
@@ -2329,9 +2362,43 @@ def make_hecke(G, left, right, hom=None, verbose=argv.get("verbose", False)):
     return ops
 
 
-def test_hecke_GL():
+def test_hecke_GL3():
 
-    print("test_hecke_GL")
+    print("test_hecke_GL3")
+
+    n = 3
+    G = Algebraic.GL(n)
+
+    tps = [
+        (G.all_flags([1])),
+        (G.all_flags([2])),
+        (G.all_flags([2,1])),
+    ]
+    point, line, flag = tps
+
+    FF = make_hecke(G, flag, flag)
+    FL = make_hecke(G, flag, line)
+    LL = make_hecke(G, line, line)
+
+    l = line[0]
+    print(l)
+
+    fig = FL[0].get_left(l)[0]
+    print(fig)
+
+    fig = FF[1].get_left(fig)[0]
+    print(fig)
+
+    l = FL[0].get_right(fig)[0]
+    print(l)
+
+    
+    
+
+
+def test_hecke_GL4():
+
+    print("test_hecke_GL4")
 
     n = 4
     G = Algebraic.GL(n)
@@ -2348,6 +2415,7 @@ def test_hecke_GL():
     print(len(line), len(flag))
 
     ops = make_hecke(G, flag, line)
+
     print(len(ops))
     fig = flag[0]
     for op in ops:
@@ -2368,6 +2436,91 @@ def test_hecke_GL():
         print("%6s*%6s = %s"%(desc[i], desc[j], len(ops)))
 
 
+def generate_quantale(gen, verbose=False, maxsize=None):
+    els = set(gen)
+    bdy = list(els)
+    changed = True
+    while bdy:
+        if verbose:
+            print(len(els), end=" ", flush=True)
+        _bdy = []
+        for A in gen:
+            for B in bdy:
+                for C in [A@B, A+B]:
+                  if C not in els:
+                    els.add(C)
+                    _bdy.append(C)
+                    if maxsize and len(els)>=maxsize:
+                        return els
+        bdy = _bdy
+    return els
+
+
+
+def check_quantale(gen):
+    # endo Hecke operators form a quantale
+
+    assert gen
+    op = gen[0]
+    assert op.left is op.right
+    flag = op.left
+    T = Hecke.top(flag, flag)
+    B = Hecke.bot(flag, flag)
+    I = Hecke.identity(flag)
+    for op in gen:
+        assert B < op < T
+        assert B@op == B
+        assert T@op == T
+        assert I@op == op # I is monoidal unit 
+        assert T & op == op
+
+    assert reduce(add, gen) == T
+
+    Q = generate_quantale(gen)
+    Q.add(B)
+    assert len(Q) == 2**len(gen)
+    assert T in Q
+
+    # A quantale is a partially ordered set:
+    #   a<=b is the order
+    #   a+b is join, or sup, or colimit
+    #   a*b is meet, or inf, or limit
+    #   a@b is the monoidal product, or relational composition
+
+    # See: 
+    # ON SOME BASIC CONSTRUCTIONS IN CATEGORIES OF QUANTALE-VALUED SUP-LATTICES
+    # RADEK SLESINGER
+    for a in Q:
+     for b in Q:
+      #assert a@b == b@a # nope !
+      for c in Q:
+        assert a @ (b + c) == a@b + a@c # preserves colimit
+
+    # internal hom, div[q,_] is right adjoint to q@_
+    div = {}
+    for q in Q:
+     for s in Q:
+        op = B
+        for r in Q:
+            if q@r <= s:
+                op = op+r
+        div[q,s] = op
+    # check hom-tensor adjunction
+    for r in Q:
+     for q in Q:
+      for s in Q:
+        lhs = q@r <= s
+        rhs = r <= div[q,s]
+        assert lhs == rhs
+
+    for r in Q:
+     for s in Q:
+      for t in Q:
+        lhs = div[r+s, t]
+        rhs = div[r, t] & div[s, t]
+        assert lhs == rhs
+
+
 def test_hecke_monoid():
 
     print("test_hecke_monoid")
@@ -2378,30 +2531,27 @@ def test_hecke_monoid():
     flag = G.all_flags([2,1])
     assert len(flag) == 21
 
-    ops = make_hecke(G, flag, flag)
-    assert len(ops) == 6
+    gen = make_hecke(G, flag, flag)
+    assert len(gen) == 6
+    check_quantale(gen)
 
     T = Hecke.top(flag, flag)
     B = Hecke.bot(flag, flag)
-    for op in ops:
-        assert B < op < T
 
-    assert reduce(add, ops) == T
+    I, L, P, LP, PL, LPL = gen
 
-    I, L, P, LP, PL, LPL = ops
+    assert I@L == L
+    assert L@L == I+L
+    assert P@P == I+P
+    assert P < P@P
+    assert LP == L@P
+    assert LP@LP == PL + LPL
+    assert LP@LP > LPL
+    assert PL == P@L
+    assert LPL == L@P@L
+    assert LPL == P@L@P
 
-    assert I*L == L
-    assert L*L == I+L
-    assert P*P == I+P
-    assert P < P*P
-    assert LP == L*P
-    assert LP*LP == PL + LPL
-    assert LP*LP > LPL
-    assert PL == P*L
-    assert LPL == L*P*L
-    assert LPL == P*L*P
-
-    assert LPL * LPL == T
+    assert LPL @ LPL == T
 
 
 
