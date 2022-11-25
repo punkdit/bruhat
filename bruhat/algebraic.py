@@ -1117,7 +1117,7 @@ def test_so():
 class GL(Algebraic):
     def all_flags(self, dims, p=DEFAULT_P):
         dims = [self.n] + dims
-        return Figure.qchoose(dims, p)
+        return list(Figure.qchoose(dims, p))
 
 
 class Sp(Algebraic):
@@ -1142,6 +1142,7 @@ class Sp(Algebraic):
         n = len(items)
         #print("Sp.all_flags")
         #print('\t', items)
+        figs = []
         for select in cross(items):
             A = select[0]
             flag = [A]
@@ -1150,7 +1151,8 @@ class Sp(Algebraic):
                 flag.append(A)
             flag = list(reversed(flag))
             flag = Figure(flag)
-            yield flag
+            figs.append(flag)
+        return figs
 
     def test_slow_grassmanian():
     
@@ -2182,20 +2184,86 @@ class Figure(object):
 class Hecke(object):
     "a matrix relation between left and right sets"
     def __init__(self, A, left, right):
-        
         m = len(left)
         n = len(right)
         assert A.shape == (m, n)
+        assert 0 <= A.min()
+        assert A.max() <= 1
 
         self.A = A
         self.left = left
         self.right = right
+        self.hom = (left, right)
+        self.shape = A.shape
 
-        self.llookup = dict((i, fig) for (fig, i) in enumerate(left))
-        self.rlookup = dict((i, fig) for (fig, i) in enumerate(right))
+        self.llookup = {fig:i for (i, fig) in enumerate(left)}
+        self.rlookup = {fig:i for (i, fig) in enumerate(right)}
+
+    @classmethod
+    def top(cls, left, right):
+        m = len(left)
+        n = len(right)
+        A = numpy.zeros((m, n), dtype=int)
+        A[:] = 1
+        return cls(A, left, right)
+
+    @classmethod
+    def bot(cls, left, right):
+        m = len(left)
+        n = len(right)
+        A = numpy.zeros((m, n), dtype=int)
+        return cls(A, left, right)
 
     def __str__(self):
         return shortstr(self.A)+"\n"
+
+    def __eq__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        return numpy.alltrue(self.A==other.A)
+
+    def __hash__(self, other):
+        key = (
+            id(self.left),
+            id(self.right),
+            hash(self.A.tobytes()))
+        return hash(key)
+
+    def __lt__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        return numpy.alltrue(self.A<=other.A) and not numpy.alltrue(self.A==other.A)
+
+    def __le__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        return numpy.alltrue(self.A<=other.A)
+
+    def __add__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        A = self.A + other.A
+        A = numpy.clip(A, 0, 1)
+        return Hecke(A, self.left, self.right)
+
+    def __sub__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        A = self.A - other.A
+        A = numpy.clip(A, 0, 1)
+        return Hecke(A, self.left, self.right)
+
+    def __mul__(self, other):
+        assert self.right is other.left
+        A = numpy.dot(self.A, other.A)
+        A = numpy.clip(A, 0, 1)
+        return Hecke(A, self.left, other.right)
+
+    def transpose(self):
+        A = self.A.transpose()
+        A = A.copy() # clean up tobytes
+        op = Hecke(A, self.right, self.left)
+        return op
 
     def get_right(self, left):
         lidx = self.llookup[left]
@@ -2269,10 +2337,10 @@ def test_hecke_GL():
     G = Algebraic.GL(n)
 
     tps = [
-        list(G.all_flags([1])),
-        list(G.all_flags([2])),
-        list(G.all_flags([3])),
-        list(G.all_flags([3,2,1])),
+        (G.all_flags([1])),
+        (G.all_flags([2])),
+        (G.all_flags([3])),
+        (G.all_flags([3,2,1])),
     ]
     point, line, plane, flag = tps
     desc = "point line plane flag".split()
@@ -2298,6 +2366,43 @@ def test_hecke_GL():
         right = tps[j]
         ops = make_hecke(G, left, right)
         print("%6s*%6s = %s"%(desc[i], desc[j], len(ops)))
+
+
+def test_hecke_monoid():
+
+    print("test_hecke_monoid")
+
+    n = 3
+    G = Algebraic.GL(n)
+
+    flag = G.all_flags([2,1])
+    assert len(flag) == 21
+
+    ops = make_hecke(G, flag, flag)
+    assert len(ops) == 6
+
+    T = Hecke.top(flag, flag)
+    B = Hecke.bot(flag, flag)
+    for op in ops:
+        assert B < op < T
+
+    assert reduce(add, ops) == T
+
+    I, L, P, LP, PL, LPL = ops
+
+    assert I*L == L
+    assert L*L == I+L
+    assert P*P == I+P
+    assert P < P*P
+    assert LP == L*P
+    assert LP*LP == PL + LPL
+    assert LP*LP > LPL
+    assert PL == P*L
+    assert LPL == L*P*L
+    assert LPL == P*L*P
+
+    assert LPL * LPL == T
+
 
 
 def test_hecke_induce():
@@ -2326,12 +2431,12 @@ def test_hecke_induce():
     for fig in G0.all_flags([2]):
         print('\t', fig)
 
-    print(len(list(G1.all_flags([1]))))
-    print(len(list(G1.all_flags([2]))))
-    print(len(list(G1.all_flags([3]))))
+    print(len((G1.all_flags([1]))))
+    print(len((G1.all_flags([2]))))
+    print(len((G1.all_flags([3]))))
 
-    left = list(G0.all_flags([2,1]))
-    right = list(G1.all_flags([3,2,1]))
+    left = (G0.all_flags([2,1]))
+    right = (G1.all_flags([3,2,1]))
     ops = make_hecke(G0, left, right, hom)
     print("ops:", len(ops))
     for op in ops[:7]:
@@ -2358,12 +2463,12 @@ def test_symplectic():
     print("|G| =", len(G))
 
     if n==2:
-        left = list(G.all_flags([2, 1]))
-        right = list(G.all_flags([m]))
+        left = (G.all_flags([2, 1]))
+        right = (G.all_flags([m]))
     elif n==3:
-        left = list(G.all_flags([3, 2, 1]))
-        #right = list(G.all_flags([3, 2, 1]))
-        right = list(G.all_flags([m]))
+        left = (G.all_flags([3, 2, 1]))
+        #right = (G.all_flags([3, 2, 1]))
+        right = (G.all_flags([m]))
 
     print("left:", len(left))
     print("right:", len(right))
@@ -2407,10 +2512,10 @@ def test_hecke_Sp():
     G = Algebraic.Sp(nn)
 
     tps = [
-        list(G.all_flags([1])),
-        list(G.all_flags([2])),
-        list(G.all_flags([3])),
-        list(G.all_flags([3,2,1])),
+        G.all_flags([1]),
+        G.all_flags([2]),
+        G.all_flags([3]),
+        G.all_flags([3,2,1]),
     ]
     point, line, plane, flag = tps
     desc = "point line plane flag".split()
@@ -2666,6 +2771,7 @@ def main():
         G = Algebraic.GL(n, p)
         print("|G| =", len(G))
 
+    test_hecke_monoid()
 
 
 if __name__ == "__main__":
