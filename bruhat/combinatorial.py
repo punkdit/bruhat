@@ -616,10 +616,19 @@ def test_bruhat_order():
     #for i in range(len(refls)+1):
     #    print(list(length.values()).count(i))
 
+    print("gen:", len(W.gen))
+    if n==3:
+        a, b, c = W.gen
+    else:
+        a, b = W.gen
+    gen = [a]
+    H = Algebraic(gen)
+    print("|H| =", len(H))
+
     # the Poset is graded by word lengths
     pairs = set()
-    for u in W:
-     for v in W:
+    for u in H:
+     for v in H:
         if u.transpose()*v in refls and length[u]<length[v]:
             pairs.add((u.shortstr(), v.shortstr())) # u-->v
     hom = Poset.generate(pairs, check=True)

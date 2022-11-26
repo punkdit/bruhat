@@ -2211,6 +2211,8 @@ class Relation(object):
         assert 0 <= A.min()
         assert A.max() <= 1
 
+        #assert A.dtype == numpy.int64
+        #A = A.astype(numpy.int16) # faster but take care with overflow !!!
         self.A = A
         self.left = left
         self.right = right
@@ -2342,16 +2344,17 @@ class Relation(object):
     def nnz(self):
         return self.A.sum()
 
+    def items(self):
+        A = self.A
+        for idx in zip(*numpy.where(A)):
+            i, j = idx
+            yield self.left[i], self.right[j]
+
 
 def hecke_gen(G, left, right, hom=None, verbose=argv.get("verbose", False)):
     "build all the Hecke operators between the left and right figures"
 
-    print("hecke_gen", len(left), len(right))
-
-    if verbose:
-        print("left:", len(left))
-        print("right:", len(right))
-        print("figures:", len(left)*len(right))
+    print("hecke_gen: %sx%s" % (len(left), len(right)))
 
     if hom is None:
         hom = {g:g for g in G.gen}
@@ -2393,6 +2396,9 @@ def hecke_gen(G, left, right, hom=None, verbose=argv.get("verbose", False)):
         #print()
         op = Relation(J, left, right)
         ops.append(op)
+
+    if verbose:
+        print()
 
     ops.sort(key = lambda op : op.A.sum())
     return ops
@@ -2439,6 +2445,35 @@ class Quantale(object):
                 op = op + r
         return op
 
+    def trinary(self, r, q, s):
+        " r@q <= s ? "
+        idxs = zip(*numpy.where(s.A==0))
+        #result = (r@q <= s) # __matmul__ gets expensive.
+        for (i, j) in idxs:
+            assert s.A[i,j] == 0
+            rq = numpy.dot(r.A[i, :], q.A[:, j])
+            if rq>0:
+                #assert not result
+                return False
+        #assert result
+        return True
+
+    def compare(self, q, s):
+        basis = self.basis
+        assert q in basis
+        assert s in basis
+        #return self.ldiv(q).nnz() or self.rdiv(q).nnz()
+        trinary = self.trinary
+        for r in basis:
+            if trinary(r, q, s):
+                return True
+            if trinary(q, r, s):
+                return True
+            #if r@q <= s:
+            #    return True
+            #if q@r <= s:
+            #    return True
+        return False
 
 
 def generate_quantale(gen, verbose=False, maxsize=None):
@@ -2505,6 +2540,13 @@ def check_quantale(basis, check=True):
       for c in Q:
         assert a @ (b + c) == a@b + a@c # preserves colimit
 
+    quantale = Quantale(basis)
+    for q in basis:
+     for s in basis:
+        lhs = quantale.compare(q, s)
+        rhs = quantale.ldiv(q, s).nnz() or quantale.rdiv(q, s).nnz()
+        assert lhs == bool(rhs)
+
     # internal hom, ldiv[q,_] is right adjoint to q@_
     ldiv = {}
     for q in Q:
@@ -2547,10 +2589,6 @@ def check_quantale(basis, check=True):
         lhs = r@q <= s
         rhs = r <= rdiv[q,s]
         assert lhs == rhs
-
-    return ldiv, rdiv
-
-
 
 
 def test_hecke_GL3():
@@ -2615,14 +2653,6 @@ def test_hecke_GL3():
     assert LPLP >= PL
     assert LP @ LP == PL + LPL
 
-    # slow!
-    ldiv, rdiv = check_quantale(FF, check=False)
-    pairs = []
-    for a in FF:
-      for b in FF:
-        if ldiv[a,b].nnz() or rdiv[a,b].nnz():
-            pairs.append((a, b))
-
     # much faster
     Q = Quantale(FF)
     pairs = []
@@ -2643,7 +2673,7 @@ def test_hecke_GL3():
     assert (L, PL) in pairs
 
     order = PreOrder.generate(pairs, FF, check=True)
-    #order.show() # looks good!
+    #order.show() # _looks good!
 
     #s = order.get_dot(labels=False)
     #print(s)
@@ -2667,9 +2697,47 @@ def test_hecke_GL4():
     print(len(points), len(lines), len(planes), ":", len(flags))
 
     FF = hecke_gen(G, flags, flags)
-    print(len(FF))
+    print("FF:", len(FF))
+
+    I, P, L, A = FF[:4]
+
+    FL = hecke_gen(G, flags, lines)
+    print("FL:", len(FL))
+
+    flag = flags[0]
+    print(flag)
 
     Q = Quantale(FF)
+
+    bruhats = set()
+    lookup = {}
+    for a in FF:
+        figs = a @ flag
+        figs = figs.op @ FL[0]
+        bruhats.add(figs)
+        lookup[a] = figs
+    print( len(bruhats) )
+    for figs in bruhats:
+        print("bruhat")
+        for _,fig in figs.items():
+            print('\t', fig)
+
+    # reverse
+    lookup = dict((k,v) for (v,k) in lookup.items())
+
+    pairs = []
+    for a in bruhats:
+     for b in bruhats:
+        left = lookup[a]
+        right = lookup[b]
+        if Q.compare(left, right):
+            pairs.append((a, b))
+            print("*", end="", flush=True)
+    print()
+
+    order = PreOrder.generate(pairs, check=True)
+    order.show(labels=False) # _looks good!
+    return
 
     pairs = []
     for a in FF:
@@ -2682,11 +2750,175 @@ def test_hecke_GL4():
     print("pairs:", len(pairs))
 
     order = PreOrder.generate(pairs, FF, check=True)
-    order.show(labels=False) # looks good!
+    order.show(labels=False) # _looks good!
 
     s = order.get_dot(labels=False)
     print(s)
 
+
+def bruhat_str(figs):
+    items = []
+    for fig in figs:
+        assert len(fig.items)==1, "TODO"
+        items.append(Matrix(fig.items[0]))
+    G = Algebraic(items, G=items) # bit of a hack ?!?
+    return G.show()
+
+def fig_str(figs):
+    items = []
+    for _,fig in figs.items():
+        items.append(fig)
+    return bruhat_str(items)
+
+def fig_key(a, b):
+    return fig_str(a), fig_str(b)
+
+
+def test_hecke_Sp2():
+
+    print("test_hecke_Sp2")
+
+    n = 2
+    nn = 2*n
+    G = Algebraic.Sp(nn)
+
+    tps = [
+        (G.all_figs([1])),
+        (G.all_figs([2])),
+        (G.all_figs([2,1])),
+    ]
+    points, lines, flags = tps
+
+    print(len(points), len(lines), ":", len(flags))
+
+    FF = hecke_gen(G, flags, flags, verbose=True)
+    print("FF:", len(FF))
+
+    for op in FF:
+        print(op.nnz(), end=' ')
+    print()
+
+    I, P, L = FF[:3]
+
+    FL = hecke_gen(G, flags, lines, verbose=True)
+    print("FL:", len(FL))
+
+    flag = flags[0]
+    print(flag)
+
+    Q = Quantale(FF)
+
+    bruhats = set()
+    lookup = {}
+    for a in FF:
+        figs = a @ flag
+        figs = figs.op @ FL[0]
+        bruhats.add(figs)
+        lookup[a] = figs
+    print( len(bruhats) )
+
+    for figs in bruhats:
+        print("bruhat")
+        print(fig_str(figs))
+
+    # reverse
+    lookup = dict((k,v) for (v,k) in lookup.items())
+
+    pairs = [fig_key(a,a) for a in bruhats]
+    count = 0
+    for a in bruhats:
+     for b in bruhats:
+        left = lookup[a]
+        right = lookup[b]
+        order = PreOrder.generate(pairs, check=True)
+        assert fig_key(a, a) in order.pairs
+        key = fig_key(a, b)
+        if key in order.pairs:
+            continue
+        count += 1
+        if Q.compare(left, right):
+            pairs.append(key)
+            print("*", end="", flush=True)
+    print()
+    print("count:", count)
+
+    order = PreOrder.generate(pairs, check=True)
+    order.show(labels=True) # _looks good!
+
+
+def test_hecke_Sp3():
+
+    print("test_hecke_Sp3")
+
+    n = 3
+    nn = 2*n
+    G = Algebraic.Sp(nn)
+
+    tps = [
+        (G.all_figs([1])),
+        (G.all_figs([2])),
+        (G.all_figs([3])),
+        (G.all_figs([3,2,1])),
+    ]
+    points, lines, planes, flags = tps
+
+    print(len(points), len(lines), len(planes), ":", len(flags))
+
+    FF = hecke_gen(G, flags, flags, verbose=True)
+    print("FF:", len(FF))
+
+    for op in FF:
+        print(op.nnz(), end=' ')
+    print()
+
+    I, P, L, A = FF[:4]
+
+    FL = hecke_gen(G, flags, lines, verbose=True)
+    print("FL:", len(FL))
+
+    flag = flags[0]
+    print(flag)
+
+    Q = Quantale(FF)
+
+    bruhats = set()
+    lookup = {}
+    for a in FF:
+        figs = a @ flag
+        figs = figs.op @ FL[0]
+        bruhats.add(figs)
+        lookup[a] = figs
+    print( len(bruhats) )
+    for figs in bruhats:
+        print("bruhat")
+        print(fig_str(figs))
+    print()
+
+    # reverse
+    lookup = dict((k,v) for (v,k) in lookup.items())
+
+    pairs = [fig_key(a,a) for a in bruhats]
+    for a in bruhats:
+     for b in bruhats:
+        left = lookup[a]
+        right = lookup[b]
+        order = PreOrder.generate(pairs, check=True)
+        assert fig_key(a, a) in order.pairs
+        key = fig_key(a, b)
+        if key in order.pairs:
+            print("/", end="", flush=True)
+            continue
+        print("_", end="", flush=True)
+        if Q.compare(left, right):
+            pairs.append(key)
+            print("*", end="", flush=True)
+        else:
+            print(".", end="", flush=True)
+     print()
+    print()
+
+    order = PreOrder.generate(pairs, check=True)
+    order.show(labels=True)
 
 
 
