@@ -2906,7 +2906,8 @@ def test_hecke_Sp3():
         assert fig_key(a, a) in order.pairs
         key = fig_key(a, b)
         if key in order.pairs:
-            print("/", end="", flush=True)
+            pairs.append(key)
+            print("/\\", end="", flush=True)
             continue
         print("_", end="", flush=True)
         if Q.compare(left, right):
