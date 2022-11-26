@@ -585,7 +585,10 @@ def test_bruhat_order():
     n = argv.get("n", 3)
     nn = 2*n
 
-    G = Algebraic.Sp(nn)
+    if argv.GL:
+        G = Algebraic.GL(n)
+    else:
+        G = Algebraic.Sp(nn)
     W = G.get_weyl()
     length = {}
     for w in W:
@@ -621,7 +624,7 @@ def test_bruhat_order():
             pairs.add((u.shortstr(), v.shortstr())) # u-->v
     hom = Poset.generate(pairs, check=True)
     poset = hom.tgt
-    #poset.show()
+    poset.show()
 
 
 def test_thick():

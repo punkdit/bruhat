@@ -22,6 +22,7 @@ import numpy
 scalar = numpy.int8 # CAREFUL !!
 
 from bruhat.action import mulclose, mulclose_hom
+from bruhat.poset import Poset, PreOrder
 from bruhat.spec import isprime
 from bruhat.argv import argv
 from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse
@@ -178,10 +179,14 @@ def test_row_reduce():
     print(C)
 
 
+_cache = {}
 def normal_form(A, p=DEFAULT_P):
     "reduced row-echelon form"
     if p!=2:
         return normal_form_p(A, p)
+    key = A.tobytes()
+    if key in _cache:
+        return _cache[key]
     #print("normal_form")
     #print(A)
     A = row_reduce(A)
@@ -200,6 +205,7 @@ def normal_form(A, p=DEFAULT_P):
             i0 -= 1
         j += 1
     #print(A)
+    _cache[key] = A
     return A
 
 def all_matrices(m, n, p=DEFAULT_P):
@@ -1025,7 +1031,7 @@ class Algebraic(object):
         assert 0, (n, p)
 
 
-def basep(n, p):
+def _basep(n, p):
     e = n//p
     q = n%p
     if n == 0:
@@ -1033,7 +1039,7 @@ def basep(n, p):
     elif e == 0:
         return str(q)
     else:
-        return basep(e, p) + str(q)
+        return _basep(e, p) + str(q)
 
 def test_so():
 
@@ -1103,7 +1109,7 @@ def test_so():
         bdy = _bdy
     print()
     N = len(orbit)
-    print(N, "[%s]_%d"%(basep(N, p), p))
+    print(N, "[%s]_%d"%(_basep(N, p), p))
 
     if 0:
         for M in orbit:
@@ -1112,14 +1118,27 @@ def test_so():
 
     return
     
-    ops = make_hecke(G, items, items)
+    ops = hecke_gen(G, items, items)
     print("hecke:", len(ops))
 
 
 class GL(Algebraic):
-    def all_flags(self, dims, p=DEFAULT_P):
+    def all_figs(self, dims, p=DEFAULT_P):
         dims = [self.n] + dims
         return list(Figure.qchoose(dims, p))
+
+    def get_weyl(self):
+        n = self.n
+        items = list(range(n))
+        gen = []
+        for ii in range(n-1):
+            perm = list(range(n))
+            perm[ii:ii+2] = perm[ii+1], perm[ii]
+            M = Matrix.perm(perm, self.p, name="w%d"%ii)
+            gen.append(M)
+            #print(M.name)
+            #print(M.shortstr())
+        return Algebraic(gen, p=self.p)
 
 
 class Sp(Algebraic):
@@ -1134,7 +1153,7 @@ class Sp(Algebraic):
             if A.is_zero():
                 yield M
 
-    def all_flags(self, dims, p=DEFAULT_P):
+    def all_figs(self, dims, p=DEFAULT_P):
         m = dims[0]
         items = [[M.A for M in self.qchoose(m)]]
         for m1 in dims[1:]:
@@ -1142,7 +1161,7 @@ class Sp(Algebraic):
             items.append(list(qchoose_2(m, m1)))
             m = m1
         n = len(items)
-        #print("Sp.all_flags")
+        #print("Sp.all_figs")
         #print('\t', items)
         figs = []
         for select in cross(items):
@@ -2183,12 +2202,12 @@ class Figure(object):
             yield flag
 
 
-class Hecke(object):
+class Relation(object):
     "a matrix relation between left and right sets"
     def __init__(self, A, left, right):
         m = len(left)
         n = len(right)
-        assert A.shape == (m, n)
+        assert A.shape == (m, n), "%s != %s"%(A.shape, (m,n))
         assert 0 <= A.min()
         assert A.max() <= 1
 
@@ -2259,7 +2278,7 @@ class Hecke(object):
         assert self.right is other.right
         A = self.A + other.A
         A = numpy.clip(A, 0, 1)
-        return Hecke(A, self.left, self.right)
+        return Relation(A, self.left, self.right)
     __or__ = __add__
 
     def __sub__(self, other):
@@ -2267,31 +2286,40 @@ class Hecke(object):
         assert self.right is other.right
         A = self.A - other.A
         A = numpy.clip(A, 0, 1)
-        return Hecke(A, self.left, self.right)
+        return Relation(A, self.left, self.right)
 
     def __mul__(self, other):
         assert self.left is other.left
         assert self.right is other.right
         A = self.A * other.A
-        return Hecke(A, self.left, self.right)
+        return Relation(A, self.left, self.right)
     __and__ = __mul__
 
     def __matmul__(self, other):
-        assert self.right is other.left
-        A = numpy.dot(self.A, other.A)
-        A = numpy.clip(A, 0, 1)
-        return Hecke(A, self.left, other.right)
+        if isinstance(other, Relation):
+            assert self.right is other.left
+            A = numpy.dot(self.A, other.A)
+            A = numpy.clip(A, 0, 1)
+            return Relation(A, self.left, other.right)
+        else:
+            return self.get_left(other)
+
+    def __rmatmul__(self, left):
+        return self.get_right(left)
 
     @cache
     def transpose(self):
         A = self.A.transpose()
         A = A.copy() # clean up tobytes
-        op = Hecke(A, self.right, self.left)
+        op = Relation(A, self.right, self.left)
         return op
 
     @property
     def op(self):
         return self.transpose()
+
+    # because we use object identity for __eq__, __hash__
+    the_star = ["*"]
 
     def get_right(self, left):
         llookup = self.get_llookup()
@@ -2301,16 +2329,24 @@ class Hecke(object):
         ridxs = numpy.where(row)[0]
         #print(ridxs)
         right = self.right
-        figs = [right[ridx] for ridx in ridxs]
-        return figs
+        A = numpy.zeros((1, len(right)), dtype=int)
+        A[0, ridxs] = 1
+        return Relation(A, Relation.the_star, self.right)
+        #figs = [right[ridx] for ridx in ridxs]
+        #return figs
 
     def get_left(self, fig):
-        op = self.op
-        return op.get_right(fig)
+        op = self.transpose()
+        return op.get_right(fig).transpose()
+
+    def nnz(self):
+        return self.A.sum()
 
 
-def make_hecke(G, left, right, hom=None, verbose=argv.get("verbose", False)):
+def hecke_gen(G, left, right, hom=None, verbose=argv.get("verbose", False)):
     "build all the Hecke operators between the left and right figures"
+
+    print("hecke_gen", len(left), len(right))
 
     if verbose:
         print("left:", len(left))
@@ -2355,101 +2391,59 @@ def make_hecke(G, left, right, hom=None, verbose=argv.get("verbose", False)):
             bdy = _bdy
         #print(shortstr(J))
         #print()
-        op = Hecke(J, left, right)
+        op = Relation(J, left, right)
         ops.append(op)
 
     ops.sort(key = lambda op : op.A.sum())
     return ops
 
 
-def test_hecke_GL3():
+class Quantale(object):
+    def __init__(self, basis):
+        assert basis
+        a = basis[0]
+        assert a.left is a.right
+        figs = a.left
+        T = Relation.top(figs, figs)
+        B = Relation.bot(figs, figs)
+        I = Relation.identity(figs)
+        for a in basis:
+         for b in basis:
+            assert a is b or a*b==B
+        assert reduce(add, basis) == T
 
-    print("test_hecke_GL3")
+        self.figs = figs
+        self.basis = basis
+        self.n = len(basis)
+        self.T = T
+        self.B = B
+        self.I = I
 
-    n = 3
-    G = Algebraic.GL(n)
+    def ldiv(self, q, s):
+        basis = self.basis
+        assert q in basis
+        assert s in basis
+        op = self.B
+        for r in basis:
+            if q@r <= s:
+                op = op + r
+        return op
 
-    tps = [
-        (G.all_flags([1])),
-        (G.all_flags([2])),
-        (G.all_flags([2,1])),
-    ]
-    points, lines, flags = tps
-    assert len(points) == 7
-    assert len(lines) == 7
-    assert len(flags) == 21
+    def rdiv(self, q, s):
+        basis = self.basis
+        assert q in basis
+        assert s in basis
+        op = self.B
+        for r in basis:
+            if r@q <= s:
+                op = op + r
+        return op
 
-    FF = make_hecke(G, flags, flags)
-    FL = make_hecke(G, flags, lines)
-    LL = make_hecke(G, lines, lines)
-
-    assert len(FL) == 3
-
-    flag = flags[0]
-    for op in FL:
-        print(len(op.get_right(flag)))
-
-    return
-
-    l = line[0]
-    print(l)
-
-    figs = FL[0].get_left(l)
-    print(len(figs))
-    assert len(figs) == 1
-    print(fig)
-
-    fig = FF[1].get_left(fig)[0]
-    print(fig)
-
-    l = FL[0].get_right(fig)[0]
-    print(l)
-
-    
-    
-
-
-def test_hecke_GL4():
-
-    print("test_hecke_GL4")
-
-    n = 4
-    G = Algebraic.GL(n)
-
-    tps = [
-        (G.all_flags([1])),
-        (G.all_flags([2])),
-        (G.all_flags([3])),
-        (G.all_flags([3,2,1])),
-    ]
-    point, line, plane, flag = tps
-    desc = "point line plane flag".split()
-
-    print(len(line), len(flag))
-
-    ops = make_hecke(G, flag, line)
-
-    print(len(ops))
-    fig = flag[0]
-    for op in ops:
-        #print(shortstr(op.A))
-        #print(op.A.sum())
-        for other in op.get_right(fig):
-            print(other)
-        print()
-
-    return
-
-    N = len(tps)
-    for i in range(N):
-      for j in range(i, N):
-        left = tps[i]
-        right = tps[j]
-        ops = make_hecke(G, left, right)
-        print("%6s*%6s = %s"%(desc[i], desc[j], len(ops)))
 
 
 def generate_quantale(gen, verbose=False, maxsize=None):
+    if verbose:
+        print("generate_quantale:", end=" ", flush=True)
     els = set(gen)
     bdy = list(els)
     changed = True
@@ -2466,32 +2460,34 @@ def generate_quantale(gen, verbose=False, maxsize=None):
                     if maxsize and len(els)>=maxsize:
                         return els
         bdy = _bdy
+    if verbose:
+        print()
     return els
 
 
-
-def check_quantale(gen):
+def check_quantale(basis, check=True):
     # endo Hecke operators form a quantale
 
-    assert gen
-    op = gen[0]
+    assert basis
+    assert len(basis) <= 14, "too big...?"
+    op = basis[0]
     assert op.left is op.right
     flag = op.left
-    T = Hecke.top(flag, flag)
-    B = Hecke.bot(flag, flag)
-    I = Hecke.identity(flag)
-    for op in gen:
+    T = Relation.top(flag, flag)
+    B = Relation.bot(flag, flag)
+    I = Relation.identity(flag)
+    for op in basis:
         assert B < op < T
         assert B@op == B
         assert T@op == T
         assert I@op == op # I is monoidal unit 
         assert T & op == op
 
-    assert reduce(add, gen) == T
+    assert reduce(add, basis) == T
 
-    Q = generate_quantale(gen)
+    Q = generate_quantale(basis, verbose=True)
     Q.add(B)
-    assert len(Q) == 2**len(gen)
+    assert len(Q) == 2**len(basis)
     assert T in Q
 
     # A quantale is a partially ordered set:
@@ -2509,29 +2505,189 @@ def check_quantale(gen):
       for c in Q:
         assert a @ (b + c) == a@b + a@c # preserves colimit
 
-    # internal hom, div[q,_] is right adjoint to q@_
-    div = {}
+    # internal hom, ldiv[q,_] is right adjoint to q@_
+    ldiv = {}
     for q in Q:
      for s in Q:
         op = B
-        for r in Q:
+        for r in basis:
             if q@r <= s:
                 op = op+r
-        div[q,s] = op
+        ldiv[q,s] = op
+
     # check hom-tensor adjunction
     for r in Q:
      for q in Q:
       for s in Q:
         lhs = q@r <= s
-        rhs = r <= div[q,s]
+        rhs = r <= ldiv[q,s]
         assert lhs == rhs
 
     for r in Q:
      for s in Q:
       for t in Q:
-        lhs = div[r+s, t]
-        rhs = div[r, t] & div[s, t]
+        lhs = ldiv[r+s, t]
+        rhs = ldiv[r, t] & ldiv[s, t]
         assert lhs == rhs
+
+    # internal hom, rdiv[q,_] is right adjoint to _@q
+    rdiv = {}
+    for q in Q:
+     for s in Q:
+        op = B
+        for r in basis:
+            if r@q <= s:
+                op = op+r
+        rdiv[q,s] = op
+
+    # check hom-tensor adjunction
+    for r in Q:
+     for q in Q:
+      for s in Q:
+        lhs = r@q <= s
+        rhs = r <= rdiv[q,s]
+        assert lhs == rhs
+
+    return ldiv, rdiv
+
+
+
+
+def test_hecke_GL3():
+
+    print("test_hecke_GL3")
+
+    n = 3
+    G = Algebraic.GL(n)
+
+    tps = [
+        (G.all_figs([1])),
+        (G.all_figs([2])),
+        (G.all_figs([2,1])),
+    ]
+    points, lines, flags = tps
+    assert len(points) == 7
+    assert len(lines) == 7
+    assert len(flags) == 21
+
+    FF = hecke_gen(G, flags, flags)
+    FL = hecke_gen(G, flags, lines)
+    LL = hecke_gen(G, lines, lines)
+
+    assert len(FL) == 3
+    L, P, R = FL
+
+    assert len(LL) == 2
+    assert len(FF) == 6
+    #I, L, P, LP, PL, LPL = FF
+
+    flag = flags[0]
+    print(flag)
+
+    for op in FL:
+        rel = flag @ op
+        print(rel)
+
+    bruhats = set()
+    for op in FF:
+        figs = op @ flag
+        #print(figs)
+        figs = figs.op @ L
+        bruhats.add(figs)
+    assert len(bruhats) == 3
+
+    I, L, P, LP, PL, LPL = FF
+    names = "I L P LP PL LPL".split()
+    lookup = dict(kv for kv in zip(FF, names))
+
+    LL = L@L
+    assert LL == I+L
+    assert LL >= I
+    assert LL > I
+    assert LL >= L
+    assert LL > L
+    assert not LL <= I
+    assert not LL < I
+    assert not LL <= L
+    assert not LL < L
+
+    LPLP = LP@LP
+    assert LPLP >= PL
+    assert LP @ LP == PL + LPL
+
+    # slow!
+    ldiv, rdiv = check_quantale(FF, check=False)
+    pairs = []
+    for a in FF:
+      for b in FF:
+        if ldiv[a,b].nnz() or rdiv[a,b].nnz():
+            pairs.append((a, b))
+
+    # much faster
+    Q = Quantale(FF)
+    pairs = []
+    for a in FF:
+     for b in FF:
+        if Q.ldiv(a,b).nnz() or Q.rdiv(a,b).nnz():
+            pairs.append((a, b))
+
+    pairs = set(pairs)
+    print("pairs:", len(pairs))
+
+    for a, b in pairs:
+        print(lookup[a], ">=", lookup[b])
+    assert (L,I) not in pairs
+    assert (I,L) in pairs
+    assert (LP, PL) not in pairs
+    assert (L, LP) in pairs
+    assert (L, PL) in pairs
+
+    order = PreOrder.generate(pairs, FF, check=True)
+    #order.show() # looks good!
+
+    #s = order.get_dot(labels=False)
+    #print(s)
+
+
+def test_hecke_GL4():
+
+    print("test_hecke_GL4")
+
+    n = 4
+    G = Algebraic.GL(n)
+
+    tps = [
+        (G.all_figs([1])),
+        (G.all_figs([2])),
+        (G.all_figs([3])),
+        (G.all_figs([3,2,1])),
+    ]
+    points, lines, planes, flags = tps
+
+    print(len(points), len(lines), len(planes), ":", len(flags))
+
+    FF = hecke_gen(G, flags, flags)
+    print(len(FF))
+
+    Q = Quantale(FF)
+
+    pairs = []
+    for a in FF:
+     for b in FF:
+        if Q.ldiv(a,b).nnz() or Q.rdiv(a,b).nnz():
+            pairs.append((a, b))
+     print(len(pairs))
+
+    pairs = set(pairs)
+    print("pairs:", len(pairs))
+
+    order = PreOrder.generate(pairs, FF, check=True)
+    order.show(labels=False) # looks good!
+
+    s = order.get_dot(labels=False)
+    print(s)
+
+
 
 
 def test_hecke_monoid():
@@ -2541,15 +2697,15 @@ def test_hecke_monoid():
     n = 3
     G = Algebraic.GL(n)
 
-    flag = G.all_flags([2,1])
+    flag = G.all_figs([2,1])
     assert len(flag) == 21
 
-    gen = make_hecke(G, flag, flag)
+    gen = hecke_gen(G, flag, flag)
     assert len(gen) == 6
     check_quantale(gen)
 
-    T = Hecke.top(flag, flag)
-    B = Hecke.bot(flag, flag)
+    T = Relation.top(flag, flag)
+    B = Relation.bot(flag, flag)
 
     I, L, P, LP, PL, LPL = gen
 
@@ -2588,19 +2744,19 @@ def test_hecke_induce():
         assert g in G1
 
     print("(3 1):")
-    for fig in G0.all_flags([1]):
+    for fig in G0.all_figs([1]):
         print('\t', fig)
     print("(3 2):")
-    for fig in G0.all_flags([2]):
+    for fig in G0.all_figs([2]):
         print('\t', fig)
 
-    print(len((G1.all_flags([1]))))
-    print(len((G1.all_flags([2]))))
-    print(len((G1.all_flags([3]))))
+    print(len((G1.all_figs([1]))))
+    print(len((G1.all_figs([2]))))
+    print(len((G1.all_figs([3]))))
 
-    left = (G0.all_flags([2,1]))
-    right = (G1.all_flags([3,2,1]))
-    ops = make_hecke(G0, left, right, hom)
+    left = (G0.all_figs([2,1]))
+    right = (G1.all_figs([3,2,1]))
+    ops = hecke_gen(G0, left, right, hom)
     print("ops:", len(ops))
     for op in ops[:7]:
         A = op.A
@@ -2626,12 +2782,12 @@ def test_symplectic():
     print("|G| =", len(G))
 
     if n==2:
-        left = (G.all_flags([2, 1]))
-        right = (G.all_flags([m]))
+        left = (G.all_figs([2, 1]))
+        right = (G.all_figs([m]))
     elif n==3:
-        left = (G.all_flags([3, 2, 1]))
-        #right = (G.all_flags([3, 2, 1]))
-        right = (G.all_flags([m]))
+        left = (G.all_figs([3, 2, 1]))
+        #right = (G.all_figs([3, 2, 1]))
+        right = (G.all_figs([m]))
 
     print("left:", len(left))
     print("right:", len(right))
@@ -2653,7 +2809,7 @@ def test_symplectic():
     #for g in P1:
     #    assert g in P # yes
 
-    ops = make_hecke(G, left, right)
+    ops = hecke_gen(G, left, right)
     print("left*right:", len(ops))
 
     for op in ops:
@@ -2675,17 +2831,17 @@ def test_hecke_Sp():
     G = Algebraic.Sp(nn)
 
     tps = [
-        G.all_flags([1]),
-        G.all_flags([2]),
-        G.all_flags([3]),
-        G.all_flags([3,2,1]),
+        G.all_figs([1]),
+        G.all_figs([2]),
+        G.all_figs([3]),
+        G.all_figs([3,2,1]),
     ]
     point, line, plane, flag = tps
     desc = "point line plane flag".split()
 
     print(len(line), len(flag))
 
-    ops = make_hecke(G, flag, line)
+    ops = hecke_gen(G, flag, line)
     print(len(ops))
     fig = flag[0]
     for op in ops:
@@ -2708,7 +2864,7 @@ def test_hecke_eigs():
     left = list(Figure.qchoose(left))
     right = list(Figure.qchoose(right))
 
-    ops = make_hecke(G, left, right)
+    ops = hecke_gen(G, left, right)
     print("Hecke operators:", len(ops))
 
     if argv.eigvals:

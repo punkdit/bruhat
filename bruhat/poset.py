@@ -11,8 +11,8 @@ from bruhat.argv import argv
 #CHECK = True # much slower...
 CHECK = False
 
-#OPEN_COMMAND = "gvfs-open" # used to display pdf files
-OPEN_COMMAND = "open" # used to display pdf files
+OPEN_COMMAND = "gvfs-open" # used to display pdf files
+#OPEN_COMMAND = "open" # used to display pdf files
 
 def closure(pairs, els):
     homs = set((a,b) for (a,b) in pairs) # set of (a,b) where a<=b
