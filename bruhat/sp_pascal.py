@@ -93,16 +93,23 @@ row_reduced = lambda *args : args
 
 @cache
 def grassmannian(n, k):
+    return list(i_grassmannian(n, k))
+
+def i_grassmannian(n, k):
     assert 0<=n
     assert 0<=k
     nn = 2*n
     if k>n:
-        return []
+        #return []
+        return
+
     if k==0:
-        return [row_reduced([], zeros2(0, nn))] 
+        #return [row_reduced([], zeros2(0, nn))] 
+        yield row_reduced([], zeros2(0, nn))
+        return
+
     F = omega(n)
-    items = []
-    # return (1+q**(2*n-k)) * B(n-1,k-1) + (q**k) * B(n-1,k)
+    #items = []
 
     # left parent
     src = grassmannian(n-1, k-1)
@@ -113,7 +120,8 @@ def grassmannian(n, k):
         B[:k-1, 1:nn-1] = A
         B[k-1, nn-1] = 1 # choose the new guy's twin
         item = row_reduced(pivs+[nn-1], B)
-        items.append(item)
+        #items.append(item)
+        yield item
 
         B = zeros2(k, nn)
         B[1:k, 1:nn-1] = A
@@ -125,7 +133,8 @@ def grassmannian(n, k):
         for C in fill(B, idxs):
             if dot2(C, F, C.transpose()).sum() == 0:
                 item = row_reduced([0]+pivs, C)
-                items.append(item)
+                #items.append(item)
+                yield item
 
     # right parent
     src = grassmannian(n-1, k)
@@ -138,9 +147,10 @@ def grassmannian(n, k):
         for C in fill(B, idxs):
             if dot2(C, F, C.transpose()).sum() == 0:
                 item = row_reduced(pivs, C)
-                items.append(item)
+                #items.append(item)
+                yield item
 
-    return items
+    #return items
 
 
 
@@ -169,10 +179,24 @@ def test():
     assert count == 315
 
     items = grassmannian(5, 4)
-    print(len(items))
+    assert len(items) == B(5, 4)
 
-    items = grassmannian(5, 3)
-    assert len(items) == B(5, 3)
+    count = 0
+    for item in i_grassmannian(6, 5):
+        count += 1
+    print("[[6,1,?]]:", count)
+
+    #items = grassmannian(6, 5)
+    #print("[[6,1,?]]:", len(items))
+
+    #items = grassmannian(7, 6)
+    #print("[[7,1,?]]:", len(items))
+
+
+def main():
+    print("main()")
+    items = grassmannian(5, 4)
+    assert len(items) == B(5, 4)
 
 
 if __name__ == "__main__":
