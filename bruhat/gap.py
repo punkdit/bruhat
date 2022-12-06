@@ -8,10 +8,27 @@ import sys, os
 from time import sleep
 import select
 from subprocess import Popen, PIPE
+import re
 
 from argv import argv
 
 PROMPT = "gap> "
+
+# https://superuser.com/a/1657976
+def escape_ansi(line):
+    re1 = re.compile(r'\x1b\[[\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e]')
+    re2 = re.compile(r'\x1b[PX^_].*?\x1b\\')
+    re3 = re.compile(r'\x1b\][^\a]*(?:\a|\x1b\\)')
+    re4 = re.compile(r'\x1b[\[\]A-Z\\^_@]')
+    # re5: zero-width ASCII characters
+    # see https://superuser.com/a/1388860
+    re5 = re.compile(r'[\x00-\x1f\x7f-\x9f\xad]+')
+
+    for r in [re1, re2, re3, re4, re5]:
+        line = r.sub('', line)
+
+    return line
+
 
 class Gap(object):
     def __init__(self):
@@ -28,6 +45,7 @@ class Gap(object):
         while select.select([proc.stdout],[],[],0)[0]!=[]:   
             data += proc.stdout.read(1)
         data = data.decode("utf-8")
+        data = escape_ansi(data)
         self.buf += data
 
     def send(self, data):

@@ -668,6 +668,37 @@ def build_geometry():
     #print("build_geometry: idx =", idx)
 
 
+def build_bicolour():
+
+    key = (6,4)
+    if 0:
+        # search...
+        idx = 0
+        while 1:
+            try:
+                geometry = Geometry(key, idx)
+            except IndexError:
+                break
+    
+            G = geometry.G
+        
+            gens = G.gens
+            a, b, c = gens
+            i, j = ((a*b).order(), (b*c).order())
+            if i==3:
+                print("idx = %d, |G| = %d" % (idx, len(G)))
+            idx += 1
+
+    idx = 27
+    geometry = Geometry(key, idx)
+    G = geometry.G
+    gens = G.gens
+    a, b, c = gens
+    i, j = ((a*b).order(), (b*c).order())
+
+    print(i, j)
+
+
 
 def build_group(idx=0, halve=False):
     # start with hyperbolic Coxeter reflection group: a--5--b--5--c
