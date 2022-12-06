@@ -17,7 +17,8 @@ from bruhat.util import cross
 from qupy.ldpc.solve import (
     array2, zeros2, shortstr, dot2, linear_independent, row_reduce, find_kernel,
     span, intersect, rank, enum2)
-from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
+from bruhat.action import (Perm, Group, Coset, mulclose, close_hom, 
+    is_hom, conjugacy_subgroups)
 from bruhat.todd_coxeter import Schreier
 from bruhat.argv import argv
 from bruhat.smap import SMap
@@ -598,6 +599,39 @@ def test_dessins():
     graph.build([(a,b,c,a)]) # index 3
     n = len(graph)
     print("|G/H| =", n)
+
+
+
+def test_gaussian_dessin():
+
+    # red, green, blue reflections
+    ngens = 3
+    r, g, b = (0, 1, 2)
+    rels = [(r, r), (g, g), (b, b)] # self-inverse
+    rels += [(g,b)*4, (b,r)*4, (g,r)*2] # gaussian
+    rels += [(b,g,b,r)*3]
+
+    def make(hgens=[], maxsize=10000, rev=False):
+        hgens = [tuple('rgb'.index(item) for item in gen) for gen in hgens]
+        if rev:
+            hgens = [tuple(reversed(gen)) for gen in hgens]
+        graph = Schreier(ngens, rels)
+        graph.build(hgens, maxsize)
+        return graph
+
+    graph = make()
+    assert len(graph) == 72
+
+    G = graph.get_group()
+    r, g, b = G.gens
+    gens = [r*g, r*b, g*b]
+    G = Group.generate(gens)
+    assert len(G) == 36
+
+    Hs = conjugacy_subgroups(G)
+    for H in Hs:
+        print(len(H), end=',')
+    print()
 
 
 if __name__ == "__main__":
