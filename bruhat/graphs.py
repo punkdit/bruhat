@@ -11,11 +11,16 @@ from bruhat.argv import argv
 from bruhat import isomorph, inteigs
 
 
-if 1:
+if 0:
     import pyx 
     from pyx import path, deco, trafo, style, text, color, deformer
     from pyx.color import rgb, cmyk
     from pyx.color import rgbfromhexstring as rgbhex
+
+if 1:
+    from huygens import front as pyx
+    from huygens.front import *
+    rgb = color.rgb
 
     black = rgb(0., 0., 0.) 
     blue = rgb(0., 0., 0.8)
