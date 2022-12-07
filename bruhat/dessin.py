@@ -620,7 +620,7 @@ def test_gaussian_dessin():
         graph.build()
     
         #assert len(graph) == 8 * prime**2, len(graph)
-        print(len(graph))
+        #print(len(graph))
     
         G = graph.get_group()
         r, g, b = G.gen
@@ -708,10 +708,9 @@ def test_gaussian_dessin():
     print("weak conjugacy class'es:")
     print(weak)
 
-    return
-
-    #if prime != 3:
-    #    return
+    if prime != 3:
+        # otherwise just too big..
+        return
 
     inners = set()
     for g in G:
