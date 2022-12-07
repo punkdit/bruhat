@@ -603,34 +603,52 @@ def test_dessins():
 
 
 
+
 def test_gaussian_dessin():
 
     prime = argv.get("prime", 3)
 
-    # red, green, blue reflections
-    ngens = 3
-    r, g, b = (0, 1, 2)
-    rels = [(r, r), (g, g), (b, b)] # self-inverse
-    rels += [(g,b)*4, (b,r)*4, (g,r)*2] # gaussian
-    rels += [(b,g,b,r)*prime]
-
-    def make(hgens=[], maxsize=10000, rev=False):
-        hgens = [tuple('rgb'.index(item) for item in gen) for gen in hgens]
-        if rev:
-            hgens = [tuple(reversed(gen)) for gen in hgens]
+    if argv.eisenstein:
+        # red, green, blue reflections
+        ngens = 3
+        r, g, b = (0, 1, 2)
+        rels = [(r, r), (g, g), (b, b)] # self-inverse
+        rels += [(g,b)*6, (b,r)*3, (g,r)*2] # eisenstein lattice
+        rels += [(b,g,b,r,b,g)*prime]
+    
         graph = Schreier(ngens, rels)
-        graph.build(hgens, maxsize)
-        return graph
+        graph.build()
+    
+        #assert len(graph) == 8 * prime**2, len(graph)
+        print(len(graph))
+    
+        G = graph.get_group()
+        r, g, b = G.gen
+        gen = [r*g, r*b, g*b]
+        G = Group.generate(gen)
+        #assert len(G) == 4 * prime**2, len(G)
+        print("|G| =", len(G))
 
-    graph = make()
-    assert len(graph) == 8 * prime**2, len(graph)
+    else:
+        # red, green, blue reflections
+        ngens = 3
+        r, g, b = (0, 1, 2)
+        rels = [(r, r), (g, g), (b, b)] # self-inverse
+        rels += [(g,b)*4, (b,r)*4, (g,r)*2] # gaussian lattice
+        rels += [(b,g,b,r)*prime]
+    
+        graph = Schreier(ngens, rels)
+        graph.build()
+    
+        assert len(graph) == 8 * prime**2, len(graph)
+    
+        G = graph.get_group()
+        r, g, b = G.gen
+        gen = [r*g, r*b, g*b]
+        G = Group.generate(gen)
+        assert len(G) == 4 * prime**2, len(G)
+        print("|G| =", len(G))
 
-    G = graph.get_group()
-    r, g, b = G.gen
-    gen = [r*g, r*b, g*b]
-    G = Group.generate(gen)
-    assert len(G) == 4 * prime**2, len(G)
-    print("|G| =", len(G))
 
     equs = {g:Equ(g) for g in G}
     for g in G:
@@ -652,8 +670,16 @@ def test_gaussian_dessin():
     Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
     print("conjugacy_subgroups:")
     for H in Hs:
-        print(len(H), end=',')
+        normal = len(H.conjugates)==1 
+        print("%d%s"%(len(H), ("*" if normal else "")), end=',')
+        if len(H)==prime**2:
+            assert normal
+            N = H
     print()
+
+    for c in cgys:
+        if set(c).issubset(set(N)):
+            print(len(c), "in N")
 
     # find the weak conjugacy class'es
     desc = []
@@ -681,6 +707,8 @@ def test_gaussian_dessin():
     weak.sort()
     print("weak conjugacy class'es:")
     print(weak)
+
+    return
 
     #if prime != 3:
     #    return
