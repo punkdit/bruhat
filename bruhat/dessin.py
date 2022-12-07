@@ -18,8 +18,9 @@ from qupy.ldpc.solve import (
     array2, zeros2, shortstr, dot2, linear_independent, row_reduce, find_kernel,
     span, intersect, rank, enum2)
 from bruhat.action import (Perm, Group, Coset, mulclose, close_hom, 
-    is_hom, conjugacy_subgroups)
+    is_hom, conjugacy_subgroups, mulclose_hom)
 from bruhat.todd_coxeter import Schreier
+from bruhat.equ import Equ
 from bruhat.argv import argv
 from bruhat.smap import SMap
 
@@ -604,12 +605,14 @@ def test_dessins():
 
 def test_gaussian_dessin():
 
+    prime = argv.get("prime", 3)
+
     # red, green, blue reflections
     ngens = 3
     r, g, b = (0, 1, 2)
     rels = [(r, r), (g, g), (b, b)] # self-inverse
     rels += [(g,b)*4, (b,r)*4, (g,r)*2] # gaussian
-    rels += [(b,g,b,r)*3]
+    rels += [(b,g,b,r)*prime]
 
     def make(hgens=[], maxsize=10000, rev=False):
         hgens = [tuple('rgb'.index(item) for item in gen) for gen in hgens]
@@ -620,18 +623,98 @@ def test_gaussian_dessin():
         return graph
 
     graph = make()
-    assert len(graph) == 72
+    assert len(graph) == 8 * prime**2, len(graph)
 
     G = graph.get_group()
-    r, g, b = G.gens
-    gens = [r*g, r*b, g*b]
-    G = Group.generate(gens)
-    assert len(G) == 36
+    r, g, b = G.gen
+    gen = [r*g, r*b, g*b]
+    G = Group.generate(gen)
+    assert len(G) == 4 * prime**2, len(G)
+    print("|G| =", len(G))
 
-    Hs = conjugacy_subgroups(G)
+    equs = {g:Equ(g) for g in G}
+    for g in G:
+     for h in G:
+        g1 = h*g*~h
+        equs[g1].merge(equs[g])
+    items = set(equ.top for equ in equs.values())
+    #print(len(items))
+    lookup = {item : [] for item in items}
+    for g in G:
+        lookup[equs[g].top].append(g)
+    cgys = list(lookup.values())
+    cgys.sort(key = len)
+    print("conjugacy class'es:")
+    print([len(c) for c in cgys])
+    assert sum([len(c) for c in cgys]) == len(G)
+
+    equs = G.conjugacy_subgroups()
+    Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
+    print("conjugacy_subgroups:")
     for H in Hs:
         print(len(H), end=',')
     print()
+
+    # find the weak conjugacy class'es
+    desc = []
+    for i, H in enumerate(Hs):
+        cosets = G.left_cosets(H)
+        assert len(G) == len(cosets)*len(H)
+
+        hom = G.left_action(cosets)
+
+        row = []
+        for g in G:
+            a = hom[g]
+            cys = a.cycles()
+            cys = [len(cy) for cy in cys]
+            cys.sort()
+            row.append(tuple(cys))
+        desc.append(row)
+
+    # these are weak conjugacy class'es
+    weak = {}
+    for i, g in enumerate(G):
+        key = tuple(row[i] for row in desc)
+        weak.setdefault(key, []).append(g)
+    weak = [len(w) for w in weak.values()]
+    weak.sort()
+    print("weak conjugacy class'es:")
+    print(weak)
+
+    #if prime != 3:
+    #    return
+
+    inners = set()
+    for g in G:
+        send = tuple(g*g1*~g for g1 in G.gen)
+        inners.add(send)
+    print("inners:", len(inners))
+    inners = [mulclose_hom(G.gen, inner) for inner in inners]
+
+    autos = []
+    n = len(G.gen)
+    for gen in cross([G]*n):
+        f = mulclose_hom(G.gen, gen)
+        im = set(f.values())
+        if len(im) < len(G):
+            continue
+        autos.append(Perm(f, G))
+        if f in inners:
+            #print("/", end="", flush=True)
+            continue
+        #print("*", end="", flush=True)
+        for H in Hs:
+            H1 = Group([f[g] for g in H], G.items)
+            print("%s:%s"%(len(H), int(H1 in H.conjugates)), end=' ')
+        print()
+    print()
+    print("autos:", len(autos))
+
+    AutG = Group(autos, G)
+    inners = [Perm(inner, G) for inner in inners]
+    InnerG = Group(inners, G)
+
 
 
 if __name__ == "__main__":

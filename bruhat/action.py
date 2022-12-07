@@ -201,10 +201,11 @@ class Perm(object):
         while remain:
             item = iter(remain).__next__()
             orbit = [item]
-            item1 = self*item
+            #print(type(self), type(item), "__mul__")
+            item1 = self(item)
             while item1 != item:
                 orbit.append(item1)
-                item1 = self*item1
+                item1 = self(item1)
                 assert len(orbit) <= len(self.items)
             assert orbit
             cycles.append(orbit)
@@ -578,18 +579,19 @@ class Group(object):
 #        return id(self) < id(other)
 
     @classmethod
-    def generate(cls, gens, *args, **kw):
+    def generate(cls, gen, *args, **kw):
         items = kw.get("items")
         if items is not None:
             del kw["items"]
         else:
-            assert gens
-            items = gens[0].items
-        if not gens:
-            gens = [Perm.identity(items)]
-        perms = list(mulclose(gens, *args))
+            assert gen
+            items = gen[0].items
+        if not gen:
+            gen = [Perm.identity(items)]
+        perms = list(mulclose(gen, *args))
         G = cls(perms, items, **kw)
-        G.gens = gens
+        G.gen = gen
+        G.gens = gen # deprecate this?
         return G
 
     def is_cyclic(self):
@@ -999,6 +1001,41 @@ class Group(object):
         perms = list(set(H.perms+J.perms))
         return cls.generate(perms)
     
+    def conjugacy_subgroups(G, Hs=None):
+    
+        # Find all conjugacy classes of subgroups
+    
+        if Hs is None:
+            Hs = G.subgroups()
+        #print "subgroups:", len(Hs)
+        #for H in Hs:
+        #  for K in Hs:
+        #    print (int(H.is_subgroup(K)) or "."),
+        #  print
+    
+        equs = dict((H1, Equ(H1)) for H1 in Hs)
+        for H1 in Hs:
+            for g in G:
+                if g in H1:
+                    continue
+                H2 = g * H1 * (~g) # conjugate
+                if H2 == H1:
+                    continue
+                else:
+                    #print len(H1), "~", len(H2)
+                    if H2 not in equs:
+                        equs[H2] = Equ(H2)
+                    equs[H1].merge(equs[H2])
+    
+        # get equivalance classes
+        equs = list(set(equ.top for equ in equs.values()))
+        equs.sort(key = lambda equ : (-len(equ.items[0]), equ.items[0].str()))
+        for equ in equs:
+            #print "equ:", [len(H) for H in equ.items]
+            for H in equ.items:
+                H.conjugates = list(equ.items)
+        #print "total:", len(equs)
+        return equs
 
     # | | | | | |                                       | | | | 
     # v v v v v v  probably should delete these methods v v v v 
@@ -1094,6 +1131,15 @@ class Coset(Group):
         perms = self.set_perms.intersection(other.set_perms)
         return Coset(perms, self.items)
     intersection = intersect
+
+
+def conjugacy_subgroups(G, Hs=None):
+    equs = G.conjugacy_subgroups(Hs)
+
+    Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
+    #Hs.sort(key = lambda H : (-len(H), H.str()))
+
+    return Hs
 
 
 
@@ -1816,47 +1862,6 @@ def test_projective(G):
     #print H.is_abelian()
     #for perm in H:
     #    print perm.cycle_str()
-
-
-def conjugacy_subgroups(G, Hs=None):
-
-    # Find all conjugacy classes of subgroups
-
-    if Hs is None:
-        Hs = G.subgroups()
-    #print "subgroups:", len(Hs)
-    #for H in Hs:
-    #  for K in Hs:
-    #    print (int(H.is_subgroup(K)) or "."),
-    #  print
-
-    equs = dict((H1, Equ(H1)) for H1 in Hs)
-    for H1 in Hs:
-        for g in G:
-            if g in H1:
-                continue
-            H2 = g * H1 * (~g) # conjugate
-            if H2 == H1:
-                continue
-            else:
-                #print len(H1), "~", len(H2)
-                if H2 not in equs:
-                    equs[H2] = Equ(H2)
-                equs[H1].merge(equs[H2])
-
-    # get equivalance classes
-    equs = list(set(equ.top for equ in equs.values()))
-    equs.sort(key = lambda equ : (-len(equ.items[0]), equ.items[0].str()))
-    for equ in equs:
-        #print "equ:", [len(H) for H in equ.items]
-        for H in equ.items:
-            H.conjugates = list(equ.items)
-    #print "total:", len(equs)
-
-    Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
-    #Hs.sort(key = lambda H : (-len(H), H.str()))
-
-    return Hs
 
 
 def todot(graph, names={}, filename="graph.dot"):
