@@ -1035,7 +1035,9 @@ class Group(object):
             for H in equ.items:
                 H.conjugates = list(equ.items)
         #print "total:", len(equs)
-        return equs
+        Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
+        #Hs.sort(key = lambda H : (-len(H), H.str()))
+        return Hs
 
     # | | | | | |                                       | | | | 
     # v v v v v v  probably should delete these methods v v v v 
@@ -1134,10 +1136,7 @@ class Coset(Group):
 
 
 def conjugacy_subgroups(G, Hs=None):
-    equs = G.conjugacy_subgroups(Hs)
-
-    Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
-    #Hs.sort(key = lambda H : (-len(H), H.str()))
+    Hs = G.conjugacy_subgroups(Hs)
 
     return Hs
 

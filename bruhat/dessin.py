@@ -26,6 +26,12 @@ from bruhat.smap import SMap
 
 from huygens.namespace import *
 from huygens.pov import Mat
+from huygens import config
+config(text="pdflatex", latex_header=r"""
+\usepackage{amsmath}
+\usepackage{amssymb}
+""")
+
 
 from qupy.dev._algebra import Algebra, build_algebra, Tensor
 
@@ -603,12 +609,108 @@ def test_dessins():
 
 
 
+def render_dessin():
 
-def test_gaussian_dessin():
+    I = Matrix()
 
+    def order(g):
+        n = 1
+        op = g
+        while op != I:
+            op = g*op
+            n += 1
+        return n
+
+    x_refl = Matrix(xx=-1.)
+    y_refl = Matrix(yy=-1.)
+    xy_refl = Matrix(0., 1., 1., 0.)
+
+    assert x_refl**2 == I
+    assert y_refl**2 == I
+    assert xy_refl**2 == I
+
+    tx = Matrix(x0=0.5)
+    tred = tx*x_refl*(~tx)
+    tblue = xy_refl
+    tgreen = y_refl
+    assert tred**2 == I
+    assert order(tgreen*tblue) == 4
+    assert order(tred*tblue) == 4
+    assert order(tred*tgreen) == 2
+
+    G = build_group()
     prime = argv.get("prime", 3)
 
+    def center(pts):
+        n = len(pts)
+        return sum(p[0] for p in pts)/n, sum(p[1] for p in pts)/n
+    
+    lower, upper = -EPSILON, prime+EPSILON
+    lower, upper = -(1/2)*prime-EPSILON, (1/2)*prime+EPSILON
+    def send(pts):
+        while 1:
+            x, y = center(pts)
+            if x < lower:
+                pts = [(x+prime,y) for (x,y) in pts]
+            elif x > upper:
+                pts = [(x-prime,y) for (x,y) in pts]
+            elif y < lower:
+                pts = [(x,y+prime) for (x,y) in pts]
+            elif y > upper:
+                pts = [(x,y-prime) for (x,y) in pts]
+            else:
+                break
+        return pts
+    
+    rg, rb, gb = G.gen
+    hom = mulclose_hom([rg, rb, gb], [tred*tgreen, tred*tblue, tgreen*tblue])
+
+    pts = [(0,0), (1/2,0), (1/2,1/2)]
+
+    def render_subgroup(G, H):
+        cvs = Canvas()
+        for g in G:
+            m = ~hom[g] # or inverse?
+            tgt = send([m(*p) for p in pts])
+            x0, y0 = center(tgt)
+            p = mkpath(tgt, True)
+            if g in H:
+                cvs.fill(p, [grey])
+            if g.is_identity():
+                cvs.text(x0, y0, r"$\star$", st_center)
+            cvs.stroke(p, st_round)
+    
+        r = 0.05
+        for real in range(prime+1):
+          for imag in range(prime+1):
+            cvs.fill(path.circle(real+lower, imag+lower, r), [green])
+        for real in range(prime):
+          for imag in range(prime):
+            cvs.fill(path.circle(real+1/2+lower, imag+1/2+lower, r), [red])
+        return cvs
+
+    cvs = Canvas()
+    Hs = G.conjugacy_subgroups()
+    x, y = 0., 0.
+    for H in Hs:
+        for H1 in H.conjugates:
+            fg = render_subgroup(G, H1)
+            cvs.insert(x, y, fg)
+            x += prime+1
+        x = 0.
+        y += prime + 1
+    
+    #cvs.writePDFfile("gaussian_dessin_3.pdf")
+    #cvs.writeSVGfile("gaussian_dessin_3.svg")
+    cvs.writePDFfile("gaussian_dessin_voronoi_inv_3.pdf")
+    cvs.writeSVGfile("gaussian_dessin_voronoi_inv_3.svg")
+
+
+
+def build_group():
+
     if argv.eisenstein:
+        prime = argv.get("prime", 5)
         # red, green, blue reflections
         ngens = 3
         r, g, b = (0, 1, 2)
@@ -619,17 +721,17 @@ def test_gaussian_dessin():
         graph = Schreier(ngens, rels)
         graph.build()
     
-        #assert len(graph) == 8 * prime**2, len(graph)
+        #assert len(graph) == 8 * prime**2, len(graph) # ?
         #print(len(graph))
     
         G = graph.get_group()
         r, g, b = G.gen
         gen = [r*g, r*b, g*b]
         G = Group.generate(gen)
-        #assert len(G) == 4 * prime**2, len(G)
-        print("|G| =", len(G))
+        #assert len(G) == 4 * prime**2, len(G) # ?
 
     else:
+        prime = argv.get("prime", 3)
         # red, green, blue reflections
         ngens = 3
         r, g, b = (0, 1, 2)
@@ -647,8 +749,15 @@ def test_gaussian_dessin():
         gen = [r*g, r*b, g*b]
         G = Group.generate(gen)
         assert len(G) == 4 * prime**2, len(G)
-        print("|G| =", len(G))
 
+    print("|G| =", len(G))
+    return G
+
+
+def test_gaussian_dessin():
+
+    G = build_group()
+    prime = argv.prime
 
     equs = {g:Equ(g) for g in G}
     for g in G:
@@ -666,8 +775,7 @@ def test_gaussian_dessin():
     print([len(c) for c in cgys])
     assert sum([len(c) for c in cgys]) == len(G)
 
-    equs = G.conjugacy_subgroups()
-    Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
+    Hs = G.conjugacy_subgroups()
     print("conjugacy_subgroups:")
     for H in Hs:
         normal = len(H.conjugates)==1 
