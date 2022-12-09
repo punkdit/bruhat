@@ -101,6 +101,7 @@ def test():
     assert shortstr(p) == "1133443311"
 
     get = lambda p : p.substitute((('q',2),))
+    print(get(p))
 
     assert get(B(1) / A(0)) == 3
 
