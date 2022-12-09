@@ -390,7 +390,7 @@ class Poly(object):
             p = self*p
         return p
 
-    def str(self, shortstr=tex_str, POW="^", MUL="*", OPEN="{", CLOSE="}"):
+    def str(self, shortstr=tex_str, POW="^", MUL="", OPEN="{", CLOSE="}"):
         items = list(self.cs.items())
         if not items:
             return "0"
@@ -417,7 +417,7 @@ class Poly(object):
                 if v==ring.one:
                     terms.append(s)
                 else:
-                    terms.append("%s%s%s" % (shortstr(v), MUL, s))
+                    terms.append("%s%s%s" % (shortstr(v), "*", s))
             else:
                 if v==ring.one:
                     terms.append("1")
@@ -426,6 +426,8 @@ class Poly(object):
         s = " + ".join(terms)
         #s = s.replace("-1"+MUL, "-") # oof, careful with this!
         s = s.replace("-1*", "-")
+        assert "*" not in POW, "whoops"
+        s = s.replace("*", MUL)
         s = s.replace("+ -", "- ")
         s = s.replace(" "+POW, POW)
         if s and s[-1] == " ":

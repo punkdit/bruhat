@@ -100,6 +100,8 @@ def test():
     p = p / (A(1)**3)
     assert shortstr(p) == "1133443311"
 
+    print(p)
+
     get = lambda p : p.substitute((('q',2),))
     print(get(p))
 
