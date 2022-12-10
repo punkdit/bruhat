@@ -353,7 +353,7 @@ class Schreier(object):
     # constructors
 
     @staticmethod
-    def make_reflection(N, links):
+    def make_reflection(N, links, build=True):
         #print("make_reflection", links)
         rels = []
         for i in range(N):
@@ -363,7 +363,8 @@ class Schreier(object):
                 rels.append( (i, j) * m)
         #print("make_reflection", rels)
         graph = Schreier(N, rels)
-        graph.build()
+        if build:
+            graph.build()
         return graph
 
     @staticmethod

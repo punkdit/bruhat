@@ -583,9 +583,10 @@ class Group(object):
         items = kw.get("items")
         if items is not None:
             del kw["items"]
-        else:
-            assert gen
+        elif gen:
             items = gen[0].items
+        else:
+            items = []
         if not gen:
             gen = [Perm.identity(items)]
         perms = list(mulclose(gen, *args))

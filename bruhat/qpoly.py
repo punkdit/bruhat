@@ -78,6 +78,16 @@ class Coxeter(object):
         G = graph.get_group()
         return G
 
+    def get_residual_graph(self, i):
+        assert 0 <= i < self.ngen
+        graph = Schreier.make_reflection(self.ngen, self.rel, False)
+        hgens = [(j,) for j in range(self.ngen) if i!=j]
+        graph.build(hgens)
+        return graph
+
+    def get_order(self):
+        return len(self.get_group())
+
     def get_poincare(self, ring, q):
         "the poincare polynomial"
         G = self.get_group()
@@ -148,6 +158,23 @@ class Coxeter(object):
             rel[n-3, n-1] = 3
         return cls(n, rel)
 
+    @classmethod
+    def E(cls, n):
+        rel = {}
+        for i in range(1, n-1):
+            rel[i, i+1] = 3
+        rel[0, 3] = 3
+        return cls(n, rel)
+
+    @classmethod
+    def F(cls):
+        n = 4
+        rel = {(0, 1):3, (1, 2):4, (2, 3): 3}
+        return cls(n, rel)
+
+    @classmethod
+    def G(cls):
+        return cls(2, {(0,1):6})
 
 
 A0 = Coxeter.A(0)
@@ -190,11 +217,17 @@ D2 = Coxeter.D(2)
 D3 = Coxeter.D(3)
 D4 = Coxeter.D(4)
 D5 = Coxeter.D(5)
+D6 = Coxeter.D(6)
 assert len(D4.get_group()) == 192
 #assert D3 == A3 # needs re-indexing
 assert D2 == A1*A1
 assert D4.residual(1) == A1*A1*A1
 
+E6 = Coxeter.E(6)
+E7 = Coxeter.E(7)
+E8 = Coxeter.E(8)
+F4 = Coxeter.F()
+G2 = Coxeter.G()
 
 
 def shortstr(p):
@@ -210,7 +243,10 @@ def shortstr(p):
             items[n] = p.cs[key]
             m = max(n, m)
     items = [items.get(i, 0) for i in range(m+1)]
-    return ''.join(str(c) for c in items)
+    if max(items)>9:
+        return "(%s)"%','.join(str(c) for c in items)
+    else:
+        return ''.join(str(c) for c in items)
     
 
 def qbracket(n):
@@ -238,10 +274,10 @@ C = B
 def D(n):
     p = one
     if n==1:
-        return 1+q
+        return 1+q # arghh...
     for i in range(n-1):
         p = p * qbracket(2*(i+1))
-    if n>0: # ???
+    if n>0: 
         p = p * qbracket(n)
     return p
 
@@ -274,8 +310,6 @@ def test():
     assert shortstr(D(2)) == "121"
     assert shortstr(D(3)) == "1356531"
 
-    print( D1.get_poincare(ring, q) )
-    print( D2.get_poincare(ring, q) )
     assert D(1) == D1.get_poincare(ring, q)
     assert D(2) == D2.get_poincare(ring, q)
     assert D(3) == D3.get_poincare(ring, q)
@@ -288,7 +322,7 @@ def test():
     #print(p)
 
     get = lambda p : p.substitute((('q',2),))
-    print(get(p))
+    assert get(p) == 1575
 
     assert get(B(1) / A(0)) == 3
 
