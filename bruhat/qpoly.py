@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 """
 q polynomials for grassmanians, etc.
+
+See also: coxeter.py
+
 """
 
 import string, os
 from time import sleep, time
 from functools import reduce
+from functools import reduce, lru_cache
+cache = lru_cache(maxsize=None)
 from operator import matmul
 
 import numpy
@@ -15,6 +20,7 @@ from bruhat.argv import argv
 from bruhat.smap import SMap
 from bruhat.element import Z
 from bruhat.poly import Poly
+from bruhat.todd_coxeter import Schreier
 
 # See:
 # https://en.wikipedia.org/wiki/Q-analog
@@ -25,6 +31,171 @@ ring = Z
 zero = Poly({}, ring)
 one = Poly({():1}, ring)
 q = Poly("q", ring)
+
+
+
+class Coxeter(object):
+    """
+        Coxeter reflection group.
+    """
+    def __init__(self, ngen, rel):
+        """
+        rel : map pairs (i,j) of generators to m_{ij}
+            (this is the Coxeter matrix)
+        """
+        for (i, j) in rel.keys():
+            assert 0<=i<ngen
+            assert 0<=j<ngen
+        gen = list(range(ngen))
+        for i in gen:
+          for j in gen:
+            if rel.get((i, j)) and not rel.get((j, i)):
+                rel[j, i] = rel[i, j]
+        for i in gen:
+          for j in gen:
+            m = rel.get((i, j))
+            if m is None:
+                rel[i, j] = 2 # default
+        for i in gen:
+          for j in gen:
+            assert rel[i, j] == rel[j, i]
+            #assert rel[i, j] in (2, 3, 4, 6)
+        self.ngen = ngen
+        self.rel = rel
+        key = list(rel.items())
+        key.sort()
+        self.key = tuple(key)
+
+    def __eq__(self, other):
+        return self.key == other.key
+
+    def __hash__(self):
+        return hash(self.key)
+
+    @cache
+    def get_group(self):
+        graph = Schreier.make_reflection(self.ngen, self.rel)
+        G = graph.get_group()
+        return G
+
+    def get_poincare(self, ring, q):
+        "the poincare polynomial"
+        G = self.get_group()
+        gen = G.gen
+        I = G.identity
+        found = {I:0}
+        bdy = set([I])
+        dist = 0
+        while bdy:
+            # bdy is the last thing we found
+            dist += 1
+            _bdy = set()
+            for h in bdy:
+              for g in gen:
+                gh = g*h
+                if gh in found:
+                    continue
+                found[gh] = dist
+                _bdy.add(gh)
+            bdy = _bdy
+        found = list(found.values())
+        p = ring.zero
+        for i in range(dist):
+            p = p + found.count(i) * q**i
+        return p
+
+    def subgroup(self, gen):
+        lookup = dict((g, i) for (i,g) in enumerate(gen))
+        rel = {}
+        for i in gen:
+          for j in gen:
+            rel[lookup[i], lookup[j]] = self.rel[i, j]
+        return Coxeter(len(gen), rel)
+
+    def residual(self, i):
+        assert 0<=i<self.ngen
+        gen = [j for j in range(self.ngen) if j!=i]
+        return self.subgroup(gen)
+
+    def __mul__(self, other):
+        ngen = self.ngen + other.ngen
+        #lookup = dict((i, ngen+i))
+        rel = dict(self.rel)
+        for key,val in other.rel.items():
+            i, j = key
+            rel[i+self.ngen, j+self.ngen] = val
+        return Coxeter(ngen, rel)
+
+    @classmethod
+    def A(cls, n):
+        rel = {(i, i+1):3 for i in range(n-1)}
+        return cls(n, rel)
+
+    @classmethod
+    def B(cls, n):
+        rel = {}
+        for i in range(n-1):
+            rel[i, i+1] = 4 if i==n-2 else 3
+        return cls(n, rel)
+    C = B
+
+    @classmethod
+    def D(cls, n):
+        rel = {}
+        for i in range(n-2):
+            rel[i, i+1] = 3
+        if n>2:
+            rel[n-3, n-1] = 3
+        return cls(n, rel)
+
+
+
+A0 = Coxeter.A(0)
+A1 = Coxeter.A(1)
+A2 = Coxeter.A(2)
+A3 = Coxeter.A(3)
+A4 = Coxeter.A(4)
+
+G = A4.get_group()
+assert len(G) == 120
+assert G is A4.get_group()
+
+G = (A2*A3).get_group()
+assert len(G) == 6*24
+
+assert A2 == A2
+assert A2 != A3
+assert A4.subgroup([1, 2]) == A2
+assert A4.subgroup([0, 2, 3]) == A1 * A2
+assert A4.residual(2) == A2*A1
+
+
+B0 = Coxeter.B(0)
+B1 = Coxeter.B(1)
+B2 = Coxeter.B(2)
+B3 = Coxeter.B(3)
+B4 = Coxeter.B(4)
+
+assert len(B2.get_group()) == 8
+assert len(B3.get_group()) == 48
+assert len(B4.get_group()) == 384
+
+assert B3.residual(0) == B2
+assert B3.residual(1) == A1*A1
+assert B3.residual(2) == A2
+
+D0 = Coxeter.D(0)
+D1 = Coxeter.D(1)
+D2 = Coxeter.D(2)
+D3 = Coxeter.D(3)
+D4 = Coxeter.D(4)
+D5 = Coxeter.D(5)
+assert len(D4.get_group()) == 192
+#assert D3 == A3 # needs re-indexing
+assert D2 == A1*A1
+assert D4.residual(1) == A1*A1*A1
+
+
 
 def shortstr(p):
     assert isinstance(p, Poly)
@@ -66,9 +237,12 @@ C = B
 
 def D(n):
     p = one
+    if n==1:
+        return 1+q
     for i in range(n-1):
         p = p * qbracket(2*(i+1))
-    p = p * qbracket(n)
+    if n>0: # ???
+        p = p * qbracket(n)
     return p
 
 
@@ -88,19 +262,30 @@ def test():
     assert shortstr(A(2)) == "1221"
     assert shortstr(A(3)) == "1356531"
 
+    assert A(3) == A3.get_poincare(ring, q)
+
     assert shortstr(B(1)) == "11"
     assert shortstr(B(2)) == "12221"
     assert shortstr(B(3)) == "1357887531"
 
-    assert shortstr(D(1)) == "1"
+    assert B(3) == B3.get_poincare(ring, q)
+
+    assert shortstr(D(1)) == "11"
     assert shortstr(D(2)) == "121"
     assert shortstr(D(3)) == "1356531"
+
+    print( D1.get_poincare(ring, q) )
+    print( D2.get_poincare(ring, q) )
+    assert D(1) == D1.get_poincare(ring, q)
+    assert D(2) == D2.get_poincare(ring, q)
+    assert D(3) == D3.get_poincare(ring, q)
+    assert D(4) == D4.get_poincare(ring, q)
 
     p = D(4)
     p = p / (A(1)**3)
     assert shortstr(p) == "1133443311"
 
-    print(p)
+    #print(p)
 
     get = lambda p : p.substitute((('q',2),))
     print(get(p))

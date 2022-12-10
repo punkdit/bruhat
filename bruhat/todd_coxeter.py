@@ -542,14 +542,14 @@ def test_coxeter():
         (Schreier.make_B, 5, 3840),
         (Schreier.make_D, 4, 192),
         (Schreier.make_D, 5, 1920),
-        #(Schreier.make_E, 6, 51840), # slow...
+        (Schreier.make_E, 6, 51840), # slow...
         #(Schreier.make_E, 7, 2903040), # too big
         #(Schreier.make_E, 8, 696729600), # way too big
         (Schreier.make_F, 4, 1152),
         (Schreier.make_G, 2, 12),
     ]:
         #print()
-        #print(make, N, size)
+        print(make, N, size)
         graph = make(N)
         assert len(graph) == size, ("%s != %s"%(len(graph), size))
 
