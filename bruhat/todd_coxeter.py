@@ -312,6 +312,15 @@ class Schreier(object):
             bdy = _bdy
         return words
 
+    def get_poincare(self, ring, q):
+        "the poincare polynomial"
+        dists = [len(w) for w in self.get_words()]
+        N = max(dists)
+        p = ring.zero
+        for i in range(N+1):
+            p += dists.count(i) * q**i
+        return p
+
     def find_words(self):
         bdy = [0]
         words = {0:()}

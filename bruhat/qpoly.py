@@ -73,8 +73,12 @@ class Coxeter(object):
         return hash(self.key)
 
     @cache
+    def get_graph(self):
+        return Schreier.make_reflection(self.ngen, self.rel)
+
+    @cache
     def get_group(self):
-        graph = Schreier.make_reflection(self.ngen, self.rel)
+        graph = self.get_graph()
         G = graph.get_group()
         return G
 
@@ -88,8 +92,13 @@ class Coxeter(object):
     def get_order(self):
         return len(self.get_group())
 
+    @cache
     def get_poincare(self, ring, q):
         "the poincare polynomial"
+        graph = self.get_graph()
+        return graph.get_poincare(ring, q)
+
+    def slow_get_poincare(self, ring, q):
         G = self.get_group()
         gen = G.gen
         I = G.identity
@@ -137,11 +146,13 @@ class Coxeter(object):
         return Coxeter(ngen, rel)
 
     @classmethod
+    @cache
     def A(cls, n):
         rel = {(i, i+1):3 for i in range(n-1)}
         return cls(n, rel)
 
     @classmethod
+    @cache
     def B(cls, n):
         rel = {}
         for i in range(n-1):
@@ -150,6 +161,7 @@ class Coxeter(object):
     C = B
 
     @classmethod
+    @cache
     def D(cls, n):
         rel = {}
         for i in range(n-2):
@@ -159,6 +171,7 @@ class Coxeter(object):
         return cls(n, rel)
 
     @classmethod
+    @cache
     def E(cls, n):
         rel = {}
         for i in range(1, n-1):
@@ -167,12 +180,14 @@ class Coxeter(object):
         return cls(n, rel)
 
     @classmethod
+    @cache
     def F(cls):
         n = 4
         rel = {(0, 1):3, (1, 2):4, (2, 3): 3}
         return cls(n, rel)
 
     @classmethod
+    @cache
     def G(cls):
         return cls(2, {(0,1):6})
 
@@ -182,6 +197,8 @@ A1 = Coxeter.A(1)
 A2 = Coxeter.A(2)
 A3 = Coxeter.A(3)
 A4 = Coxeter.A(4)
+
+assert A0 is Coxeter.A(0)
 
 G = A4.get_group()
 assert len(G) == 120
@@ -249,47 +266,63 @@ def shortstr(p):
         return ''.join(str(c) for c in items)
     
 
-def qbracket(n):
-    p = zero
-    for i in range(n):
-        p = p + q**i
-    return p
 
-def qfactorial(n):
-    p = one
-    for i in range(n):
-        p = p * qbracket(i+1)
-    return p
+class Poincare(object):
+    def __init__(self, ring, q):
+        self.ring = ring
+        self.zero = ring.zero
+        self.one = ring.one
+        self.q = q
 
-def A(n):
-    return qfactorial(n+1)
-
-def B(n):
-    p = one
-    for i in range(n):
-        p = p * qbracket(2*(i+1))
-    return p
-C = B
-
-def D(n):
-    p = one
-    if n==1:
-        return 1+q # arghh...
-    for i in range(n-1):
-        p = p * qbracket(2*(i+1))
-    if n>0: 
-        p = p * qbracket(n)
-    return p
+    def qbracket(self, n):
+        q = self.q
+        p = self.zero
+        for i in range(n):
+            p = p + q**i
+        return p
+    
+    def qfactorial(self, n):
+        q = self.q
+        p = one
+        for i in range(n):
+            p = p * self.qbracket(i+1)
+        return p
+    
+    def A(self, n):
+        return self.qfactorial(n+1)
+    
+    def B(self, n):
+        p = one
+        for i in range(n):
+            p = p * self.qbracket(2*(i+1))
+        return p
+    C = B
+    
+    def D(self, n):
+        p = one
+        if n==1:
+            return 1+self.q # arghh...
+        for i in range(n-1):
+            p = p * self.qbracket(2*(i+1))
+        if n>0: 
+            p = p * self.qbracket(n)
+        return p
 
 
 def test():
+
+    print("test()")
+
+    poincare = Poincare(ring, q)
+    A, B, D = poincare.A, poincare.B, poincare.D
+
     assert q**0 == one
 
     p = (1+q)**5
 
-    assert qbracket(5) == 1 + q + q**2 + q**3 + q**4
+    assert poincare.qbracket(5) == 1 + q + q**2 + q**3 + q**4
 
-    assert qfactorial(3) == 1 + 2*q + 2*q**2 + q**3
+    assert poincare.qfactorial(3) == 1 + 2*q + 2*q**2 + q**3
 
     # These count points of the maximal flag variety over the
     # field with q elements:
