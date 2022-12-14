@@ -850,18 +850,20 @@ def test_gaussian_dessin():
     inners = [Perm(inner, G) for inner in inners]
     InnerG = Group(inners, G)
 
-    # gaussian lattice group
+    # gaussian lattice group, p=3 mod 4: p=3,7,11
     gap_code = """
     F := FreeGroup("r", "g", "b");;
     AssignGeneratorVariables(F);;
-    G := F/[r^2,g^2,b^2,(g*b)^4,(b*r)^4,(g*r)^2,(b*g*b*r)^11];
+    G := F/[r^2,g^2,b^2,(g*b)^4,(b*r)^4,(g*r)^2,(b*g*b*r)^3];
     AssignGeneratorVariables(G);;
     H := Subgroup(G, [g*b, b*r, g*r]);
     Order(H);
-    Irr(H);
+    chars := Irr(H);
+    LoadPackage( "repsn" );
+    IrreducibleAffordingRepresentation( chars[5] );
     """
 
-    # eisenstein lattice group
+    # eisenstein lattice group, p=5 mod 6
     gap_code = """
     F := FreeGroup("r", "g", "b");;
     AssignGeneratorVariables(F);;
