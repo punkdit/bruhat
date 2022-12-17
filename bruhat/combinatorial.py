@@ -706,7 +706,7 @@ def test():
 
 
 if __name__ == "__main__":
-    fn = argv.next() or "main"
+    fn = argv.next() or "test"
 
     if argv.profile:
         import cProfile as profile
