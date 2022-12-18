@@ -3,6 +3,10 @@
 """
 Algebraic groups: matrix groups over Z/pZ.
 
+see also:
+    quantale.py
+    combinatorial.py
+
 """
 
 
