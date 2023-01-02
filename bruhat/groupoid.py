@@ -7,7 +7,7 @@ Groupoid's represented by Function's on hom sets.
 from time import time
 start_time = time()
 
-from bruhat.action import Group, Perm
+from bruhat.action import Group, Perm, mulclose_hom
 from bruhat.argv import argv
 
 
@@ -19,13 +19,11 @@ class Function(object):
         self.send = dict(send)
         self.inv = None
 
-    #def __eq__(self, other):
-    #    return self.hom==other.hom and self.send==other.send
+    # __eq__   == is
+    # __hash__ == id(.)
 
     def __mul__(self, other):
         assert self.src is other.tgt # is or == ??
-        #function = {}
-        #function = Function(self.tgt, other.src, function)
         function = self.send[other]
         return function
 
@@ -41,20 +39,26 @@ class Function(object):
 
     def __invert__(self):
         return self.inv
-        #src, tgt = self.src, self.tgt
-        #send = dict((v, k) for (k,v) in self.send.items())
-        #return Function(tgt, src, send)
 
 
 
 class Groupoid(object):
     def __init__(self, functions, rank=None):
+        obs = set()
+        homs = {}
         for function in functions:
             if rank is None:
                 rank = len(function)
             assert len(function) == rank
+            homs.setdefault(function.hom, []).append(function)
+            obs.add(function.src)
+            obs.add(function.tgt)
+
         self.functions = list(functions)
         self.rank = rank
+        self.gen = None
+        self.homs = homs
+        self.obs = obs
         self.check()
 
     def check(self):
@@ -76,6 +80,29 @@ class Groupoid(object):
                 hgf = h*gf
                 hg = h*g
                 assert hgf == hg*f
+
+    def __getitem__(self, idx):
+        return self.functions[idx]
+
+    def __len__(self):
+        return len(self.functions)
+
+    the_star = "*"
+    @classmethod
+    def from_group(cls, G):
+        the_star = Groupoid.the_star
+        lookup = {g : Function(the_star, the_star) for g in G}
+        for g in G:
+            a = lookup[g]
+            a.inv = lookup[~g]
+            for h in G:
+                b = lookup[h]
+                ab = lookup[g*h]
+                a[b] = ab
+        fs = [lookup[g] for g in G]
+        S = Groupoid(fs, len(G))
+        S.gen = [lookup[g] for g in G.gen]
+        return S
 
     @classmethod
     def left_cayley(cls, G):
@@ -100,6 +127,10 @@ class Groupoid(object):
         G = action.src
         items = action.items
         send_perms = action.send_perms
+        T = Groupoid.from_group(G)
+        hom = mulclose_hom(G.gen, T.gen)
+        send_obs = {item : Groupoid.the_star for item in items}
+        send_fns = {}
         homs = {}
         fs = []
         for src in items:
@@ -107,6 +138,7 @@ class Groupoid(object):
             tgt = send_perms[g][src]
             function = Function(tgt, src)
             homs[tgt, src, g] = function
+            send_fns[function] = hom[g]
             fs.append(function)
         for x in items:
           for g in G:
@@ -118,7 +150,36 @@ class Groupoid(object):
                 b = homs[z, y, h]
                 ba = homs[z, x, h*g]
                 b[a] = ba
-        return Groupoid(fs)
+        S = Groupoid(fs)
+        hom = Hom(T, S, send_obs, send_fns)
+        return hom
+
+
+class Hom(object):
+    "A homomorphism of Groupoid's"
+    def __init__(self, tgt, src, send_obs, send_fns):
+        assert isinstance(tgt, Groupoid)
+        assert isinstance(src, Groupoid)
+        self.tgt = tgt
+        self.src = src
+        self.send_obs = dict(send_obs)
+        self.send_fns = dict(send_fns)
+
+        for (f,g) in send_fns.items():
+            assert isinstance(f, Function)
+            assert isinstance(g, Function)
+
+        for f in src.functions:
+          for g in src.functions:
+            if g.tgt != f.src:
+                continue
+            fg = f*g
+            assert send_fns[fg] == send_fns[f]*send_fns[g]
+
+    def __getitem__(self, f):
+        return self.send_fns[f]
+
+
 
 
 def test():
@@ -145,13 +206,24 @@ def test():
 
     G = Group.symmetric([0, 1, 2])
     assert len(G) == 6
+
+    S = Groupoid.from_group(G)
+
     S = Groupoid.left_cayley(G)
 
-    for H in G.subgroups():
-        print(len(H), end=' ')
+    Hs = list(G.subgroups())
+    Hs.sort(key = len)
+    for H in Hs:
+        print(len(H), end='\n')
         action = G.action_subgroup(H)
-        S = Groupoid.left_action(action)
-        print(len(S.functions))
+        hom = Groupoid.left_action(action)
+        T, S = hom.tgt, hom.src
+        for g in T.gen:
+            for x in S.obs:
+                gen = [h for h in S.homs[x,x] if hom[h]==g]
+                print(len(gen), end=" ")
+            print()
+            
 
 
 if __name__ == "__main__":
