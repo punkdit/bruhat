@@ -946,6 +946,19 @@ class Group(object):
                 cosets.add(coset)
         return list(cosets)
 
+    def right_cosets(self, H=None):
+        cosets = set()
+        if H is not None:
+            Hs = [H]
+        else:
+            Hs = self.subgroups()
+        lookup = dict((g, g) for g in self) # remember canonical word 
+        for action in Hs:
+            for g in self:
+                coset = Coset([lookup[h*g] for h in action], self.items)
+                cosets.add(coset)
+        return list(cosets)
+
     def left_action(self, items, basepoint=None):
         send_perms = {}
         perms = []
