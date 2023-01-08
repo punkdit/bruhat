@@ -28,7 +28,7 @@ scalar = numpy.int8 # CAREFUL !!
 from bruhat.action import mulclose, mulclose_hom
 from bruhat.spec import isprime
 from bruhat.argv import argv
-from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse
+from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse, intersect
 from bruhat.dev import geometry
 from bruhat.util import cross, allperms
 from bruhat.smap import SMap
@@ -2170,6 +2170,13 @@ class Figure(object):
 #            if not A.is_zero():
 #                return False
 #        return True
+
+    def intersect(lhs, rhs):
+        rows = [[len(intersect(l, r))
+            for r in rhs.items]
+            for l in lhs.items]
+        rows = numpy.array(rows)
+        return rows
         
     @classmethod
     def get_atomic(cls, m, n, p=DEFAULT_P):
@@ -2286,6 +2293,48 @@ def test_orbit():
     print("orbits:", len(orbits))
     #for orbit in orbits:
     #    assert len(orbit)%n == 0
+
+
+def test_intersect():
+    from bruhat import gset
+    n = argv.get("n", 4)
+
+    if n==4:
+        point = Figure.get_atomic(1, n)
+        line = Figure.get_atomic(2, n)
+        plane = Figure.get_atomic(3, n)
+        vol = Figure.get_atomic(4, n)
+    
+        figures = [
+            point,
+            line,
+            plane,
+            point + line,
+            line + plane,
+            point + plane,
+            point + line + plane + vol,
+        ]
+
+    elif n==3:
+        point = Figure.get_atomic(1, n)
+        line = Figure.get_atomic(2, n)
+        plane = Figure.get_atomic(3, n)
+        figures = [point, line, point + line + plane]
+
+    else:
+        return
+
+    G = Algebraic.GL(n)
+    flag = figures[-1]
+
+    bag = set()
+    for g in G:
+        other = g*plane
+        M = flag.intersect(other)
+        bag.add(str(M))
+    for s in bag:
+        print(s)
+    print(len(bag))
 
 
 def test_bruhat():
