@@ -308,6 +308,12 @@ class Poincare(object):
             p = p * self.qbracket(n)
         return p
 
+    def G2(self):
+        q = self.q
+        p = one + 2*q + 2*q**2 + 2*q**3 + 2*q**4 + 2*q**5 + q**6
+        return p
+        
+
 
 def test():
 
@@ -369,6 +375,10 @@ def test():
     assert get(B(4) / (A(1) * B(2))) == 5355
     assert get(B(4) / (A(2) * A(1))) == 11475
     assert get(B(4) / A(3)) == 2295
+
+    top = poincare.G2()
+    bot = A(1)
+    assert get(top / bot ) == 63
 
 
 if __name__ == "__main__":
