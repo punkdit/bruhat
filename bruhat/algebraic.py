@@ -1173,14 +1173,6 @@ class Sp(Algebraic):
             figs.append(flag)
         return figs
 
-    def test_slow_grassmanian():
-    
-        p = argv.get("p", 2)
-        n = argv.get("n", 3)
-        m = argv.get("m", 2)
-    
-        G = Algebraic.Sp(2*n, p)
-
     def slow_grassmanian(self, m):
         n = self.n//2
         p = self.p
@@ -2172,6 +2164,7 @@ class Figure(object):
 #        return True
 
     def intersect(lhs, rhs):
+        "find intersect'ion numbers"
         rows = [[len(intersect(l, r))
             for r in rhs.items]
             for l in lhs.items]
@@ -2295,7 +2288,7 @@ def test_orbit():
     #    assert len(orbit)%n == 0
 
 
-def test_intersect():
+def test_intersect_gl():
     from bruhat import gset
     n = argv.get("n", 4)
 
@@ -2335,6 +2328,51 @@ def test_intersect():
     for s in bag:
         print(s)
     print(len(bag))
+
+
+def test_intersect_sp():
+
+    n = 2
+    nn = 2*n
+    G = Algebraic.Sp(nn)
+    
+    items = []
+    for m in range(1, nn+1):
+        A = numpy.zeros((m, nn), dtype=int)
+        I = numpy.identity(m, dtype=int)
+        A[:, nn-m:] = I
+        items.append(A)
+    flag = Figure(items)
+    
+    if 0:
+        bag = {}
+        for m in G.grassmanian(2):
+            fig = Figure([m.A])
+            M = fig.intersect(flag)
+            bag[str(M)] = m
+
+    bag = {}
+    for g in G:
+        other = g*flag
+        M = flag.intersect(other)
+        bag[str(M)] = M
+    keys = list(bag.keys())
+    keys.sort(reverse=True)
+    for s in keys:
+        print(s)
+        print()
+    print(len(bag))
+
+    from bruhat.poset import Poset
+    pairs = []
+    for l in keys:
+     for r in keys:
+        lhs, rhs = bag[l], bag[r]
+        if numpy.alltrue(lhs <= rhs):
+            pairs.append((l, r))
+    poset = Poset(keys, pairs)
+    poset.get_dot("order.dot")
+
 
 
 def test_bruhat():
