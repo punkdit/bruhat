@@ -355,8 +355,31 @@ class Schreier(object):
         #    to construct a permutation.
         #    
     
-        #for d in range(self.ngens):
-        #    print("g%d ="%d, cycle(perms[d]))
+        for d in range(self.ngens):
+            print("g%d ="%d, cycle(perms[d]))
+
+    def get_dot(self, name):
+        cosets = [c for i, c in enumerate(self.labels) if i == c]
+        perms = [[cosets.index(self.follow_step(c, d)) for i, c in enumerate(cosets)]
+                 for d in range(self.ngens)]
+        lines = []
+        lines.append("graph the_graph")
+        lines.append("{")
+        n = len(cosets)
+        for cl, perm in zip('green blue red grey'.split(), perms):
+            for i, j in enumerate(perm):
+                if i > j:
+                    continue
+                if cl != "grey":
+                    lines.append("    %d -- %d [color=%s];"%(i, j, cl))
+        lines.append("}")
+        s = '\n'.join(lines)
+        f = open(name+".dot", 'w')
+        print(s, file=f)
+        f.close()
+        print("wrote", name)
+        import os
+        os.popen("dot -Tpdf %s.dot > %s.pdf" % (name,name))
 
     # -----------------------------------------------------------
     # constructors
@@ -631,6 +654,25 @@ def test_coxeter():
     graph.build()
     assert len(graph) == 3840
 
+
+def test_F4():
+
+    ngens = 4
+    a, b, c, d = range(ngens)
+    rels = [(a, a), (b, b), (c,c), (d,d)]
+    rels += [(a,a), (b,b), (c,c), (d,d), (a,c)*2, (a,d)*2, (b,d)*2, (a,b)*3, (b,c)*4, (c,d)*3]
+    graph = Schreier(ngens, rels)
+    graph.build()
+    assert len(graph) == 1152 # F_4
+    
+    gens = [(a,), (b,), (c,), (d,)]
+
+    for i in range(ngens):
+        graph = Schreier(ngens, rels)
+        gs = list(gens)
+        gs.pop(i)
+        graph.build(gs)
+        graph.get_dot("schreier_F4_%d"%(i,))
 
     
 

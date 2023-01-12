@@ -421,7 +421,7 @@ assert order_sp(4, 2)==720   # 6!
 
 
 class Algebraic(object):
-    def __init__(self, gen, order=None, p=DEFAULT_P, G=None, **kw):
+    def __init__(self, gen, order=None, p=DEFAULT_P, G=None, verbose=False, **kw):
         self.__dict__.update(kw)
         self.gen = list(gen)
         if G is not None:
@@ -435,11 +435,12 @@ class Algebraic(object):
         self.n = len(A)
         assert p == A.p
         self.I = Matrix.identity(self.n, p)
+        self.verbose = verbose
 
     def get_elements(self):
         if self.G is None:
             I = self.I
-            G = mulclose(self.gen, maxsize=self.order)
+            G = mulclose(self.gen, maxsize=self.order, verbose=self.verbose)
             G.remove(I)
             G.add(I)
             G = list(G)
@@ -2373,6 +2374,83 @@ def test_intersect_sp():
     poset = Poset(keys, pairs)
     poset.get_dot("order.dot")
 
+
+def test_g2():
+    n = 8
+
+    # Wilson (4.27)
+    desc = parse("""
+    ....1234
+    ..12..56
+    .1.3.5.7
+    1..4.67.
+    .23.5..8
+    2.4.6.8.
+    34..78..
+    5678....
+    """)
+    struct = numpy.zeros((n, n, n), dtype=int)
+    for i in range(n):
+      for j in range(n):
+        k = desc[i, j]
+        if k==0:
+            continue
+        k -= 1
+        struct[i, j, k] = 1
+
+    def mul(left, right):
+        result = numpy.zeros((n,), dtype=int)
+        for i in range(n):
+         for j in range(n):
+            result += left[i]*right[j]*struct[i,j,:]
+        result = Matrix(result)
+        return result
+
+    # See: Wilson 2009
+    A = {7:[7,1], 8:[8,2]}
+    B = {6:[6,1], 8:[8,3]}
+    C = {4:[4,1], 5:[5,1], 6:[6,2], 7:[7,3], 8:[8,5,4,1]}
+    D = {3:[3,1], 4:[4,2], 5:[5,2], 7:[7,4,5,2], 8:[8,6]}
+    E = {3:[3,2], 7:[7,6]}
+    F = {2:[2,1], 4:[4,3], 5:[5,3], 6:[6,4,5,3], 8:[8,7]}
+
+    gens = []
+    for op in A,B,C,D,E,F:
+        a = numpy.zeros((n, n), dtype=int)
+        for col in range(n):
+            rows = op.get(col, [col])
+            a[col, rows] = 1
+        a = Matrix(a)
+        gens.append(a)
+
+    A, B, C, D, E, F = gens
+
+    for i in range(n):
+     for j in range(n):
+        left  = ([0,0,0,0,0,0,0,0])
+        left[i] = 1
+        right = ([0,0,0,0,0,0,0,0])
+        right[j] = 1
+        left, right = Matrix(left), Matrix(right)
+        lhs = (mul(left, right))
+        l, r = A*left, A*right
+        rhs = (mul(A*left, A*right))
+        print(lhs, rhs)
+        assert lhs == rhs
+
+    # The unipotent subgroup (== Borel)
+    U = Algebraic(gens)
+    assert len(U) == 64
+
+    r = Matrix.perm([i-1 for i in [1,3,2,4,5,7,6,8]])
+    s = Matrix.perm([i-1 for i in [2,1,6,5,4,3,8,7]])
+
+    return
+
+    gens += [s]
+    G = Algebraic(gens, verbose=True)
+    print(len(G))
+    
 
 
 def test_bruhat():
