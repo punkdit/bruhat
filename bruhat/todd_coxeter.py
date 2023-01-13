@@ -358,7 +358,7 @@ class Schreier(object):
         for d in range(self.ngens):
             print("g%d ="%d, cycle(perms[d]))
 
-    def get_dot(self, colours):
+    def get_dot(self, colours, name=None):
         cosets = [c for i, c in enumerate(self.labels) if i == c]
         perms = [[cosets.index(self.follow_step(c, d)) for i, c in enumerate(cosets)]
                  for d in range(self.ngens)]
@@ -385,7 +385,14 @@ class Schreier(object):
                     lines.append('    %d -- %d [color="%s"];'%(i, j, cl))
         lines.append("}")
         s = '\n'.join(lines)
-        return s
+        if name is None:
+            return s
+        f = open(name+".dot", 'w')
+        print(s, file=f)
+        f.close()
+        print("Schreier.get_dot: wrote", name)
+        import os
+        os.popen("dot -Tpdf %s.dot > %s.pdf" % (name,name))
 
     # -----------------------------------------------------------
     # constructors
