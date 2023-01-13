@@ -358,28 +358,34 @@ class Schreier(object):
         for d in range(self.ngens):
             print("g%d ="%d, cycle(perms[d]))
 
-    def get_dot(self, name):
+    def get_dot(self, colours):
         cosets = [c for i, c in enumerate(self.labels) if i == c]
         perms = [[cosets.index(self.follow_step(c, d)) for i, c in enumerate(cosets)]
                  for d in range(self.ngens)]
         lines = []
         lines.append("graph the_graph")
         lines.append("{")
+        lines.append("""
+        node [
+		shape = circle
+		style = filled
+		color = "#00000000"
+                fillcolor = black
+                width = 0.1
+                height = 0.1
+                label = ""
+	]
+        """)
         n = len(cosets)
-        for cl, perm in zip('green blue red grey'.split(), perms):
+        for cl, perm in zip(colours, perms):
             for i, j in enumerate(perm):
                 if i > j:
                     continue
-                if cl != "grey":
-                    lines.append("    %d -- %d [color=%s];"%(i, j, cl))
+                if cl is not None:
+                    lines.append('    %d -- %d [color="%s"];'%(i, j, cl))
         lines.append("}")
         s = '\n'.join(lines)
-        f = open(name+".dot", 'w')
-        print(s, file=f)
-        f.close()
-        print("wrote", name)
-        import os
-        os.popen("dot -Tpdf %s.dot > %s.pdf" % (name,name))
+        return s
 
     # -----------------------------------------------------------
     # constructors
@@ -667,13 +673,25 @@ def test_F4():
     
     gens = [(a,), (b,), (c,), (d,)]
 
+    colours = "#FF0000 #3333B2 #009900 #CCCCCC".split()
+    colours[-1] = None
+
     for i in range(ngens):
         graph = Schreier(ngens, rels)
         gs = list(gens)
         gs.pop(i)
         graph.build(gs)
-        graph.get_dot("schreier_F4_%d"%(i,))
+        cs = list(colours)
+        #cs[i] = None
+        s = graph.get_dot(cs)
+        name = "schreier_F4_%d"%(i,)
 
+        f = open(name+".dot", 'w')
+        print(s, file=f)
+        f.close()
+        print("wrote", name)
+        import os
+        os.popen("dot -Tpdf %s.dot > %s.pdf" % (name,name))
     
 
 if __name__ == "__main__":
