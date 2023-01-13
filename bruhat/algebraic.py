@@ -30,7 +30,7 @@ from bruhat.spec import isprime
 from bruhat.argv import argv
 from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse, intersect
 from bruhat.dev import geometry
-from bruhat.util import cross, allperms
+from bruhat.util import cross, allperms, choose
 from bruhat.smap import SMap
 
 EPSILON = 1e-8
@@ -2406,6 +2406,53 @@ def test_g2():
         result = Matrix(result)
         return result
 
+    basis = [[0]*n for i in range(n)]
+    for i in range(n):
+        basis[i][i] = 1
+    basis = [Matrix(item) for item in basis]
+    x1, x2, x3, x4, x5, x6, x7, x8 = basis
+    zero = Matrix([0]*n)
+    assert mul(x1, x4) == zero
+    assert mul(x4, x1) == x1
+    assert mul(mul(x1, x4), x7) == zero
+    lhs, rhs = mul(x1, mul(x4, x7)), mul(x1, x7)
+    assert lhs == rhs == x3
+
+    e = x4 + x5
+    for x in basis:
+        assert mul(x, e) == x
+        assert mul(e, x) == x
+
+    def test_maufang(x, y, z):
+        lhs = mul(mul(x, y), mul(z, x))
+        rhs = mul(mul(x, mul(y, z)), x)
+        assert lhs == rhs
+        lhs = mul(x, mul(y, mul(x, z)))
+        rhs = mul(mul(mul(x, y), x), z)
+        assert lhs == rhs
+        lhs = mul(mul(mul(y, x), z), x)
+        rhs = mul(y, mul(x, mul(z, x)))
+        assert lhs == rhs
+
+    if 0:
+        # Maufang laws work
+        for x in basis:
+         for y in basis:
+          for z in basis:
+            test_maufang(x, y, z)
+    
+        def mk_rand():
+            x = [0]*n
+            for i in range(n//2):
+                x[randint(0, n-1)] = 1
+            return Matrix(x)
+    
+        for trial in range(100):
+            x = mk_rand()
+            y = mk_rand()
+            z = mk_rand()
+            test_maufang(x, y, z)
+
     # See: Wilson 2009
     A = {7:[7,1], 8:[8,2]}
     B = {6:[6,1], 8:[8,3]}
@@ -2423,20 +2470,35 @@ def test_g2():
         a = Matrix(a)
         gens.append(a)
 
-    A, B, C, D, E, F = gens
+    #for op in gens:
+    #    print( op*e*op == e )
 
+    A, B, C, D, E, F = gens
+    I = Matrix.identity(n)
+
+    def is_hom(op):
+        #assert op*op == I
+        for left in basis:
+         for right in basis:
+            lhs = mul(left*op, right*op)
+            rhs = op*mul(left, right)
+            if lhs != rhs:
+                return False
+        return True
+
+    triangle = []
     for i in range(n):
-     for j in range(n):
-        left  = ([0,0,0,0,0,0,0,0])
-        left[i] = 1
-        right = ([0,0,0,0,0,0,0,0])
-        right[j] = 1
-        left, right = Matrix(left), Matrix(right)
-        lhs = (mul(left, right))
-        l, r = A*left, A*right
-        rhs = (mul(A*left, A*right))
-        print(lhs, rhs)
-        assert lhs == rhs
+     for j in range(i+1, n):
+        triangle.append((i, j))
+    print(triangle)
+    for idxs in choose(triangle, 3):
+        a = numpy.identity(n, dtype=int)
+        for idx in idxs:
+            a[idx] = 1
+        op = Matrix(a)
+        if is_hom(op):
+            print("found!")
+    print()
 
     # The unipotent subgroup (== Borel)
     U = Algebraic(gens)
@@ -2444,6 +2506,13 @@ def test_g2():
 
     r = Matrix.perm([i-1 for i in [1,3,2,4,5,7,6,8]])
     s = Matrix.perm([i-1 for i in [2,1,6,5,4,3,8,7]])
+
+    # The Weyl group
+    W = Algebraic([r, s])
+    assert len(W) == 12
+
+    G = mulclose( [B, C, D, E], verbose=True )
+    print(len(G))
 
     return
 
