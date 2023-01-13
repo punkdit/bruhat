@@ -367,14 +367,17 @@ class Schreier(object):
         lines.append("{")
         lines.append("""
         node [
-		shape = circle
-		style = filled
-		color = "#00000000"
-                fillcolor = black
-                width = 0.1
-                height = 0.1
-                label = ""
+            shape = circle
+            style = filled
+            color = "#00000000"
+            fillcolor = black
+            width = 0.1
+            height = 0.1
+            label = ""
 	]
+        edge [
+            penwidth = 2.0
+        ]
         """)
         n = len(cosets)
         for cl, perm in zip(colours, perms):
