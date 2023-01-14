@@ -395,7 +395,10 @@ class Schreier(object):
         f.close()
         print("Schreier.get_dot: wrote", name)
         import os
-        os.popen("dot -Tpdf %s.dot > %s.pdf" % (name,name))
+        rval = os.system("neato -Tpdf %s.dot > %s.pdf" % (name,name))
+        assert rval == 0
+        rval = os.system("neato -Tsvg %s.dot > %s.svg" % (name,name))
+        assert rval == 0
 
     # -----------------------------------------------------------
     # constructors
