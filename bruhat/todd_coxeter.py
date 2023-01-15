@@ -359,9 +359,41 @@ class Schreier(object):
             print("g%d ="%d, cycle(perms[d]))
 
     def get_dot(self, colours, name=None):
-        cosets = [c for i, c in enumerate(self.labels) if i == c]
-        perms = [[cosets.index(self.follow_step(c, d)) for i, c in enumerate(cosets)]
+        labels = [c for i, c in enumerate(self.labels) if i == c]
+        perms = [[labels.index(self.follow_step(c, d)) for i, c in enumerate(labels)]
                  for d in range(self.ngens)]
+        assert labels[0] == 0
+        n = len(labels)
+        metric = {i:n for i in range(n)}
+        metric[0] = 0
+        done = False
+        while not done:
+            done = True
+            for perm in perms:
+              for i, j in enumerate(perm):
+                if metric[i] > metric[j]+1:
+                    metric[i] = metric[j]+1
+                    done = False
+                elif metric[j] > metric[i]+1:
+                    metric[j] = metric[i]+1
+                    done = False
+
+        components = {i:metric[i] for i in range(n)}
+        done = False
+        while not done:
+            done = True
+            for cl, perm in zip(colours, perms):
+                if cl is None:
+                    continue
+                for i, j in enumerate(perm):
+                    #if j>i:
+                    #    continue
+                    k = min(components[i], components[j])
+                    if components[i] > k or components[j] > k:
+                        components[i] = k
+                        components[j] = k
+                        done = False
+        
         lines = []
         lines.append("graph the_graph")
         lines.append("{")
@@ -378,14 +410,20 @@ class Schreier(object):
         edge [
             penwidth = 2.0
         ]
-        """)
-        n = len(cosets)
+        """); #lines.pop()
+        for i in range(n):
+            #lines.append('    %d [label="%s:%s"];'%(i, metric[i], components[i]))
+            if components[i] == metric[i]:
+                lines.append('    %d [color=black fillcolor=white ];'%(i,))
+            else:
+                lines.append('    %d;'%(i,))
         for cl, perm in zip(colours, perms):
             for i, j in enumerate(perm):
                 if i > j:
                     continue
-                if cl is not None:
-                    lines.append('    %d -- %d [color="%s"];'%(i, j, cl))
+                if cl is None:
+                    continue
+                lines.append('    %d -- %d [color="%s"];'%(i, j, cl))
         lines.append("}")
         s = '\n'.join(lines)
         if name is None:
