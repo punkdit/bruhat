@@ -2635,7 +2635,6 @@ def main():
         G = Algebraic.GL(n, p)
         print("|G| =", len(G))
 
-    test_hecke_monoid()
 
 
 if __name__ == "__main__":
