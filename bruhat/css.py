@@ -8,6 +8,9 @@ build CSS codes and self-dual CSS codes
 from time import time
 start_time = time()
 
+from functools import lru_cache
+cache = lru_cache(maxsize=None)
+
 import numpy
 from numpy import alltrue
 
@@ -18,16 +21,12 @@ from bruhat.sp_pascal import grassmannian
 from bruhat.argv import argv
 
 
-def main():
-
-    n = argv.get("n", 5)
-    m = argv.get("m", n//2)
-    mx = argv.get("mx", m)
-    mz = argv.get("mz", mx)
-    assert mx + mz <= n
-
+@cache
+def find_css(n, mx, mz):
+    if mx < mz:
+        return find_css(n, mz, mx) # recurse
     count = 0
-    found = 0
+    #found = set()
     for Hx in qchoose_2(n, mx):
         Jz = find_kernel(Hx)
         assert mx + len(Jz) == n
@@ -36,12 +35,32 @@ def main():
             Hz = dot2(Kz, Jz)
             Hz = normal_form_p(Hz)
             assert dot2(Hx, Hz.transpose()).sum() == 0
-            if numpy.alltrue(Hx==Hz):
-                #print(Hx.sum(1))
-                count += 1
+            key = str((Hx, Hz))
+            #assert key not in found
+            #found.add(key)
+            count += 1
+    return count
 
-    print()
-    print(count)
+
+def main_css():
+
+    n = argv.get("n", 5)
+    m = argv.get("m", n//2)
+    mx = argv.get("mx", m)
+    mz = argv.get("mz", mx)
+    assert mx + mz <= n
+
+    for n in range(10):
+        print("n:", n)
+        for mx in range(n+1):
+          print("   ", end="")
+          for mz in range(n+1):
+            if mx+mz>n:
+                continue
+            count = find_css(n, mx, mz)
+            print("(%s,%s):%8d"%(mx, mz, count,), end=" ", flush=True)
+          print()
+
 
 
 def dump(Hx):
@@ -69,9 +88,10 @@ def main_selfdual():
     found = 0
     for Hx in qchoose_2(n, m):
         if dot2(Hx, Hx.transpose()).sum() == 0:
-            if show and Hx.sum(0).min() > 0:
-                #print(Hx)
-                dump(Hx)
+            if Hx.sum(0).min() > 0:
+                if show:
+                    #print(Hx)
+                    dump(Hx)
                 found += 1
             count += 1
 
