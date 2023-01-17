@@ -326,6 +326,9 @@ class Matrix(object):
         A = self.A
         return Matrix(A.transpose(), self.p)
 
+    def sum(self):
+        return self.A.sum()
+
     def mask(self, A):
         return Matrix(self.A * A, self.p) # pointwise multiply !
 

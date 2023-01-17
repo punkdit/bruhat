@@ -14,7 +14,7 @@ cache = lru_cache(maxsize=None)
 import numpy
 from numpy import alltrue
 
-from bruhat.solve import find_kernel, dot2, shortstr
+from bruhat.solve import find_kernel, dot2, shortstr, solve, pseudo_inverse
 from bruhat.algebraic import (
     qchoose_2, all_codes, normal_form_p, Algebraic, Matrix)
 from bruhat.sp_pascal import grassmannian
@@ -35,11 +35,79 @@ def find_css(n, mx, mz):
             Hz = dot2(Kz, Jz)
             Hz = normal_form_p(Hz)
             assert dot2(Hx, Hz.transpose()).sum() == 0
-            key = str((Hx, Hz))
+            #key = str((Hx, Hz))
             #assert key not in found
             #found.add(key)
             count += 1
     return count
+
+
+def find_majorana(n, m):
+    # See: https://arxiv.org/abs/1004.3791
+
+    nn = 2*n
+    Xs, Zs = [], []
+    for i in range(n):
+        Xs.append(i)
+        Zs.append(n + n-i-1)
+
+    G = Algebraic.Sp(nn)
+    F = G.invariant_form
+
+    modes = []
+    for i in range(n):
+        u = numpy.zeros((nn,), dtype=int)
+        v = numpy.zeros((nn,), dtype=int)
+        for j in range(i-1):
+            u[Zs[j]] = 1
+            v[Zs[j]] = 1
+        u[Xs[i]] = 1
+        v[Xs[i]] = 1
+        v[Zs[i]] = 1
+        #u.shape = 1,nn
+        #v.shape = 1,nn
+        u, v = Matrix(u), Matrix(v)
+        uv = u*F*v.transpose()
+        assert uv.A == 1
+        modes.append(u)
+        modes.append(v)
+    modes = numpy.array(modes, dtype=int)
+    #print(modes)
+
+    modes_i = pseudo_inverse(modes)
+
+    count = 0
+    found = 0
+    for _, H in grassmannian(n, m):
+        #U = solve(modes.transpose(), H.transpose())
+        U = dot2(modes_i, H.transpose())
+
+        U2 = U.sum(0)%2
+        if U2.sum() == 0:
+            found += 1
+
+        #H = Matrix(H)
+        #HFH = H*F*H.transpose()
+        #assert HFH.sum() == 0
+
+        count += 1
+
+    #print(count, found)
+    return found
+
+
+
+def main_majorana():
+    n = argv.get("n", 5)
+    m = argv.get("m", n//2)
+
+    #count = find_majorana(n, m)
+
+    for n in range(1, 6):
+     for m in range(n+1):
+        count = find_majorana(n, m)
+        print(count, end=" ", flush=True)
+     print()
 
 
 def main_css():
@@ -185,5 +253,6 @@ if __name__ == "__main__":
 
 
     print("finished in %.3f seconds"%(time() - start_time))
+    print()
 
 
