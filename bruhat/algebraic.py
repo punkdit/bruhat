@@ -2379,6 +2379,7 @@ def test_intersect_sp():
 
 
 def test_g2():
+    # FAIL 
     n = 8
 
     # Wilson (4.27)
@@ -2523,6 +2524,94 @@ def test_g2():
     G = Algebraic(gens, verbose=True)
     print(len(G))
     
+
+# https://mathoverflow.net/questions/270781/what-finite-simple-groups-we-can-obtain-using-octonions
+def test_octonion():
+
+    # FAIL 
+
+    # Wilson (4.18)
+    desc = """
+    .361542
+    3.40265
+    64.5130
+    105.624
+    5216.03
+    46320.1
+    250431.
+    """.strip().split()
+    assert len(desc) == 7
+
+    n = 8
+    struct = numpy.zeros((n, n, n), dtype=int)
+    for i in range(n-1):
+      for j in range(n-1):
+        k = desc[i][j]
+        if k=='.':
+            k = 0
+        else:
+            k = int(k)+1
+        struct[i+1, j+1, k] = 1
+    for i in range(n):
+        struct[0, i, i] = 1
+        struct[i, 0, i] = 1
+
+    def mul(left, right):
+        result = numpy.zeros((n,), dtype=int)
+        for i in range(n):
+         for j in range(n):
+            result += left[i]*right[j]*struct[i,j,:]
+        result = Matrix(result)
+        return result
+
+    basis = [[0]*n for i in range(n)]
+    for i in range(n):
+        basis[i][i] = 1
+    basis = [Matrix(item) for item in basis]
+
+    def lmul(left):
+        rows = []
+        for x in basis:
+            rows.append(mul(left, x).A)
+        A = numpy.array(rows)
+        A = Matrix(A)
+        return A
+
+    e, x0, x1, x2, x3, x4, x5, x6 = basis
+    zero = Matrix([0]*n)
+
+    algebra = []
+    for bits in cross([(0,1)]*n):
+        v = numpy.array(bits)
+        v = Matrix(v)
+        algebra.append(v)
+
+    assert mul(x0, x5) == x4
+    for x in algebra:
+        assert mul(e, x) == x
+        assert mul(x, e) == x
+
+    gen = []
+    for x in algebra:
+      for y in algebra:
+        if mul(x, y) != mul(y, x):
+            continue
+        L = lmul(x)
+        R = lmul(y).transpose()
+        M = L*R*L*R 
+        a = numpy.linalg.det(M.A)
+        if a==1 and M*M != M:
+            print(M, a)
+            gen.append(M)
+
+    gen = []
+    for x in basis:
+        L = lmul(x)
+        R = lmul(x).transpose()
+        gen.append(L)
+        gen.append(R)
+    G = mulclose(gen)
+    print(len(gen))
 
 
 def test_bruhat():
