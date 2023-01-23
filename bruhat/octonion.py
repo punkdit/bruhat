@@ -16,6 +16,7 @@ start_time = time()
 
 from bruhat import element
 from bruhat.util import choose, cross
+from bruhat.action import mulclose
 from bruhat.argv import argv
 
 
@@ -263,18 +264,64 @@ def main():
         Double(zero, one),
         Double(i, zero), Double(j, zero), Double(k, zero),
         Double(zero, i), Double(zero, j), Double(zero, k)]
+    zero = Double(zero, zero)
 
     one = octonions[0]
     imag = octonions[1:]
     for i in imag:
-        assert i*i == -1
-    i0, i1, i2, i3, i4, i5, i6 = imag
+        assert i*i == -one
+
+    # Conway indexing
+    i0, i1, i2, i4, i3, i6, i5 = imag
+    imag = [i0, i1, i2, i3, i4, i5, i6]
     inf = one
 
-    lhs = inf + i0 + i2 + i6
-    rhs = inf + i0 + i1 + i3
+    assert i1*i2 == i4
+    assert i2*i3 == i5
+    assert i3*i4 == i6
+    assert i2*i1 == -i4
+    assert i3*i2 == -i5
+    assert i4*i3 == -i6
+
+    assert i2*i4 == i1
+    assert i3*i5 == i2
+    assert i4*i6 == i3
+
+    assert i4*i1 == i2
+
+    def get(desc):
+        x = zero
+        sign = 1
+        for a in desc:
+            if a=='-':
+                sign = -1
+            elif a=='i':
+                x = x+sign*inf
+                sign = +1
+            else:
+                a = int(a)
+                x = x+sign*imag[a]
+                sign = +1
+        return x / 2
+    assert i6 == imag[6]
+
+    lhs = (inf + i0 + i2 + i6) / 2
+    assert lhs == get("i026")
+    rhs = (inf + i0 + i1 + i3) / 2
+    assert rhs == get("i013")
     print(lhs * rhs)
-    print(i0 + i2 + i3 + i5)
+    assert get("0235") == (i0 + i2 + i3 + i5)/2
+    assert get("02-35") == (i0 + i2 - i3 + i5)/2
+
+    lhs = get('i356')
+    rhs = get('-i356')
+    assert lhs*lhs == rhs
+
+    gen = "0124 0235 0346 i450 0561 i602 i013 i356 146i 25i1 3612 4i23 5134 6245 i0123456"
+    gen = gen.split()
+    gen = [get(a) for a in gen]
+    #G = mulclose(gen, verbose=True)
+    #print(len(G))
 
     return
 
