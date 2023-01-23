@@ -10,7 +10,7 @@ import select
 from subprocess import Popen, PIPE
 import re
 
-from argv import argv
+from bruhat.argv import argv
 
 PROMPT = "gap> "
 

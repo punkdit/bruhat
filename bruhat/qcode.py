@@ -126,7 +126,7 @@ def monte_carlo(H, v, p=0.5, trials=10000):
 
 
 class QCode(object):
-    def __init__(self, H, J=None):
+    def __init__(self, H, J=None, d=None, check=True):
         m, n, k = H.shape
         assert k == 2 # X, Z components
         assert H.max() <= 1
@@ -135,8 +135,10 @@ class QCode(object):
         self.L = None # logicals
         self.m = m
         self.n = n
+        self.d = d
         self.shape = m, n
-        self.check()
+        if check:
+            self.check()
 
     @classmethod
     def build_css(cls, Hx, Hz):
