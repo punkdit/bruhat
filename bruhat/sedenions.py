@@ -7,8 +7,8 @@ get complex numbers, quaternions, octonions, sedenions, etc.
 
 import math, os
 
-from isomorph import Point, Graph, search
-from argv import argv
+from bruhat.isomorph import Point, Graph, search
+from bruhat.argv import argv
 
 
 class Number(object):

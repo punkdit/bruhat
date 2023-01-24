@@ -16,14 +16,18 @@ start_time = time()
 
 from bruhat import element
 from bruhat.util import choose, cross
-from bruhat.action import mulclose
+#from bruhat.action import mulclose, Perm, Group
+from bruhat.gset import mulclose, Perm, Group
 from bruhat.argv import argv
+from bruhat.isomorph import Point, Graph, search
+
 
 
 class Number(object):
     def __init__(self, a):
         self.a = a
         self.shape = ()
+        self.flat = (a,)
 
     def __str__(self):
         return str(self.a)
@@ -97,6 +101,7 @@ class Double(Number):
         assert isinstance(a, Number)
         self.a = a
         self.b = b
+        self.flat = a.flat + b.flat
 
     def get_zero(self):
         return Double(self.a.get_zero(), self.b.get_zero())
@@ -211,6 +216,86 @@ def is_alternative(items):
         if a*(b*b) != (a*b)*b:
             return False
     return True
+
+def dot(a, b): 
+    ab = reduce(add, [ai*bi for (ai,bi) in zip(a.flat,b.flat)])
+    return ab
+
+
+
+def get_geometry(imag):
+    graph = Graph()
+    N = len(imag)
+    triples = set()
+    cycles = []
+    for idx in range(N):
+        graph.add('p')
+    for idx in range(N):
+      for jdx in range(N):
+        if idx==jdx:
+            continue
+        k = imag[idx]*imag[jdx]
+        if k not in imag:
+            continue
+        kdx = imag.index(k)
+        key = [idx, jdx, kdx]
+        cycle = list(key)
+        key.sort()
+        key = tuple(key)
+        if key in triples:
+            continue
+        triples.add(key)
+        cycles.append(cycle)
+        p = graph.add('l')
+        graph.join(idx, p)
+        graph.join(jdx, p)
+        graph.join(kdx, p)
+
+    return graph, cycles
+
+
+
+def find_perms(imag):
+    bag0, cycles = get_geometry(imag)
+    bag1, cycles = get_geometry(imag)
+    #print(cycles)
+
+    N = 3
+    struct = []
+    for cycle in cycles:
+        items = []
+        for i in range(N):
+            items.append(tuple(cycle[(i+j)%N] for j in range(N)))
+        items.sort()
+        #print items
+        struct.append(items)
+    struct.sort()
+
+    for cycle in cycles:
+        cycle = [bag0[i] for i in cycle]
+        nbd = set(cycle[0].nbd)
+        for point in cycle:
+            nbd = nbd.intersection(point.nbd)
+        assert len(nbd)==1
+
+    #print(struct)
+
+    perms = []
+    count = 0
+    total = 0
+    for f in search(bag0, bag1):
+        _struct = [[tuple(f[i] for i in cycle) for cycle in items] for items in struct ]
+        for items in _struct:
+            items.sort()
+        _struct.sort()
+        #print(_struct)
+        if struct==_struct:
+            count += 1
+            #print("*")
+        total += 1
+        perms.append(f)
+
+    return perms
 
 
 def main():
@@ -356,7 +441,77 @@ def main():
     #  for b in units:
     #    assert a*b in units
 
+#    # j-frame, page 138
+#    frame = [
+#        one,
+#        get("-0124"), get("0-124"), get("01-24"), -i6,
+#        get("012-4"), -i3, -i6
+#    ]
 
+    fmt = "(" + 8*"%4s," + ")"
+
+    def send(x):
+        xs = x.flat
+        items = [xi*j for (xi,j) in zip(xs, frame)]
+        return reduce(add, items)
+
+    def act(perm, x):
+        xs = x.flat
+        xs = [xs[perm[i]+1] for i in range(7)]
+        result = reduce(add, [xi*yi for (xi,yi) in zip(xs, imag)])
+        result += x.flat[0]*one
+        return result
+
+    perms = find_perms(imag)
+    for perm in perms:
+        auto = True
+        for a in basis:
+            a1 = act(perm, a)
+            assert a1 in basis
+            for b in basis:
+                b1 = act(perm, b)
+                if a1*b1 != act(perm, a*b):
+                    print(a1*b1)
+                    print(act(perm, a*b))
+                    print()
+                    auto = False
+                    break
+        if auto:
+            print("found")
+
+    return
+
+    found = []
+    for a in units:
+        if dot(a, one) == 0:
+            found.append(a)
+    assert len(found) == 126
+
+    found = []
+    for a in units:
+        if a==one:
+            continue
+        if a*a==one:
+            continue
+        if a*a*a==one:
+            found.append(a)
+    print(len(found))
+
+    perms = []
+    lookup = {unit:idx for (idx, unit) in enumerate(units)}
+    n = len(units)
+    for x in found:
+        xc = x.conj()
+        perm = [None]*n
+        for a in units:
+            b = xc*a*x
+            perm[lookup[a]] = lookup[b]
+        assert None not in perm
+        perm = Perm(perm)
+        perms.append(perm)
+    #G = Group(None, perms)
+    G = mulclose(perms, verbose=True)
+    print(len(G))
 
 if __name__ == "__main__":
 
