@@ -259,21 +259,30 @@ def main():
 
     # ----------- double: octonions --------------------
 
-    octonions = [
+    basis = [
         Double(one, zero), 
         Double(zero, one),
-        Double(i, zero), Double(j, zero), Double(k, zero),
-        Double(zero, i), Double(zero, j), Double(zero, k)]
+        Double(i, zero), 
+        Double(j, zero), 
+        Double(zero, i), 
+        Double(k, zero),
+        Double(zero, k),
+        Double(zero, j), 
+    ]
     zero = Double(zero, zero)
 
-    one = octonions[0]
-    imag = octonions[1:]
+    one = basis[0]
+    imag = basis[1:]
+    assert one + one == 2*one
     for i in imag:
         assert i*i == -one
 
-    # Conway indexing
-    i0, i1, i2, i4, i3, i6, i5 = imag
-    imag = [i0, i1, i2, i3, i4, i5, i6]
+    assert not is_commutative(basis)
+    assert not is_associative(basis)
+    assert is_anticommutative(basis[1:])
+    assert is_alternative(basis)
+
+    i0, i1, i2, i3, i4, i5, i6 = imag
     inf = one
 
     assert i1*i2 == i4
@@ -309,71 +318,44 @@ def main():
     assert lhs == get("i026")
     rhs = (inf + i0 + i1 + i3) / 2
     assert rhs == get("i013")
-    print(lhs * rhs)
+    print(lhs*rhs)
+    z = lhs*rhs
+    print(get("0235"))
+    for idxs in choose(list("0123456"), 4):
+        #print(idxs)
+        x = get(idxs)
+        if x==z:
+            print(idxs)
+            print(x)
+    assert lhs*rhs == get("0156")
+
     assert get("0235") == (i0 + i2 + i3 + i5)/2
     assert get("02-35") == (i0 + i2 - i3 + i5)/2
 
     lhs = get('i356')
     rhs = get('-i356')
     assert lhs*lhs == rhs
+    #assert get('i356') * get('0463') == get('-i461') # ???
 
-    gen = "0124 0235 0346 i450 0561 i602 i013 i356 146i 25i1 3612 4i23 5134 6245 i0123456"
+    gen = "0124 0235 0346 i450 0561 i602 i013 i356 146i 25i1 3612 4i23 5134 6245"
     gen = gen.split()
     gen = [get(a) for a in gen]
-    #G = mulclose(gen, verbose=True)
-    #print(len(G))
-
-    return
-
-    assert not is_commutative(octonions)
-    assert not is_associative(octonions)
-    assert is_anticommutative(octonions[1:])
-    assert is_alternative(octonions)
-
-    assert one + one == 2*one
-    units = [one, -one]
-    for i in imag:
-        units += [i, -i]
+    units = mulclose(gen)
+    assert len(units) == 240
     units = set(units)
+    assert one in units
 
-    return
+    for i in basis:
+        assert i in units
+        assert -i in units
 
-    bag = set()
-    signss = list(cross([(-1,1)]*4))
-    for items in choose(imag, 4):
-     for signs in signss:
-        ii = [x*i for (x,i) in zip(signs, items)]
-        k = reduce(add, ii)
-        k = k/2
-        bag.add(k)
-    print(len(bag))
-    bag = list(bag)
-    N = len(bag)
-    for idx in range(N):
-      for jdx in range(idx, N):
-        i, j = bag[idx], bag[jdx]
-        if i*j != one:
-            continue
-        if i not in units:
-            print(i)
-            units.add(i)
-        if j not in units:
-            print(j)
-            units.add(j)
-#      for a in units:
-#        for b in units:
-#          if a is b:
-#            continue
-#          assert a != b
-#          assert hash(a) != hash(b)
-#          assert str(a) != str(b)
-        
     print()
     print(len(units))
 
-    for a in units:
-      for b in units:
-        assert a*b in units
+    #for a in units:
+    #  for b in units:
+    #    assert a*b in units
+
 
 
 if __name__ == "__main__":
