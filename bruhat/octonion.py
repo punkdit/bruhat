@@ -15,7 +15,7 @@ from time import time
 start_time = time()
 
 from bruhat import element
-from bruhat.util import choose, cross
+from bruhat.util import choose, cross, all_perms
 #from bruhat.action import mulclose, Perm, Group
 from bruhat.gset import mulclose, Perm, Group
 from bruhat.argv import argv
@@ -356,6 +356,13 @@ def main():
     ]
     zero = Double(zero, zero)
 
+    obasis = [basis[i] for i in [0, 2, 3, 5, 1, 4, 7, 6]]
+
+    fmt = "(" + 8*"%4s," + ")"
+    #for u in obasis:
+    #    print(fmt%u.flat)
+    #return
+
     one = basis[0]
     imag = basis[1:]
     assert one + one == 2*one
@@ -403,15 +410,15 @@ def main():
     assert lhs == get("i026")
     rhs = (inf + i0 + i1 + i3) / 2
     assert rhs == get("i013")
-    print(lhs*rhs)
-    z = lhs*rhs
-    print(get("0235"))
-    for idxs in choose(list("0123456"), 4):
-        #print(idxs)
-        x = get(idxs)
-        if x==z:
-            print(idxs)
-            print(x)
+#    print(lhs*rhs)
+#    z = lhs*rhs
+#    print(get("0235"))
+#    for idxs in choose(list("0123456"), 4):
+#        #print(idxs)
+#        x = get(idxs)
+#        if x==z:
+#            print(idxs)
+#            print(x)
     assert lhs*rhs == get("0156")
 
     assert get("0235") == (i0 + i2 + i3 + i5)/2
@@ -447,39 +454,75 @@ def main():
 #        get("-0124"), get("0-124"), get("01-24"), -i6,
 #        get("012-4"), -i3, -i6
 #    ]
+#    def send(x):
+#        xs = x.flat
+#        items = [xi*j for (xi,j) in zip(xs, frame)]
+#        return reduce(add, items)
 
-    fmt = "(" + 8*"%4s," + ")"
 
-    def send(x):
-        xs = x.flat
-        items = [xi*j for (xi,j) in zip(xs, frame)]
-        return reduce(add, items)
 
     def act(perm, x):
+        assert len(perm) == 7
         xs = x.flat
         xs = [xs[perm[i]+1] for i in range(7)]
-        result = reduce(add, [xi*yi for (xi,yi) in zip(xs, imag)])
+        result = reduce(add, [xi*yi for (xi,yi) in zip(xs, obasis[1:])])
         result += x.flat[0]*one
         return result
 
-    perms = find_perms(imag)
-    for perm in perms:
-        auto = True
+#    perm = [3, 1, 2, 5, 0, 4, 6]
+#    for u in units:
+#        print(fmt%u.flat)
+#        print(fmt%act(perm, u).flat)
+#        print()
+
+    def is_auto(perm):
+        if perm == (0, 1, 2, 3, 4, 5, 6):
+            return True
         for a in basis:
             a1 = act(perm, a)
             assert a1 in basis
             for b in basis:
                 b1 = act(perm, b)
-                if a1*b1 != act(perm, a*b):
-                    print(a1*b1)
-                    print(act(perm, a*b))
-                    print()
-                    auto = False
-                    break
-        if auto:
-            print("found")
+                assert b1 in basis
+                ab1 = act(perm, a*b)
+                if a1*b1 != ab1:
+                    return False
+        return True
+        print("\nis_auto:", perm)
+        for a in units:
+            a1 = act(perm, a)
+            if a1 not in units:
+                print("/", end='', flush=True)
+                return False
+            for b in units:
+                b1 = act(perm, b)
+                if b1 not in units:
+                    print("\\", end='', flush=True)
+                    return False
+                ab = a*b
+                ab1 = act(perm, a*b)
+                if a1*b1 != ab1:
+                    return False
+                assert ab1 in units
+        return True
 
-    return
+    if argv.brute_force:
+        items = list(range(7))
+        gen = []
+        for perm in all_perms(items):
+            if not is_auto(perm):
+                print(".", end='', flush=True)
+                continue
+    
+            print()
+            print(perm)
+            perm = Perm(list(perm))
+            gen.append(perm)
+            G = mulclose(gen)
+            print(len(G))
+    
+        return
+    
 
     found = []
     for a in units:
@@ -509,9 +552,32 @@ def main():
         assert None not in perm
         perm = Perm(perm)
         perms.append(perm)
-    #G = Group(None, perms)
     G = mulclose(perms, verbose=True)
     print(len(G))
+    return
+
+    idxss = find_perms(obasis[1:])
+#    for idxs in [
+#        [1, 2, 0, 3, 5, 6, 4],
+#        [2, 0, 1, 3, 6, 4, 5],
+#    ]:
+    for idxs in idxss:
+        idxs = [idxs[i] for i in range(7)]
+        perm = [None]*n
+        for a in units:
+            b = act(idxs, a)
+            perm[lookup[a]] = lookup[b]
+        assert None not in perm
+        perm = Perm(perm)
+        perms.append(perm)
+
+    #for p in perms:
+    #    print(p, p.is_identity())
+
+    G = mulclose(perms, verbose=True)
+    print(len(G))
+
+
 
 if __name__ == "__main__":
 
