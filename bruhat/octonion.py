@@ -9,6 +9,7 @@ copied from sedenions.py
 """
 
 import math, os
+from random import choice
 from functools import reduce
 from operator import add, mul
 from time import time
@@ -364,9 +365,9 @@ def main():
     #return
 
     one = basis[0]
-    imag = basis[1:]
+    iframe = basis[1:]
     assert one + one == 2*one
-    for i in imag:
+    for i in iframe:
         assert i*i == -one
 
     assert not is_commutative(basis)
@@ -374,51 +375,67 @@ def main():
     assert is_anticommutative(basis[1:])
     assert is_alternative(basis)
 
-    i0, i1, i2, i3, i4, i5, i6 = imag
-    inf = one
-
-    assert i1*i2 == i4
-    assert i2*i3 == i5
-    assert i3*i4 == i6
-    assert i2*i1 == -i4
-    assert i3*i2 == -i5
-    assert i4*i3 == -i6
-
-    assert i2*i4 == i1
-    assert i3*i5 == i2
-    assert i4*i6 == i3
-
-    assert i4*i1 == i2
-
-    def get(desc):
+    def get(desc, frame=iframe):
         x = zero
         sign = 1
         for a in desc:
             if a=='-':
                 sign = -1
             elif a=='i':
-                x = x+sign*inf
+                x = x+sign*one
                 sign = +1
             else:
                 a = int(a)
-                x = x+sign*imag[a]
+                x = x+sign*frame[a]
                 sign = +1
         return x / 2
-    assert i6 == imag[6]
+    i0, i1, i2, i3, i4, i5, i6 = iframe
 
-    lhs = (inf + i0 + i2 + i6) / 2
+#    found = 0
+#    for iframe in all_perms(iframe):
+#        i0, i1, i2, i3, i4, i5, i6 = iframe
+#    
+#        try:
+#
+#            #lhs = get("i026", iframe) * get("i013", iframe)
+#            #rhs = get("0235", iframe)
+#            #assert lhs == rhs
+#
+#            assert i1*i0 == i3
+#            assert i0*i5 == i4
+#            assert i2*i0 == i6
+#            assert i1*i5 == i6
+#
+#            assert i1*i2 == i4
+#            assert i2*i3 == i5
+#            assert i3*i4 == i6
+#            #assert i4*i5 == i0
+#        
+#            assert i2*i1 == -i4
+#            assert i3*i2 == -i5
+#            assert i4*i3 == -i6
+#        
+#            assert i2*i4 == i1
+#            assert i3*i5 == i2
+#            assert i4*i6 == i3
+#            #assert i5*i0 == i4
+#        
+#            assert i4*i1 == i2
+#            assert i5*i2 == i3
+#            assert i6*i3 == i4
+#            found += 1
+#        except AssertionError:
+#            pass
+#        
+#    assert found == 21, found
+
+    assert i6 == iframe[6]
+
+    # page 102: incorrect ?
+    lhs = (one + i0 + i2 + i6) / 2
     assert lhs == get("i026")
-    rhs = (inf + i0 + i1 + i3) / 2
+    rhs = (one + i0 + i1 + i3) / 2
     assert rhs == get("i013")
-#    print(lhs*rhs)
-#    z = lhs*rhs
-#    print(get("0235"))
-#    for idxs in choose(list("0123456"), 4):
-#        #print(idxs)
-#        x = get(idxs)
-#        if x==z:
-#            print(idxs)
-#            print(x)
     assert lhs*rhs == get("0156")
 
     assert get("0235") == (i0 + i2 + i3 + i5)/2
@@ -432,34 +449,88 @@ def main():
     gen = "0124 0235 0346 i450 0561 i602 i013 i356 146i 25i1 3612 4i23 5134 6245"
     gen = gen.split()
     gen = [get(a) for a in gen]
-    units = mulclose(gen)
+    units = mulclose(gen) # just happens to work... but this is non-associative
     assert len(units) == 240
     units = set(units)
     assert one in units
+
+    #a = choice(list(units))
+    #b = choice(list(units))
+    #c = choice(list(units))
+    #assert (a*b)*c == a*(b*c)
 
     for i in basis:
         assert i in units
         assert -i in units
 
-    print()
-    print(len(units))
+    print("units:", len(units))
 
     #for a in units:
     #  for b in units:
     #    assert a*b in units
 
-#    # j-frame, page 138
-#    frame = [
-#        one,
-#        get("-0124"), get("0-124"), get("01-24"), -i6,
-#        get("012-4"), -i3, -i6
-#    ]
-#    def send(x):
-#        xs = x.flat
-#        items = [xi*j for (xi,j) in zip(xs, frame)]
-#        return reduce(add, items)
+    def is_orthogonal(frame):
+        for x in frame:
+          for y in frame:
+            if x is y:
+                continue
+            if dot(x, y) != 0:
+                return False
+        return True
 
+    # jframe, page 138
+    j0 = get("-0124") 
+    j1 = get("0-124") 
+    j2 = get("01-24") 
+    j3 = -i6
+    j4 = get("012-4") 
+    j5 = -i3
+    j6 = -i5
+    jframe = [j0, j1, j2, j3, j4, j5, j6]
+    assert is_orthogonal(jframe)
 
+    assert j0 + j1 == i2 + i4
+    assert j0 - j1 == i1 - i0
+    
+    #lhs, rhs = j1*j0 , (j2+j3-j4+j6)/2 # page 139
+    lhs, rhs = j0*j1 , (j2-j3-j4-j6)/2
+    assert lhs == rhs
+
+    def find(lhs, frame=iframe):
+        for jdxs in choose(list(range(7)), 4):
+          js = [jframe[jdx] for jdx in jdxs]
+          for signs in cross([(-1, 1)]*4):
+            x = reduce(add, [(sign*u)/2 for (sign, u) in zip(signs, js)])
+            if lhs == x:
+                print("found:", jdxs, signs)
+                return
+
+    for j0 in jframe:
+        assert j0*j0 == -one
+        for j1 in jframe:
+            assert j0*j1 == (j1*j0).conj()
+            #for j2 in jframe:
+            #    assert (j0*j1)*j2 == j0*(j1*j2) # nope..
+
+    # non-associative...
+    #J = mulclose(jframe)
+    #assert J.issubset(units)
+
+    k0 = -i0
+    k1 = get("-1263") 
+    k2 = get("-2456")
+    k3 = get("-1-2-63")
+    k4 = get("-4135")
+    k5 = get("-4-1-35")
+    k6 = get("-2-4-56")
+    kframe = [k0, k1, k2, k3, k4, k5, k6]
+    assert is_orthogonal(kframe)
+
+    lhs, rhs = k0*k1, get("3-621")
+    print(lhs)
+    print(rhs)
+    find(lhs)
+    #assert lhs == rhs
 
     def act(perm, x):
         assert len(perm) == 7
@@ -468,61 +539,6 @@ def main():
         result = reduce(add, [xi*yi for (xi,yi) in zip(xs, obasis[1:])])
         result += x.flat[0]*one
         return result
-
-#    perm = [3, 1, 2, 5, 0, 4, 6]
-#    for u in units:
-#        print(fmt%u.flat)
-#        print(fmt%act(perm, u).flat)
-#        print()
-
-    def is_auto(perm):
-        if perm == (0, 1, 2, 3, 4, 5, 6):
-            return True
-        for a in basis:
-            a1 = act(perm, a)
-            assert a1 in basis
-            for b in basis:
-                b1 = act(perm, b)
-                assert b1 in basis
-                ab1 = act(perm, a*b)
-                if a1*b1 != ab1:
-                    return False
-        return True
-        print("\nis_auto:", perm)
-        for a in units:
-            a1 = act(perm, a)
-            if a1 not in units:
-                print("/", end='', flush=True)
-                return False
-            for b in units:
-                b1 = act(perm, b)
-                if b1 not in units:
-                    print("\\", end='', flush=True)
-                    return False
-                ab = a*b
-                ab1 = act(perm, a*b)
-                if a1*b1 != ab1:
-                    return False
-                assert ab1 in units
-        return True
-
-    if argv.brute_force:
-        items = list(range(7))
-        gen = []
-        for perm in all_perms(items):
-            if not is_auto(perm):
-                print(".", end='', flush=True)
-                continue
-    
-            print()
-            print(perm)
-            perm = Perm(list(perm))
-            gen.append(perm)
-            G = mulclose(gen)
-            print(len(G))
-    
-        return
-    
 
     found = []
     for a in units:
@@ -538,10 +554,11 @@ def main():
             continue
         if a*a*a==one:
             found.append(a)
-    print(len(found))
+    print("order 3 units:", len(found))
 
     perms = []
     lookup = {unit:idx for (idx, unit) in enumerate(units)}
+    rlookup = {idx:unit for (unit, idx) in lookup.items()}
     n = len(units)
     for x in found:
         xc = x.conj()
@@ -552,31 +569,47 @@ def main():
         assert None not in perm
         perm = Perm(perm)
         perms.append(perm)
-    G = mulclose(perms, verbose=True)
-    print(len(G))
-    return
+    G = Group(None, perms)
+    print("|G| =", len(G))
 
-    idxss = find_perms(obasis[1:])
-#    for idxs in [
-#        [1, 2, 0, 3, 5, 6, 4],
-#        [2, 0, 1, 3, 6, 4, 5],
-#    ]:
-    for idxs in idxss:
-        idxs = [idxs[i] for i in range(7)]
-        perm = [None]*n
-        for a in units:
-            b = act(idxs, a)
-            perm[lookup[a]] = lookup[b]
-        assert None not in perm
-        perm = Perm(perm)
-        perms.append(perm)
+    #for H in G.cyclic_subgroups():
+    #for H in G.subgroups():
+    #    print(len(H), end=" ", flush=True)
+    #print()
 
-    #for p in perms:
-    #    print(p, p.is_identity())
+    def preserves(g, frame):
+        idxs = [lookup[u] for u in frame]
+        for idx in idxs:
+            if g[idx] not in idxs:
+                return False
+        return True
 
-    G = mulclose(perms, verbose=True)
-    print(len(G))
+    def sends(g, iframe, jframe):
+        idxs = [lookup[u] for u in iframe]
+        jdxs = [lookup[u] for u in jframe]
+        for idx in idxs:
+            if g[idx] not in jdxs:
+                return False
+        return True
 
+    kdxs = set([lookup[k0]])
+    for g in G:
+        if not preserves(g, jframe):
+            continue
+        for kdx in list(kdxs):
+            kdxs.add(g[kdx])
+        if len(kdxs) == 7:
+            break
+    kframe = [rlookup[kdx] for kdx in kdxs]
+    for k in kframe:
+        print(find(k))
+
+    for g in G:
+        if sends(g, jframe, kframe):
+            assert 0, "jframe -> kframe"
+
+        lhs, rhs = preserves(g, jframe), preserves(g, kframe)
+        assert lhs == rhs
 
 
 if __name__ == "__main__":
