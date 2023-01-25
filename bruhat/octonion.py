@@ -6,6 +6,10 @@ get complex numbers, quaternions, octonions, sedenions, etc.
 
 copied from sedenions.py
 
+Build the group G2(2) which is the automorphism group of
+the integral octonions.
+See book by Conway and Smith.
+
 """
 
 import math, os
@@ -17,8 +21,8 @@ start_time = time()
 
 from bruhat import element
 from bruhat.util import choose, cross, all_perms
-#from bruhat.action import mulclose, Perm, Group
-from bruhat.gset import mulclose, Perm, Group
+from bruhat.action import mulclose, mulclose_hom
+from bruhat.gset import Perm, Group
 from bruhat.argv import argv
 from bruhat.isomorph import Point, Graph, search
 
@@ -123,6 +127,9 @@ class Double(Number):
     def __str__(self):
         return "(%s, %s)"%(self.a, self.b)
 
+    def __lt__(self, other):
+        return self.flat < other.flat
+
     def __add__(self, other):
         other = self.promote(other)
         assert self.__class__ is other.__class__
@@ -168,6 +175,9 @@ class Double(Number):
 
     def __hash__(self):
         return hash(str(self))
+
+    def __pos__(self):
+        return self
 
     def __neg__(self):
         return self.__class__(-self.a, -self.b)
@@ -297,6 +307,36 @@ def find_perms(imag):
         perms.append(f)
 
     return perms
+
+
+class Frame(object):
+    def __init__(self, els):
+        els = list(els)
+        assert len(els) == 7, len(els)
+        els.sort()
+        self.els = tuple(els)
+        assert self.is_orthogonal()
+
+    def __eq__(self, other):
+        return self.els == other.els
+
+    def __hash__(self):
+        return hash(self.els)
+
+    def __getitem__(self, idx):
+        return self.els[idx]
+
+    def __len__(self):
+        return len(self.els)
+
+    def is_orthogonal(self):
+        for x in self:
+          for y in self:
+            if x is y:
+                continue
+            if dot(x, y) != 0:
+                return False
+        return True
 
 
 def main():
@@ -446,37 +486,29 @@ def main():
     assert lhs*lhs == rhs
     #assert get('i356') * get('0463') == get('-i461') # ???
 
-    gen = "0124 0235 0346 i450 0561 i602 i013 i356 146i 25i1 3612 4i23 5134 6245"
-    gen = gen.split()
-    gen = [get(a) for a in gen]
+    sgen = "0124 0235 0346 i450 0561 i602 i013 i356 146i 25i1 3612 4i23 5134 6245"
+    sgen = sgen.split()
+    gen = [get(a) for a in sgen]
     units = mulclose(gen) # just happens to work... but this is non-associative
     assert len(units) == 240
     units = set(units)
     assert one in units
 
-    #a = choice(list(units))
-    #b = choice(list(units))
-    #c = choice(list(units))
-    #assert (a*b)*c == a*(b*c)
-
     for i in basis:
         assert i in units
         assert -i in units
 
-    print("units:", len(units))
+    # page 138
+    sframe = [ -i0, +i1, +i2, -i3, +i4, -i5, -i6, ]
+    hen = [get(a, sframe) for a in sgen]
 
-    #for a in units:
-    #  for b in units:
-    #    assert a*b in units
+    swap = mulclose_hom(gen, hen)
+    assert len(swap) == len(units)
 
-    def is_orthogonal(frame):
-        for x in frame:
-          for y in frame:
-            if x is y:
-                continue
-            if dot(x, y) != 0:
-                return False
-        return True
+    #a = choice(list(units))
+    #b = choice(list(units))
+    #c = choice(list(units))
+    #assert (a*b)*c == a*(b*c) # nope!
 
     # jframe, page 138
     j0 = get("-0124") 
@@ -486,8 +518,7 @@ def main():
     j4 = get("012-4") 
     j5 = -i3
     j6 = -i5
-    jframe = [j0, j1, j2, j3, j4, j5, j6]
-    assert is_orthogonal(jframe)
+    jframe = Frame([j0, j1, j2, j3, j4, j5, j6])
 
     assert j0 + j1 == i2 + i4
     assert j0 - j1 == i1 - i0
@@ -498,12 +529,18 @@ def main():
 
     def find(lhs, frame=iframe):
         for jdxs in choose(list(range(7)), 4):
-          js = [jframe[jdx] for jdx in jdxs]
+          js = [frame[jdx] for jdx in jdxs]
           for signs in cross([(-1, 1)]*4):
             x = reduce(add, [(sign*u)/2 for (sign, u) in zip(signs, js)])
-            if lhs == x:
-                print("found:", jdxs, signs)
-                return
+            if lhs != x:
+                continue
+            #print("found:", jdxs, signs)
+            decl = []
+            for (jdx, sign) in zip(jdxs, signs):
+                decl.append( str(jdx) if sign==1 else "-"+str(jdx) )
+            decl = ''.join(decl)
+            assert x == get(decl, frame)
+            return decl
 
     for j0 in jframe:
         assert j0*j0 == -one
@@ -523,22 +560,11 @@ def main():
     k4 = get("-4135")
     k5 = get("-4-1-35")
     k6 = get("-2-4-56")
-    kframe = [k0, k1, k2, k3, k4, k5, k6]
-    assert is_orthogonal(kframe)
+    kframe = Frame([k0, k1, k2, k3, k4, k5, k6])
 
     lhs, rhs = k0*k1, get("3-621")
-    print(lhs)
-    print(rhs)
-    find(lhs)
-    #assert lhs == rhs
-
-    def act(perm, x):
-        assert len(perm) == 7
-        xs = x.flat
-        xs = [xs[perm[i]+1] for i in range(7)]
-        result = reduce(add, [xi*yi for (xi,yi) in zip(xs, obasis[1:])])
-        result += x.flat[0]*one
-        return result
+    rhs = get("-1-2-36")
+    assert lhs == rhs
 
     found = []
     for a in units:
@@ -554,12 +580,15 @@ def main():
             continue
         if a*a*a==one:
             found.append(a)
-    print("order 3 units:", len(found))
+    assert len(found) == 56
 
-    perms = []
     lookup = {unit:idx for (idx, unit) in enumerate(units)}
     rlookup = {idx:unit for (unit, idx) in lookup.items()}
+
     n = len(units)
+    swap = Perm([lookup[swap[rlookup[idx]]] for idx in range(n)])
+
+    perms = []
     for x in found:
         xc = x.conj()
         perm = [None]*n
@@ -571,6 +600,10 @@ def main():
         perms.append(perm)
     G = Group(None, perms)
     print("|G| =", len(G))
+
+    perms = list(G) + [g*swap for g in G]
+    G2 = Group(perms)
+    print("|G2| =", len(G2))
 
     #for H in G.cyclic_subgroups():
     #for H in G.subgroups():
@@ -592,24 +625,85 @@ def main():
                 return False
         return True
 
-    kdxs = set([lookup[k0]])
-    for g in G:
-        if not preserves(g, jframe):
-            continue
-        for kdx in list(kdxs):
-            kdxs.add(g[kdx])
-        if len(kdxs) == 7:
-            break
-    kframe = [rlookup[kdx] for kdx in kdxs]
-    for k in kframe:
-        print(find(k))
+    if 0:
+        # build kframe from an orbit
+        k0 = -i0
+        kdxs = set([lookup[k0]])
+        for g in G:
+            if not preserves(g, jframe):
+                continue
+            for kdx in list(kdxs):
+                kdxs.add(g[kdx])
+            if len(kdxs) == 7:
+                break
+    
+        kframe = [rlookup[kdx] for kdx in kdxs]
+        for k in kframe:
+            print(find(k))
 
+    kframe = "-13-4-5 1-236 2-456 -1345 -2-45-6 -1-2-36".split()
+    kframe = Frame([-i0] + [get(desc) for desc in kframe])
+    k0, k1, k2, k3, k4, k5, k6 = kframe
+
+    stab = []
     for g in G:
         if sends(g, jframe, kframe):
             assert 0, "jframe -> kframe"
 
         lhs, rhs = preserves(g, jframe), preserves(g, kframe)
         assert lhs == rhs
+        if lhs:
+            stab.append(g)
+    assert len(stab) == 21
+
+    jframe = Frame(jframe)
+
+    act = lambda g, u: rlookup[g[lookup[u]]]
+
+    hom = {}
+    for g in stab:
+        lhs, rhs = act(g,j0), act(g,k0)
+        assert lhs in jframe
+        assert rhs in kframe
+        #assert hom.get(lhs, rhs) == rhs
+        hom[lhs] = rhs
+    assert len(hom) == 7
+
+    frames = set()
+    for g in G:
+        frame = Frame(act(g, k) for k in kframe)
+        assert frame != jframe
+        frames.add(frame)
+    assert len(frames) == 6048 // 21 == 288
+
+    # page 134
+    stab = []
+    for g in G:
+        gi0 = act(g, i0)
+        if gi0 == i0 or gi0 == -i0:
+            stab.append(g)
+    assert len(stab) == 96
+
+    assert get("i450") in units
+
+    # Build the Hurwitz units
+    # page 56
+    quat = [one, i4, i5, i0]
+    found = set(quat+[-u for u in quat])
+    for signs in cross([(-1, 1)]*4):
+        x = reduce(add, [sign*u for (sign, u) in zip(signs, quat)])
+        x = x/2
+        assert x in units
+        found.add(x)
+    assert len(found) == 24
+
+    # page 134
+    stab = []
+    for g in G:
+        fix1 = set(act(g, i) for i in found)
+        if fix1==found:
+            stab.append(g)
+    assert len(stab) == 96
 
 
 if __name__ == "__main__":
