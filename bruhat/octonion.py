@@ -676,13 +676,13 @@ def main():
         frames.add(frame)
     assert len(frames) == 6048 // 21 == 288
 
-    # page 134
-    stab = []
+    # page 134: stabilize Gaussian integers
+    H = []
     for g in G:
         gi0 = act(g, i0)
         if gi0 == i0 or gi0 == -i0:
-            stab.append(g)
-    assert len(stab) == 96
+            H.append(g)
+    assert len(H) == 96
 
     assert get("i450") in units
 
@@ -697,13 +697,62 @@ def main():
         found.add(x)
     assert len(found) == 24
 
-    # page 134
-    stab = []
+    # page 134: stabilize Hurwitz integers
+    K = []
     for g in G:
         fix1 = set(act(g, i) for i in found)
         if fix1==found:
-            stab.append(g)
-    assert len(stab) == 96
+            K.append(g)
+    assert len(K) == 96
+
+    HK = [g for g in H if g in K]
+    print(len(HK))
+
+    H = Group(H)
+    K = Group(K)
+
+    #X = G.action_subgroup(H)
+    #Y = G.action_subgroup(K)
+
+    X = G.left_cosets(H)
+    Y = G.left_cosets(K)
+
+    n = 63
+    assert len(X) == len(Y) == n
+
+    f = open("G2.dot", 'w')
+    out = lambda s : print(s, file=f)
+    out("graph {")
+    out("""
+node [
+    shape = circle
+    style = filled
+    color = "#00000000"
+    fillcolor = black
+    width = 0.1
+    height = 0.1
+    label = ""
+]
+edge [
+    penwidth = 2.0
+]
+    """)
+    for i in range(n):
+        out("    %d [fillcolor=red];"%i)
+        out("    %d [fillcolor=blue];"%(i+n))
+    for idx, x in enumerate(X):
+      for jdx, y in enumerate(Y):
+        xy = x.intersect(y)
+        if len(xy):
+            c = '*'
+            out("   %d -- %d;"%(idx, jdx+n))
+    out("}")
+    f.close()
+
+    import os
+    rval = os.system("neato G2.dot -Tpdf > G2.pdf") 
+    assert rval == 0
+    
 
 
 if __name__ == "__main__":
