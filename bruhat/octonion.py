@@ -13,7 +13,7 @@ See book by Conway and Smith.
 """
 
 import math, os
-from random import choice
+from random import choice, random, randint
 from functools import reduce
 from operator import add, mul
 from time import time
@@ -22,10 +22,21 @@ start_time = time()
 from bruhat import element
 from bruhat.util import choose, cross, all_perms
 from bruhat.action import mulclose, mulclose_hom
-from bruhat.gset import Perm, Group
+from bruhat.gset import Perm, Group, Coset
 from bruhat.argv import argv
 from bruhat.isomorph import Point, Graph, search
 
+
+try:
+    from huygens.namespace import *
+    from huygens.pov import Mat
+    from huygens import config
+    #config(text="pdflatex", latex_header=r"""
+    #\usepackage{amsmath}
+    #\usepackage{amssymb}
+    #""")
+except ImportError:
+    pass
 
 
 class Number(object):
@@ -338,6 +349,27 @@ class Frame(object):
                 return False
         return True
 
+
+def get_orbits(g, X):
+
+    found = set()
+    orbits = []
+    for H in X:
+        if H in found:
+            continue
+        orbit = [H]
+        found.add(H)
+        H1 = H
+        while 1:
+            H1 = H1.left_mul(g)
+            if H1 == H:
+                break
+            assert H1 not in found
+            orbit.append(H1)
+            found.add(H1)
+        orbits.append(orbit)
+    return orbits
+        
 
 def main():
 
@@ -660,21 +692,22 @@ def main():
 
     act = lambda g, u: rlookup[g[lookup[u]]]
 
-    hom = {}
-    for g in stab:
-        lhs, rhs = act(g,j0), act(g,k0)
-        assert lhs in jframe
-        assert rhs in kframe
-        #assert hom.get(lhs, rhs) == rhs
-        hom[lhs] = rhs
-    assert len(hom) == 7
-
-    frames = set()
-    for g in G:
-        frame = Frame(act(g, k) for k in kframe)
-        assert frame != jframe
-        frames.add(frame)
-    assert len(frames) == 6048 // 21 == 288
+    if 0:
+        hom = {}
+        for g in stab:
+            lhs, rhs = act(g,j0), act(g,k0)
+            assert lhs in jframe
+            assert rhs in kframe
+            #assert hom.get(lhs, rhs) == rhs
+            hom[lhs] = rhs
+        assert len(hom) == 7
+    
+        frames = set()
+        for g in G:
+            frame = Frame(act(g, k) for k in kframe)
+            assert frame != jframe
+            frames.add(frame)
+        assert len(frames) == 6048 // 21 == 288
 
     # page 134: stabilize Gaussian integers
     H = []
@@ -684,10 +717,9 @@ def main():
             H.append(g)
     assert len(H) == 96
 
-    assert get("i450") in units
-
     # Build the Hurwitz units
     # page 56
+    assert get("i450") in units
     quat = [one, i4, i5, i0]
     found = set(quat+[-u for u in quat])
     for signs in cross([(-1, 1)]*4):
@@ -711,16 +743,47 @@ def main():
     H = Group(H)
     K = Group(K)
 
+    for g in G:
+        if g.order() < 12:
+            continue
+        if g in H:
+            continue
+        if g in K:
+            continue
+        break
+
+#    H0 = Coset(H)
+#    H1 = H0
+#    count = 1
+#    while 1:
+#        H1 = H1.left_mul(g)
+#        if H1 == H0:
+#            break
+#        count += 1
+#    print("count", count)
+
     #X = G.action_subgroup(H)
     #Y = G.action_subgroup(K)
 
-    X = G.left_cosets(H)
-    Y = G.left_cosets(K)
-
     n = 63
+
+    X = G.left_cosets(H)
+    lookup = {H:idx for (idx,H) in enumerate(X)}
+    orbits = get_orbits(g, X)
+    orbits.sort(key = len)
+    print([len(orbit) for orbit in orbits])
+    Xs = ([[lookup[H] for H in orbit] for orbit in orbits])
+
+    Y = G.left_cosets(K)
+    lookup = {H:idx for (idx,H) in enumerate(Y)}
+    orbits = get_orbits(g, Y)
+    orbits.sort(key = len)
+    print([len(orbit) for orbit in orbits])
+    Ys = ([[lookup[H]+n for H in orbit] for orbit in orbits])
+
     assert len(X) == len(Y) == n
 
-    f = open("G2.dot", 'w')
+    f = open("G2_graph.dot", 'w')
     out = lambda s : print(s, file=f)
     out("graph {")
     out("""
@@ -740,19 +803,348 @@ edge [
     for i in range(n):
         out("    %d [fillcolor=red];"%i)
         out("    %d [fillcolor=blue];"%(i+n))
+    pairs = []
     for idx, x in enumerate(X):
       for jdx, y in enumerate(Y):
         xy = x.intersect(y)
         if len(xy):
             c = '*'
             out("   %d -- %d;"%(idx, jdx+n))
+            pairs.append((idx, jdx+n))
     out("}")
     f.close()
 
     import os
-    rval = os.system("neato G2.dot -Tpdf > G2.pdf") 
+    rval = os.system("neato G2_graph.dot -Tpdf > G2_graph.pdf") 
     assert rval == 0
     
+    print(pairs)
+    print(Xs)
+    print(Ys)
+
+
+def get_geometry():
+
+    pairs = [(0, 63), (0, 87), (0, 119), (1, 64), (1, 97),
+    (1, 111), (2, 65), (2, 90), (2, 106), (3, 66), (3, 76),
+    (3, 96), (4, 67), (4, 113), (4, 117), (5, 68), (5, 104),
+    (5, 118), (6, 69), (6, 103), (6, 121), (7, 70), (7, 88),
+    (7, 105), (8, 71), (8, 109), (8, 110), (9, 72), (9, 82),
+    (9, 125), (10, 63), (10, 75), (10, 100), (11, 72), (11,
+    98), (11, 114), (12, 64), (12, 86), (12, 108), (13, 71),
+    (13, 92), (13, 95), (14, 68), (14, 84), (14, 93), (15,
+    70), (15, 83), (15, 120), (16, 67), (16, 78), (16, 99),
+    (17, 66), (17, 102), (17, 123), (18, 73), (18, 101),
+    (18, 124), (19, 74), (19, 94), (19, 122), (20, 69), (20,
+    79), (20, 116), (21, 73), (21, 80), (21, 89), (22, 74),
+    (22, 81), (22, 85), (23, 65), (23, 112), (23, 115), (24,
+    75), (24, 103), (24, 108), (25, 64), (25, 71), (25, 77),
+    (26, 81), (26, 105), (26, 114), (27, 82), (27, 104),
+    (27, 109), (28, 80), (28, 110), (28, 117), (29, 81),
+    (29, 102), (29, 118), (30, 78), (30, 92), (30, 124),
+    (31, 85), (31, 87), (31, 101), (32, 84), (32, 95), (32,
+    98), (33, 85), (33, 113), (33, 121), (34, 76), (34, 88),
+    (34, 97), (35, 77), (35, 91), (35, 107), (36, 83), (36,
+    86), (36, 123), (37, 79), (37, 111), (37, 119), (38,
+    78), (38, 79), (38, 94), (39, 89), (39, 111), (39, 118),
+    (40, 90), (40, 103), (40, 104), (41, 89), (41, 115),
+    (41, 120), (42, 75), (42, 80), (42, 122), (43, 87), (43,
+    96), (43, 109), (44, 66), (44, 69), (44, 91), (45, 93),
+    (45, 112), (45, 116), (46, 92), (46, 100), (46, 102),
+    (47, 65), (47, 74), (47, 77), (48, 86), (48, 93), (48,
+    101), (49, 67), (49, 68), (49, 107), (50, 95), (50, 120),
+    (50, 121), (51, 97), (51, 113), (51, 125), (52, 98),
+    (52, 106), (52, 119), (53, 88), (53, 90), (53, 124),
+    (54, 82), (54, 83), (54, 94), (55, 96), (55, 99), (55,
+    115), (56, 99), (56, 108), (56, 114), (57, 100), (57,
+    112), (57, 125), (58, 72), (58, 73), (58, 91), (59, 76),
+    (59, 84), (59, 122), (60, 63), (60, 70), (60, 107), (61,
+    105), (61, 110), (61, 116), (62, 106), (62, 117), (62, 123)]
+
+    Xs = [
+        [20, 61, 45], 
+        [6, 26, 23, 44, 7, 57], 
+        [8, 14, 37, 28, 48, 38], 
+        [0, 4, 12, 19, 43, 49, 1, 42, 31, 16, 25, 59], 
+        [2, 17, 15, 9, 40, 29, 41, 58, 53, 46, 50, 11], 
+        [3, 60, 51, 24, 22, 55, 35, 34, 10, 33, 56, 47], 
+        [5, 39, 21, 18, 30, 13, 32, 52, 62, 36, 54, 27],
+    ]
+
+    Ys = [
+        [116], 
+        [69, 105, 112], 
+        [79, 110, 93], 
+        [64, 122, 87, 67], 
+        [72, 90, 102, 120], 
+        [63, 113, 108, 74, 96, 107, 97, 75, 85, 99, 77, 76], 
+        [65, 66, 70, 125, 103, 81, 115, 91, 88, 100, 121, 114], 
+        [68, 111, 80, 101, 78, 71, 84, 119, 117, 86, 94, 109], 
+        [73, 124, 92, 95, 98, 106, 123, 83, 82, 104, 118, 89],
+    ]
+    # interleaved Xs & Ys
+    orbits = [
+        [116], # blue
+        [20, 61, 45], # red
+        [69, 105, 112], # blue
+        [6, 26, 23, 44, 7, 57], # red
+        [79, 110, 93], # blue
+        [8, 14, 37, 28, 48, 38], # red
+        [64, 122, 87, 67], # blue
+        [0, 4, 12, 19, 43, 49, 1, 42, 31, 16, 25, 59], # red
+        [72, 90, 102, 120], # blue
+        [2, 17, 15, 9, 40, 29, 41, 58, 53, 46, 50, 11], # red
+        [63, 113, 108, 74, 96, 107, 97, 75, 85, 99, 77, 76], # blue
+        [3, 60, 51, 24, 22, 55, 35, 34, 10, 33, 56, 47], # red
+        [65, 66, 70, 125, 103, 81, 115, 91, 88, 100, 121, 114], # blue
+        [68, 111, 80, 101, 78, 71, 84, 119, 117, 86, 94, 109], # blue
+        [73, 124, 92, 95, 98, 106, 123, 83, 82, 104, 118, 89], # blue
+        [5, 39, 21, 18, 30, 13, 32, 52, 62, 36, 54, 27], # red
+    ] # cost: 1419
+
+    # interleaved Xs & Ys
+    orbits = [
+        [116], # blue
+        [20, 61, 45], # red
+        [69, 105, 112], # blue
+        [6, 26, 23, 44, 7, 57], # red
+        [79, 110, 93], # blue
+        [8, 14, 37, 28, 48, 38], # red
+        [64, 122, 87, 67], # blue
+        [0, 4, 12, 19, 43, 49, 1, 42, 31, 16, 25, 59], # red
+        [72, 90, 102, 120], # blue
+        [63, 113, 108, 74, 96, 107, 97, 75, 85, 99, 77, 76], # blue
+        [3, 60, 51, 24, 22, 55, 35, 34, 10, 33, 56, 47], # red
+        [68, 111, 80, 101, 78, 71, 84, 119, 117, 86, 94, 109], # blue
+        [65, 66, 70, 125, 103, 81, 115, 91, 88, 100, 121, 114], # blue
+        [2, 17, 15, 9, 40, 29, 41, 58, 53, 46, 50, 11], # red
+        [73, 124, 92, 95, 98, 106, 123, 83, 82, 104, 118, 89], # blue
+        [5, 39, 21, 18, 30, 13, 32, 52, 62, 36, 54, 27], # red
+    ]  # cost: 1169
+
+    return pairs, Xs, Ys, orbits
+
+
+def make_code():
+    pairs = get_geometry()[0]
+
+    from bruhat.solve import zeros2, shortstr, rank, row_reduce
+    n = 63
+    H = zeros2(n, n)
+    for (i,j) in pairs:
+        H[i,j-n] = 1
+    #H = 1-H
+    print(shortstr(H))
+    H1 = (row_reduce(H))
+    print()
+    print(shortstr(H1))
+    print(H1.shape)
+
+
+
+def optimize_graph_G2():
+    pairs, Xs, Ys, orbits = get_geometry()
+
+    # interleaved Xs & Ys
+#    orbits = []
+#    while Xs or Ys:
+#        if Ys:
+#            orbits.append(Ys.pop(0))
+#        if Xs:
+#            orbits.append(Xs.pop(0))
+    #for orbit in orbits:
+    #    print(orbit)
+
+    def get_layout(thetas):
+        layout = {}
+        radius = 0.
+        delta = 1.
+        theta = 0.
+        for theta, orbit in zip(thetas, orbits):
+            for idx in orbit:
+                x, y = radius * sin(theta), radius * cos(theta)
+                layout[idx] = (x, y)
+                theta += 2*pi / len(orbit)
+            radius += delta
+            #theta += pi / len(orbit) + pi / 48
+        cost = 0.
+        for (idx, jdx) in pairs:
+            x0, y0 = layout[idx]
+            x1, y1 = layout[jdx]
+            cost += ((x1-x0)**2 + (y1-y0)**2)**0.5
+        return cost, layout
+
+    N = len(orbits)
+    thetas = [random()*0*pi]*N
+    best = None
+    for trial in range(6):
+      for i in range(2, N):
+        for t in range(48):
+            thetas[i] = t*2*pi/48
+            cost, layout = get_layout(thetas)
+            if best is None or best[0] > cost:
+                best = (cost, layout, list(thetas))
+                print("cost:", best[0])
+        thetas = list(best[2])
+    if 1:
+        thetas = best[2]
+        #thetas[4] += pi/12
+        layout = get_layout(thetas)[1]
+    elif 0:
+        layout = best[1]
+    else:
+        thetas = best[2]
+        for i in range(2, N):
+            thetas[i] += i*pi/96
+        layout = get_layout(thetas)[1]
+
+    cvs = Canvas()
+
+    n = 63
+
+    for (idx, jdx) in pairs:
+        x0, y0 = layout[idx]
+        x1, y1 = layout[jdx]
+        cvs.stroke(path.line(x0, y0, x1, y1))
+    for idx in range(n):
+        x, y = layout[idx]
+        cvs.fill(path.circle(x, y, 0.1), [red])
+        x, y = layout[n+idx]
+        cvs.fill(path.circle(x, y, 0.1), [blue])
+
+    cvs.writePDFfile("G2.pdf")
+    
+
+
+def graph_G2():
+    pairs, Xs, Ys, orbits = get_geometry()
+
+    n = 63
+    nn = 2*63
+    nbd = {i:[] for i in range(nn)}
+    for (i,j) in pairs:
+        nbd[i].append(j)
+        nbd[j].append(i)
+        assert (j,i) not in pairs
+    nbd2 = {i:set() for i in range(nn)}
+    for i in range(nn):
+      for j in nbd[i]:
+        nbd2[i].update(nbd[j])
+      nbd2[i].remove(i)
+    #print(nbd2)
+
+    dist = {(i,i):0 for i in range(nn)}
+    done = False
+    while not done:
+        done = True
+        keys = list(dist.keys())
+        for (i1, i2) in keys:
+            d0 = dist[i1, i2]
+            for i0 in nbd[i1]:
+                d = dist.get((i0, i2))
+                if d is None or d > d0+1:
+                    dist[i0, i2] = d0+1
+                    dist[i2, i0] = d0+1
+                    done = False
+    assert len(dist) == nn*nn
+    assert max(dist.values()) == 6
+
+    cvs = Canvas()
+
+    radius = 20.
+    layout = {}
+
+    bdy = [5, 27, 54, 36, 62, 52, 32, 13, 30, 18, 21, 39]
+    thetas = [ (2*pi*i)/len(bdy) for i in range(len(bdy))]
+    rank = {i : float(ii) for (ii,i) in enumerate(bdy)}
+    
+    for idx, theta in zip(bdy, thetas):
+        layout[idx] = (radius*sin(theta), radius*cos(theta))
+
+    parent = {i:[] for i in range(nn)}
+    found = set(bdy)
+    while bdy:
+        _bdy = []
+        for idx in bdy:
+            for j in nbd[idx]:
+                parent[j].append(idx)
+                if j not in found:
+                    found.add(j)
+                    _bdy.append(j)
+        bdy = _bdy
+    
+    #while len(layout) < nn:
+    for trial in range(10):
+        layer = []
+        size = 1
+        for idx in range(nn):
+            if idx in layout:
+                continue
+            jdxs = [j for j in parent[idx] if layout.get(j) is not None]
+            size = max(size, len(jdxs))
+
+        for idx in range(nn):
+            if idx in layout:
+                continue
+            jdxs = [j for j in parent[idx] if layout.get(j) is not None]
+            assert len(jdxs) <= size
+            if len(jdxs) == size:
+                layer.append(idx)
+        print(size, layer)
+        for idx in layer:
+            jdxs = [j for j in parent[idx] if layout.get(j) is not None]
+            assert rank.get(idx) is None
+            rank[idx] = sum(rank[j] for j in jdxs) / len(jdxs)
+        #layer.sort(key = lambda idx : rank[idx])
+
+        counter = 0
+        for idx in layer:
+            jdxs = parent[idx]
+            jdxs = [jdx for jdx in jdxs if jdx in layout]
+            jdxs.sort(key = lambda jdx : rank[jdx])
+            pts = [layout[jdx] for jdx in jdxs]
+            x = reduce(add, [p[0] for p in pts])/len(pts)
+            y = reduce(add, [p[1] for p in pts])/len(pts)
+            if abs(x) < 1e-4 and abs(y) < 1e-4:
+                #jdxs.pop(randint(0, len(jdxs)-1))
+                jdxs.pop(counter%len(jdxs))
+                counter += 1
+                pts = [layout[jdx] for jdx in jdxs]
+                x = reduce(add, [p[0] for p in pts])/len(pts)
+                y = reduce(add, [p[1] for p in pts])/len(pts)
+            if len(jdxs) == 1:
+                x *= 0.9
+                y *= 0.9
+            layout[idx] = x, y
+
+    print(len(layout), "of", nn)
+            
+    for key in list(layout.keys()):
+        x, y = layout[key]
+        v = x + y*1.j
+        u = 0.5 + 0.01*abs(v)*1.j
+        v = u*v
+        layout[key] = v.real, v.imag
+
+    for (idx, jdx) in pairs:
+        if idx in layout and jdx in layout:
+            x0, y0 = layout[idx]
+            x1, y1 = layout[jdx]
+            cvs.stroke(path.line(x0, y0, x1, y1), [black.alpha(0.5)]+st_THICk)
+
+    for idx in range(n):
+        if idx in layout:
+            x, y = layout[idx]
+            cvs.stroke(path.circle(x, y, 0.2), [red.alpha(0.5)]+st_THICk)
+        if n+idx in layout:
+            x, y = layout[n+idx]
+            cvs.stroke(path.circle(x, y, 0.2), [blue.alpha(0.5)]+st_THICk)
+
+    cvs.writePDFfile("G2_geometry.pdf")
+    
+
+
+
 
 
 if __name__ == "__main__":
@@ -764,6 +1156,7 @@ if __name__ == "__main__":
         import cProfile as profile
         profile.run("%s()"%name)
     else:
+        print("%s()"%(name,))
         fn = eval(name)
         fn()
 
