@@ -744,7 +744,7 @@ def main():
     K = Group(K)
 
     for g in G:
-        if g.order() < 12:
+        if g.order() != 6:
             continue
         if g in H:
             continue
@@ -752,20 +752,12 @@ def main():
             continue
         break
 
-#    H0 = Coset(H)
-#    H1 = H0
-#    count = 1
-#    while 1:
-#        H1 = H1.left_mul(g)
-#        if H1 == H0:
-#            break
-#        count += 1
-#    print("count", count)
-
     #X = G.action_subgroup(H)
     #Y = G.action_subgroup(K)
 
     n = 63
+    points = list(range(n))
+    lines = [i+n for i in range(n)]
 
     X = G.left_cosets(H)
     lookup = {H:idx for (idx,H) in enumerate(X)}
@@ -782,45 +774,138 @@ def main():
     Ys = ([[lookup[H]+n for H in orbit] for orbit in orbits])
 
     assert len(X) == len(Y) == n
-
-    f = open("G2_graph.dot", 'w')
-    out = lambda s : print(s, file=f)
-    out("graph {")
-    out("""
-node [
-    shape = circle
-    style = filled
-    color = "#00000000"
-    fillcolor = black
-    width = 0.1
-    height = 0.1
-    label = ""
-]
-edge [
-    penwidth = 2.0
-]
-    """)
-    for i in range(n):
-        out("    %d [fillcolor=red];"%i)
-        out("    %d [fillcolor=blue];"%(i+n))
     pairs = []
     for idx, x in enumerate(X):
       for jdx, y in enumerate(Y):
         xy = x.intersect(y)
         if len(xy):
-            c = '*'
-            out("   %d -- %d;"%(idx, jdx+n))
             pairs.append((idx, jdx+n))
-    out("}")
-    f.close()
-
-    import os
-    rval = os.system("neato G2_graph.dot -Tpdf > G2_graph.pdf") 
-    assert rval == 0
-    
     print(pairs)
-    print(Xs)
-    print(Ys)
+
+    geometry = Geometry(points, lines, pairs)
+    #geometry.todot()
+
+    for orbit in Xs:
+        m = len(orbit)
+        print('  ', end='')
+        for i in range(m):
+            print(geometry.dist[orbit[i], orbit[(i+1)%m]], end=' ')
+        print()
+
+
+class Geometry(object):
+    def __init__(self, points, lines, pairs):
+        nn = len(points)+len(lines)
+        nbd = {i:[] for i in range(nn)}
+        for (i,j) in pairs:
+            nbd[i].append(j)
+            nbd[j].append(i)
+            assert (j,i) not in pairs
+        nbd2 = {i:set() for i in range(nn)}
+        for i in range(nn):
+          for j in nbd[i]:
+            nbd2[i].update(nbd[j])
+          nbd2[i].remove(i)
+        #print(nbd2)
+    
+        dist = {(i,i):0 for i in range(nn)}
+        done = False
+        while not done:
+            done = True
+            keys = list(dist.keys())
+            for (i1, i2) in keys:
+                d0 = dist[i1, i2]
+                for i0 in nbd[i1]:
+                    d = dist.get((i0, i2))
+                    if d is None or d > d0+1:
+                        dist[i0, i2] = d0+1
+                        dist[i2, i0] = d0+1
+                        done = False
+        assert len(dist) == nn*nn
+        assert max(dist.values()) == 6
+
+        self.dist = dist
+        self.nbd = nbd
+        self.points = list(points)
+        self.lines = list(lines)
+        self.pairs = list(pairs)
+
+    def get_geodesic(src, tgt):
+        nbd = self.nbd
+        tree = {src:src} # root
+        bdy = [src]
+        while tgt not in tree:
+            assert bdy
+            _bdy = []
+            for idx in bdy:
+                for jdx in nbd[idx]:
+                    if jdx in tree:
+                        continue
+                    tree[jdx] = idx
+                    _bdy.append(jdx)
+            bdy = _bdy
+        path = [tgt]
+        while path[-1] != src:
+            path.append(tree[path[-1]])
+        return list(reversed(path))
+
+    def render(self, layout):
+        points = self.points
+        lines = self.lines
+        pairs = self.pairs
+        cvs = Canvas()
+    
+        for (idx, jdx) in pairs:
+            if idx in layout and jdx in layout:
+                x0, y0 = layout[idx]
+                x1, y1 = layout[jdx]
+                cvs.stroke(path.line(x0, y0, x1, y1), [black.alpha(0.5)]+st_THICk)
+    
+        for idx in points:
+            if idx in layout:
+                x, y = layout[idx]
+                cvs.stroke(path.circle(x, y, 0.2), [red.alpha(0.5)]+st_THICk)
+        for idx in lines:
+            if idx in layout:
+                x, y = layout[idx]
+                cvs.stroke(path.circle(x, y, 0.2), [blue.alpha(0.5)]+st_THICk)
+    
+        cvs.writePDFfile("G2_render.pdf")
+
+    def todot(self, name="G2_graph.dot"):
+        points = self.points
+        lines = self.lines
+        pairs = self.pairs
+        f = open(name, 'w')
+        out = lambda s : print(s, file=f)
+        out("graph {")
+        out("""
+        node [
+            shape = circle
+            style = filled
+            color = "#00000000"
+            fillcolor = black
+            width = 0.1
+            height = 0.1
+            label = ""
+        ]
+        edge [
+            penwidth = 2.0
+        ]
+        """)
+        for i in points:
+            out("    %d [fillcolor=red];"%i)
+        for i in lines:
+            out("    %d [fillcolor=blue];"%(i))
+        for (idx, jdx) in pairs:
+            out("   %d -- %d;"%(idx, jdx))
+        out("}")
+        f.close()
+    
+        import os
+        rval = os.system("neato G2_graph.dot -Tpdf > G2_graph.pdf") 
+        assert rval == 0
+        
 
 
 def get_geometry():
