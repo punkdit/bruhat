@@ -933,7 +933,7 @@ def make_code():
     H = zeros2(n, n)
     for (i,j) in pairs:
         H[i,j-n] = 1
-    #H = 1-H
+    H = 1-H
     print(shortstr(H))
     H1 = (row_reduce(H))
     print()
@@ -1049,8 +1049,6 @@ def graph_G2():
     assert len(dist) == nn*nn
     assert max(dist.values()) == 6
 
-    cvs = Canvas()
-
     radius = 20.
     layout = {}
 
@@ -1126,6 +1124,8 @@ def graph_G2():
         v = u*v
         layout[key] = v.real, v.imag
 
+    cvs = Canvas()
+
     for (idx, jdx) in pairs:
         if idx in layout and jdx in layout:
             x0, y0 = layout[idx]
@@ -1143,8 +1143,118 @@ def graph_G2():
     cvs.writePDFfile("G2_geometry.pdf")
     
 
+def make_render():
 
+    pairs, Xs, Ys, orbits = get_geometry()
 
+    n = 63
+    nn = 2*63
+    nbd = {i:[] for i in range(nn)}
+    for (i,j) in pairs:
+        nbd[i].append(j)
+        nbd[j].append(i)
+        assert (j,i) not in pairs
+    nbd2 = {i:set() for i in range(nn)}
+    for i in range(nn):
+      for j in nbd[i]:
+        nbd2[i].update(nbd[j])
+      nbd2[i].remove(i)
+    #print(nbd2)
+
+    dist = {(i,i):0 for i in range(nn)}
+    done = False
+    while not done:
+        done = True
+        keys = list(dist.keys())
+        for (i1, i2) in keys:
+            d0 = dist[i1, i2]
+            for i0 in nbd[i1]:
+                d = dist.get((i0, i2))
+                if d is None or d > d0+1:
+                    dist[i0, i2] = d0+1
+                    dist[i2, i0] = d0+1
+                    done = False
+    assert len(dist) == nn*nn
+    assert max(dist.values()) == 6
+
+    def geodesic(src, tgt):
+        tree = {src:src} # root
+        bdy = [src]
+        while tgt not in tree:
+            assert bdy
+            _bdy = []
+            for idx in bdy:
+                for jdx in nbd[idx]:
+                    if jdx in tree:
+                        continue
+                    tree[jdx] = idx
+                    _bdy.append(jdx)
+            bdy = _bdy
+        path = [tgt]
+        while path[-1] != src:
+            path.append(tree[path[-1]])
+        return list(reversed(path))
+
+    radius = 20
+    layout = {}
+
+    reds = list(range(n))
+    blues = [i+n for i in range(n)]
+
+    idx, jdx = 5, 36
+    print(dist[idx, jdx])
+    for kdx in nbd[idx]:
+        print(dist[kdx, jdx])
+    geo = geodesic(idx, jdx)
+    for k in blues:
+        if dist[k,jdx]==1 and k not in geo:
+            break
+    else:
+        assert 0
+    other = geodesic(k, idx)
+    verts = geo + other[:-1]
+    print(verts)
+
+    assert len(verts) == 12
+
+    for i, idx in enumerate(verts):
+        theta = 2*i*pi/len(verts)
+        x, y = radius*sin(theta), radius*cos(theta)
+        layout[idx] = x, y
+
+    for i in range(3):
+        src, tgt = verts[2*i], verts[(2*i + 6)%12]
+        for jdx in nbd[src]:
+            if jdx not in layout:
+                break
+        else:
+            assert 0
+        geo = geodesic(jdx, tgt)[:-1]
+        x0, y0 = layout[src]
+        x1, y1 = layout[tgt]
+        for i, idx in enumerate(geo):
+            x = conv((i+1)/(len(geo)+1), x0, x1)
+            y = conv((i+1)/(len(geo)+1), y0, y1)
+            layout[idx] = x, y
+
+    print("layout:", len(layout), "of", nn)
+    cvs = Canvas()
+
+    for (idx, jdx) in pairs:
+        if idx in layout and jdx in layout:
+            x0, y0 = layout[idx]
+            x1, y1 = layout[jdx]
+            cvs.stroke(path.line(x0, y0, x1, y1), [black.alpha(0.5)]+st_THICk)
+
+    for idx in range(n):
+        if idx in layout:
+            x, y = layout[idx]
+            cvs.fill(path.circle(x, y, 0.2), [red.alpha(1.0)]+st_THICk)
+        if n+idx in layout:
+            x, y = layout[n+idx]
+            cvs.fill(path.circle(x, y, 0.2), [blue.alpha(1.0)]+st_THICk)
+
+    cvs.writePDFfile("G2_render.pdf")
 
 
 if __name__ == "__main__":
