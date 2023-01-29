@@ -24,7 +24,7 @@ from bruhat.util import choose, cross, all_perms
 from bruhat.action import mulclose, mulclose_hom
 from bruhat.gset import Perm, Group, Coset
 from bruhat.argv import argv
-from bruhat.isomorph import Point, Graph, search
+from bruhat import isomorph # import Point, Graph, search
 
 
 try:
@@ -246,7 +246,7 @@ def dot(a, b):
 
 
 def get_geometry(imag):
-    graph = Graph()
+    graph = isomorph.Graph()
     N = len(imag)
     triples = set()
     cycles = []
@@ -305,7 +305,7 @@ def find_perms(imag):
     perms = []
     count = 0
     total = 0
-    for f in search(bag0, bag1):
+    for f in isomorph.search(bag0, bag1):
         _struct = [[tuple(f[i] for i in cycle) for cycle in items] for items in struct ]
         for items in _struct:
             items.sort()
@@ -1008,6 +1008,99 @@ def get_geometry():
     ]  # cost: 1169
 
     return pairs, Xs, Ys, orbits
+
+
+def make_autos():
+    from pynauty import Graph, autgrp
+    n = 63
+    nn = 2*n
+    pairs = get_geometry()[0]
+    nbd = {i:[] for i in range(nn)}
+    for (i,j) in pairs:
+        nbd[i].append(j)
+        nbd[j].append(i)
+        assert (j,i) not in pairs
+
+    graph = Graph(nn)
+    for k,v in nbd.items():
+        graph.connect_vertex(k, v)
+    gens, sz1, sz2, orbits, norbits = autgrp(graph)
+#    for g in gens:
+#        print(g)
+    print(len(gens))
+
+    gens = [Perm(perm) for perm in gens]
+    G = Group(None, gens)
+    print(len(G))
+
+    # element of G that has orbit sizes:
+    # [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7] == [7]*18
+    found = []
+    for g in G:
+        k = g.order()
+        if k == 7:
+            orbits = g.get_orbits()
+            sizes = [len(o) for o in orbits]
+            if sizes == [k]*len(sizes):
+                found.append(g)
+    print("found:", len(found))
+    g = found[0]
+
+    def make_graph(edges):
+        nbd = {i:[] for i in range(len(orbits))}
+        for (i,j) in edges:
+            nbd[i].append(j)
+        graph = isomorph.Graph()
+        for i,o in enumerate(orbits):
+            graph.add('p')
+        for (i,j) in edges:
+            graph.join(i, j)
+        return graph
+
+    graphs = []
+    for g in found[:10]:
+        orbits = g.get_orbits()
+        lookup = {}
+        for i, orbit in enumerate(orbits):
+            for idx in orbit:
+                lookup[idx] = i
+            #print("%3d"%i, orbit)
+    
+        edges = set()
+        for src, o in enumerate(orbits):
+            for idx in o:
+              for jdx in nbd[idx]:
+                tgt = lookup[jdx]
+                edges.add((src, tgt))
+    
+        graph0 = make_graph(edges)
+        #graph1 = make_graph(edges)
+        graphs.append(graph0)
+    
+    for i in range(10):
+     for j in range(i+1, 10):
+        autos = []
+        for f in isomorph.search(graphs[i], graphs[j]):
+            autos.append(f)
+        #print(len(autos), end=' ', flush=True)
+        assert len(autos)==6
+    print()
+    
+    if 0:
+        f = open("orbits.dot", 'w')
+        output = lambda s : print(s, file=f)
+        output("graph {")
+        for (i,j) in edges:
+            if i < j:
+                output("  %d -- %d;" %(i, j))
+        output("}")
+        f.close()
+    
+        import os
+        rval = os.system("circo orbits.dot -Tpdf > orbits.pdf") 
+        assert rval == 0
+    
+        
 
 
 def make_code():

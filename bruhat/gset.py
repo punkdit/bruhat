@@ -294,8 +294,25 @@ class Perm(object):
             #assert i <= len(self.items)+1 # how big can this get ??
         return i
 
+    def get_orbits(self):
+        perm = self.perm
+        remain = set(i for i in perm)
+        orbits = []
+        while remain:
+            i = iter(remain).__next__()
+            remain.remove(i)
+            orbit = set([i])
+            j = self[i]
+            while j != i:
+                orbit.add(j)
+                j = self[j]
+            remain.difference_update(orbit)
+            orbit = list(orbit)
+            orbit.sort()
+            orbits.append(orbit)
+        return orbits
 
-    #def orbits(self):
+
 
 def compose(f, g):
     return [f[gi] for gi in g]
