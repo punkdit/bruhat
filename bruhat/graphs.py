@@ -795,6 +795,7 @@ def desargues_graph():
 def main():
     graph_name = argv.next()
     fn = eval(graph_name)
+    print("%s()"%graph_name)
 
     n = argv.get("n")
     if n is not None:
