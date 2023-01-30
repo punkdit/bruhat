@@ -830,7 +830,7 @@ class Geometry(object):
         self.lines = list(lines)
         self.pairs = list(pairs)
 
-    def get_geodesic(src, tgt):
+    def get_geodesic(self, src, tgt):
         nbd = self.nbd
         tree = {src:src} # root
         bdy = [src]
@@ -1031,9 +1031,28 @@ def make_autos():
 
     gens = [Perm(perm) for perm in gens]
     G = Group(None, gens)
-    print(len(G))
+    print("|G| =", len(G))
 
-    # element of G that has orbit sizes:
+    if 0:
+        # is this the binary octahedral group?
+        H = [g for g in G if g[n] == n]
+        assert len(H) == 192
+        for g in H:
+          for h in H:
+            K = mulclose([g, h])
+            if len(K) == 48:
+                break
+          else:
+            continue
+          break
+        for g in K:
+            if g.order() == 3:
+                break
+        else:
+            assert 0
+        return
+
+    # elements of G that have orbit sizes:
     # [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7] == [7]*18
     found = []
     for g in G:
@@ -1044,12 +1063,86 @@ def make_autos():
             if sizes == [k]*len(sizes):
                 found.append(g)
     print("found:", len(found))
+
+    if 0:
+        remain = set(found)
+        clss = []
+        while remain:
+            for g in remain:
+                break
+            cls = set()
+            for h in G:
+                cls.add( (~h)*g*h )
+            remain.difference_update(cls)
+            clss.append(cls)
+        print("cgy classes:", len(clss), [len(cls) for cls in clss])
+    
+        return
+
+    points = [i for i in range(n)]
+    lines = [i+n for i in range(n)]
+    geometry = Geometry(points, lines, pairs)
+    
     g = found[0]
+    orbits = g.get_orbits()
+    orbit = orbits[0]
+    print(orbit)
+    stab = []
+    for g in G:
+        for idx in orbit:
+            if g[idx] not in orbit:
+                break
+        else:
+            stab.append(g)
+    print("stab:", len(stab))
+
+    lookup = {}
+    for i, orbit in enumerate(orbits):
+        for idx in orbit:
+            lookup[idx] = i
+
+    stab = []
+    for g in G:
+        send = {}
+        for i, orbit in enumerate(orbits):
+            for idx in orbit:
+                jdx = g[idx]
+                j = lookup[jdx]
+                if send.get(i, j) != j:
+                    send = None
+                    break
+                send[i] = j
+            else:
+                continue
+            break
+        if send is not None:
+            assert len(send) == len(orbits)
+            stab.append(g)
+    print("stab:", len(stab))
+
+    # find _appartments
+    pairs = [(i, j) for i in range(n) for j in range(i+1, n)]
+    for (i0, i1) in pairs:
+        if geometry.dist[i0, i1] != 6:
+            continue
+        j0 = nbd[i0][0]
+        j1 = nbd[i0][1]
+        path0 = geometry.get_geodesic(j0, i1)
+        path1 = geometry.get_geodesic(j1, i1)
+        #print(path0)
+        #print(path1)
+        appt = [i0]+path0+list(reversed(path1[:-1]))
+        appt = [lookup[i] for i in appt]
+        if len(set(appt)) == 12:
+            break
+        print(len(set(appt)), end=' ', flush=True)
+    print()
+    print(appt, len(appt))
 
     def make_graph(edges):
-        nbd = {i:[] for i in range(len(orbits))}
-        for (i,j) in edges:
-            nbd[i].append(j)
+        #nbd = {i:[] for i in range(len(orbits))}
+        #for (i,j) in edges:
+        #    nbd[i].append(j)
         graph = isomorph.Graph()
         for i,o in enumerate(orbits):
             graph.add('p')
@@ -1057,8 +1150,7 @@ def make_autos():
             graph.join(i, j)
         return graph
 
-    graphs = []
-    for g in found[:10]:
+    def action_graph(g):
         orbits = g.get_orbits()
         lookup = {}
         for i, orbit in enumerate(orbits):
@@ -1066,13 +1158,58 @@ def make_autos():
                 lookup[idx] = i
             #print("%3d"%i, orbit)
     
-        edges = set()
+        edges = {}
         for src, o in enumerate(orbits):
             for idx in o:
               for jdx in nbd[idx]:
                 tgt = lookup[jdx]
-                edges.add((src, tgt))
+                count = edges.get((src, tgt), 0)
+                edges[src, tgt] = count + 1
+        return edges
+
+    g = found[0]
+    edges = action_graph(g)
     
+    f = open("G2_orbits.dot", 'w')
+    output = lambda s : print(s, file=f)
+    output("graph {")
+    output("""
+    node [
+        shape = circle
+        style = filled
+        color = "#00000000"
+        fillcolor = black
+        width = 0.1
+        height = 0.1
+    ]
+    edge [
+        penwidth = 2.0
+    ]
+    """)
+    for i, orbit in enumerate(orbits):
+        if orbit[0] < n:
+            output("    %d [fillcolor=blue];"%(i))
+        else:
+            output("    %d [fillcolor=red];"%i)
+    for (i,j) in edges:
+        if i > j:
+            continue
+        count = edges[i, j]
+        output("  %d -- %d;" %(i, j))
+        if count == 14:
+            output("  %d -- %d;" %(i, j))
+    output("}")
+    f.close()
+
+    import os
+    rval = os.system("neato G2_orbits.dot -Tpdf > G2_orbits.pdf") 
+    assert rval == 0
+
+    return
+        
+    graphs = []
+    for g in found[:10]:
+        edges = action_graph(g)
         graph0 = make_graph(edges)
         #graph1 = make_graph(edges)
         graphs.append(graph0)
@@ -1086,21 +1223,6 @@ def make_autos():
         assert len(autos)==6
     print()
     
-    if 0:
-        f = open("orbits.dot", 'w')
-        output = lambda s : print(s, file=f)
-        output("graph {")
-        for (i,j) in edges:
-            if i < j:
-                output("  %d -- %d;" %(i, j))
-        output("}")
-        f.close()
-    
-        import os
-        rval = os.system("circo orbits.dot -Tpdf > orbits.pdf") 
-        assert rval == 0
-    
-        
 
 
 def make_code():

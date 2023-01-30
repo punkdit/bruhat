@@ -384,6 +384,16 @@ class Matrix(object):
             V.append(v)
         return V
 
+    def order(self):
+        n = len(self)
+        I = Matrix.identity(n)
+        count = 1
+        g = self
+        while g != I:
+            g = self*g
+            count += 1
+        return count
+
 
 def test_matrix():
     M = Matrix([[1,1,0],[0,1,0]])
