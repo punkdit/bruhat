@@ -465,7 +465,7 @@ class Geometry(object):
     "A geometry specified by a Coxeter reflection group"
     def __init__(self, orders, lins_idx=0):
         ngens = len(orders)+1
-        a, b, c, d = [(i,) for i in range(4)]
+        a, b, c, d, e = [(i,) for i in range(5)]
         orders = tuple(orders)
         rels = lins_db.db[orders][lins_idx]
         rels = lins_db.parse(rels, **locals())
@@ -476,7 +476,7 @@ class Geometry(object):
         self.build_group()
 
     def build_group(self):
-        gens = [(i,) for i in range(4)]
+        gens = [(i,) for i in range(5)]
         ngens = self.ngens
         rels = [gens[i]*2 for i in range(ngens)]
         orders = self.orders
@@ -669,6 +669,14 @@ def build_geometry():
         code = build_code(geometry)
 
     #print("build_geometry: idx =", idx)
+
+
+def build_hyperbolic_4():
+    key = (4, 3, 3, 5)
+    idx = 5 # < 5 is trivial...
+    geometry = Geometry(key, idx)
+    G = geometry.G
+    print("|G| =", len(G))
 
 
 def build_bicolour():
