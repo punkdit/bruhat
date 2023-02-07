@@ -463,7 +463,7 @@ def make_dot(graph, cmd="neato"):
 
 class Geometry(object):
     "A geometry specified by a Coxeter reflection group"
-    def __init__(self, orders, lins_idx=0):
+    def __init__(self, orders, lins_idx=0, build=True):
         ngens = len(orders)+1
         a, b, c, d, e = [(i,) for i in range(5)]
         orders = tuple(orders)
@@ -473,9 +473,10 @@ class Geometry(object):
         self.ngens = ngens
         self.rels = rels
         self.dim = len(orders)
-        self.build_group()
+        if build:
+            self.G = self.build_group()
 
-    def build_group(self):
+    def build_graph(self, figure=None):
         gens = [(i,) for i in range(5)]
         ngens = self.ngens
         rels = [gens[i]*2 for i in range(ngens)]
@@ -489,10 +490,18 @@ class Geometry(object):
         rels = rels + self.rels
         #print(rels)
         graph = Schreier(ngens, rels)
-        graph.build()
+        if figure is not None:
+            assert len(figure) == len(gens)
+            gens = [gens[i] for i, fig in enumerate(figure) if fig] or [G.identity]
+            graph.build(gens)
+        else:
+            graph.build()
+        return graph
+
+    def build_group(self):
+        graph = self.build_graph()
         G = graph.get_group()
-        self.G = G
-        #return G
+        return G
 
     def get_cosets(self, figure):
         G = self.G
@@ -673,10 +682,17 @@ def build_geometry():
 
 def build_hyperbolic_4():
     key = (4, 3, 3, 5)
-    idx = 5 # < 5 is trivial...
-    geometry = Geometry(key, idx)
-    G = geometry.G
-    print("|G| =", len(G))
+    idx = argv.get("idx", 5) # < 5 is trivial...
+    geometry = Geometry(key, idx, False)
+    for desc in [
+        [0,1,1,1,1],
+        [1,0,1,1,1],
+        [1,1,0,1,1],
+        [1,1,1,0,1],
+        [1,1,1,1,0],
+    ]:
+        graph = geometry.build_graph(desc)
+        print(desc, len(graph))
 
 
 def build_bicolour():
