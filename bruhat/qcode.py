@@ -684,15 +684,26 @@ def build_hyperbolic_4():
     key = (4, 3, 3, 5)
     idx = argv.get("idx", 5) # < 5 is trivial...
     geometry = Geometry(key, idx, False)
+    graphs = []
     for desc in [
-        [0,1,1,1,1],
-        [1,0,1,1,1],
+        #[0,1,1,1,1],
+        #[1,0,1,1,1],
         [1,1,0,1,1],
         [1,1,1,0,1],
-        [1,1,1,1,0],
+        #[1,1,1,1,0],
     ]:
         graph = geometry.build_graph(desc)
         print(desc, len(graph))
+        graphs.append(graph)
+
+    left, right = graphs[0], graphs[1]
+    lhs, rhs = left.get_words(), right.get_words()
+    #for l in lhs:
+    #    right.follow_path(0, l)
+    lookup = right.mulclose(left.hgens)
+    print(len(lookup))
+    lookup = left.mulclose(right.hgens)
+    print(len(lookup))
 
 
 def build_bicolour():

@@ -226,6 +226,7 @@ class Schreier(object):
         labels = self.labels
         neighbors = self.neighbors
         rels = self.rels
+        self.hgens = list(hgens) # save this here
 
         for rel in hgens:
             for gen in rel:
@@ -320,6 +321,21 @@ class Schreier(object):
         for i in range(N+1):
             p += dists.count(i) * q**i
         return p
+
+    def mulclose(self, words):
+        bdy = [0]
+        lookup = {0:()}
+        while bdy:
+            _bdy = []
+            for idx in bdy:
+                right = lookup[idx]
+                for left in words:
+                    jdx = self.follow_path(idx, left)
+                    if jdx not in lookup:
+                        _bdy.append(jdx)
+                        lookup[jdx] = left + right
+            bdy = _bdy
+        return lookup
 
     def find_words(self):
         bdy = [0]
