@@ -662,6 +662,7 @@ def test_render():
     A = Assoc( (x*x)*x, x*(x*x) )
     B = Assoc( x*((x*x)*x), x*(x*(x*x)) )
     G = mulclose([A, B, ~A, ~B], maxsize=60)
+    G = list(G)
 
     seed(2)
 
