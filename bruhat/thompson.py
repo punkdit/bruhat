@@ -226,7 +226,7 @@ class Tree(object):
         # height is 2**depth - 1
         return cvs
 
-    def render(self, w=1, h=-1):
+    def render(self, w=1, h=-1, st=st_THIck+st_round):
         n = self.nleaves()
         layout = {} # coordinates
         height = (n-1)/2
@@ -286,7 +286,7 @@ class Tree(object):
             x0, y0 = layout[key]
             ka, kb = key+(0,), key+(1,)
             for (x1, y1) in [layout[ka], layout[kb]]:
-                cvs.stroke(path.line(x0, y0, x1, y1), st_THIck+st_round)
+                cvs.stroke(path.line(x0, y0, x1, y1), st)
         return cvs
 
 
@@ -472,11 +472,12 @@ def cancel_carets(lhs, rhs):
 
 class Assoc(object):
     "Element of Thompson group F"
-    def __init__(self, tgt, src):
+    def __init__(self, tgt, src, simplify=True):
         assert isinstance(tgt, Tree)
         assert isinstance(src, Tree)
         assert tgt.nleaves() == src.nleaves()
-        tgt, src = cancel_carets(tgt, src)
+        if simplify:
+            tgt, src = cancel_carets(tgt, src)
         self.tgt = tgt
         self.src = src
     def __str__(self):
@@ -503,9 +504,9 @@ class Assoc(object):
         return Assoc(tgt, src)
     def __invert__(self):
         return Assoc(self.src, self.tgt)
-    def render(self):
-        top = self.tgt.render(h=-1)
-        bot = self.src.render(h=+1)
+    def render(self, st=st_THIck+st_round):
+        top = self.tgt.render(w=1, h=-1, st=st)
+        bot = self.src.render(w=1, h=+1, st=st)
         cvs = Canvas([top, bot])
         return cvs
     
@@ -661,7 +662,7 @@ def test_render():
     #return
     A = Assoc( (x*x)*x, x*(x*x) )
     B = Assoc( x*((x*x)*x), x*(x*(x*x)) )
-    G = mulclose([A, B, ~A, ~B], maxsize=60)
+    G = mulclose([A, B, ~A, ~B], maxsize=30)
     G = list(G)
 
     seed(2)
@@ -669,16 +670,17 @@ def test_render():
     question = Canvas().text(0, 0, "?", [Scale(7.)]+st_center)
     cvs = Canvas()
     x, y = 0, 0
-    for i in range(4):
-        f = choice(G)
-        g = choice(G)
+    for i in range(10):
+      items = [choice(G), choice(G)]
+      for (f,g) in [items, reversed(items)]:
     
         row = [f.render(), r"$\times$", g.render(), r"$=$", (f*g).render()]
         #if i==0:
         #    row[-1] = question
         row = make_eq(row)
         cvs.insert(x, y, row)
-        y += 1.1*row.get_bound_box().height
+        y -= 1.1*row.get_bound_box().height
+
 
     bb = cvs.get_bound_box()
     bg = Canvas()
