@@ -249,12 +249,7 @@ class GenericElement(Element):
 # ----------------------------------------------------------------------------
 
 
-class Ring(Type):
-
-    def neg(self, a):
-        zero = self.zero
-        a = self.sub(zero, a)
-        return a
+class Rig(Type):
 
     def __repr__(self):
         return "%s()"%(self.__class__.__name__,)
@@ -272,6 +267,154 @@ class Ring(Type):
 
     def bool(self, a):
         return a != self.zero
+
+
+class NaturalRig(Rig):
+
+    """
+        The rig of natural numbers
+    """
+
+    # XXX these should be singletons (so we can test equality with "is")
+
+    def __init__(self):
+        Ring.__init__(self)
+        self.one = Natural(1, self)
+        self.zero = Natural(0, self)
+    
+    def promote(self, value):
+        if isinstance(value, Natural):
+            assert value.tp == self
+            return value
+        if isinstance(value, int):
+            return Natural(value, self)
+        try:
+            value = int(value)
+            return Natural(value, self)
+        except ValueError:
+            pass
+        except TypeError:
+            pass
+        return None
+
+    def add(self, a, b):
+        assert a.tp is self, repr(a) # do we need this here?
+        assert b.tp is self, repr(b) # do we need this here?
+        return Natural(a.value + b.value, self)
+    
+    def mul(self, a, b):
+        return Natural(a.value * b.value, self)
+    
+    def truediv(self, a, b):
+        if a.value%b.value:
+            raise Exception("cannot divide %r by %r" % (a, b))
+        i = a.value // b.value
+        return Natural(i, self)
+
+    def floordiv(self, a, b):
+        i = a.value // b.value
+        return Natural(i, self)
+
+    def mod(self, a, b):
+        a = a.value
+        b = b.value
+        return Natural(a%b, self)
+    
+    def gcd(self, a, b):
+        assert a.tp == self, repr(a)
+        assert b.tp == self, repr(b)
+        a = a.value
+        b = b.value
+        while b != 0:
+            a, b = b, a%b
+        factor = Natural(a, self)
+        return factor
+
+
+@total_ordering
+class Natural(GenericElement):
+
+    def __init__(self, value, tp):
+        assert value >= 0
+        GenericElement.__init__(self, value, tp)
+
+    def reduce(a, b):
+        """
+            a.reduce(b): use a to reduce b.
+            return (div, rem) such that div*a+rem==b.
+        """
+
+        a = a.value # unwrap
+        b = b.value # unwrap
+
+        div = a//b
+        rem = a%b
+        return div, rem
+
+    def __lt__(a, b):
+        b = a.tp.promote(b)
+        return a.value < b.value
+
+
+
+class BoolRig(Rig):
+
+    """
+        The rig of booleans.
+    """
+
+    # XXX these should be singletons (so we can test equality with "is")
+
+    def __init__(self):
+        Ring.__init__(self)
+        self.one = Bool(1, self)
+        self.zero = Bool(0, self)
+    
+    def promote(self, value):
+        if isinstance(value, Bool):
+            assert value.tp == self
+            return value
+        if isinstance(value, int):
+            return Bool(value, self)
+        try:
+            value = int(value)
+            return Bool(value, self)
+        except ValueError:
+            pass
+        except TypeError:
+            pass
+        return None
+
+    def add(self, a, b):
+        assert a.tp is self, repr(a) # do we need this here?
+        assert b.tp is self, repr(b) # do we need this here?
+        return Bool(max(a.value, b.value), self)
+    
+    def mul(self, a, b):
+        return Bool(min(a.value, b.value), self)
+    
+
+@total_ordering
+class Bool(GenericElement):
+
+    def __init__(self, value, tp):
+        assert value == 0 or value == 1
+        GenericElement.__init__(self, value, tp)
+
+    def __lt__(a, b):
+        b = a.tp.promote(b)
+        return a.value < b.value
+
+
+# ----------------------------------------------------------------------------
+
+
+class Ring(Rig):
+
+    def neg(self, a):
+        zero = self.zero
+        a = self.sub(zero, a)
+        return a
 
 
 class IntegerRing(Ring):
@@ -1097,7 +1240,7 @@ class Fraction(GenericElement):
 class Linear(Keyed, Type):
     
     def __init__(self, n, base):
-        "Algebraic group: (n, n) matrices over a base ring"
+        "Algebraic group: (n, n) square matrices over a base ring"
         self.n = n
         self.base = base
         key = (self.n, self.base)
@@ -1224,6 +1367,20 @@ class LinearElement(GenericElement):
         for i in range(self.tp.n):
             x = x + value[i][i]
         return x 
+
+    def transpose(self):
+        tp = self.tp
+        value = [[self.value[i][j] for i in range(tp.n)] for j in range(tp.n)]
+        return tp.get(value)
+
+    def __le__(a, b):
+        b = a.tp.promote(b)
+        assert a.tp is b.tp
+        for i in range(a.tp.n):
+         for j in range(a.tp.n):
+            if a.value[i][j] > b.value[i][j]:
+                return False
+        return True
 
 
 # ----------------------------------------------------------------------------
@@ -1541,6 +1698,38 @@ def test():
     if argv.B_3:
         B_3 = cayley(B_3)
         burnside(B_3)
+
+    # -------------------------
+
+    rig = NaturalRig()
+    G = Linear(2, rig)
+    A = G.get([[1, 1], [0, 1]])
+    B = G.get([[1, 0], [1, 1]])
+    AB = G.get([[2, 1], [1, 1]])
+    assert A*B == AB
+
+    # -------------------------
+
+    rig = BoolRig()
+    G = Linear(2, rig)
+    I = G.get([[1, 0], [0, 1]])
+    E = G.get([[1, 0], [0, 0]])
+    F = G.get([[0, 0], [0, 1]])
+    A = G.get([[1, 1], [0, 1]])
+    B = G.get([[1, 0], [1, 1]])
+    X = G.get([[0, 1], [1, 0]])
+    top = G.get([[1, 1], [1, 1]])
+    bot = G.get([[0, 0], [0, 0]])
+    items = [bot, E, F, I, X, A, B, top]
+    assert A*B == top
+    assert not (A <= B)
+    assert not (B <= A)
+    assert A <= top
+    assert B <= top
+    assert A.transpose() == B
+    for L in items:
+        R = L.transpose() # right adjoint
+        print(L, "partial function:", L*R <= I, "total relation:", I <= R*L)
 
     # -------------------------
 
