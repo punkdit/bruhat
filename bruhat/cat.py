@@ -6,21 +6,61 @@ start_time = time()
 from bruhat.argv import argv
 
 
-
 class Category(object):
+
+    construct_cell = None
 
     def __init__(self, name="C", dim=0):
         self.name = name
         self.dim = dim
-        self.cells = [set() for i in range(dim+1)]
-        self._mul = {} 
 
     def __str__(self):
         return self.name
 
     def Cell(self, tgt=None, src=None, codim=0, name="?"):
-        cell = Cell(self, tgt, src, codim, name)
+        cell = self.construct_cell(self, tgt, src, codim, name)
         return cell
+
+    def check(self):
+        pass
+
+
+class Cell(object):
+    def __init__(self, cat, tgt=None, src=None, codim=0, name="?"):
+        assert isinstance(cat, Category)
+        assert tgt is None or isinstance(tgt, Cell)
+        assert src is None or isinstance(src, Cell)
+        assert 0<=codim<=cat.dim
+        assert tgt is None or tgt.codim == codim+1
+        assert src is None or src.codim == codim+1
+        assert (tgt is None) == (src is None)
+        assert cat.construct_cell == self.__class__
+        self.cat = cat
+        self.tgt = tgt
+        self.src = src
+        self.codim = codim
+        self.name = name
+        self.is_object = tgt is None
+
+    def __str__(self):
+        if self.is_object:
+            return self.name
+        else:
+            return "%s <-- %s" % (self.tgt, self.src)
+
+Category.construct_cell = Cell
+
+# ----------------------------------------------------------------------------
+
+
+class AbsCategory(Category):
+
+    "abstract category"
+
+    def __init__(self, name="C", dim=0):
+        Category.__init__(self, name, dim)
+        self.cells = [set() for i in range(dim+1)]
+        self._mul = {} 
 
     def free_mul(self, lhs, rhs):
         key = (lhs, rhs)
@@ -59,41 +99,45 @@ class Category(object):
                 assert (a*b) * c == a * (b*c)
 
 
-class Cell(object):
+class ACell(Cell):
+    "abstract cell in an abstract category"
     def __init__(self, cat, tgt=None, src=None, codim=0, name="?"):
-        assert isinstance(cat, Category)
-        assert tgt is None or isinstance(tgt, Cell)
-        assert src is None or isinstance(src, Cell)
-        assert 0<=codim<=cat.dim
-        assert tgt is None or tgt.codim == codim+1
-        assert src is None or src.codim == codim+1
-        assert (tgt is None) == (src is None)
-        self.cat = cat
-        self.tgt = tgt
-        self.src = src
-        self.codim = codim
-        self.name = name
-        self.is_object = tgt is None
+        Cell.__init__(self, cat, tgt, src, codim, name)
         cat.cells[codim].add(self)
-
-    def __str__(self):
-        if self.is_object:
-            return self.name
-        else:
-            return "%s <-- %s" % (self.tgt, self.src)
 
     def __mul__(lhs, rhs):
         assert lhs.cat == rhs.cat
         assert rhs.tgt == lhs.src
         return lhs.cat.free_mul(lhs, rhs)
 
+AbsCategory.construct_cell = ACell
+
+# ----------------------------------------------------------------------------
+
+
+class Mat(Category):
+    def __init__(self, base):
+        assert isinstance(base, Category)
+        Category.__init__(self, "Mat(%s)"%base, 2) # a bicategory
+        self.base = base
+
+
+class MCell(Cell):
+    pass
+
+
+Mat.construct_cell = MCell
+
+
+# ----------------------------------------------------------------------------
+
 
 def test():
-    S = Category("S", 0) # a set
+    S = AbsCategory("S", 0) # a set
     X = S.Cell()
     Y = S.Cell()
 
-    C = Category("C", 1) # a Category
+    C = AbsCategory("C", 1) # a Category
     Cell = C.Cell
     A = Cell(codim=1, name="A")
     B = Cell(codim=1, name="B")
