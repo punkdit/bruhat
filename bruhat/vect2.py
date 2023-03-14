@@ -11,7 +11,9 @@ Here we call these types Cell0, Cell1, Cell2.
 
 from time import time
 start_time = time()
-from functools import reduce
+from functools import reduce, lru_cache
+cache = lru_cache(maxsize=None)
+
 import operator
 import itertools
 from random import randint, seed
@@ -304,7 +306,7 @@ class Cell1(Matrix):
         assert 0
 
     def __lshift__(self, other):
-        "horizontal composition of 1-morphism's"
+        "horizontal _composition of 1-morphism's"
         if isinstance(other, Cell2):
             self = Cell2.promote(self)
             return self.__lshift__(other) # <-------- return
@@ -582,7 +584,7 @@ class Cell2(Matrix):
         return numpy.alltrue(self.A == other.A)
 
     def __mul__(self, other):
-        "(vertical) composition of 2-morphism's"
+        "(vertical) _composition of 2-morphism's"
         other = Cell2.promote(other)
         assert self.rig == other.rig
         if self.src != other.tgt and not Cell2.strict:
@@ -590,11 +592,11 @@ class Cell2(Matrix):
             other = other.tgt.to_normal() * other # recurse
         assert self.src == other.tgt, "%s != %s"%(self.src, other.tgt)
         rig = self.rig
-        A = self.A * other.A # compose Lin's elementwise
+        A = self.A * other.A # _compose Lin's elementwise
         return Cell2(self.tgt, other.src, A)
 
     def __lshift__(left, right):
-        "horizontal composition of 2-morphism's"
+        "horizontal _composition of 2-morphism's"
         right = Cell2.promote(right)
         tgt = left.tgt << right.tgt
         src = left.src << right.src
@@ -640,7 +642,7 @@ class Cell2(Matrix):
 
     @classmethod
     def send(cls, cell1, f):
-        "apply f component-wise to construct a Cell2 tgt or src"
+        "apply f _component-wise to construct a Cell2 tgt or src"
         #print("send", cell1.shape)
         A = Matrix.send(cell1, f)
         rows, cols = cell1.shape
@@ -1567,6 +1569,82 @@ def test_biproducts():
 
     Cell2.strict = False
     return 
+
+
+def test_teleport():
+
+    from bruhat.lin import reduce, add
+    Cell2.strict = True
+    
+    ring = element.Z
+    rig = Rig(ring)
+    
+    zero = Cell0(rig, 0, "z")
+    one = Cell0(rig, 1, "i")
+    two = Cell0(rig, 2, "i+i")
+    four = Cell0(rig, 4, "i+i+i+i")
+    
+    A, B, C, D, E, F, G, H = [Space(ring, 2, 0, c) for c in "ABCDEFGH"]
+    I = Space(ring, 1, 0, "I")
+    O = Space(ring, 0, 0, "O")
+    
+    i = Lin(I, A@A, [[1,0,0,1]])
+    x = Lin(I, A@A, [[0,1,1,0]])
+    z = Lin(I, A@A, [[1,0,0,-1]])
+    y = Lin(I, A@A, [[0,1,-1,0]])
+
+    def bracket(item):
+        if isinstance(item, Lin):
+            tgt = Cell1(one, one, [[item.tgt]])
+            src = Cell1(one, one, [[item.src]])
+            return Cell2(tgt, src, [[item]])
+        elif isinstance(item, Space):
+            return Cell1(one, one, [[item]])
+        assert 0
+    
+    items = [bracket(u) for u in [i,x,z,y]]
+    mul = Cell1(one, four, [[I,I,I,I]])
+    comul = mul.transpose
+    
+    cell = mul << reduce(add, items) << comul
+
+
+    a = bracket(A)
+    src = (a << mul)
+    tgt = (mul << (a+a+a+a))
+    lins = [[Lin(tgt[0,idx], src[0,idx], [[1,0],[0,1]]) for idx in range(4)]]
+    ldist = Cell2(tgt, src, lins)
+
+    src = comul << a
+    tgt = (a+a+a+a) << comul
+    lins = [[Lin(tgt[idx,0], src[idx,0], [[1,0],[0,1]])] for idx in range(4)]
+    rdist = Cell2(tgt, src, lins)
+
+    bot = ldist << rdist
+    cell = cell.normalized
+    bot = bot.normalized
+
+    U = cell * bot
+
+    tgt = mul << comul
+    src = bracket(I)
+    lin = Lin(tgt[0,0], src[0,0], [[1],[1],[1],[1]])
+    cup = Cell2(tgt, src, [[lin]])
+
+    bot = bracket(A) << cup << bracket(A)
+    bot = bot.normalized
+
+    U = U * bot
+
+    print(U.tgt)
+    print(U.src)
+    print(U[0,0])
+
+    Ut = U.transpose2()
+    UUt = U*Ut
+    UtU = Ut*U
+    print(UUt[0,0])
+    print(UtU[0,0])
 
 
 def test_all():
