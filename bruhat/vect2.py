@@ -11,7 +11,7 @@ Here we call these types Cell0, Cell1, Cell2.
 
 from time import time
 start_time = time()
-from functools import reduce, lru_cache
+from functools import reduce, lru_cache, add
 cache = lru_cache(maxsize=None)
 
 import operator
@@ -1573,7 +1573,6 @@ def test_biproducts():
 
 def test_teleport():
 
-    from bruhat.lin import reduce, add
     Cell2.strict = True
     
     ring = element.Z
