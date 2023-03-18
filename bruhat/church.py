@@ -143,15 +143,15 @@ def test():
     assert Lambda(x, y) == Lambda(z, y)
     assert fxy.subs(y, x) == Lambda(z, x)
 
+    L = Lambda
     nums = [
-        Lambda(f, fxx),
-        Lambda(f, Lambda(x, f*x)),
-        Lambda(f, Lambda(x, f*(f*x))),
-        Lambda(f, Lambda(x, f*(f*(f*x)))),
-        Lambda(f, Lambda(x, f*(f*(f*(f*x))))),
+        L(f, L(x, x)),
+        L(f, L(x, f*x)),
+        L(f, L(x, f*(f*x))),
+        L(f, L(x, f*(f*(f*x)))),
+        L(f, L(x, f*(f*(f*(f*x))))),
     ]
 
-    L = Lambda
     succ = L(n, L(f, L(x, (f * (n*f*x)))))
     plus = L(m, L(n, L(f, L(x, (m*f)*(n*f*x)))))
 
@@ -175,7 +175,7 @@ def test():
     #print(power(nums[2], nums[2]) == nums[4])
     #print(power(nums[2], nums[3]))
     #print(nums[8])
-    #assert power(nums[2], nums[3]) == nums[8]
+    #assert power(nums[2], nums[3]) == nums[9]
 
     I = L(x, x)
     K = L(x, L(y, x))
