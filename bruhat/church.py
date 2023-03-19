@@ -171,9 +171,16 @@ def test():
     assert mul(nums[3], nums[3]) == nums[9]
 
     # fail
-    power = L(x, L(y, y*x))
+    # (lambda m n.n m) (lambda f x. f(f x)) (lambda f x.f(f(f x))) 
+    power = L(m, L(n, n*m))
+    #power = L(m, L(n, (m(mul(n))))) # fail
     #print(power(nums[2], nums[2]) == nums[4])
-    #print(power(nums[2], nums[3]))
+    #print(power(nums[1], nums[1])==nums[1])
+    #print(power(nums[2], nums[1])==nums[2])
+    #print(power(nums[2], nums[2])==nums[4])
+    #print(power(nums[3], nums[1])==nums[3])
+    #print(power(nums[3], nums[2])==nums[6])
+    #print(power(nums[2], nums[3])==nums[8])
     #print(nums[8])
     #assert power(nums[2], nums[3]) == nums[9]
 
