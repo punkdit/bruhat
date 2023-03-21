@@ -5,9 +5,11 @@ start_time = time()
 
 from bruhat.argv import argv
 
-from bruhat.solve import parse, span, shortstr, array2
+from bruhat.solve import parse, span, shortstr, array2, rank, solve, intersect
 from bruhat.isomorph import Tanner, search
 from bruhat.equ import Equ, quotient
+from bruhat.action import Perm, Group, mulclose
+from bruhat.util import factorize
 
 
 def preproc():
@@ -75,7 +77,77 @@ def get_dist():
             print(dist)
             found.add(dist)
 
-def get_autos():
+
+def get_autos(H):
+    rows = [v for v in span(H) if v.sum()]
+    V = array2(rows)
+    print(shortstr(V))
+    count = 0
+    for f in find_isos(V, V):
+        #print(f)
+        print(".", end="", flush=True)
+        count += 1
+    print(count)
+
+
+            
+def gap_fmt(perm):
+    cs = perm.cycles()
+    ss = []
+    for c in cs:
+        if len(c)==1:
+            continue
+        c = [i+1 for i in c]
+        ss.append(tuple(c))
+    return ''.join(str(s) for s in ss)
+
+def gap_code(perms):
+    s = [gap_fmt(perm) for perm in perms]
+    s = "Group(%s);"%(', '.join(s))
+    return s
+
+def get_autos_nauty(H):
+    print("get_autos_nauty", H.shape)
+    dist = {i:0 for i in range(H.shape[1]+1)}
+    for v in span(H):
+        dist[v.sum()] += 1
+    print(dist)
+    #return
+    rows = [v for v in span(H) if v.sum()]
+    V = array2(rows)
+    #print(shortstr(V))
+    m, n = V.shape
+    from pynauty import Graph, autgrp
+    g = Graph(m+n) # checks + bits
+    for check in range(m):
+        bits = [m + bit for bit in range(n) if V[check, bit]]
+        g.connect_vertex(check, bits)
+    for bit in range(n):
+        checks = [check for check in range(m) if V[check, bit]]
+        g.connect_vertex(m+bit, checks)
+    g.set_vertex_coloring([set(range(m)), set(range(m, m+n))])
+    #print(g)
+    aut = autgrp(g)
+    #print(aut)
+
+    gen = aut[0]
+    items = list(range(m+n))
+    perms = []
+    for perm in gen:
+        #print(perm)
+        perm = Perm(perm, items)
+        perms.append(perm)
+    print(gap_code(perms))
+
+    return
+    #G = Group.generate(perms)
+    G = mulclose(perms, verbose=True)
+    N = len(G) # 322560, (C2 x C2 x C2 x C2) : A8
+    print("autos:", N, factorize(N))
+
+
+
+def main_autos():
     H = parse("""
     101001010011
     011010010011
@@ -84,18 +156,27 @@ def get_autos():
     000000001111
     """)
 
-    rows = [v for v in span(H) if v.sum()]
-    V = array2(rows)
-    print(shortstr(V))
-    count = 0
-    for f in find_isos(V, V):
-        print(f)
-        count += 1
-    print(count)
+    H = parse("""
+    11111111........
+    ....11111111....
+    ........11111111
+    11..11..11..11..
+    .11..11..11..11.
+    """)
+    assert rank(H) == len(H)
 
+    from bruhat.triply_even import codes24
+    H_golay = codes24.get("g_{24}")
+    print(shortstr(H_golay))
+
+    W = intersect(H, H_golay)
+    print(W.shape)
+
+    #get_autos_nauty(H)
 
         
 def find_iso():
+    # broken: must take span of H
     codes = list(read_codes())
     print(len(codes))
 
@@ -110,19 +191,6 @@ def find_iso():
     for equ in found:
         print(shortstr(equ.items[0]))
         print()
-    return
-
-
-    n = len(codes)
-    H1 = codes[0]
-    for H2 in codes[1:]:
-        if not is_iso(H1, H2):
-            print("distinct")
-            break
-        else:
-            print(".", flush=True, end="")
-    print()
-
 
 if __name__ == "__main__":
 
