@@ -42,7 +42,7 @@ class Equ(object):
         return e1 is e2
 
 
-def quotient(items, relation=None):
+def quotient(items, relation=None, verbose=False):
     """ return a dict:item->items that sends each item 
         to the list of equivalant items 
         under the equivalance relation.
@@ -50,19 +50,30 @@ def quotient(items, relation=None):
     if relation is None:
         relation = lambda a,b : (a==b)
     equs = [Equ(item) for item in items]
-    hom = {}
     n = len(items)
     for i in range(n):
         ei = equs[i]
+        if verbose:
+            print(".", end="", flush=True)
         for j in range(i+1, n):
             ej = equs[j]
             if ei.eq(ej):
                 continue
             if relation(items[i], items[j]):
                 ei.merge(ej)
-    for i in range(n):
-        hom[items[i]] = list(equs[i].top.items)
-    return hom
+        if verbose:
+            found = set(equ.top for equ in equs)
+            print("[%d]"%(len(found)))
+    try:
+        hom = {}
+        for i in range(n):
+            hom[items[i]] = list(equs[i].top.items)
+        if verbose:
+            print()
+        return hom
+    except TypeError:
+        return equs
+
 
 def quotient_rep(items, relation=None):
     """ return a dict:item->item that sends each item 

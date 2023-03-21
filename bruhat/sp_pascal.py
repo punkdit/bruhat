@@ -163,6 +163,10 @@ def test():
     assert B(3,2) == 315
     assert B(4,2) == 5355
     assert B(5,3) == 782595
+    print( len( grassmannian(4, 3) ))
+    print( len( grassmannian(5, 4) ))
+
+    return
 
     F = omega(3)
 
