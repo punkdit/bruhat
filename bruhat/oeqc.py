@@ -3,13 +3,15 @@
 from time import time
 start_time = time()
 
-from bruhat.argv import argv
+import numpy
 
-from bruhat.solve import parse, span, shortstr, array2, rank, solve, intersect
+from bruhat.solve import parse, span, shortstr, array2, rank, solve, intersect, row_reduce, zeros2
 from bruhat.isomorph import Tanner, search
 from bruhat.equ import Equ, quotient
 from bruhat.action import Perm, Group, mulclose
 from bruhat.util import factorize
+from bruhat.qcode import QCode
+from bruhat.argv import argv
 
 
 def preproc():
@@ -108,10 +110,10 @@ def gap_code(perms):
 
 def get_autos_nauty(H):
     print("get_autos_nauty", H.shape)
-    dist = {i:0 for i in range(H.shape[1]+1)}
-    for v in span(H):
-        dist[v.sum()] += 1
-    print(dist)
+    #dist = {i:0 for i in range(H.shape[1]+1)}
+    #for v in span(H):
+    #    dist[v.sum()] += 1
+    #print(dist)
     #return
     rows = [v for v in span(H) if v.sum()]
     V = array2(rows)
@@ -137,9 +139,9 @@ def get_autos_nauty(H):
         #print(perm)
         perm = Perm(perm, items)
         perms.append(perm)
-    print(gap_code(perms))
+    #print(gap_code(perms))
+    return perms
 
-    return
     #G = Group.generate(perms)
     G = mulclose(perms, verbose=True)
     N = len(G) # 322560, (C2 x C2 x C2 x C2) : A8
@@ -147,15 +149,7 @@ def get_autos_nauty(H):
 
 
 
-def main_autos():
-    H = parse("""
-    101001010011
-    011010010011
-    000111010011
-    000000110101
-    000000001111
-    """)
-
+def main_rm():
     H = parse("""
     11111111........
     ....11111111....
@@ -164,13 +158,135 @@ def main_autos():
     .11..11..11..11.
     """)
     assert rank(H) == len(H)
+    print(H.shape)
+    
+    perms = get_autos_nauty(H)
 
-    from bruhat.triply_even import codes24
-    H_golay = codes24.get("g_{24}")
-    print(shortstr(H_golay))
+    #G = mulclose(perms, verbose=True)
+    #N = len(G) # 322560, (C2 x C2 x C2 x C2) : A8
+    #print("autos:", N, factorize(N))
 
-    W = intersect(H, H_golay)
-    print(W.shape)
+    v = '1111............'
+    n = len(v)
+    m = len(perms[0].items)
+    items = list(range(m-n, m))
+    print(items)
+    perms = [g.restrict(items) for g in perms]
+    items = list(range(n))
+    #perms = [Perm(perm.perm, items) for perm in perms]
+    #perms = [Perm(dict((k-m+n,v-m+n) for (k,v) in g.perm.items()), items) for g in perms]
+    perms = [dict((k-m+n,v-m+n) for (k,v) in g.perm.items()) for g in perms]
+    perms = [[g[i] for i in items] for g in perms]
+    print(perms)
+    orbit = {v}
+    bdy = {v}
+    while bdy:
+        _bdy = set()
+        for g in perms:
+            for v in bdy:
+                v1 = ''.join(v[i] for i in g)
+                if v1 not in orbit:
+                    _bdy.add(v1)
+                    orbit.add(v1)
+        bdy = _bdy
+    print(len(orbit))
+    orbit = list(orbit)
+    orbit.sort()
+    orbit = "\n".join(orbit)
+    J0 = parse(orbit)
+    J0 = row_reduce(J0)
+    print(shortstr(J0), J0.shape)
+    JX = zeros2(*J0.shape, 2)
+    JX[:,:,0] = J0
+    JZ = zeros2(*J0.shape, 2)
+    JZ[:,:,1] = J0
+    J = numpy.concatenate((JX, JZ))
+    print(J.shape)
+
+    code = QCode.build_gauge(J)
+    print(code)
+    L = code.get_logops()
+    print(L.shape)
+
+
+
+def main_golay():
+    """
+    012345678901234567890123456789
+    1...........11...111.1.1
+    .1...........11...111.11
+    ..1.........1111.11.1...
+    ...1.........1111.11.1..
+    ....1.........1111.11.1.
+    .....1......11.11..11..1
+    ......1......11.11..11.1
+    .......1......11.11..111
+    ........1...11.111...11.
+    .........1..1.1.1..1.111
+    ..........1.1..1..11111.
+    ...........11...111.1.11
+    """
+
+    # Golay code
+    H0 = parse("""
+    1...........11...111.1.1
+    .1...........11...111.11
+    ..1.........1111.11.1...
+    ...1.........1111.11.1..
+    ....1.........1111.11.1.
+    .....1......11.11..11..1
+    ......1......11.11..11.1
+    .......1......11.11..111
+    ........1...11.111...11.
+    .........1..1.1.1..1.111
+    ..........1.1..1..11111.
+    ...........11...111.1.11
+    """)
+
+    print(H0.shape)
+    n = H0.shape[1]
+    words = {i:[] for i in range(n+1)}
+    dist = [0 for i in range(n+1)]
+    for v in span(H0):
+        d = v.sum()
+        dist[d] += 1
+        words[d].append(v)
+    dist = tuple(dist)
+    print(dist)
+
+    Hs = []
+    for word in words[16]:
+        rows = []
+        for u in words[8]:
+            if numpy.alltrue(u*word == u):
+                rows.append(u)
+        H = array2(rows)
+        H = row_reduce(H)
+        Hs.append(H)
+        #print(shortstr(H))
+        #print()
+    print(len(Hs))
+
+    for H1 in Hs:
+        w = intersect(Hs[0], H1)
+        print(len(w), end=' ')
+    print()
+
+    return
+
+    Hs = []
+    for i in range(12):
+        rows = [j for j in range(12) if H0[j, i+12]==0]
+        H1 = H0[rows]
+        Hs.append(H1)
+        #print(shortstr(H1), H1.shape)
+        #print()
+
+    for Ha in Hs:
+      for Hb in Hs:
+        Hab = intersect(Ha, Hb)
+        print(Hab.shape[0], end=' ')
+      print()
 
     #get_autos_nauty(H)
 
