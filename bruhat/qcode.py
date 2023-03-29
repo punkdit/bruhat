@@ -267,6 +267,12 @@ class QCode(object):
         self.L = L
         return L
 
+    def get_all_logops(self):
+        L = self.get_logops()
+        H = self.flatH
+        HL = numpy.concatenate((H, L))
+        return HL
+
     def get_params(self):
         L = self.get_logops()
         kk = len(L)

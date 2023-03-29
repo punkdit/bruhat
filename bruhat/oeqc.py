@@ -254,7 +254,7 @@ def main_golay():
     dist = tuple(dist)
     print(dist)
 
-    Hs = []
+    codes = []
     for word in words[16]:
         rows = []
         for u in words[8]:
@@ -262,15 +262,25 @@ def main_golay():
                 rows.append(u)
         H = array2(rows)
         H = row_reduce(H)
-        Hs.append(H)
-        #print(shortstr(H))
-        #print()
-    print(len(Hs))
+        code = QCode.build_css(H, H)
+        codes.append(code)
+    print(len(codes))
 
-    for H1 in Hs:
-        w = intersect(Hs[0], H1)
-        print(len(w), end=' ')
+    counts = {i:0 for i in range(49)}
+    L = codes[0].get_logops()
+    print(shortstr(L), L.shape)
+    left = codes[0].get_all_logops()
+    print(left.shape)
+    for code in codes:
+        #w = intersect(codes[0].flatH, code.flatH)
+        right = code.get_all_logops()
+        w = intersect(left, right)
+        #w1 = intersect(w, codes[0].flatH
+        w1 = intersect(codes[0].get_logops(), code.get_logops())
+        counts[len(w1)] += 1
+        print(len(w1), end=' ', flush=True)
     print()
+    print([(v,k) for (k,v) in counts.items() if v])
 
     return
 
