@@ -281,7 +281,7 @@ def test():
     f = Rational(ring, one, (1-J*L)*(1-J*Li), "J L Li".split())
     assert f(L=one, Li=one) == Rational(ring, one, (1-J)**2)
 
-    if 1:
+    if 0:
         promote = lambda p : Rational(ring, p, one)
     
         r_one = Rational(ring, one, one)

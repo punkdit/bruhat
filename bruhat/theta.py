@@ -4,7 +4,7 @@ import sys, os
 
 from heapq import *
 
-from bruhat.util import all_primes
+from bruhat.util import all_primes, divisors
 from bruhat.smap import SMap
 from bruhat.argv import argv
 
@@ -127,16 +127,6 @@ def nsquares(n, ncoeffs):
         items[key] = counts[key]
     return items
 
-
-
-def divisors(n):
-    divs = [1]
-    for i in range(2, n):
-        if n%i == 0:
-            divs.append(i)
-    if n>1:
-        divs.append(n)
-    return divs
 
 
 def sigma(k, n):

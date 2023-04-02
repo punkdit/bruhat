@@ -12,18 +12,8 @@ See also _element.pyx for a faster implementation of some of this.
 from functools import total_ordering
 
 from bruhat.action import mulclose, Perm, Group, burnside
-from bruhat.util import cross
+from bruhat.util import cross, divisors
 from bruhat.argv import argv
-
-
-def divisors(n):
-    divs = [1] 
-    for i in range(2, n): 
-        if n%i == 0:
-            divs.append(i)
-    if n>1:
-        divs.append(n)
-    return divs
 
 
 class Type(object):

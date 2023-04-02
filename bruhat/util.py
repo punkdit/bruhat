@@ -272,6 +272,16 @@ def factorize(n):
         factors.append(n)
     return factors
 
+def divisors(n):
+    divs = [1]
+    for i in range(2, n):
+        if n%i == 0:
+            divs.append(i)
+    if n>1:
+        divs.append(n)
+    return divs
+
+
 
 
 def all_binary_trees(els):
