@@ -40,19 +40,40 @@ def main():
 
     #print(shortstr(dot(ring, A, B)))
 
+    n = 20
+    M = numpy.zeros((n, n), dtype=int)
+    for i in range(n):
+        M[i, (i+1)%n] = 1
+        M[i, (i-1)%n] = 1
+    v = numpy.array([0 for i in range(n)])
+    v[0] = 1
+    v[2] = 1
+    v[10] = -1
+    v[12] = -1
+    v0 = v.copy()
+    for i in range(2*n):
+        print(len([i for i in v if i!=0]), end=' ')
+        #print(list(v))
+        v = numpy.dot(M, v)
+
+    #return
+
     class Ring: pass
     ring = Ring()
     ring.zero = Poly({}, Q)
     ring.one = Poly({():1}, Q)
     ring.x = Poly("x", Q)
 
-    for n in [2*3, 3*5, 2*3*5, 2*3*7, 5*7]:
+    print()
+
+    #for n in [2*3, 7, 3*3, 3*5, 2*2*5, 2*3*5, 2*3*7, 5*7, 3*5*7]:
+    for n in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 30, 5*7]:
         print("n =", n)
         p = cyclotomic(ring, n)
         print(p)
         f = Rational(Q, ring.one, p)
     
-        for i in range(100):
+        for i in range(2*n):
             val = f[i]
             if val == +1:
                 print("+%s "%i, end="")

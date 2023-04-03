@@ -26,9 +26,9 @@ from bruhat.rep import Cat, Rep
 
 def burnside(G):
 
-    def print(*args, **kw):
-        pass
-    write = print
+#    def print(*args, **kw):
+#        pass
+#    write = print
 
     Hs = conjugacy_subgroups(G)
     letters = list(string.ascii_uppercase + string.ascii_lowercase)
