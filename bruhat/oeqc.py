@@ -243,7 +243,14 @@ def main_golay():
     ...........11...111.1.11
     """)
 
-    print(H0.shape)
+    if argv.puncture:
+        for i in range(1, 5):
+            H = H0[i:, i:]
+            print(shortstr(H), H.shape)
+            code = QCode.build_css(H, H)
+            print(code.get_params(max_mk=24))
+        return
+
     n = H0.shape[1]
     words = {i:[] for i in range(n+1)}
     dist = [0 for i in range(n+1)]

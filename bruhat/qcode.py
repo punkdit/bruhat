@@ -273,14 +273,14 @@ class QCode(object):
         HL = numpy.concatenate((H, L))
         return HL
 
-    def get_params(self):
+    def get_params(self, max_mk=22):
         L = self.get_logops()
         kk = len(L)
         H = self.flatH
         m = len(H)
         HL = numpy.concatenate((H, L))
         mk = len(HL)
-        if mk > 22:
+        if mk > max_mk:
             return self.n, kk//2, None
         d = self.n
         for w in numpy.ndindex((2,)*mk):
