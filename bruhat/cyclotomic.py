@@ -67,19 +67,24 @@ def main():
     print()
 
     #for n in [2*3, 7, 3*3, 3*5, 2*2*5, 2*3*5, 2*3*7, 5*7, 3*5*7]:
-    for n in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 30, 5*7]:
+    for n in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 30, 5*7, 3*5*11]:
         print("n =", n)
         p = cyclotomic(ring, n)
         print(p)
         f = Rational(Q, ring.one, p)
     
+        pos, neg = [], []
         for i in range(2*n):
             val = f[i]
             if val == +1:
-                print("+%s "%i, end="")
+                #print("+%s "%i, end="")
+                pos.append(i)
             elif val == -1:
-                print("-%s "%i, end="")
+                #print("-%s "%i, end="")
+                neg.append(i)
         print()
+        print(",".join(str(i) for i in pos))
+        print(",".join(str(i) for i in neg))
         print()
 
 
