@@ -801,6 +801,38 @@ def test():
 
 
 
+def test_genus_2():
+    # output some povray code
+    # https://math.stackexchange.com/a/349914
+    # https://www.povray.org/documentation/3.7.0/r3_4.html#r3_4_5_3_5
+
+    ring = Q
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+    x = Poly("x", ring)
+    y = Poly("y", ring)
+    z = Poly("z", ring)
+
+    p =  ((x**2+y**2)**2 - x**2 + y**2)**2 + z**2 - one/100
+    #print(p)
+
+    print("polynomial { %d" % (p.degree,), end="")
+    for key in p.keys:
+        print(",")
+        x, y, z = 0, 0, 0
+        for item in key:
+            if item[0]=='x':
+                x = item[1]
+            if item[0]=='y':
+                y = item[1]
+            if item[0]=='z':
+                z = item[1]
+        print("    xyz(%s,%s,%s):%s" % (x, y, z, p.cs[key]), end="")
+
+    print("\n    sturm\n}")
+    
+
+
 # ----------------------------------------------------------------------
 #
 #
