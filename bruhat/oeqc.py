@@ -5,13 +5,22 @@ start_time = time()
 
 import numpy
 
-from bruhat.solve import parse, span, shortstr, array2, rank, solve, intersect, row_reduce, zeros2
+import bruhat.solve
+
+from bruhat.solve import parse, span, shortstr, array2, solve, intersect, row_reduce, zeros2
+from bruhat.solve import dot2, identity2, linear_independent
 from bruhat.isomorph import Tanner, search
 from bruhat.equ import Equ, quotient
 from bruhat.action import Perm, Group, mulclose
 from bruhat.util import factorize
 from bruhat.qcode import QCode
 from bruhat.argv import argv
+
+#import bruhat.solve
+#bruhat.solve.int_scalar = numpy.int8 # tiny !!
+from qupy.ldpc import solve
+solve.int_scalar = bruhat.solve.int_scalar
+from qupy.ldpc.css import CSSCode
 
 
 def preproc():
@@ -109,46 +118,296 @@ def gap_code(perms):
     return s
 
 def get_autos_nauty(H):
-    print("get_autos_nauty", H.shape)
-    #dist = {i:0 for i in range(H.shape[1]+1)}
-    #for v in span(H):
-    #    dist[v.sum()] += 1
-    #print(dist)
-    #return
+    #print("get_autos_nauty", H.shape)
     rows = [v for v in span(H) if v.sum()]
     V = array2(rows)
-    #print(shortstr(V))
     m, n = V.shape
     from pynauty import Graph, autgrp
-    g = Graph(m+n) # checks + bits
-    for check in range(m):
-        bits = [m + bit for bit in range(n) if V[check, bit]]
-        g.connect_vertex(check, bits)
+    g = Graph(n+m) # bits + checks
     for bit in range(n):
-        checks = [check for check in range(m) if V[check, bit]]
-        g.connect_vertex(m+bit, checks)
-    g.set_vertex_coloring([set(range(m)), set(range(m, m+n))])
-    #print(g)
+        checks = [n+check for check in range(m) if V[check, bit]]
+        g.connect_vertex(bit, checks)
+    for check in range(m):
+        bits = [bit for bit in range(n) if V[check, bit]]
+        g.connect_vertex(n+check, bits)
+    g.set_vertex_coloring([set(range(n)), set(range(n, m+n))])
     aut = autgrp(g)
-    #print(aut)
+    N = int(aut[1])
+    #print("N =", N)
 
     gen = aut[0]
-    items = list(range(m+n))
+    items = list(range(n))
     perms = []
     for perm in gen:
+        perm = perm[:n]
         #print(perm)
         perm = Perm(perm, items)
         perms.append(perm)
     #print(gap_code(perms))
-    return perms
+    return N, perms
 
     #G = Group.generate(perms)
     G = mulclose(perms, verbose=True)
     N = len(G) # 322560, (C2 x C2 x C2 x C2) : A8
     print("autos:", N, factorize(N))
 
+def css_autos_nauty(Hx, Hz):
+    #print("get_autos_nauty", H.shape)
+    Vx = array2([v for v in span(Hx) if v.sum()])
+    Vz = array2([v for v in span(Hz) if v.sum()])
+    mx, n = Vx.shape
+    mz, n = Vz.shape
+    from pynauty import Graph, autgrp
+    g = Graph(n+mx+mz) # bits + checks
+    for bit in range(n):
+        checks = [n+check for check in range(mx) if Vx[check, bit]]
+        checks += [n+mx+check for check in range(mz) if Vz[check, bit]]
+        g.connect_vertex(bit, checks)
+    for check in range(mx):
+        bits = [bit for bit in range(n) if Vx[check, bit]]
+        g.connect_vertex(n+check, bits)
+    for check in range(mz):
+        bits = [bit for bit in range(n) if Vz[check, bit]]
+        g.connect_vertex(n+mx+check, bits)
+    g.set_vertex_coloring([set(range(n)), set(range(n, n+mx)), set(range(n+mx,n+mx+mz))])
+    print("autgrp...")
+    aut = autgrp(g)
+    N = int(aut[1])
+    #print("N =", N)
+
+    gen = aut[0]
+    items = list(range(n))
+    perms = []
+    for perm in gen:
+        perm = perm[:n]
+        #print(perm)
+        perm = Perm(perm, items)
+        perms.append(perm)
+    #print(gap_code(perms))
+    return N, perms
 
 
+def get_wenum(H0):
+    n = H0.shape[1]
+    words = {i:[] for i in range(n+1)}
+    dist = [0 for i in range(n+1)]
+    for v in span(H0):
+        d = v.sum()
+        dist[d] += 1
+        words[d].append(v)
+    dist = tuple(dist)
+    return dist
+
+def get_words(H, w):
+    words = []
+    for v in span(H):
+        d = v.sum()
+        if d==w:
+            words.append(tuple(v))
+    return words
+
+
+def main_m24():
+    # find some double cosets of 759 
+    H0 = parse("""
+    1...........11...111.1.1
+    .1...........11...111.11
+    ..1.........1111.11.1...
+    ...1.........1111.11.1..
+    ....1.........1111.11.1.
+    .....1......11.11..11..1
+    ......1......11.11..11.1
+    .......1......11.11..111
+    ........1...11.111...11.
+    .........1..1.1.1..1.111
+    ..........1.1..1..11111.
+    ...........11...111.1.11
+    """)
+
+    m, n = H0.shape
+    words = get_words(H0, 16)
+    N = len(words)
+    print(words[0])
+
+    from bruhat.gset import Perm
+
+    _, perms = get_autos_nauty(H0)
+    action = []
+    for g in perms:
+        print(g)
+        idxs = []
+        for w in words:
+            w = tuple(w[g[i]] for i in range(n))
+            idxs.append(words.index(w))
+        #print(idxs)
+        assert len(set(idxs)) == len(words)
+        h = Perm(idxs)
+        action.append(h)
+
+    def get_orbit(i, j):
+        bdy = [(i, j)]
+        orbit = set(bdy)
+        while bdy:
+            _bdy = []
+            for g in action:
+                for (i0,j0) in bdy:
+                    ij = g[i0], g[j0]
+                    if ij not in orbit:
+                        orbit.add(ij)
+                        _bdy.append(ij)
+            bdy = set(_bdy)
+        return orbit
+
+    remain = set((i,j) for i in range(N) for j in range(N))
+    orbits = []
+    while remain:
+        i, j = iter(remain).__next__()
+        orbit = get_orbit(i, j)
+        print("orbit:", len(orbit)/N)
+        remain.difference_update(orbit)
+        orbits.append(orbit)
+
+
+
+def mulclose2(gen, verbose=False, maxsize=None):
+    #els = {g.tobytes():g for g in gen}
+    els = {shortstr(g):g for g in gen}
+    bdy = dict(els)
+    changed = True
+    while bdy:
+        if verbose:
+            print(len(els), end=" ", flush=True)
+        _bdy = {}
+        for A in gen:
+            for B in bdy:
+                C = dot2(A, bdy[B])
+                #key = C.tobytes()
+                key = shortstr(C)
+                if key not in els:
+                    els[key] = C
+                    _bdy[key] = C
+                    if maxsize and len(els)>=maxsize:
+                        if verbose:
+                            print()
+                        return els
+        bdy = _bdy
+    if verbose:
+        print()
+    return list(els.values())
+
+
+def gap_matrix(A):
+    m, n = A.shape
+    matrix = []
+    for row in A:
+        line = []
+        for x in row:
+            line.append('Z(2)' if x else '0*Z(2)')
+        line = "[%s]"%(','.join(line))
+        matrix.append(line)
+    matrix = "[%s]"%(','.join(matrix))
+    return str(matrix)
+
+
+def is_triorthogonal(H):
+    # check triorthogonal
+    m, n = H.shape
+    for i in range(m):
+     for j in range(i+1, m):
+        if (H[i]*H[j]).sum() % 2:
+            return False
+        for k in range(j+1, m):
+          if (H[i]*H[j]*H[k]).sum() % 2:
+            return False
+    return True
+
+
+#def find_perm_logops(code, perms):
+    
+
+
+
+def main_triorthogonal():
+    H = parse("""
+    11111111........
+    ....11111111....
+    ........11111111
+    11..11..11..11..
+    .11..11..11..11.
+    """)
+    assert is_triorthogonal(H)
+
+    nn = 2*n
+    _, perms = get_autos_nauty(H)
+    G = []
+    for g in perms:
+        A = zeros2((n, n))
+        for i in range(n):
+            j = g[i]
+            A[i, j] = 1
+        #print(shortstr(A))
+        #print()
+        G.append(A)
+
+    if 0:
+        K = mulclose2(G, verbose=True, maxsize=1000000)
+        assert len(K) == 322560 # yes
+    
+    if 0:
+        code = QCode.build_css(H, H)
+        L0 = code.get_logops()
+        print(code.get_params(10))
+    
+        A = (dot2(L0, L0.transpose()))
+        print(shortstr(A))
+
+    code = CSSCode(Hx=H, Hz=H)
+    k = code.k
+    print(code)
+
+    gen = []
+
+    # Hadamard
+    Lx, Lz = code.Lz, code.Lx
+    gx = dot2(Lx, code.Lz.transpose())
+    gz = dot2(Lz, code.Lx.transpose())
+    g = zeros2((2*k, 2*k))
+    g[:k, k:] = gx
+    g[k:, :k] = gz
+    gen.append(g)
+
+    # S-gate
+    g = identity2(2*k)
+    g[:k, k:] = gx
+    gen.append(g)
+
+    for A in G:
+        Lx = numpy.dot(code.Lx, A)
+        Lz = numpy.dot(code.Lz, A)
+        gx = dot2(Lx, code.Lz.transpose())
+        gz = dot2(Lz, code.Lx.transpose())
+        g = zeros2((2*k, 2*k))
+        g[:k, :k] = gx
+        g[k:, k:] = gz
+        gen.append(g)
+
+    vs = []
+    for i, g in enumerate(gen):
+        print("m%d := %s;;"%(i, gap_matrix(g)))
+        vs.append("m%d"%i)
+    print("G := Group(%s);" % (','.join(vs)))
+
+    N = 322560
+
+    if 0:
+        K = mulclose2(gen, verbose=True, maxsize=N+1)
+        assert len(K) <= N # fail
+        assert N%len(K) == 0
+        print(len(K), N//len(K))
+
+    #K = mulclose2(gen, verbose=True)
+
+    
 def main_rm():
     H = parse("""
     11111111........
@@ -157,10 +416,9 @@ def main_rm():
     11..11..11..11..
     .11..11..11..11.
     """)
-    assert rank(H) == len(H)
     print(H.shape)
     
-    perms = get_autos_nauty(H)
+    _, perms = get_autos_nauty(H)
 
     #G = mulclose(perms, verbose=True)
     #N = len(G) # 322560, (C2 x C2 x C2 x C2) : A8
@@ -173,6 +431,7 @@ def main_rm():
     print(items)
     perms = [g.restrict(items) for g in perms]
     items = list(range(n))
+    assert 0, "BROKEN below: reverse m and n"
     #perms = [Perm(perm.perm, items) for perm in perms]
     #perms = [Perm(dict((k-m+n,v-m+n) for (k,v) in g.perm.items()), items) for g in perms]
     perms = [dict((k-m+n,v-m+n) for (k,v) in g.perm.items()) for g in perms]
@@ -307,23 +566,110 @@ def main_golay():
 
     #get_autos_nauty(H)
 
-        
-def find_iso():
-    # broken: must take span of H
-    codes = list(read_codes())
-    print(len(codes))
+def parse(decl):
+    decl = decl.split()
+    xop = '\n'.join(line.replace('X','1') for line in decl if 'X' in line)
+    zop = '\n'.join(line.replace('Z','1') for line in decl if 'Z' in line)
+    #print(xop)
+    Hx = bruhat.solve.parse(xop)
+    Hz = bruhat.solve.parse(zop)
+    #Hx = linear_independent(Hx)
+    #Hz = linear_independent(Hz)
+    #print(Hx)
+    return CSSCode(Hx=Hx, Hz=Hz)
 
-    #codes = codes[:100]
-    #codes = [H.tobytes() for H in codes]
-    equs = quotient(codes, is_iso, verbose=True)
-    found = set()
-    for equ in equs:
-        found.add(equ.top)
-    print()
-    print("distinct codes:", len(found))
-    for equ in found:
-        print(shortstr(equ.items[0]))
-        print()
+
+def build_code():
+    code = parse("""
+    .X.XX.X...X.X.X..X...
+    X....X.XX..X.X.X..X..
+    X..X.XX...XX..X...X..
+    .......XXX...X.XX..X.
+    X.XXX.X.XX.X.X...X.XX
+    .Z.ZZ.Z...Z.Z.Z..Z...
+    Z....Z.ZZ..Z.Z.Z..Z..
+    Z..Z.ZZ...ZZ..Z...Z..
+    .ZZ.Z.......Z....Z..Z
+    Z.ZZZ.Z.ZZ.Z.Z...Z.ZZ
+    ......Z.....Z.Z..Z...
+    Z......ZZ.........Z..
+    .......ZZ.......Z..Z.
+    ..Z.........Z....Z...
+    .Z.....Z..Z.....Z.Z..
+    ..Z.................Z
+    ..Z......Z.........ZZ
+    Z.......Z..Z.Z.......
+    .....Z....Z...Z...Z..
+    .Z..........Z........
+    """) # [[21,1,2]] # Aut=16384
+
+    code = parse("""
+    .X.XX.X...X.X.X..X...
+    X....X.XX..X.X.X..X..
+    X..X.XX...XX..X...X..
+    .......XXX...X.XX..X.
+    X.XXX.X.XX.X.X...X.XX
+    .Z.ZZ.Z...Z.Z.Z..Z...
+    Z....Z.ZZ..Z.Z.Z..Z..
+    Z..Z.ZZ...ZZ..Z...Z..
+    .ZZ.Z.......Z....Z..Z
+    Z.ZZZ.Z.ZZ.Z.Z...Z.ZZ
+    ......Z.....Z.Z..Z...
+    Z......ZZ.........Z..
+    .......ZZ.......Z..Z.
+    ..Z.........Z....Z...
+    .Z.....Z..Z.....Z.Z..
+    ..Z......Z.........ZZ
+    Z.......Z..Z.Z.......
+    .....Z....Z...Z...Z..
+    """) # 
+
+    print(code)
+    print(code.distance())
+    print("is_triorthogonal", is_triorthogonal(code.Hx))
+
+    N, perms = get_autos_nauty(code.Hx)
+    print(N, len(perms))
+
+    G = mulclose(perms, verbose=True)
+    gen = []
+    #for g in perms:
+    for g in G:
+        idxs = [g[i] for i in range(code.n)]
+        Hz = code.Hz[:, idxs]
+        H = intersect(Hz, code.Hz)
+        if len(H) == len(Hz):
+            print('.', end='', flush=True)
+            gen.append(g)
+        #print(len(code.Hz), len(H))
+    print(len(gen))
+
+    #G = mulclose(gen, verbose=True)
+    #print(len(G))
+
+    #N, perms = get_autos_nauty(code.Hz)
+    #print(N, len(perms))
+
+    #N, perms = css_autos_nauty(code.Hx, code.Hz)
+    #print(N, len(perms))
+
+        
+#def find_iso():
+#    # broken: must take span of H
+#    codes = list(read_codes())
+#    print(len(codes))
+#
+#    #codes = codes[:100]
+#    #codes = [H.tobytes() for H in codes]
+#    equs = quotient(codes, is_iso, verbose=True)
+#    found = set()
+#    for equ in equs:
+#        found.add(equ.top)
+#    print()
+#    print("distinct codes:", len(found))
+#    for equ in found:
+#        print(shortstr(equ.items[0]))
+#        print()
 
 if __name__ == "__main__":
 

@@ -532,6 +532,7 @@ def get_adj(left, right):
 
 def build_code(geometry):
     dim = geometry.dim
+    print("dim =", dim)
 
     if dim == 2:
         faces = geometry.get_cosets([0,1,1])
@@ -621,6 +622,8 @@ def build_code(geometry):
         #print(shortstr(J))
         Jx = J
         Jz = Jx.copy()
+    else:
+        assert 0
 
     if Hx is not None:
         Hx = linear_independent(Hx)
@@ -630,6 +633,7 @@ def build_code(geometry):
         #print("chain condition:", A.sum() == 0)
     
         if A.sum() != 0:
+            print("not commutative\n")
             return
     
         Hxs = Hx.sum(1)
@@ -653,13 +657,13 @@ def build_code(geometry):
 
     n, k, d = code.get_params()
     print("[[%d, %d, %s]]" % (n, k, d))
+    print(code)
 
     if d is None:
         L = code.get_logops()
         print(list(L.sum(1)))
     print()
 
-    print(code)
 
 
 def build_geometry():
