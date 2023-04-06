@@ -209,6 +209,8 @@ def get_words(H, w):
 
 def main_m24():
     # find some double cosets of 759 
+
+    # Golay code:
     H0 = parse("""
     1...........11...111.1.1
     .1...........11...111.11
@@ -224,10 +226,49 @@ def main_m24():
     ...........11...111.1.11
     """)
 
+    # RM [[16,6,4]]
+    H1 = parse("""
+    11111111........
+    ....11111111....
+    ........11111111
+    11..11..11..11..
+    .11..11..11..11.
+    """)
+
     m, n = H0.shape
     words = get_words(H0, 16)
     N = len(words)
-    print(words[0])
+    #print(words[0])
+    codes = []
+    for word in words:
+        idxs = [idx for idx in range(n) if word[idx]==1]
+        jdxs = [idx for idx in range(n) if word[idx]==0]
+        Hx = zeros2(len(H1), n)
+        Hx[:, idxs] = H1
+        Hz = zeros2(len(H1) + len(jdxs), n)
+        Hz[:len(H1), idxs] = H1
+        for j, jdx in enumerate(jdxs):
+            Hz[len(H1)+j, jdx] = 1
+        #print("Hx =")
+        #print(shortstr(Hx))
+        #print("Hz =")
+        #print(shortstr(Hz))
+        code = CSSCode(Hx=Hx, Hz=Hz)
+        #print(code)
+        codes.append(code)
+        #break
+
+    counts = {i:0 for i in range(6)}
+    for i in range(N):
+     for j in range(i+1, N):
+        H = intersect(codes[i].Lx, codes[j].Lx)
+        counts[len(H)] += 1
+        if len(H)>3:
+            print(len(H), end=" ", flush=True)
+     #print()
+    print(counts)
+
+    return
 
     from bruhat.gset import Perm
 
@@ -263,7 +304,8 @@ def main_m24():
     while remain:
         i, j = iter(remain).__next__()
         orbit = get_orbit(i, j)
-        print("orbit:", len(orbit)/N)
+        assert len(orbit)%N == 0
+        print("orbit:", len(orbit)//N)
         remain.difference_update(orbit)
         orbits.append(orbit)
 
@@ -566,7 +608,7 @@ def main_golay():
 
     #get_autos_nauty(H)
 
-def parse(decl):
+def parse_decl(decl):
     decl = decl.split()
     xop = '\n'.join(line.replace('X','1') for line in decl if 'X' in line)
     zop = '\n'.join(line.replace('Z','1') for line in decl if 'Z' in line)
@@ -580,7 +622,7 @@ def parse(decl):
 
 
 def build_code():
-    code = parse("""
+    code = parse_decl("""
     .X.XX.X...X.X.X..X...
     X....X.XX..X.X.X..X..
     X..X.XX...XX..X...X..
@@ -603,7 +645,7 @@ def build_code():
     .Z..........Z........
     """) # [[21,1,2]] # Aut=16384
 
-    code = parse("""
+    code = parse_decl("""
     .X.XX.X...X.X.X..X...
     X....X.XX..X.X.X..X..
     X..X.XX...XX..X...X..
@@ -628,10 +670,12 @@ def build_code():
     print(code.distance())
     print("is_triorthogonal", is_triorthogonal(code.Hx))
 
+    dump_transverse(code.Hx, code.Lx)
+
     N, perms = get_autos_nauty(code.Hx)
     print(N, len(perms))
 
-    G = mulclose(perms, verbose=True)
+    G = mulclose(perms, verbose=True); print()
     gen = []
     #for g in perms:
     for g in G:
@@ -652,6 +696,60 @@ def build_code():
 
     #N, perms = css_autos_nauty(code.Hx, code.Hz)
     #print(N, len(perms))
+
+
+def dump_transverse(Hx, Lx):
+    from qupy import CSSLO
+    Eq, SX,LX,SZ,LZ = CSSLO.CSSCode(Hx, Lx)
+    t = 3
+    N = 1<<t
+    zList,qList, V, K_M = CSSLO.comm_method(Eq, SX, LX, SZ, t, compact=True, debug=False)
+    for z,q in zip(zList,qList):
+        print("#", CSSLO.CP2Str(2*q,V,N),"=>",CSSLO.z2Str(z,N))
+    print()
+
+def build_trinal():
+
+    jdx = argv.get("idx", 0)
+    from bruhat.small_triorthogonal import codes
+    for idx, code in enumerate(codes):
+        Hx, Hz, Lx, Lz, comment = code
+        code = CSSCode(Hx=Hx, Hz=Hz, Lx=Lx, Lz=Lz)
+        print(idx, code)
+        print(code.distance())
+        print(code.longstr())
+        print("is_triorthogonal:", is_triorthogonal(code.Hx))
+        if Lx is None:
+            Lx = code.Lx
+        dump_transverse(Hx, Lx)
+        if idx:
+            break
+
+
+    return
+
+    if 0:
+        N, perms = css_autos_nauty(code.Hx, code.Hz)
+        print(gap_code(perms))
+        print("|G| =", N)
+        for perm in perms:
+            print(perm)
+        #G = mulclose(perms, verbose=True)
+        #print(len(G))
+
+    print(code.distance())
+    print(code.longstr())
+
+    for v in span(Lz):
+        if v.sum() == 0:
+            continue
+        for w in span(Hz):
+            vw = (v+w)%2
+            if vw.sum() == 1:
+                print(v)
+                print(w)
+                print(vw)
+                assert 0
 
         
 #def find_iso():
