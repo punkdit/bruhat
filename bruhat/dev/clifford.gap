@@ -52,8 +52,25 @@ cz := [
     [0, 0, 0, -1]];;
 
 Cliff2 := Group(si, is, hi, ih, wi, cz);; # Order 92160
-#for g in Cliff2 do Print(g, "\n"); od;
-Pauli2 := Group(wi, xi, ix, zi, iz);;
+for g in Center(Cliff2) do Print(g, "\n"); od;
+Print(Order(Center(Cliff2)), "\n");
+Pauli2 := Group(wi, xi, ix, zi, iz);; # Order 64
+
+#Print(IsSubgroup(Cliff2, Pauli2), "\n");
+
+G := FactorGroup(Cliff2, Pauli2);
+H := Center(G);
+Print(Order(G), "\n"); # 1440
+Print(Order(H), "\n"); # 2
+
+G1 := FactorGroup(G, H);
+Print(Order(G1), "\n");
+
+#Print(Order(Pauli2), "\n");
+Print(IsomorphismGroups(G1, Sp(4,2)), "\n"); # yes !
+
+quit;
+
 
 # Works:
 for U in Cliff2 do
