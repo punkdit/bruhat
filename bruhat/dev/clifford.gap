@@ -44,6 +44,7 @@ hi := KroneckerProduct(h, i);;
 ih := KroneckerProduct(i, h);;
 wi := KroneckerProduct(w, i);;
 
+w8 := [[E(8), 0, 0, 0], [0, E(8), 0, 0], [0, 0, E(8), 0], [0, 0, 0, E(8)]];;
 
 cz := [
     [1, 0, 0, 0],
@@ -54,7 +55,16 @@ cz := [
 Cliff2 := Group(si, is, hi, ih, wi, cz);; # Order 92160
 for g in Center(Cliff2) do Print(g, "\n"); od;
 Print(Order(Center(Cliff2)), "\n");
+Print(IsomorphismGroups(Center(Cliff2), Group([[E(16)]])), "\n");
+
+quit;
+
 Pauli2 := Group(wi, xi, ix, zi, iz);; # Order 64
+
+Assert(0, hi*si*si*hi*cz = cz*hi*is*si*is*si*hi);
+Assert(0, w8 in Cliff2);
+Assert(0, w8*cz*hi*cz = si*hi*cz*si*is*hi*si );
+
 
 #Print(IsSubgroup(Cliff2, Pauli2), "\n");
 
