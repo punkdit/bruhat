@@ -55,9 +55,9 @@ cz := [
 Cliff2 := Group(si, is, hi, ih, wi, cz);; # Order 92160
 for g in Center(Cliff2) do Print(g, "\n"); od;
 Print(Order(Center(Cliff2)), "\n");
-Print(IsomorphismGroups(Center(Cliff2), Group([[E(16)]])), "\n");
+Print(IsomorphismGroups(Center(Cliff2), Group([[E(8)]])), "\n"); # yes
 
-quit;
+QUIT;
 
 Pauli2 := Group(wi, xi, ix, zi, iz);; # Order 64
 
