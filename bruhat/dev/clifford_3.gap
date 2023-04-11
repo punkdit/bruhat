@@ -40,14 +40,14 @@ cx := [
     [0, 0, 0, 0, 0, 0, 0, 1, 0]];
 
 Pauli2 := Group(xi, ix, zi, iz);
-#Cliff2 := Group(si, is, hi, ih, cx);
+Cliff2 := Group(si, is, hi, ih, cx);
 Print("Pauli2: ", Order(Pauli2), "\n");
 #Print("Cliff2: ", Order(Cliff2), "\n");
 
 
-Print(Order(Sp(4,3)), "\n");
+#Print(Order(Sp(4,3)), "\n");
 
 Print("Done.\n\n\n");
 
-QUIT;
+#QUIT;
 

@@ -55,9 +55,13 @@ cz := [
 Cliff2 := Group(si, is, hi, ih, wi, cz);; # Order 92160
 for g in Center(Cliff2) do Print(g, "\n"); od;
 Print(Order(Center(Cliff2)), "\n");
-Print(IsomorphismGroups(Center(Cliff2), Group([[E(8)]])), "\n"); # yes
+#Print(IsomorphismGroups(Center(Cliff2), Group([[E(8)]])), "\n"); # yes
+center := Group(w8);
+#aff_sy := FactorGroup(Cliff2, Center(Cliff2));
+aff_sy := FactorGroup(Cliff2, center);
+Print(StructureDescription(aff_sy), "\n");
 
-QUIT;
+#QUIT;
 
 Pauli2 := Group(wi, xi, ix, zi, iz);; # Order 64
 
@@ -69,6 +73,7 @@ Assert(0, w8*cz*hi*cz = si*hi*cz*si*is*hi*si );
 #Print(IsSubgroup(Cliff2, Pauli2), "\n");
 
 G := FactorGroup(Cliff2, Pauli2);
+Print(StructureDescription(G), "\n");
 H := Center(G);
 Print(Order(G), "\n"); # 1440
 Print(Order(H), "\n"); # 2
@@ -77,7 +82,7 @@ G1 := FactorGroup(G, H);
 Print(Order(G1), "\n");
 
 #Print(Order(Pauli2), "\n");
-Print(IsomorphismGroups(G1, Sp(4,2)), "\n"); # yes !
+#Print(IsomorphismGroups(G1, Sp(4,2)), "\n"); # yes !
 
 quit;
 
