@@ -15,10 +15,37 @@ import numpy
 from bruhat.argv import argv
 #argv.fast = True
 
-from bruhat.util import is_prime
+from bruhat.util import is_prime, all_primes
 from bruhat.elim import zeros, shortstr, pseudo_inverse, dot
-from bruhat.element import Q, cyclotomic
+from bruhat.element import Q, cyclotomic, FiniteField, PolynomialRing
 from bruhat.rational import Poly, Rational
+
+
+def split_field():
+    deg, N = 3, 3
+    deg, N = 5, 5
+    deg, N = 8, 8
+    deg, N = 10, 5
+    deg, N = 15, 15
+    for p in all_primes(200):
+        print("p=%d:\t"%p, end="")
+        ring = FiniteField(p)
+        ring = PolynomialRing(ring)
+        f = cyclotomic(ring, deg)
+        #print(f)
+        splits = False
+        for i in range(p):
+            val = f(i)
+            if val==0:
+                #print("*", end=" ")
+                splits = True
+                break
+            #print(f(i), end=" ")
+        line = ['.' for i in range(N)]
+        #print("*" if splits else "")
+        line[p%N] = "*" if splits else "|"
+        print(' '.join(line))
+
 
 def main():
     n = argv.get("n", 20)
