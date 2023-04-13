@@ -44,10 +44,21 @@ Cliff2 := Group(si, is, hi, ih, cx);
 Print("Pauli2: ", Order(Pauli2), "\n");
 #Print("Cliff2: ", Order(Cliff2), "\n");
 
+Print(Order(Center(Cliff2)), "\n");
+#Print(IsomorphismGroups(Center(Cliff3), Group([[E(8)]]
+center := Center(Cliff2);
+#aff_sy := FactorGroup(Cliff2, Center(Cliff2));
+aff_sy := FactorGroup(Cliff2, center);
+Print(StructureDescription(aff_sy), "\n");
+
+ASp := SemidirectProduct(Sp(4,3), GF(3)^4);
+Print(StructureDescription(ASp), "\n");
+
+Print(IsomorphismGroups(aff_sy, ASp), "\n");
 
 #Print(Order(Sp(4,3)), "\n");
 
 Print("Done.\n\n\n");
 
-#QUIT;
+QUIT;
 

@@ -22,7 +22,7 @@ s := [[1, 0], [0, E(4)]];;
 h := [[ir2, ir2], [ir2, -ir2]];;
 
 Cliff1 := Group(w, s, h);; # Order 192
-Pauli1 := Group(w, x, z);; # Order 32
+Pauli1 := Group(w, x, z);; # Order 16
 
 for U in Cliff1 do
     found := false;;
@@ -61,7 +61,13 @@ center := Group(w8);
 aff_sy := FactorGroup(Cliff2, center);
 Print(StructureDescription(aff_sy), "\n");
 
-#QUIT;
+ASp := SemidirectProduct(Sp(4,2), GF(2)^4);
+Print(StructureDescription(ASp), "\n");
+
+Print(IsomorphismGroups(aff_sy, ASp), "\n");
+
+
+QUIT;
 
 Pauli2 := Group(wi, xi, ix, zi, iz);; # Order 64
 
