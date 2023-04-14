@@ -24,6 +24,11 @@ h := [[ir2, ir2], [ir2, -ir2]];;
 Cliff1 := Group(w, s, h);; # Order 192
 Pauli1 := Group(w, x, z);; # Order 16
 
+A := FactorGroup(Cliff1, Pauli1);
+A0 := SemidirectProduct(Sp(2,2), GF(2)^2);
+Print(IsomorphismGroups(A, A0), "\n");
+quit;
+
 for U in Cliff1 do
     found := false;;
     #Udag := Inverse(U);
@@ -31,7 +36,7 @@ for U in Cliff1 do
     for g in Pauli1 do
         if (U*g*Inverse(U)*Inverse(g) in Pauli1)  then found:=true; break; fi;
     od;
-    if not found then Print("Not found\n"); fi;
+    Assert(0, found);
 od;
 
 xi := KroneckerProduct(x, i);;
