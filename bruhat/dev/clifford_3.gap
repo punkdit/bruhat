@@ -27,6 +27,8 @@ si := KroneckerProduct(s, i);;
 is := KroneckerProduct(i, s);;
 hi := KroneckerProduct(h, i);;
 ih := KroneckerProduct(i, h);;
+ii := KroneckerProduct(i, i);;
+
 
 cx := [
     [1, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -44,11 +46,16 @@ Cliff2 := Group(si, is, hi, ih, cx);
 Print("Pauli2: ", Order(Pauli2), "\n");
 #Print("Cliff2: ", Order(Cliff2), "\n");
 
-Print(Order(Center(Cliff2)), "\n");
+m := E(6)*ii;
+#Assert(0, m in Cliff2);
+center := Group(m);
+#Assert(0, Order(Center(Cliff2)) == 6);
 #Print(IsomorphismGroups(Center(Cliff3), Group([[E(8)]]
-center := Center(Cliff2);
 #aff_sy := FactorGroup(Cliff2, Center(Cliff2));
+#center := Center(Cliff2);
+#aff_sy := FactorGroup(Cliff2, center); # FAIL
 aff_sy := FactorGroup(Cliff2, center);
+
 Print(StructureDescription(aff_sy), "\n");
 
 ASp := SemidirectProduct(Sp(4,3), GF(3)^4);

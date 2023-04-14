@@ -12,8 +12,12 @@ from bruhat.argv import argv
 from sage.all_cmdline import *
 from sage import all_cmdline 
 
-Matrix = lambda *args : all_cmdline.Matrix(*args, immutable=True)
+#Matrix = lambda *args : all_cmdline.Matrix(*args, immutable=True)
 
+def Matrix(*args):
+    m = all_cmdline.Matrix(*args)
+    m.set_immutable()
+    return m
 
 def mulclose(gen, verbose=False, maxsize=None):
     for g in gen:
