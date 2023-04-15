@@ -354,74 +354,10 @@ def get_order(g):
         n += 1
     return n
 
-
-
 def get_identity(G):
     I = [g for g in G if g*g==g]
     assert len(I) == 1
     return I[0]
-
-
-def get_presentation_2(gens, G): # FAIL
-    assert len(gens)==2
-    print("get_presentation_2(%d, %d)"%(len(gens), len(G)))
-    I = get_identity(G)
-    rels = set()
-    for i in range(2):
-        rels.add((i,)*get_order(gens[i]))
-    for n in range(2, 16):
-        for bits in numpy.ndindex((2,)*n):
-            g = reduce(mul, [gens[bit] for bit in bits])
-            if g==I:
-                print(bits)
-                rels.add(bits)
-    #assert len(set(rels)) == len(rels)
-    print(rels)
-    return rels
-
-
-def get_presentation(gens, G=None): # FAIL
-    if G is None:
-        G = mulclose(gens)
-    print("get_presentation(%d, %d)"%(len(gens), len(G)))
-    N = len(gens)
-    if N>2:
-        pairs = [(gens[i], gens[j]) for i in range(N) for j in range(i+1, N)]
-        for pair in pairs:
-            H = mulclose(pair)
-            #pres = get_presentation(pair, H) # <----- recurse
-            if len(H) == len(G):
-                print("found pair")
-                pres = get_presentation_2(pair, H)
-                return pres # <----------- return
-            print(len(H), end=".", flush=True)
-    rels = []
-    for i in range(N):
-        g = gens[i]
-        n = get_order(g)
-        rels.append((i,)*n)
-        for j in range(i+1, N):
-            h = gens[j]
-            n = get_order(g*h)
-            rels.append((i,j)*n)
-    print(rels)
-    I = get_identity(G)
-    rels = set(rels)
-    count = 0
-    while count < 10:
-        lhs = tuple(randint(0, N-1) for i in range(randint(3,9)))
-        g = reduce(mul, [gens[i] for i in lhs])
-        if g==I and lhs not in rels:
-            rels.add(lhs)
-            count += 1
-            print(".", end="", flush=True)
-
-    print(" done")
-    rels = list(rels)
-    rels.sort()
-    print(rels)
-    print()
-    return rels
 
 
 def find_pairgen(gens, G=None):
