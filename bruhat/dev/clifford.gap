@@ -26,8 +26,8 @@ Pauli1 := Group(w, x, z);; # Order 16
 
 A := FactorGroup(Cliff1, Pauli1);
 A0 := SemidirectProduct(Sp(2,2), GF(2)^2);
-Print(IsomorphismGroups(A, A0), "\n");
-quit;
+#Print(StructureDescription(A), " <-> ", StructureDescription(A0), "\n");
+#quit;
 
 for U in Cliff1 do
     found := false;;
@@ -71,8 +71,9 @@ Print(StructureDescription(ASp), "\n");
 
 Print(IsomorphismGroups(aff_sy, ASp), "\n");
 
+# aff_sy is isomorphic to ASp group constructed in heisenberg.py
 
-QUIT;
+quit;
 
 Pauli2 := Group(wi, xi, ix, zi, iz);; # Order 64
 

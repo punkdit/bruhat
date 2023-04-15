@@ -17,14 +17,19 @@ https://kups.ub.uni-koeln.de/50465/1/dissertation_heinrich.pdf
 
 """
 
-print
-from random import shuffle, seed
-seed(0)
+
+from time import time
+start_time = time()
+
+from random import shuffle, seed, choice, randint
+#seed(0) # ?
+from functools import reduce
+from operator import mul
 
 import numpy
 from numpy import dot, alltrue, zeros, array, identity, kron, concatenate
 
-from bruhat.action import mulclose
+from bruhat.action import mulclose, mulclose_hom, Perm
 from bruhat.util import cross
 from bruhat.argv import argv
 
@@ -340,6 +345,113 @@ class ASymplectic(object):
         return ASymplectic(gh, alpha)
 
 
+
+def get_order(g):
+    n = 1
+    a = g
+    while a*a != a: # identity
+        a = a*g
+        n += 1
+    return n
+
+
+
+def get_identity(G):
+    I = [g for g in G if g*g==g]
+    assert len(I) == 1
+    return I[0]
+
+
+def get_presentation_2(gens, G): # FAIL
+    assert len(gens)==2
+    print("get_presentation_2(%d, %d)"%(len(gens), len(G)))
+    I = get_identity(G)
+    rels = set()
+    for i in range(2):
+        rels.add((i,)*get_order(gens[i]))
+    for n in range(2, 16):
+        for bits in numpy.ndindex((2,)*n):
+            g = reduce(mul, [gens[bit] for bit in bits])
+            if g==I:
+                print(bits)
+                rels.add(bits)
+    #assert len(set(rels)) == len(rels)
+    print(rels)
+    return rels
+
+
+def get_presentation(gens, G=None): # FAIL
+    if G is None:
+        G = mulclose(gens)
+    print("get_presentation(%d, %d)"%(len(gens), len(G)))
+    N = len(gens)
+    if N>2:
+        pairs = [(gens[i], gens[j]) for i in range(N) for j in range(i+1, N)]
+        for pair in pairs:
+            H = mulclose(pair)
+            #pres = get_presentation(pair, H) # <----- recurse
+            if len(H) == len(G):
+                print("found pair")
+                pres = get_presentation_2(pair, H)
+                return pres # <----------- return
+            print(len(H), end=".", flush=True)
+    rels = []
+    for i in range(N):
+        g = gens[i]
+        n = get_order(g)
+        rels.append((i,)*n)
+        for j in range(i+1, N):
+            h = gens[j]
+            n = get_order(g*h)
+            rels.append((i,j)*n)
+    print(rels)
+    I = get_identity(G)
+    rels = set(rels)
+    count = 0
+    while count < 10:
+        lhs = tuple(randint(0, N-1) for i in range(randint(3,9)))
+        g = reduce(mul, [gens[i] for i in lhs])
+        if g==I and lhs not in rels:
+            rels.add(lhs)
+            count += 1
+            print(".", end="", flush=True)
+
+    print(" done")
+    rels = list(rels)
+    rels.sort()
+    print(rels)
+    print()
+    return rels
+
+
+def find_pairgen(gens, G=None):
+    if G is None:
+        G = mulclose(gens)
+    print("find_pairgen(%d, %d)"%(len(gens), len(G)))
+    N = len(gens)
+    if N>2:
+        pairs = [(gens[i], gens[j]) for i in range(N) for j in range(i+1, N)]
+        for pair in pairs:
+            H = mulclose(pair)
+            if len(H) == len(G):
+                print("found pair")
+                return pair # <----------- return
+            print(len(H), end=".", flush=True)
+    return gens
+
+def get_perms(gens, G):
+    items = list(range(len(G)))
+    lookup = dict((g, i) for (i, g) in enumerate(G))
+    perms = []
+    for g in gens:
+        i = lookup[g]
+        perm = [lookup[g*h] for h in G]
+        perm = dict(enumerate(perm))
+        perm = Perm(perm, items)
+        perms.append(perm)
+    return perms
+
+
 def main():
 
     space = vecspace(4)
@@ -400,9 +512,11 @@ def main():
     assert w in G
     assert len(G) == 16, len(G)
 
-    HW = mulclose([wII, XI, ZI, IX, IZ])
+    gens = [wII, XI, ZI, IX, IZ]
+    HW = mulclose(gens)
     assert len(HW) == 64
 
+    #rels = get_presentation(gens, HW)
     #return
 
     # ------------------------------------------------
@@ -436,28 +550,49 @@ def main():
     #g = Sp4[0]
     #print(len([alpha for alpha in find_alpha(g)]))
 
-    gen = []
+    tgt = []
+    gens = []
     for g in Sp4:
         #print(g)
         for alpha in find_alpha(g):
             #print(alpha)
             op = ASymplectic(g, alpha)
-            gen.append(op)
+            gens.append(op)
+            tgt.append(g)
             break
-        if len(gen) > 5:
+        if len(gens) > 5:
             break
 
-    for g in gen:
-      for h in gen:
+    for g in gens:
+      for h in gens:
         for a in HW:
             assert (g*h)(a) == g(h(a))
 
-    ASp = mulclose(gen, maxsize=None, verbose=False)
-    assert len(ASp) == 11520
+    hom = mulclose_hom(gens, tgt)
+    ASp = list(hom.keys())
+    for _ in range(64):
+        g, h = choice(ASp), choice(ASp)
+        assert hom[g]*hom[h] == hom[g*h]
+    #return
+
+    #ASp = mulclose(gens, maxsize=None, verbose=False)
+    assert len(ASp) == 11520, "whoops, try again?"
     #for g in ASp:
     #    g.check()
 
     print(len(ASp))
+
+    if 0:
+        # ASp is isomorphic to aff_sy constructed in dev/clifford.gap
+        from bruhat.oeqc import gap_code
+        gens = find_pairgen(gens, ASp)
+        perms = get_perms(gens, ASp)
+        print(str(perms)[:200])
+        print(gap_code(perms)[:200])
+    
+        f = open("gap_ASp.gap", 'w')
+        print(gap_code(perms), file=f)
+        f.close()
 
     # ------------------------------------------------
 
@@ -508,15 +643,24 @@ def find_alpha(g):
 
 if __name__ == "__main__":
 
-    name = "main"
+    _seed = argv.get("seed")
+    if _seed is not None:
+        print("seed(%s)"%_seed)
+        seed(_seed)
 
-    if argv.profile:
+    profile = argv.profile
+    fn = argv.next() or "main"
+
+    print("%s()"%fn)
+
+    if profile:
         import cProfile as profile
-        profile.run("%s()"%name)
+        profile.run("%s()"%fn)
 
     else:
-        main()
+        fn = eval(fn)
+        fn()
 
-
-    print("OK")
+    print("OK: finished in %.3f seconds"%(time() - start_time))
+    print()
 
