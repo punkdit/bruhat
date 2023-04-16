@@ -561,6 +561,8 @@ def main():
                 
     print("%s >--> %s -->> %s"%(len(A), len(ASp), len(Sp)))
 
+    # See: https://math.stanford.edu/~conrad/210BPage/handouts/Cohomology&Extensions.pdf
+
     decompose = {} # ASp --> A x Sp
     for a in A:
       for x in Sp:
