@@ -316,6 +316,9 @@ class ASymplectic(object):
         assert isinstance(h, ASymplectic)
         assert g.n == h.n
         return g.g == h.g and g.alpha == h.alpha
+
+    def __str__(self):
+        return "%s %s"%(self.g, self.alpha)
         
     def check(self):
         n, g, alpha = self.n, self.g, self.alpha
@@ -343,6 +346,36 @@ class ASymplectic(object):
         for v in vecspace(2*g.n):
             alpha[v] = (g.alpha[h.g(v)] + h.alpha[v]) % 4
         return ASymplectic(gh, alpha)
+
+
+
+def find_alpha(g):
+    # alpha is determined by its values on the basis elements
+    # (no it's not linear!) but here we search through all functions
+    # (dict's) space -> 2Z/4Z . There are always N solutions .
+    n = g.n
+    space = vecspace(2*n)
+    lhs = {}
+    pairs = [(v, w) for v in space for w in space]
+    for (v, w) in pairs:
+        lhs[v, w] = (beta(g(v), g(w)) - beta(v, w)) % 4
+
+    N = 2**(2*n)
+    for value in cross([(0,1)]*N):
+        alpha = {}
+        for idx, v in enumerate(space):
+            alpha[v] = 2*value[idx]
+        #print(alpha)
+
+        for (v, w) in pairs:
+            #if alpha[v] + alpha[w] != alpha[v+w]:
+            #    break
+            #lhs = (beta(g(v), g(w)) - beta(v, w)) % 4
+            rhs = (alpha[v+w] - alpha[v] - alpha[w]) % 4
+            if lhs[v, w] != rhs:
+                break
+        else:
+            yield alpha
 
 
 
@@ -481,14 +514,12 @@ def main():
     space = vecspace(2*n)
     assert len(space) == 2**(2*n)
 
-    Sp4 = list(Sp4)
-    shuffle(Sp4)
-    #g = Sp4[0]
-    #print(len([alpha for alpha in find_alpha(g)]))
+    Sp = list(Sp4)
+    shuffle(Sp)
 
     tgt = []
     gens = []
-    for g in Sp4:
+    for g in Sp:
         #print(g)
         for alpha in find_alpha(g):
             #print(alpha)
@@ -506,20 +537,69 @@ def main():
 
     hom = mulclose_hom(gens, tgt)
     ASp = list(hom.keys())
+    shuffle(ASp)
     for _ in range(64):
         g, h = choice(ASp), choice(ASp)
         assert hom[g]*hom[h] == hom[g*h]
-    #return
-
-    #ASp = mulclose(gens, maxsize=None, verbose=False)
     assert len(ASp) == 11520, "whoops, try again?"
-    #for g in ASp:
-    #    g.check()
+    print("|ASp| =", len(ASp))
 
-    print(len(ASp))
+    I0 = get_identity(Sp)
+    I = get_identity(ASp)
+    section = {t:s for (s,t) in hom.items()}
+    section[I0] = I
+    is_identity = lambda g : g*g==g
+    A = []
+    for g in ASp:
+        if g.g == I0:
+            A.append(g)
+    def get_inverse(G, g):
+        for h in G:
+            if g*h == I:
+                return h
+        assert 0
+                
+    print("%s >--> %s -->> %s"%(len(A), len(ASp), len(Sp)))
+
+    decompose = {} # ASp --> A x Sp
+    for a in A:
+      for x in Sp:
+        g = a*section[x]
+        assert g not in decompose
+        decompose[g] = (a, x)
+    print("decompose:", len(decompose))
+
+    f = lambda x : section[x]
+    def act(x, b):
+        fx = f(x)
+        fxi = get_inverse(ASp, fx)
+        return fx*b*fxi
+
+    for _ in range(10):
+        g = choice(ASp)
+        h = choice(ASp)
+        a, x = decompose[g]
+        b, y = decompose[h]
+        fx = f(x)
+        #xi = get_inverse(Sp, x)
+        lhs = g*h
+        rhs = a * act(x, b)*(f(x) * f(y) * get_inverse(ASp, f(x*y)))*f(x*y)
+        assert lhs==rhs
+        print(lhs)
+        print("ok")
+
+    return
+
+    #for g in Sp:
+    for _ in range(10):
+        g = choice(Sp)
+        x = section[g]
+        xi = get_inverse(ASp, x)
+        for b in A:
+            assert x*b*xi in A
 
     if 0:
-        # ASp is isomorphic to aff_sy constructed in dev/clifford.gap
+        # Success! ASp is isomorphic to aff_sy constructed in dev/clifford.gap
         from bruhat.oeqc import gap_code
         gens = find_pairgen(gens, ASp)
         perms = get_perms(gens, ASp)
@@ -534,7 +614,7 @@ def main():
 
     if 0:
         found = []
-        for g in Sp4:
+        for g in Sp:
             total = 0
             for v in space:
               for w in space:
@@ -545,36 +625,6 @@ def main():
                 found.append(g)
         assert len(mulclose(found)) == 6 # hmmm
     
-
-
-def find_alpha(g):
-    # alpha is determined by its values on the basis elements
-    # (no it's not linear!) but here we search through all functions
-    # (dict's) space -> 2Z/4Z . There are always N solutions .
-    n = g.n
-    space = vecspace(2*n)
-    lhs = {}
-    pairs = [(v, w) for v in space for w in space]
-    for (v, w) in pairs:
-        lhs[v, w] = (beta(g(v), g(w)) - beta(v, w)) % 4
-
-    N = 2**(2*n)
-    for value in cross([(0,1)]*N):
-        alpha = {}
-        for idx, v in enumerate(space):
-            alpha[v] = 2*value[idx]
-        #print(alpha)
-
-        for (v, w) in pairs:
-            #if alpha[v] + alpha[w] != alpha[v+w]:
-            #    break
-            #lhs = (beta(g(v), g(w)) - beta(v, w)) % 4
-            rhs = (alpha[v+w] - alpha[v] - alpha[w]) % 4
-            if lhs[v, w] != rhs:
-                break
-        else:
-            yield alpha
-
 
 
 if __name__ == "__main__":
@@ -597,6 +647,6 @@ if __name__ == "__main__":
         fn = eval(fn)
         fn()
 
-    print("OK: finished in %.3f seconds"%(time() - start_time))
+    print("OK: finished in %.3f _seconds"%(time() - start_time))
     print()
 
