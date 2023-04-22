@@ -26,13 +26,16 @@ def split_field():
     deg, N = 5, 5
     deg, N = 8, 8
     deg, N = 10, 5
-    deg, N = 15, 15
+    deg, N = 20, 20
     for p in all_primes(200):
         print("p=%d:\t"%p, end="")
         ring = FiniteField(p)
         ring = PolynomialRing(ring)
-        f = cyclotomic(ring, deg)
+        #f = cyclotomic(ring, deg)
         #print(f)
+        x = ring.x
+        #f = x**4 + 3*x**2 + 1
+        f = x**2 -x - 1
         splits = False
         for i in range(p):
             val = f(i)
@@ -43,7 +46,7 @@ def split_field():
             #print(f(i), end=" ")
         line = ['.' for i in range(N)]
         #print("*" if splits else "")
-        line[p%N] = "*" if splits else "|"
+        line[p%N] = "X" if splits else "|"
         print(' '.join(line))
 
 
