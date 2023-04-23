@@ -15,15 +15,17 @@ from sage import all_cmdline
 
 
 def main():
-    #n = argv.get("n", 63)
-    #rows = argv.get("rows", 6)
-    #cols = argv.get("cols", 6)
-    #build(n, rows, cols)
+    n = argv.get("n")
+    if n is not None:
+        rows = argv.get("rows")
+        cols = argv.get("cols")
+        build(n, rows, cols)
 
-    #build(17, 1, 16)
-    #build(20, 2, 4)
-    #build(44, 2, 10)
-    build(63, 6, 6)
+    else:
+        #build(17, 1, 16)
+        #build(20, 2, 4)
+        #build(44, 2, 10)
+        build(63, 6, 6)
 
 
 def build(n, rows, cols):
