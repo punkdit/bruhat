@@ -18,6 +18,7 @@ from functools import total_ordering
 from bruhat.gset import Perm, Group
 from bruhat.element import GenericElement, Ring
 from bruhat.lin import Space, Lin
+from bruhat.util import all_primes
 from bruhat.argv import argv
 
 
@@ -125,6 +126,16 @@ class Number(GenericElement):
             s = "(%d+%d*i)"%(a, b)
             s = s.replace("+-", "-")
         return s
+
+    @property
+    def real(self):
+        a, b = self.value
+        return a
+
+    @property
+    def imag(self):
+        a, b = self.value
+        return b
 
     # choose some total_ordering ...
     def __lt__(a, b):
@@ -760,11 +771,48 @@ def test_galois():
         print()
 
 
+def test_primes():
+    # ----------------------------
+    # Golden (Fibonacci) integers
+    R = NumberRing((1, 1))
+    one = R.one
+    zero = 0*one
+    i = R.i
+
+    assert i**2 == i + 1
+    assert i**3 == 2*i + 1
+    assert i**4 == 3*i + 2
+
+    N = 10
+    values = [ a0*one + a1*i for a0 in range(-N, N) for a1 in range(-N, N) ]
+    composite = set()
+    units = [one]
+    values.remove(zero)
+    for u in units:
+        values.remove(u)
+    for a in values:
+     for b in values:
+        ab = a*b
+        if ab.imag==0:
+            composite.add(ab)
+    print(' '.join([str(a) for a in composite]))
+    for p in all_primes(100):
+        print(p%20, end="")
+        if one*p not in composite:
+            print("*", end=" ")
+        else:
+            print(" ", end=" ")
+    print()
+    
+
+
+
 if __name__ == "__main__":
 
     #main()
     #test_gaussian()
-    test_galois()
+    #test_galois()
+    test_primes()
 
 
     print("OK\n")

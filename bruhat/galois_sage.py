@@ -27,9 +27,9 @@ def main():
         build(n, rows, cols)
 
     else:
-        #build(17, 1, 16)
-        #build(20, 2, 4)
-        #build(44, 2, 10)
+        build(17, 1, 16)
+        build(20, 2, 4)
+        build(44, 2, 10)
         build(63, 6, 6)
 
 class Table(object):
@@ -131,28 +131,38 @@ def build(nn, nrows, ncols):
     y = 0
     margin = 0.2
     get_width = lambda bb : 1.2*bb.width + margin
-    lookup = {} # map index to cvs
+    lookup = {} # map subgroup to cvs
     for row in rows:
-        cvss = []
         for item in row:
-            cvs = item[1].render()
-            idx = Hs.index(item[0])
-            lookup[idx] = cvs
-            cvss.append(cvs)
-        width = sum(get_width(cvs.get_bound_box()) for cvs in cvss)
-        x = -0.5*width
-        for cvs in cvss:
+            lookup[item[0]] = item[1].render()
+    rows = [[lookup[item[0]] for item in row] for row in rows]
+    widths = [sum(get_width(cvs.get_bound_box()) for cvs in row) for row in rows]
+    width = max(widths)
+    for row in rows:
+        x = 0.5 * width * (1/len(row))
+        for cvs in row:
             bb = cvs.get_bound_box()
             fg.insert(x, y, cvs)
-            x += get_width(bb)
+            #x += get_width(bb)
+            x += width * (1/len(row))
         y -= 2.2*bb.height + margin
+
     bg = Canvas()
     links = get_links(items)
     st = st_THICk + [grey]
+    margin = 0.2
     for (i, j) in links:
-        src = fg.find_bound_box(lookup[i]).south
-        tgt = fg.find_bound_box(lookup[j]).north
-        bg.stroke(path.line(*src, *tgt), st)
+        Hi, Hj = Hs[i], Hs[j]
+        x0, y0 = fg.find_bound_box(lookup[Hi]).south
+        x1, y1 = fg.find_bound_box(lookup[Hj]).north
+        #bg.stroke(path.line(x0, y0, x1, y1), st)
+        y2 = 0.5*(y0+y1)
+        bg.stroke(path.curve(
+            x0, y0-margin, 
+            x0, y2, 
+            x1, y2,
+            x1, y1+margin,
+        ), st)
     cvs = Canvas([bg, fg])
     cvs.writePDFfile("galois_%s.pdf"%nn)
 
