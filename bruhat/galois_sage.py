@@ -6,6 +6,7 @@ abelian galois extensions / cyclotomic number fields
 
 from time import time
 start_time = time()
+import string
 
 from bruhat.argv import argv
 from bruhat.smap import SMap
@@ -61,25 +62,57 @@ def build(n, rows, cols):
         print(K0.defining_polynomial())
         print(H.fixed_field())
         print()
-        item = (len(H), s, K0.defining_polynomial())
+        item = (H, s, K0.defining_polynomial())
         items.append(item)
 
     N = 1
     col = 0
     smap = SMap()
     for item in items:
-        if item[0] == N:
+        if len(item[0]) == N:
             smap.paste(item[1], 0, col)
         else:
             print(smap, rows*cols//N, '\n')
-            N = item[0]
+            N = len(item[0])
             smap = SMap()
             col = 0
             smap.paste(item[1], 0, col)
         col += cols+1
-
     print(smap, rows*cols//N, '\n')
+
+
+def make_dot(items):
+    # not great....
+    n = len(items)
+    links = set()
+    for i in range(n):
+     for j in range(i+1, n):
+        Hi = items[i][0]
+        Hj = items[j][0]
+        if Hi.is_subgroup(Hj):
+            links.add((i, j))
+    for i in range(n):
+     for j in range(i+1, n):
+      for k in range(j+1, n):
+        if (i,j) in links and (j,k) in links and (i,k) in links:
+            links.remove((i,k))
+
+    letters = string.ascii_letters
+    lines = ["digraph {"]
+    for (i,j) in links:
+        #lines.append("  %s -> %s;" % (letters[i], letters[j]))
+        lhs, rhs = str(items[i][1]), str(items[j][1])
+        lhs, rhs = repr(lhs), repr(rhs)
+        lhs = lhs.replace("'", '"')
+        rhs = rhs.replace("'", '"')
+        lhs = lhs.replace("X", '1')
+        rhs = rhs.replace("X", '1')
+        lines.append("  %s -> %s;" % (lhs, rhs))
     
+    lines.append("}")
+    f = open("galois.dot", "w")
+    f.write('\n'.join(lines))
+    f.close()
 
 
 
