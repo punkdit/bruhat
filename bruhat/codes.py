@@ -142,7 +142,7 @@ def is_morthogonal(G, m):
             if v.sum()%2 != 0:
                 return False
         return True
-    if m>2 and not is_morthogonal(G, m-1):
+    if m>1 and not is_morthogonal(G, m-1):
         return False
     items = list(range(k))
     for idxs in choose(items, m):
