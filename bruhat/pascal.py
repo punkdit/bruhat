@@ -33,9 +33,6 @@ def is_morthogonal(G, m):
             return False
     return True
 
-import numba
-
-@numba.njit
 def is_strict_morthogonal(G, level):
     assert level>=1
     if level==1:
@@ -61,6 +58,9 @@ def is_strict_morthogonal(G, level):
      return True
     assert 0
 
+if argv.get("jit", True):
+    import numba
+    is_strict_morthogonal = numba.njit(is_strict_morthogonal)
 
 
 def qchoose_2(n, m):
