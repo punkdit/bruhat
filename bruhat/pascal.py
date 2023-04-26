@@ -70,24 +70,32 @@ def qchoose_2(n, m):
     for A in geometry.get_cell(row, col, 2):
         yield A
 
-@cache
-def get_cache(m, n):
-    return list(all_codes(m,n))
 
-def even_codes(m, n, level=0):
-    if level == 0:
-        #items = list(all_codes(m, n))
-        #print(len(items))
-        #return items
-        #for H in all_codes(m, n):
-        #    yield H
-        #return
-        return get_cache(m, n)
-    items = []
-    for H in even_codes(m, n, level-1):
-        if is_strict_morthogonal(H, level):
-            items.append(H)
-    return items
+if argv.get("cache", True):
+    def get_cache(m, n):
+        return list(all_codes(m,n))
+    get_cache = cache(get_cache)
+
+    def even_codes(m, n, level=0):
+        if level == 0:
+            return get_cache(m, n)
+        items = []
+        for H in even_codes(m, n, level-1):
+            if is_strict_morthogonal(H, level):
+                items.append(H)
+        return items
+
+else:
+    get_cache = all_codes
+
+    def even_codes(m, n, level=0):
+        if level == 0:
+            for H in get_cache(m, n):
+                yield H
+            return
+        for H in even_codes(m, n, level-1):
+            if is_strict_morthogonal(H, level):
+                yield H
 
 
 def main():
@@ -102,8 +110,10 @@ def main():
         if level > 1:
             nn = max(1, n-1)
         for m in range(nn):
-            items = even_codes(m, n, level)
-            print("%8s"%len(items), end=" ", flush=True)
+            count = 0
+            for H in even_codes(m, n, level):
+                count += 1
+            print("%8s"%count, end=" ", flush=True)
         print()
       print()
 
