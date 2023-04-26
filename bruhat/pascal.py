@@ -71,7 +71,7 @@ def qchoose_2(n, m):
         yield A
 
 
-if argv.get("cache", True):
+if argv.get("cache", False):
     def get_cache(m, n):
         return list(all_codes(m,n))
     get_cache = cache(get_cache)
@@ -101,9 +101,11 @@ else:
 def main():
     N = argv.get("N", 10)
 
-    for level in range(4):
+    #for level in [0,1,2,3]:
+    for level in [3]:
       print("level =", level)
-      for n in range(N):
+      #for n in range(N):
+      for n in [13]:
         nn = n+1
         if level:
             nn = n or 1
