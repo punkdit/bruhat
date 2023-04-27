@@ -39,7 +39,8 @@ DEFAULT_P = argv.get("p", 2)
 
 
 def qchoose_2(n, m, p=DEFAULT_P):
-    assert m<=n
+    if m>n:
+        return
     col = m
     row = n-m
     for A in geometry.get_cell(row, col, p):

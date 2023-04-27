@@ -22,9 +22,9 @@ from bruhat.argv import argv
 
 
 @cache
-def find_css(n, mx, mz):
+def count_css(n, mx, mz):
     if mx < mz:
-        return find_css(n, mz, mx) # recurse
+        return count_css(n, mz, mx) # recurse
     count = 0
     #found = set()
     for Hx in qchoose_2(n, mx):
@@ -40,6 +40,27 @@ def find_css(n, mx, mz):
             #found.add(key)
             count += 1
     return count
+
+def find_css(n, mx, mz):
+    if mx < mz:
+        return find_css(n, mz, mx) # recurse
+    count = 0
+    found = set()
+    for Hx in qchoose_2(n, mx):
+        Jz = find_kernel(Hx)
+        assert mx + len(Jz) == n
+        assert dot2(Hx, Jz.transpose()).sum() == 0
+        for Kz in qchoose_2(len(Jz), mz):
+            Hz = dot2(Kz, Jz)
+            Hz = normal_form_p(Hz)
+            assert dot2(Hx, Hz.transpose()).sum() == 0
+            key = str((Hx, Hz))
+            assert key not in found
+            found.add(key)
+            count += 1
+    #return count
+    return found
+
 
 
 def find_majorana(n, m):
@@ -125,7 +146,7 @@ def main_css():
           for mz in range(n+1):
             if mx+mz>n:
                 continue
-            count = find_css(n, mx, mz)
+            count = count_css(n, mx, mz)
             print("(%s,%s):%8d"%(mx, mz, count,), end=" ", flush=True)
           print()
 

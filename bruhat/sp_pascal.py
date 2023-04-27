@@ -166,8 +166,6 @@ def test():
     print( len( grassmannian(4, 3) ))
     print( len( grassmannian(5, 4) ))
 
-    return
-
     F = omega(3)
 
     A = zeros2(3,3)
