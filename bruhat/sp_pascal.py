@@ -56,9 +56,14 @@ def omega(n):
     return F
 
 
+@cache
+def getbits(k):
+    return list(numpy.ndindex((2,)*k))
+
+
 def fill(A, idxs):
     k = len(idxs)
-    for bits in cross([(0,1)]*k):
+    for bits in getbits(k):
         B = A.copy()
         for idx, bit in zip(idxs, bits):
             B[idx] = bit
@@ -182,11 +187,19 @@ def test():
 
     items = grassmannian(5, 4)
     assert len(items) == B(5, 4)
+    return
 
+    print("[[6,0,?]]:", end=" ", flush=True)
+    count = 0
+    for item in i_grassmannian(6, 6):
+        count += 1
+    print(count)
+
+    # takes about 4 hours to run this
     count = 0
     for item in i_grassmannian(6, 5):
         count += 1
-    print("[[6,1,?]]:", count)
+    print("[[6,1,?]]:", count) # 103378275
 
     #items = grassmannian(6, 5)
     #print("[[6,1,?]]:", len(items))
