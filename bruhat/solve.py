@@ -278,7 +278,7 @@ def row_reduce(H, truncate=True, inplace=False, check=False, debug=False):
     """Remove zero rows if truncate=True
     """
 
-    assert len(H.shape)==2, H.shape
+    #assert len(H.shape)==2, H.shape
     m, n = H.shape
     orig = H
     if not inplace:
@@ -322,7 +322,7 @@ def row_reduce(H, truncate=True, inplace=False, check=False, debug=False):
                 H[i1, :] += H[i, :]
                 H[i1, :] %= 2
 
-        assert 0<=H.max()<=1, orig
+        #assert 0<=H.max()<=1, orig
 
         i += 1
         j += 1

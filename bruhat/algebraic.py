@@ -19,6 +19,7 @@ from functools import reduce
 from functools import reduce, lru_cache
 cache = lru_cache(maxsize=None)
 from operator import add, mul
+from math import prod
 
 import numpy
 
@@ -29,6 +30,7 @@ from bruhat.action import mulclose, mulclose_hom
 from bruhat.spec import isprime
 from bruhat.argv import argv
 from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse, intersect
+from bruhat.solve import zeros2
 from bruhat.dev import geometry
 from bruhat.util import cross, allperms, choose
 from bruhat.smap import SMap
@@ -182,7 +184,6 @@ def test_row_reduce():
     print(B)
     print(C)
 
-
 _cache = {}
 def normal_form(A, p=DEFAULT_P):
     "reduced row-echelon form"
@@ -211,6 +212,97 @@ def normal_form(A, p=DEFAULT_P):
     #print(A)
     _cache[key] = A
     return A
+
+if argv.numba:
+
+    import numba
+
+    @numba.njit
+    def swap_row(A, j, k):
+        row = A[j, :].copy()
+        A[j, :] = A[k, :]
+        A[k, :] = row
+    
+    @numba.njit
+    def swap_col(A, j, k):
+        col = A[:, j].copy()
+        A[:, j] = A[:, k]
+        A[:, k] = col
+
+    @numba.njit
+    def row_reduce(H, truncate=True, inplace=False, check=False):
+        """Remove zero rows if truncate=True
+        """
+    
+        #assert len(H.shape)==2, H.shape
+        m, n = H.shape
+        orig = H
+        if not inplace:
+            H = H.copy()
+    
+        if m*n==0:
+            return H
+    
+        i = 0
+        j = 0
+        while i < m and j < n:
+            assert i<=j
+            if i and check:
+                assert H[i:,:j].max() == 0 # XX rm
+    
+            # first find a nonzero entry in this col
+            for i1 in range(i, m):
+                if H[i1, j]:
+                    break
+            else:
+                j += 1 # move to the next col
+                continue # <----------- continue ------------
+    
+            if i != i1:
+                swap_row(H, i, i1)
+    
+            assert H[i, j]
+            for i1 in range(i+1, m):
+                if H[i1, j]:
+                    H[i1, :] += H[i, :]
+                    H[i1, :] %= 2
+    
+            #assert 0<=H.max()<=1, orig
+    
+            i += 1
+            j += 1
+        if truncate:
+            m = H.shape[0]-1
+            #print "sum:", m, H[m, :], H[m, :].sum()
+            while m>=0 and H[m, :].sum()==0:
+                m -= 1
+            H = H[:m+1, :]
+    
+        return H
+
+
+    @numba.njit
+    def normal_form(A, p=DEFAULT_P):
+        "reduced row-echelon form"
+        assert p==2
+        A = row_reduce(A)
+        #print(A)
+        m, n = A.shape
+        j = 0
+        for i in range(m):
+            while A[i, j] == 0:
+                j += 1
+            i0 = i-1
+            while i0>=0:
+                r = A[i0, j]
+                if r!=0:
+                    A[i0, :] += A[i, :]
+                    A %= p
+                i0 -= 1
+            j += 1
+        #print(A)
+        return A
+
 
 def all_matrices(m, n, p=DEFAULT_P):
     shape = ((p,)*m*n)
@@ -1059,6 +1151,7 @@ def _basep(n, p):
     else:
         return _basep(e, p) + str(q)
 
+
 def test_so():
 
     n = argv.get("n", 3)
@@ -1067,31 +1160,21 @@ def test_so():
     e = argv.get("e", 1)
 
     G = Algebraic.SO(n, p, e)
+    if G.order is None:
+        G.get_elements()
     print("|G| =", G.order)
 
     B = G.invariant_bilinear_form
     Q = G.invariant_quadratic_form
 
+    print("B =")
     print(B)
+    print("Q =")
+    print(Q)
 
     for g in G.gen:
-        assert g * B * g.transpose()  == B
-
-    if 0:
-        items = []
-        #for u in Matrix.all_codes(m, n, p):
-        for M in qchoose_2(n, m, p):
-            M = Matrix(M, p, shape=(m,n))
-            if p>2:  # .. ?.?.?
-                w = M * B * M.transpose() # only works when p>2
-            else:
-                w = M * Q * M.transpose() # use this one for p==2 ... ?
-            #print(M, v.is_zero(), w.is_zero())
-            if not w.is_zero():
-                continue
-            items.append(M)
-        print(len(items))
-        orbit = set([items[0]])
+        assert g * B * g.transpose() == B
+        #assert g * Q * g.transpose() == Q # no ..
 
     while 1:
         M = [randint(0, p-1) for i in range(n*m)]
@@ -1101,13 +1184,15 @@ def test_so():
         if len(M) < m:
             continue
         M = Matrix(M, p, shape=(m,n))
-        if p>2:  # .. ?.?.?
+        if argv.null:
+            w = M * M.transpose() # only works when p>2
+        elif p>2:
             w = M * B * M.transpose() # only works when p>2
         else:
-            w = M * Q * M.transpose() # use this one for p==2 ... ?
+            w = M * Q * M.transpose() # use this one for p==2
         if w.is_zero():
             break
-    print("found")
+    print("found: M =")
     print(M)
 
     orbit = set([M.key[1]])
@@ -1127,12 +1212,252 @@ def test_so():
         bdy = _bdy
     print()
     N = len(orbit)
-    print(N, "[%s]_%d"%(_basep(N, p), p))
+    print(N, "= [%s]_%d"%(_basep(N, p), p))
 
-    if 0:
-        for M in orbit:
-            w = M*B*M.transpose()
-            assert w.is_zero()
+
+def test_SO_generators():
+    # find generators
+    print("test_SO_generators()")
+    n = argv.get("n", 5)
+    p = argv.get("p", 2)
+    assert p==2
+
+    def A003053(n): 
+        return (1 << (n//2)**2)*prod((1 << i)-1 for i in range(2, 2*((n-1)//2)+1, 2))
+    order = A003053(n)
+    print("|O(%d,2)| = %d"%(n, order))
+
+#    SO = Algebraic.SO(n=n, p=p)
+#    if SO.order is None:
+#        SO.get_elements()
+#    N = len(SO)
+#    print("|SO| =", N)
+#    if n%2==0:
+#        SOm = Algebraic.SO(n=n, p=p, e=-1)
+#        Nm = len(SO)
+#        print("|SO-| =", Nm)
+
+    gen = []
+    I = Matrix.identity(n, p)
+    while 1:
+        M = numpy.random.randint(0, p, (n, n))
+        M = Matrix(M, p, shape=(n,n))
+        if M * M.transpose() == I:
+            gen.append(M)
+            print("gen:", len(gen))
+            if len(gen)>1:
+                G = mulclose(gen, verbose=True)
+                N0 = len(G)
+                print("|G| =", N0)
+                if N0 == order:
+                    break
+    for g in gen:
+        print(g)
+
+#    count = 0
+#    for g in SO:
+#        if g in G:
+#            count += 1
+#    print("intersection:", count)
+    
+
+def test_SO():
+    n = argv.get("n", 6)
+    m = argv.get("m", 3)
+    p = 2
+
+    if n==6:
+        gen = [
+            [[1,1,1,0,1,1],
+             [0,1,0,1,1,0],
+             [1,0,1,1,1,1],
+             [0,1,0,1,0,1],
+             [0,1,1,1,0,0],
+             [1,1,0,1,0,0]],
+            [[1,1,1,1,1,0],
+             [0,1,1,0,0,1],
+             [0,0,1,1,0,1],
+             [0,0,1,0,1,1],
+             [1,1,0,1,1,1],
+             [1,0,1,0,0,1]]
+        ]
+        order = 23040
+    elif n==7:
+        gen = [
+            [[1,1,0,1,1,1,0],
+             [0,1,0,0,1,0,1],
+             [0,1,1,1,1,1,0],
+             [0,1,0,1,0,0,1],
+             [1,0,1,0,0,1,0],
+             [1,1,1,1,1,0,0],
+             [0,0,0,1,1,0,1]],
+            [[0,1,1,0,1,0,0],
+             [1,1,1,1,0,0,1],
+             [1,0,1,1,1,0,1],
+             [0,0,0,0,0,1,0],
+             [1,1,0,0,1,0,0],
+             [0,1,0,1,1,0,0],
+             [0,1,0,0,1,0,1]]
+        ]
+        order = 1451520
+    else:
+        assert 0
+
+    gen = [Matrix(g) for g in gen]
+    if argv.gen:
+        G = mulclose(gen, verbose=True)
+        assert len(G) == order
+
+    for count in range(1):
+        while 1:
+            M = numpy.random.randint(0, p, (m, n))
+            M = normal_form_p(M, p, truncate=True)
+            if len(M) < m:
+                continue
+            M = Matrix(M, p)
+            w = M * M.transpose()
+            if w.is_zero():
+                break
+        print(M)
+    
+        orbit = set([M.key[1]])
+        bdy = set([M])
+        while bdy:
+            #print("(%s)"%len(bdy), end="", flush=True)
+            _bdy = set()
+            for M in bdy:
+              for g in gen:
+                gM = M*g
+                #w = gM*gM.transpose()
+                #assert w.is_zero()
+                gM = gM.normal_form()
+                s = gM.key[1]
+                if s in orbit:
+                    continue
+                _bdy.add(gM)
+                orbit.add(s)
+                #print(gM)
+            bdy = _bdy
+        #print()
+        N = len(orbit)
+        print(N, "= [%s]_%d"%(_basep(N, p), p))
+
+
+def is_orthogonal(M):
+    if isinstance(M, numpy.ndarray):
+        M = Matrix(M)
+    assert isinstance(M, Matrix)
+    n = len(M)
+    return M*M.transpose() == Matrix.identity(n,2)
+
+def offdiag(n):
+    A = numpy.zeros((n,n),dtype=int)
+    A[:] = 1
+    A += numpy.identity(n,dtype=int)
+    A %= 2
+    return A
+
+def antidiag(n):
+    A = numpy.zeros((n,n),dtype=int)
+    for i in range(n):
+        A[i,n-i-1] = 1
+    return A
+
+
+def get_SO_gens(n):
+    assert n%2 == 1
+    assert is_orthogonal(offdiag(n-1))
+    assert is_orthogonal(antidiag(n))
+
+    gen = []
+    for i in range(n-1):
+        items = list(range(n))
+        items[i:i+2] = i+1, i
+        M = Matrix.perm(items)
+        gen.append(M)
+    
+    for k in range(1, n//2+1, 2):
+        A = antidiag(n)
+        A[k:,:-k] = offdiag(n-k)
+        M = Matrix(A)
+        #print("gen:")
+        #print(M)
+        assert is_orthogonal(M)
+        gen.append(M)
+
+    return gen
+
+
+def find_orbit(gen, M, verbose=False):
+    orbit = set([M.key[1]])
+    bdy = set([M])
+    yield M
+    while bdy:
+        if verbose:
+            print("(%s)"%len(bdy), end="", flush=True)
+        _bdy = set()
+        for M in bdy:
+          for g in gen:
+            gM = M*g
+            #w = gM*gM.transpose()
+            #assert w.is_zero()
+            gM = gM.normal_form()
+            s = gM.key[1]
+            if s in orbit:
+                continue
+            _bdy.add(gM)
+            orbit.add(s)
+            #print(gM)
+            yield gM
+        bdy = _bdy
+    if verbose:
+        print()
+    #return orbit
+
+
+def build_SO():
+    n = argv.get("n", 5)
+    m = argv.get("m", n//2)
+    p = 2
+
+    gen = get_SO_gens(n)
+    u = numpy.array([1]*n)
+
+    best_d = 1
+
+    #for m in range(1, n//2+1):
+    #m = n//2
+    #while m:
+    for m in [m]:
+        A = zeros2(m, n)
+        for i in range(m):
+            A[i,2*i] = 1
+            A[i,2*i+1] = 1
+        M = Matrix(A)
+        print("M =")
+        print(M)
+    
+        count = 0
+        for M in find_orbit(gen, M, verbose=True):
+            count += 1
+            if M.A.sum(0).min() == 0:
+                continue
+            d = n
+            for v in span(M):
+                d1 = ((v+u)%2).sum()
+                if d1<d:
+                    d = d1
+            if d > best_d:
+                best_d = d
+                print()
+                print(M, d)
+                print()
+        print(count, "= [%s]_%d"%(_basep(count, p), p))
+
+    if argv.mulclose:
+        G = mulclose(gen, verbose=True)
+        print(len(G))
+
 
 
 class GL(Algebraic):
