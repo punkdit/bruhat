@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+orthogonal subspaces of Z/2 vector spaces
+"""
 
 
 import sys, os
@@ -18,15 +21,143 @@ import numba
 
 from bruhat.action import mulclose
 from bruhat.argv import argv
-from bruhat.solve import parse, enum2, span, shortstr, rank, shortstrx, zeros2
+from bruhat.solve import parse, enum2, span, shortstr, rank, shortstrx, zeros2, dot2
 from bruhat.util import cross, allperms, choose
 from bruhat.smap import SMap
+from bruhat.qcode import QCode
 
 from bruhat import algebraic
 #scalar = numpy.uint8  # numba doesn't like it
 scalar = numpy.int8  # <--------- 
 algebraic.scalar = scalar
 from bruhat.algebraic import Matrix
+
+
+def find_kernel(A, inplace=False, check=False, verbose=False):
+    """return a list of vectors that span the nullspace of A
+    """
+
+    if check:
+        A0 = A.copy() # save
+
+#    L, U = lu_decompose(A)
+#    assert eq2(numpy.dot(L, U), A)
+
+    U = row_reduce(A, inplace=inplace)
+
+    # We are looking for a basis for the nullspace of A
+
+    m, n = U.shape
+
+    if verbose:
+        print("find_kernel: shape", m, n)
+        #print shortstr(U, deco=True)
+        print()
+
+    items = []
+    for row in range(m):
+        cols = numpy.where(U[row, :])[0]
+        if not len(cols):
+            break
+        col = cols[0]
+        items.append((row, col))
+
+    #items.sort(key = lambda item : item[1])
+    #print items
+    #rows = [row for (row, col) in items]
+    #U = U[rows]
+    leading = [col for (row, col) in items]
+    degeneracy = m - len(leading)
+
+    if verbose:
+        print("leading:", leading)
+        print("degeneracy:", degeneracy)
+
+    # Look for the free variables
+    vars = []
+    row = 0
+    col = 0
+    while row < m and col < n:
+        #print row, col
+        if U[row:, col].max() == 0: # XXX optimize this XXX
+            #print "*"
+            assert U[row:, col].max() == 0, U[row:, col]
+            vars.append(col)
+        else:
+            #print U[row:, col]
+            while row<m and U[row:, col].max():
+                row += 1
+                #print "row", row
+                #if row<m:
+                #    print U[row:, col]
+        col += 1
+    for k in range(col, n):
+        vars.append(k)
+
+    if verbose:
+        print("found %d free vars:" % len(vars), vars)
+
+    basis = []
+    for var in vars:
+
+        #print "var:", var
+        v = numpy.zeros((n,), dtype=scalar)
+        v[var] = 1
+        row = min(var-1, m-1)
+        while row>=0:
+            u = numpy.dot(U[row], v)
+            if u.sum()%2:
+                col = leading[row]
+                #print "\trow", row, "leading:", col
+                v[col] = 1
+                #print '\t', shortstr(v)
+            assert numpy.dot(U[row], v).sum()%2==0, row
+            row -= 1
+        #print '\t', shortstr(v)
+        if check:
+            assert numpy.dot(A0, v).sum()%2 == 0, shortstr(v)
+        basis.append(v)
+
+    K = numpy.array(basis, dtype=scalar)
+    if not basis:
+        K.shape = (0, A.shape[1])
+    else:
+        assert K.shape[1] == A.shape[1]
+
+    return K
+
+
+def intersect(W1, W2):
+    "find maximal subspace within rowspace W1 & rowspace W2"
+    W = numpy.concatenate((W1, W2))
+    K = find_kernel(W.transpose())
+    W = dot2(K[:, :len(W1)], W1)
+    W = row_reduce(W)
+    return W
+
+
+def complement(H):
+    H = row_reduce(H)
+    m, nn = H.shape
+    #print(shortstr(H))
+    pivots = []
+    row = col = 0
+    while row < m:
+        while col < nn and H[row, col] == 0:
+            #print(row, col, H[row, col])
+            pivots.append(col)
+            col += 1
+        row += 1
+        col += 1
+    while col < nn:
+        pivots.append(col)
+        col += 1
+    W = zeros2(len(pivots), nn)
+    for i, ii in enumerate(pivots):
+        W[i, ii] = 1
+    #print()
+    return W
+
 
 
 @numba.njit
@@ -174,6 +305,7 @@ def get_SO_gens(n):
 
 
 def find_orbit(gen, M, verbose=False):
+    print("find_orbit")
     orbit = set([M.key[1]])
     bdy = set([M])
     yield M
@@ -201,10 +333,86 @@ def find_orbit(gen, M, verbose=False):
         print()
     #return orbit
 
+def find_random(gen, M, verbose=False):
+    print("find_random")
+    while 1:
+        g = choice(gen)
+        M = M*g
+        yield M
+
+
+def get_logops(H):
+    assert isinstance(H, numpy.ndarray)
+    m, n = H.shape
+    W = complement(H)
+    K = find_kernel(H, check=True)
+    #print()
+    #print("H =")
+    #print(H)
+    #print("K =")
+    #print(K)
+    HKt = numpy.dot(H, K.transpose()) % 2
+    assert HKt.sum() == 0
+    L = intersect(W, K)
+    k = len(L)
+    assert k+2*m == n
+    HL = numpy.concatenate((H, L))
+    assert rank(HL) == m+k
+    HLt = numpy.dot(H, L.transpose()) % 2
+    assert HLt.sum() == 0
+    return L
 
 
 def search_k1(n):
     m = n//2
+    p = 2
+
+    find = find_orbit
+    if argv.random:
+        find = find_random
+
+    gen = get_SO_gens(n)
+    u = numpy.array([1]*n, dtype=scalar)
+
+    best_d = 1
+
+    assert m<=20, "um..?"
+    B = numpy.array(list(numpy.ndindex((2,)*m)), dtype=scalar)
+
+    A = zeros2(m, n)
+    for i in range(m):
+        A[i,2*i] = 1
+        A[i,2*i+1] = 1
+    M = Matrix(A)
+    print("M =")
+    print(M)
+
+    count = 0
+    for M in find(gen, M, verbose=True):
+        count += 1
+        if M.A.sum(0).min() == 0:
+            continue # distance == 1
+        #d0 = n
+        #for v in span(M):
+        #    d1 = ((v+u)%2).sum()
+        #    if d1<d0:
+        #        d0 = d1
+        C = numpy.dot(B, M.A)
+        C = (C+u)%2
+        C = C.sum(1)
+        d = numpy.min(C)
+        #assert d == d0
+        if d > best_d:
+            best_d = d
+            print()
+            print(M, d)
+            print()
+    print(count, "= [%s]_%d"%(_basep(count, p), p))
+
+
+def search(n, m):
+    k = 2*n-m
+    assert k>1
     p = 2
 
     gen = get_SO_gens(n)
@@ -215,45 +423,89 @@ def search_k1(n):
     assert m<=20, "um..?"
     B = numpy.array(list(numpy.ndindex((2,)*m)), dtype=scalar)
 
-    for m in [m]:
-        A = zeros2(m, n)
-        for i in range(m):
-            A[i,2*i] = 1
-            A[i,2*i+1] = 1
-        M = Matrix(A)
-        print("M =")
-        print(M)
+    A = zeros2(m, n)
+    for i in range(m):
+        A[i,2*i] = 1
+        A[i,2*i+1] = 1
+    M = Matrix(A)
+    print("M =")
+    print(M)
 
-        count = 0
-        for M in find_orbit(gen, M, verbose=True):
-            count += 1
-            if M.A.sum(0).min() == 0:
+    find = find_orbit
+    if argv.random:
+        find = find_random
+
+    count = 0
+    for M in find(gen, M, verbose=True):
+        count += 1
+        #if count > 200000:
+        #    break
+        if M.A.sum(0).min() == 0:
+            continue # distance == 1
+        #d0 = n
+        #for v in span(M):
+        #    d1 = ((v+u)%2).sum()
+        #    if d1<d0:
+        #        d0 = d1
+        C = numpy.dot(B, M.A)
+        C = (C+u)%2
+        C = C.sum(1)
+        d = numpy.min(C)
+        #assert d == d0
+        if d <= best_d:
+            continue
+        H = M.A
+        L = get_logops(H)
+
+        d = n
+        for u in span(L):
+            if u.sum() == 0:
                 continue
-            #d0 = n
-            #for v in span(M):
-            #    d1 = ((v+u)%2).sum()
-            #    if d1<d0:
-            #        d0 = d1
-            C = numpy.dot(B, M.A)
-            C = (C+u)%2
-            C = C.sum(1)
-            d = numpy.min(C)
-            #assert d == d0
-            if d > best_d:
-                best_d = d
-                print()
-                print(M, d)
-                print()
-        print(count, "= [%s]_%d"%(_basep(count, p), p))
+            for v in span(H):
+                uv = (u+v)%2
+                d = min(d, uv.sum())
+        if d > best_d:
+            best_d = d
+            print()
+            print(M, d)
+            print()
+            code = QCode.build_css(H, H)
+            params = code.get_params()
+            print(params)
+            assert params[2] == d
+    
+#
+#        C = numpy.dot(B, H)
+#        for u in span(L):
+#            if u.sum() == 0:
+#                continue
+#            C1 = (C+u)%2
+#            d = numpy.min(C1.sum(1))
+#            if d > best_d:
+#                best_d = d
+#                print()
+#                print(M, d)
+#                print(C1)
+#                print(C1.sum(1))
+#                print()
+#                code = QCode.build_css(H, H)
+#                params = code.get_params()
+#                print(params)
+#                assert params[2] == d
+    print(count, "= [%s]_%d"%(_basep(count, p), p))
 
 
 def main():
     n = argv.get("n", 5)
-    m = argv.get("m", n//2)
+    k = argv.get("k")
+    m = argv.get("m", n//2 if k is None else (n-k)//2)
     k = n-2*m
     assert k>=0
+    print("[[%d,%d]]"%(n,k))
     if k==1:
         search_k1(n)
+    else:
+        search(n, m)
 
 
 if __name__ == "__main__":
