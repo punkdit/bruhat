@@ -202,7 +202,7 @@ def find_orbit(gen, M, verbose=False):
 
 
 
-def build_SO():
+def main():
     n = argv.get("n", 5)
     m = argv.get("m", n//2)
     p = 2
