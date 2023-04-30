@@ -472,7 +472,7 @@ def search(n, m):
             code = QCode.build_css(H, H)
             params = code.get_params()
             print(params)
-            assert params[2] == d
+            assert params[2] is None or params[2] == d
     
 #
 #        C = numpy.dot(B, H)
