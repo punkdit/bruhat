@@ -16,17 +16,16 @@ import numpy
 import numba
 
 
-from bruhat.action import mulclose, mulclose_hom
-from bruhat.spec import isprime
+from bruhat.action import mulclose
 from bruhat.argv import argv
-from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse, intersect
-from bruhat.solve import zeros2
-from bruhat.dev import geometry
+from bruhat.solve import parse, enum2, span, shortstr, rank, shortstrx, zeros2
 from bruhat.util import cross, allperms, choose
 from bruhat.smap import SMap
 
 from bruhat import algebraic
-algebraic.scalar = numpy.int8 # ???
+#scalar = numpy.uint8  # numba doesn't like it
+scalar = numpy.int8  # <--------- 
+algebraic.scalar = scalar
 from bruhat.algebraic import Matrix
 
 
@@ -187,7 +186,9 @@ def find_orbit(gen, M, verbose=False):
             gM = M*g
             #w = gM*gM.transpose()
             #assert w.is_zero()
-            gM = gM.normal_form()
+            #gM = gM.normal_form()
+            gM = normal_form(gM.A)
+            gM = Matrix(gM)
             s = gM.key[1]
             if s in orbit:
                 continue
@@ -202,19 +203,18 @@ def find_orbit(gen, M, verbose=False):
 
 
 
-def main():
-    n = argv.get("n", 5)
-    m = argv.get("m", n//2)
+def search_k1(n):
+    m = n//2
     p = 2
 
     gen = get_SO_gens(n)
-    u = numpy.array([1]*n)
+    u = numpy.array([1]*n, dtype=scalar)
 
     best_d = 1
 
-    #for m in range(1, n//2+1):
-    #m = n//2
-    #while m:
+    assert m<=20, "um..?"
+    B = numpy.array(list(numpy.ndindex((2,)*m)), dtype=scalar)
+
     for m in [m]:
         A = zeros2(m, n)
         for i in range(m):
@@ -229,11 +229,16 @@ def main():
             count += 1
             if M.A.sum(0).min() == 0:
                 continue
-            d = n
-            for v in span(M):
-                d1 = ((v+u)%2).sum()
-                if d1<d:
-                    d = d1
+            #d0 = n
+            #for v in span(M):
+            #    d1 = ((v+u)%2).sum()
+            #    if d1<d0:
+            #        d0 = d1
+            C = numpy.dot(B, M.A)
+            C = (C+u)%2
+            C = C.sum(1)
+            d = numpy.min(C)
+            #assert d == d0
             if d > best_d:
                 best_d = d
                 print()
@@ -241,10 +246,14 @@ def main():
                 print()
         print(count, "= [%s]_%d"%(_basep(count, p), p))
 
-    if argv.mulclose:
-        G = mulclose(gen, verbose=True)
-        print(len(G))
 
+def main():
+    n = argv.get("n", 5)
+    m = argv.get("m", n//2)
+    k = n-2*m
+    assert k>=0
+    if k==1:
+        search_k1(n)
 
 
 if __name__ == "__main__":
