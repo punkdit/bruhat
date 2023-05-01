@@ -21,7 +21,7 @@ import numba
 
 from bruhat.action import mulclose
 from bruhat.argv import argv
-from bruhat.solve import parse, enum2, span, shortstr, rank, shortstrx, zeros2, dot2
+from bruhat.solve import parse, enum2, span, shortstr, rank, shortstrx, zeros2, dot2, array2
 from bruhat.util import cross, allperms, choose
 from bruhat.smap import SMap
 from bruhat.qcode import QCode
@@ -304,7 +304,26 @@ def get_SO_gens(n):
     return gen
 
 
-def find_orbit(gen, M, verbose=False):
+def test_dickson():
+    n = argv.get("n", 5)
+    I = Matrix.identity(n)
+    gen = get_SO_gens(n)
+    G = mulclose(gen, verbose=True)
+    print(len(G))
+    SO = []
+    for g in G:
+        A = g-I
+        #print(g)
+        #print(A)
+        #print()
+        if rank(A.A)%2==0:
+            SO.append(g)
+    print(len(SO))
+    SO = mulclose(SO, verbose=True)
+    print(len(SO))
+
+
+def find_orbit_fast(gen, M, verbose=False):
     print("find_orbit")
     orbit = set([M.key[1]])
     bdy = set([M])
@@ -321,11 +340,48 @@ def find_orbit(gen, M, verbose=False):
             #gM = gM.normal_form()
             gM = normal_form(gM.A)
             gM = Matrix(gM)
-            s = gM.key[1]
-            if s in orbit:
+            key = gM.key[1]
+            #key = gM.get_bitkey()
+            if key in orbit:
                 continue
             _bdy.add(gM)
-            orbit.add(s)
+            orbit.add(key)
+            #print(gM)
+            yield gM
+        bdy = _bdy
+    if verbose:
+        print()
+    #return orbit
+
+def find_orbit(gen, M, verbose=False):
+    print("find_orbit")
+    #orbit = set([M.key[1]])
+    orbit = set([M.get_bitkey()])
+    bdy = set([M])
+    yield M
+    while bdy:
+        if verbose:
+            print("(%s)"%len(bdy), end="", flush=True)
+        _bdy = set()
+        for M in bdy:
+          for g in gen:
+            gM = M*g
+            #w = gM*gM.transpose()
+            #assert w.is_zero()
+            #gM = gM.normal_form()
+            gM = normal_form(gM.A)
+            gM = Matrix(gM)
+            #key = gM.key[1]
+            key = gM.get_bitkey()
+            #print(key)
+            #print("sizeof=%d"%sys.getsizeof(key), len(key))
+            #print(gM.key[1])
+            #print("sizeof=%d"%sys.getsizeof(gM.key[1]), len(gM.key[1]))
+            #assert 0
+            if key in orbit:
+                continue
+            _bdy.add(gM)
+            orbit.add(key)
             #print(gM)
             yield gM
         bdy = _bdy
@@ -335,6 +391,9 @@ def find_orbit(gen, M, verbose=False):
 
 def find_random(gen, M, verbose=False):
     print("find_random")
+    gen = mulclose(gen, maxsize=1000)
+    print("find_random", len(gen))
+    gen = list(gen)
     while 1:
         g = choice(gen)
         M = M*g
@@ -368,7 +427,9 @@ def search_k1(n):
     p = 2
 
     find = find_orbit
-    if argv.random:
+    if argv.find_orbit_fast:
+        find = find_orbit_fast
+    if argv.find_random:
         find = find_random
 
     gen = get_SO_gens(n)
@@ -432,13 +493,15 @@ def search(n, m):
     print(M)
 
     find = find_orbit
-    if argv.random:
+    if argv.find_orbit_fast:
+        find = find_orbit_fast # about twice as fast
+    if argv.find_random:
         find = find_random
 
     count = 0
     for M in find(gen, M, verbose=True):
         count += 1
-        #if count > 200000:
+        #if count > 100000:
         #    break
         if M.A.sum(0).min() == 0:
             continue # distance == 1
@@ -493,6 +556,54 @@ def search(n, m):
 #                print(params)
 #                assert params[2] == d
     print(count, "= [%s]_%d"%(_basep(count, p), p))
+
+
+
+def main_stabs():
+
+    H = parse("""
+    [[1 0 1 1 0 0 1 0 1 1 1 1 1 1 0 0 0]
+     [0 1 0 0 1 0 1 1 0 0 0 1 1 1 0 0 1]
+     [0 0 1 1 1 0 0 1 1 0 1 1 1 0 1 1 0]
+     [0 1 1 0 0 1 0 1 0 0 0 1 1 1 0 0 1]
+     [1 0 0 0 1 0 1 1 1 0 0 1 0 0 0 0 0]
+     [1 0 0 0 0 1 1 1 0 0 1 1 0 0 1 0 1]]
+    """)
+    H = parse("""
+    [[1 1 1 1 0 0 0 0 1 0 1 1 0 0 1]
+     [0 1 0 0 1 1 0 0 1 1 0 0 1 0 0]
+     [0 1 1 0 0 0 1 1 1 0 1 1 0 0 1]
+     [1 1 1 1 0 0 1 1 0 0 0 1 1 1 1]
+     [0 0 1 1 0 0 1 0 1 1 0 0 0 0 1]
+     [0 1 1 0 1 0 0 0 0 1 0 0 1 1 0]]
+    """)
+    H = parse("""
+[[1 0 1 1 1 1 1 1 0 0 1 1 1 0 1 0 1 1 0 0 0 0 1]
+ [0 1 1 1 1 0 1 0 1 1 0 0 0 1 0 0 1 0 1 0 0 1 1]
+ [1 1 1 1 0 1 0 0 0 1 1 0 0 0 1 1 0 0 1 1 0 1 0]
+ [0 1 0 0 0 0 1 0 1 0 1 1 1 0 1 1 1 0 1 0 1 1 0]
+ [1 1 1 0 0 1 1 1 0 0 1 1 0 0 0 1 0 1 0 1 0 1 0]
+ [1 1 1 0 0 0 0 0 0 0 0 1 0 0 1 1 0 1 1 0 1 0 1]]
+    """)
+    min_stabs(H)
+
+def min_stabs(H):
+    print(H, H.sum(1))
+    m, n = H.shape
+    assert rank(H) == m
+    V = list(span(H))
+    ws = [(v.sum(),v) for v in V if v.sum()]
+    ws.sort(key = lambda w:w[0])
+    print([w[0] for w in ws])
+    
+    for basis in choose(ws, m):
+        vs = [b[1] for b in basis]
+        A = array2(vs)
+        m1 = rank(A)
+        assert 0<m1<=m
+        if m1==m:
+            break
+    print(A, A.sum(1))
 
 
 def main():

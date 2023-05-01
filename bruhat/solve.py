@@ -105,6 +105,8 @@ def randexpo(n, C=10.):
 
 
 def parse(s):
+    for c in ' [],':
+        s = s.replace(c, '')
     s = s.replace('.', '0')
     lines = s.split()
     lines = [l.strip() for l in lines if l.strip()]
