@@ -22,7 +22,7 @@ import numba
 from bruhat.action import mulclose
 from bruhat.argv import argv
 from bruhat.solve import parse, enum2, span, shortstr, rank, shortstrx, zeros2, dot2, array2
-from bruhat.util import cross, allperms, choose
+from bruhat.util import cross, allperms, choose_rev
 from bruhat.smap import SMap
 from bruhat.qcode import QCode
 
@@ -361,7 +361,7 @@ def find_orbit(gen, M, verbose=False):
     yield M
     while bdy:
         if verbose:
-            print("(%s)"%len(bdy), end="", flush=True)
+            print("(%s:%s)"%(len(bdy),len(orbit)), end="", flush=True)
         _bdy = set()
         for M in bdy:
           for g in gen:
@@ -371,8 +371,10 @@ def find_orbit(gen, M, verbose=False):
             #gM = gM.normal_form()
             gM = normal_form(gM.A)
             gM = Matrix(gM)
+            if gM in bdy or gM in _bdy: # hmm does not seem to help much..
+                continue
             #key = gM.key[1]
-            key = gM.get_bitkey()
+            key = gM.get_bitkey() # slower
             #print(key)
             #print("sizeof=%d"%sys.getsizeof(key), len(key))
             #print(gM.key[1])
@@ -562,30 +564,17 @@ def search(n, m):
 def main_stabs():
 
     H = parse("""
-    [[1 0 1 1 0 0 1 0 1 1 1 1 1 1 0 0 0]
-     [0 1 0 0 1 0 1 1 0 0 0 1 1 1 0 0 1]
-     [0 0 1 1 1 0 0 1 1 0 1 1 1 0 1 1 0]
-     [0 1 1 0 0 1 0 1 0 0 0 1 1 1 0 0 1]
-     [1 0 0 0 1 0 1 1 1 0 0 1 0 0 0 0 0]
-     [1 0 0 0 0 1 1 1 0 0 1 1 0 0 1 0 1]]
-    """)
-    H = parse("""
-    [[1 1 1 1 0 0 0 0 1 0 1 1 0 0 1]
-     [0 1 0 0 1 1 0 0 1 1 0 0 1 0 0]
-     [0 1 1 0 0 0 1 1 1 0 1 1 0 0 1]
-     [1 1 1 1 0 0 1 1 0 0 0 1 1 1 1]
-     [0 0 1 1 0 0 1 0 1 1 0 0 0 0 1]
-     [0 1 1 0 1 0 0 0 0 1 0 0 1 1 0]]
-    """)
-    H = parse("""
-[[1 0 1 1 1 1 1 1 0 0 1 1 1 0 1 0 1 1 0 0 0 0 1]
- [0 1 1 1 1 0 1 0 1 1 0 0 0 1 0 0 1 0 1 0 0 1 1]
- [1 1 1 1 0 1 0 0 0 1 1 0 0 0 1 1 0 0 1 1 0 1 0]
- [0 1 0 0 0 0 1 0 1 0 1 1 1 0 1 1 1 0 1 0 1 1 0]
- [1 1 1 0 0 1 1 1 0 0 1 1 0 0 0 1 0 1 0 1 0 1 0]
- [1 1 1 0 0 0 0 0 0 0 0 1 0 0 1 1 0 1 1 0 1 0 1]]
+[[1 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0]
+ [0 1 0 0 0 0 0 0 0 0 1 1 0 1 0 0 0]
+ [0 0 1 0 0 0 0 0 0 1 0 0 0 0 1 0 1]
+ [0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 1]
+ [0 0 0 0 1 0 0 1 0 0 1 0 1 1 1 1 1]
+ [0 0 0 0 0 1 0 1 0 0 0 1 1 1 1 1 1]
+ [0 0 0 0 0 0 1 1 0 0 1 1 0 0 0 0 0]
+ [0 0 0 0 0 0 0 0 1 1 0 0 0 0 1 1 0]]
     """)
     min_stabs(H)
+
 
 def min_stabs(H):
     print(H, H.sum(1))
@@ -596,7 +585,7 @@ def min_stabs(H):
     ws.sort(key = lambda w:w[0])
     print([w[0] for w in ws])
     
-    for basis in choose(ws, m):
+    for basis in choose_rev(ws, m):
         vs = [b[1] for b in basis]
         A = array2(vs)
         m1 = rank(A)

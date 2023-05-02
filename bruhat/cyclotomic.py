@@ -26,8 +26,11 @@ def split_field():
     deg, N = 5, 5
     deg, N = 8, 8
     deg, N = 10, 5
-    deg, N = 20, 20
-    for p in all_primes(200):
+    deg, N = 20, 63
+    moduli = set()
+    for p in all_primes(2000):
+        if p < 10:
+            continue
         print("p=%d:\t"%p, end="")
         ring = FiniteField(p)
         ring = PolynomialRing(ring)
@@ -36,6 +39,7 @@ def split_field():
         x = ring.x
         #f = x**4 + 3*x**2 + 1
         f = x**2 -x - 1
+        f = x**3 -7*x - 7
         splits = False
         for i in range(p):
             val = f(i)
@@ -48,6 +52,11 @@ def split_field():
         #print("*" if splits else "")
         line[p%N] = "X" if splits else "|"
         print(' '.join(line))
+        if splits:
+            moduli.add(p%N)
+    moduli = list(moduli)
+    moduli.sort()
+    print(moduli)
 
 
 def main():

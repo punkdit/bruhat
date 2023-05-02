@@ -60,6 +60,31 @@ assert len(list(choose(range(4), 3))) == 4
 
 
 
+def choose_rev(items, n):
+    if n==0:
+        return
+    if n==1:
+        for item in items:
+            yield (item,)
+        return
+    items = list(items)
+    #print("choose_rev", items, n)
+    k = len(items)
+    for i in range(n-1, k):
+        for _items in choose_rev(items[:i], n-1):
+            yield _items + (items[i],)
+
+
+items = list(choose_rev(range(4), 1))
+assert items == [(0,), (1,), (2,), (3,)]
+items = list(choose_rev(range(4), 2))
+assert items == [(0, 1), (0, 2), (1, 2), (0, 3), (1, 3), (2, 3)]
+items = list(choose_rev(range(4), 3))
+assert items == [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)]
+
+
+
+
 def allperms(items):
     items = tuple(items)
     if len(items)<=1:
