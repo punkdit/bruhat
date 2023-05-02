@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """
 orthogonal subspaces of Z/2 vector spaces
 """
@@ -25,10 +26,12 @@ from bruhat.solve import parse, enum2, span, shortstr, rank, shortstrx, zeros2, 
 from bruhat.util import cross, allperms, choose_rev
 from bruhat.smap import SMap
 from bruhat.qcode import QCode
+from bruhat.oeqc import gap_matrix
 
 from bruhat import algebraic
 #scalar = numpy.uint8  # numba doesn't like it
-scalar = numpy.int8  # <--------- 
+scalar = numpy.int8  # <---------  Careful with this, 
+                     # <---------  matrices should have every dimension < 128.
 algebraic.scalar = scalar
 from bruhat.algebraic import Matrix
 
@@ -280,18 +283,22 @@ def antidiag(n):
     return A
 
 
-def get_SO_gens(n):
-    assert n%2 == 1
-    assert is_orthogonal(offdiag(n-1))
-    assert is_orthogonal(antidiag(n))
-
+def get_perms(n):
     gen = []
     for i in range(n-1):
         items = list(range(n))
         items[i:i+2] = i+1, i
         M = Matrix.perm(items)
         gen.append(M)
+    return gen
 
+
+def get_SO_gens_odd(n):
+    assert n%2 == 1
+    assert is_orthogonal(offdiag(n-1))
+    assert is_orthogonal(antidiag(n))
+
+    gen = get_perms(n)
     for k in range(1, n//2+1, 2):
         A = antidiag(n)
         A[k:,:-k] = offdiag(n-k)
@@ -303,6 +310,70 @@ def get_SO_gens(n):
 
     return gen
 
+
+def get_SO_gens(n):
+    if n%2:
+        return get_SO_gens_odd(n)
+    
+    gen = get_perms(n)
+    A = parse("""
+    [[0 1 1 0 0 1]
+     [1 0 1 1 1 1]
+     [1 1 0 0 0 1]
+     [1 1 1 1 1 0]
+     [0 1 0 0 1 1]
+     [0 1 0 1 0 1]]
+    """)
+    B = numpy.identity(n, dtype=int)
+    n0 = (n-6)//2
+    B[n0:n0+6, n0:n0+6] = A
+    assert is_orthogonal(B)
+    M = Matrix(B)
+    gen.append(M)
+    if argv.gap:
+        gap_code(gen)
+    return gen
+
+
+def test_gap():
+    n = argv.get("n", 5)
+    gen = get_SO_gens(n)
+    gap_code(gen)
+    G = mulclose(gen)
+    print(len(G))
+
+def gap_code(gen):
+    vs = []
+    for i, g in enumerate(gen):
+        print("m%d := %s;;"%(i, gap_matrix(g)))
+        vs.append("m%d"%i)
+    print("G := Group(%s);" % (','.join(vs)))
+
+
+def find_gens_SO6():
+    n = 6
+    gen = get_perms(n)
+    gap_code(gen)
+    G = mulclose(gen, verbose=True)
+    #assert len(G) == 23040
+
+    I = numpy.identity(n, dtype=scalar)
+    while 1:
+        items = [randint(0,1) for i in range(n*n)]
+        A = array2(items)
+        A.shape = (n,n)
+        #print(shortstr(A))
+        B = dot2(A, A.transpose())
+        if numpy.alltrue(I==B):
+            M = Matrix(A)
+            gen.append(M)
+            G = mulclose(gen, verbose=True)
+            if len(G) == 23040:
+                break
+    print()
+    print(M)
+    gap_code(gen)
+        
 
 def test_dickson():
     n = argv.get("n", 5)
@@ -402,6 +473,22 @@ def find_random(gen, M, verbose=False):
         yield M
 
 
+def test_12_2_3():
+    A = parse("""
+    [[1 1 1 1 0 0 0 0 0 0 0 0]
+     [1 1 0 0 1 1 0 0 0 0 0 0]
+     [0 0 0 0 0 0 1 1 1 1 0 0]
+     [0 0 0 0 0 0 1 1 0 0 1 1]
+     [1 0 1 0 1 0 1 0 1 0 1 0]]
+    """)
+    gen = get_SO_gens(12)
+    M = Matrix(A)
+    count = 0
+    for M in find_orbit(gen, M, verbose=True):
+        count += 1
+    print(count)
+
+
 def get_logops(H):
     assert isinstance(H, numpy.ndarray)
     m, n = H.shape
@@ -490,6 +577,14 @@ def search(n, m):
     for i in range(m):
         A[i,2*i] = 1
         A[i,2*i+1] = 1
+    
+    A = parse("""
+    [[1 1 1 1 0 0 0 0 0 0 0 0]
+     [1 1 0 0 1 1 0 0 0 0 0 0]
+     [0 0 0 0 0 0 1 1 1 1 0 0]
+     [0 0 0 0 0 0 1 1 0 0 1 1]
+     [1 0 1 0 1 0 1 0 1 0 1 0]]
+    """)
     M = Matrix(A)
     print("M =")
     print(M)
