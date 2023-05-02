@@ -208,6 +208,13 @@ def test():
     #print("[[7,1,?]]:", len(items))
 
 
+def dump():
+    for n in range(12):
+     print(2*n+1, end=":")
+     for k in range(n+1):
+        print(B(n,k), end=" ")
+     print()
+
 def main():
     print("main()")
     items = grassmannian(5, 4)
