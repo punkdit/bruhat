@@ -395,7 +395,8 @@ def test_dickson():
 
 
 def find_orbit_fast(gen, M, verbose=False):
-    print("find_orbit")
+    print("find_orbit_fast")
+    M = Matrix(normal_form(M.A))
     orbit = set([M.key[1]])
     bdy = set([M])
     yield M
@@ -426,6 +427,7 @@ def find_orbit_fast(gen, M, verbose=False):
 
 def find_orbit(gen, M, verbose=False):
     print("find_orbit")
+    M = Matrix(normal_form(M.A))
     #orbit = set([M.key[1]])
     orbit = set([M.get_bitkey()])
     bdy = set([M])
@@ -578,13 +580,15 @@ def search(n, m):
         A[i,2*i] = 1
         A[i,2*i+1] = 1
     
-    A = parse("""
-    [[1 1 1 1 0 0 0 0 0 0 0 0]
-     [1 1 0 0 1 1 0 0 0 0 0 0]
-     [0 0 0 0 0 0 1 1 1 1 0 0]
-     [0 0 0 0 0 0 1 1 0 0 1 1]
-     [1 0 1 0 1 0 1 0 1 0 1 0]]
-    """)
+    if 0:
+        A = parse("""
+        [[1 1 1 1 0 0 0 0 0 0 0 0]
+         [1 1 0 0 1 1 0 0 0 0 0 0]
+         [0 0 0 0 0 0 1 1 1 1 0 0]
+         [0 0 0 0 0 0 1 1 0 0 1 1]
+         [1 0 1 0 1 0 1 0 1 0 1 0]]
+        """)
+
     M = Matrix(A)
     print("M =")
     print(M)
@@ -607,13 +611,16 @@ def search(n, m):
         #    d1 = ((v+u)%2).sum()
         #    if d1<d0:
         #        d0 = d1
-        C = numpy.dot(B, M.A)
-        C = (C+u)%2
-        C = C.sum(1)
-        d = numpy.min(C)
-        #assert d == d0
-        if d <= best_d:
-            continue
+
+        if n%2:
+            C = numpy.dot(B, M.A)
+            C = (C+u)%2
+            C = C.sum(1)
+            d = numpy.min(C)
+            #assert d == d0
+            if d <= best_d:
+                continue
+
         H = M.A
         L = get_logops(H)
 

@@ -28,7 +28,6 @@ def main():
 
     else:
         build(7, 1, 6)
-        return
         build(17, 1, 16)
         build(20, 2, 4)
         build(44, 2, 10)
