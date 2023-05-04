@@ -703,12 +703,15 @@ def search(n, m):
         if d > best_d:
             best_d = d
             print()
-            print(M, d)
+            print(M, "[[%s,%s,%s]]"%(n,n-2*m,d))
+            if argv.check:
+                code = QCode.build_css(H, H)
+                params = code.get_params()
+                print(params)
+                assert params[2] is None or params[2] == d
+            if argv.min_stabs:
+                min_stabs(H)
             print()
-            code = QCode.build_css(H, H)
-            params = code.get_params()
-            print(params)
-            assert params[2] is None or params[2] == d
     
 #
 #        C = numpy.dot(B, H)
@@ -748,6 +751,7 @@ def main_stabs():
 
 
 def min_stabs(H):
+    print("min_stabs:")
     print(H, H.sum(1))
     m, n = H.shape
     assert rank(H) == m
