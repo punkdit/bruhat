@@ -33,7 +33,7 @@ from bruhat import algebraic
 scalar = numpy.int8  # <---------  Careful with this, 
                      # <---------  matrices should have every dimension < 128.
 algebraic.scalar = scalar
-from bruhat.algebraic import Matrix
+from bruhat.algebraic import Matrix, Algebraic
 
 
 def find_kernel(A, inplace=False, check=False, verbose=False):
@@ -249,6 +249,75 @@ def normal_form(A, p=2):
         j += 1
     #print(A)
     return A
+
+
+
+def test_so():
+
+    n = argv.get("n", 3)
+    m = argv.get("m", 1)
+    p = argv.get("p", 2)
+    e = argv.get("e", 1)
+
+    G = Algebraic.SO(n, p, e)
+    if G.order is None:
+        G.get_elements()
+    print("|G| =", G.order)
+
+    B = G.invariant_bilinear_form
+    Q = G.invariant_quadratic_form
+
+    print("B =")
+    print(B)
+    print("Q =")
+    print(Q)
+
+    for g in G.gen:
+        assert g * B * g.transpose() == B, str(B)
+        #assert g * Q * g.transpose() == Q # no ..
+
+    while 1:
+        #M = [randint(0, p-1) for i in range(n*m)]
+        #M = numpy.array(M)
+        M = numpy.random.randint(0, 2, (m,n))
+        M.shape = (m, n)
+        M = normal_form(M)
+        if len(M) < m:
+            continue
+        M = Matrix(M, p, shape=(m,n))
+        if argv.null:
+            w = M * M.transpose() # only works when p>2
+        elif p>2:
+            w = M * B * M.transpose() # only works when p>2
+        else:
+            w = M * Q * M.transpose() # use this one for p==2
+        if w.is_zero():
+            break
+    print("found: M =")
+    print(M)
+
+    orbit = set([M.key[1]])
+    bdy = set([M])
+    while bdy:
+        print("(%s)"%len(bdy), end="", flush=True)
+        _bdy = set()
+        for M in bdy:
+          for g in G.gen:
+            gM = M*g
+            gM = gM.normal_form()
+            s = gM.key[1]
+            if s in orbit:
+                continue
+            _bdy.add(gM)
+            orbit.add(s)
+        bdy = _bdy
+    print()
+    N = len(orbit)
+    print(N, "= [%s]_%d"%(_basep(N, p), p))
+    if G.order%N != 0:
+        print("WAHHHH!!")
+    else:
+        print("|stab| =", G.order//N)
 
 
 
@@ -721,7 +790,4 @@ if __name__ == "__main__":
         fn()
 
     print("finished in %.3f seconds.\n"%(time() - start_time))
-
-
-
 

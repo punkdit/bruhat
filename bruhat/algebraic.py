@@ -6,6 +6,7 @@ Algebraic groups: matrix groups over Z/pZ.
 see also:
     quantale.py
     combinatorial.py
+    orthogonal.py
 
 """
 
@@ -1035,6 +1036,87 @@ class Algebraic(object):
             50030759116800 , 2 )
 
     @classmethod
+    def SO_12_2_1(cls, **kw):
+        # sage code:
+        # G = SO(12, GF(2), -1)
+        # for g in G.gens():
+        #     print(g)
+        #     print()
+
+        data = ("""
+        [1 0 0 0 0 0 0 0 0 0 0 0]
+        [0 1 0 0 0 0 0 0 0 0 0 0]
+        [0 0 0 1 0 0 0 0 0 0 0 0]
+        [0 0 1 0 0 0 0 0 0 0 0 0]
+        [0 0 0 0 0 0 1 0 0 0 0 0]
+        [0 0 0 0 0 0 0 1 0 0 0 0]
+        [0 0 0 0 1 0 0 0 0 0 0 0]
+        [0 0 0 0 0 1 0 0 0 0 0 0]
+        [0 0 0 0 0 0 0 0 0 0 1 0]
+        [0 0 0 0 0 0 0 0 0 0 0 1]
+        [0 0 0 0 0 0 0 0 1 0 0 0]
+        [0 0 0 0 0 0 0 0 0 1 0 0]""",
+        """
+        [0 1 0 0 0 0 0 0 0 0 0 0]
+        [1 0 0 0 1 0 0 0 0 0 0 0]
+        [0 0 1 0 0 0 0 0 0 0 0 0]
+        [0 1 0 1 0 1 0 0 0 0 0 0]
+        [0 0 0 0 0 0 1 0 0 0 0 0]
+        [0 0 0 0 0 0 0 1 0 0 0 0]
+        [0 0 0 0 0 0 0 0 1 0 0 0]
+        [0 0 0 0 0 0 0 0 0 1 0 0]
+        [0 0 0 0 0 0 0 0 0 0 1 0]
+        [0 0 0 0 0 0 0 0 0 0 0 1]
+        [0 1 0 0 0 1 0 0 0 0 0 0]
+        [0 1 1 0 1 1 0 0 0 0 0 0]""",
+        """
+        [0 1 0 0 0 0 0 0 0 0 0 0]
+        [1 0 0 0 0 0 0 0 0 0 0 0]
+        [0 0 1 0 0 0 0 0 0 0 0 0]
+        [0 0 0 1 0 1 0 0 0 0 0 0]
+        [0 0 0 0 0 0 1 0 0 0 0 0]
+        [0 0 0 0 0 0 0 1 0 0 0 0]
+        [0 0 0 0 0 0 0 0 1 0 0 0]
+        [0 0 0 0 0 0 0 0 0 1 0 0]
+        [0 0 0 0 0 0 0 0 0 0 1 0]
+        [0 0 0 0 0 0 0 0 0 0 0 1]
+        [0 0 0 0 0 1 0 0 0 0 0 0]
+        [0 0 1 0 1 1 0 0 0 0 0 0]""")
+        invariant_bilinear_form = parse("""
+        [0 1 0 0 0 0 0 0 0 0 0 0]
+        [1 0 0 0 0 0 0 0 0 0 0 0]
+        [0 0 0 1 0 0 0 0 0 0 0 0]
+        [0 0 1 0 0 0 0 0 0 0 0 0]
+        [0 0 0 0 0 1 0 0 0 0 0 0]
+        [0 0 0 0 1 0 0 0 0 0 0 0]
+        [0 0 0 0 0 0 0 1 0 0 0 0]
+        [0 0 0 0 0 0 1 0 0 0 0 0]
+        [0 0 0 0 0 0 0 0 0 1 0 0]
+        [0 0 0 0 0 0 0 0 1 0 0 0]
+        [0 0 0 0 0 0 0 0 0 0 0 1]
+        [0 0 0 0 0 0 0 0 0 0 1 0]
+        """)
+        invariant_quadratic_form = parse("""
+        [0 1 0 0 0 0 0 0 0 0 0 0]
+        [0 0 0 0 0 0 0 0 0 0 0 0]
+        [0 0 1 1 0 0 0 0 0 0 0 0]
+        [0 0 0 1 0 0 0 0 0 0 0 0]
+        [0 0 0 0 0 1 0 0 0 0 0 0]
+        [0 0 0 0 0 0 0 0 0 0 0 0]
+        [0 0 0 0 0 0 0 1 0 0 0 0]
+        [0 0 0 0 0 0 0 0 0 0 0 0]
+        [0 0 0 0 0 0 0 0 0 1 0 0]
+        [0 0 0 0 0 0 0 0 0 0 0 0]
+        [0 0 0 0 0 0 0 0 0 0 0 1]
+        [0 0 0 0 0 0 0 0 0 0 0 0]
+        """)
+        gen = [parse(d) for d in data]
+        #for g in gen:
+        #    print(g)
+        return cls.make(gen, invariant_bilinear_form, invariant_quadratic_form, 
+            103231467131240448000, 2)
+
+    @classmethod
     def SO_2_3_1(cls, **kw):
         return cls.make(
             [[[2,2],[2,1]],
@@ -1157,107 +1239,107 @@ def _basep(n, p):
         return _basep(e, p) + str(q)
 
 
-def test_so():
+#def test_so():
+#
+#    n = argv.get("n", 3)
+#    m = argv.get("m", 1)
+#    p = argv.get("p", 2)
+#    e = argv.get("e", 1)
+#
+#    G = Algebraic.SO(n, p, e)
+#    if G.order is None:
+#        G.get_elements()
+#    print("|G| =", G.order)
+#
+#    B = G.invariant_bilinear_form
+#    Q = G.invariant_quadratic_form
+#
+#    print("B =")
+#    print(B)
+#    print("Q =")
+#    print(Q)
+#
+#    for g in G.gen:
+#        assert g * B * g.transpose() == B
+#        #assert g * Q * g.transpose() == Q # no ..
+#
+#    while 1:
+#        M = [randint(0, p-1) for i in range(n*m)]
+#        M = numpy.array(M)
+#        M.shape = (m, n)
+#        M = normal_form_p(M, p, truncate=True)
+#        if len(M) < m:
+#            continue
+#        M = Matrix(M, p, shape=(m,n))
+#        if argv.null:
+#            w = M * M.transpose() # only works when p>2
+#        elif p>2:
+#            w = M * B * M.transpose() # only works when p>2
+#        else:
+#            w = M * Q * M.transpose() # use this one for p==2
+#        if w.is_zero():
+#            break
+#    print("found: M =")
+#    print(M)
+#
+#    orbit = set([M.key[1]])
+#    bdy = set([M])
+#    while bdy:
+#        print("(%s)"%len(bdy), end="", flush=True)
+#        _bdy = set()
+#        for M in bdy:
+#          for g in G.gen:
+#            gM = M*g
+#            gM = gM.normal_form()
+#            s = gM.key[1]
+#            if s in orbit:
+#                continue
+#            _bdy.add(gM)
+#            orbit.add(s)
+#        bdy = _bdy
+#    print()
+#    N = len(orbit)
+#    print(N, "= [%s]_%d"%(_basep(N, p), p))
 
-    n = argv.get("n", 3)
-    m = argv.get("m", 1)
-    p = argv.get("p", 2)
-    e = argv.get("e", 1)
 
-    G = Algebraic.SO(n, p, e)
-    if G.order is None:
-        G.get_elements()
-    print("|G| =", G.order)
-
-    B = G.invariant_bilinear_form
-    Q = G.invariant_quadratic_form
-
-    print("B =")
-    print(B)
-    print("Q =")
-    print(Q)
-
-    for g in G.gen:
-        assert g * B * g.transpose() == B
-        #assert g * Q * g.transpose() == Q # no ..
-
-    while 1:
-        M = [randint(0, p-1) for i in range(n*m)]
-        M = numpy.array(M)
-        M.shape = (m, n)
-        M = normal_form_p(M, p, truncate=True)
-        if len(M) < m:
-            continue
-        M = Matrix(M, p, shape=(m,n))
-        if argv.null:
-            w = M * M.transpose() # only works when p>2
-        elif p>2:
-            w = M * B * M.transpose() # only works when p>2
-        else:
-            w = M * Q * M.transpose() # use this one for p==2
-        if w.is_zero():
-            break
-    print("found: M =")
-    print(M)
-
-    orbit = set([M.key[1]])
-    bdy = set([M])
-    while bdy:
-        print("(%s)"%len(bdy), end="", flush=True)
-        _bdy = set()
-        for M in bdy:
-          for g in G.gen:
-            gM = M*g
-            gM = gM.normal_form()
-            s = gM.key[1]
-            if s in orbit:
-                continue
-            _bdy.add(gM)
-            orbit.add(s)
-        bdy = _bdy
-    print()
-    N = len(orbit)
-    print(N, "= [%s]_%d"%(_basep(N, p), p))
-
-
-def test_SO_generators():
-    # find generators
-    print("test_SO_generators()")
-    n = argv.get("n", 5)
-    p = argv.get("p", 2)
-    assert p==2
-
-    def A003053(n): 
-        return (1 << (n//2)**2)*prod((1 << i)-1 for i in range(2, 2*((n-1)//2)+1, 2))
-    order = A003053(n)
-    print("|O(%d,2)| = %d"%(n, order))
-
-#    SO = Algebraic.SO(n=n, p=p)
-#    if SO.order is None:
-#        SO.get_elements()
-#    N = len(SO)
-#    print("|SO| =", N)
-#    if n%2==0:
-#        SOm = Algebraic.SO(n=n, p=p, e=-1)
-#        Nm = len(SO)
-#        print("|SO-| =", Nm)
-
-    gen = []
-    I = Matrix.identity(n, p)
-    while 1:
-        M = numpy.random.randint(0, p, (n, n))
-        M = Matrix(M, p, shape=(n,n))
-        if M * M.transpose() == I:
-            gen.append(M)
-            print("gen:", len(gen))
-            if len(gen)>1:
-                G = mulclose(gen, verbose=True)
-                N0 = len(G)
-                print("|G| =", N0)
-                if N0 == order:
-                    break
-    for g in gen:
-        print(g)
+#def test_SO_generators():
+#    # find generators
+#    print("test_SO_generators()")
+#    n = argv.get("n", 5)
+#    p = argv.get("p", 2)
+#    assert p==2
+#
+#    def A003053(n): 
+#        return (1 << (n//2)**2)*prod((1 << i)-1 for i in range(2, 2*((n-1)//2)+1, 2))
+#    order = A003053(n)
+#    print("|O(%d,2)| = %d"%(n, order))
+#
+##    SO = Algebraic.SO(n=n, p=p)
+##    if SO.order is None:
+##        SO.get_elements()
+##    N = len(SO)
+##    print("|SO| =", N)
+##    if n%2==0:
+##        SOm = Algebraic.SO(n=n, p=p, e=-1)
+##        Nm = len(SO)
+##        print("|SO-| =", Nm)
+#
+#    gen = []
+#    I = Matrix.identity(n, p)
+#    while 1:
+#        M = numpy.random.randint(0, p, (n, n))
+#        M = Matrix(M, p, shape=(n,n))
+#        if M * M.transpose() == I:
+#            gen.append(M)
+#            print("gen:", len(gen))
+#            if len(gen)>1:
+#                G = mulclose(gen, verbose=True)
+#                N0 = len(G)
+#                print("|G| =", N0)
+#                if N0 == order:
+#                    break
+#    for g in gen:
+#        print(g)
 
 #    count = 0
 #    for g in SO:
@@ -1265,88 +1347,88 @@ def test_SO_generators():
 #            count += 1
 #    print("intersection:", count)
     
-
-def test_SO():
-    n = argv.get("n", 6)
-    m = argv.get("m", 3)
-    p = 2
-
-    if n==6:
-        gen = [
-            [[1,1,1,0,1,1],
-             [0,1,0,1,1,0],
-             [1,0,1,1,1,1],
-             [0,1,0,1,0,1],
-             [0,1,1,1,0,0],
-             [1,1,0,1,0,0]],
-            [[1,1,1,1,1,0],
-             [0,1,1,0,0,1],
-             [0,0,1,1,0,1],
-             [0,0,1,0,1,1],
-             [1,1,0,1,1,1],
-             [1,0,1,0,0,1]]
-        ]
-        order = 23040
-    elif n==7:
-        gen = [
-            [[1,1,0,1,1,1,0],
-             [0,1,0,0,1,0,1],
-             [0,1,1,1,1,1,0],
-             [0,1,0,1,0,0,1],
-             [1,0,1,0,0,1,0],
-             [1,1,1,1,1,0,0],
-             [0,0,0,1,1,0,1]],
-            [[0,1,1,0,1,0,0],
-             [1,1,1,1,0,0,1],
-             [1,0,1,1,1,0,1],
-             [0,0,0,0,0,1,0],
-             [1,1,0,0,1,0,0],
-             [0,1,0,1,1,0,0],
-             [0,1,0,0,1,0,1]]
-        ]
-        order = 1451520
-    else:
-        assert 0
-
-    gen = [Matrix(g) for g in gen]
-    if argv.gen:
-        G = mulclose(gen, verbose=True)
-        assert len(G) == order
-
-    for count in range(1):
-        while 1:
-            M = numpy.random.randint(0, p, (m, n))
-            M = normal_form_p(M, p, truncate=True)
-            if len(M) < m:
-                continue
-            M = Matrix(M, p)
-            w = M * M.transpose()
-            if w.is_zero():
-                break
-        print(M)
-    
-        orbit = set([M.key[1]])
-        bdy = set([M])
-        while bdy:
-            #print("(%s)"%len(bdy), end="", flush=True)
-            _bdy = set()
-            for M in bdy:
-              for g in gen:
-                gM = M*g
-                #w = gM*gM.transpose()
-                #assert w.is_zero()
-                gM = gM.normal_form()
-                s = gM.key[1]
-                if s in orbit:
-                    continue
-                _bdy.add(gM)
-                orbit.add(s)
-                #print(gM)
-            bdy = _bdy
-        #print()
-        N = len(orbit)
-        print(N, "= [%s]_%d"%(_basep(N, p), p))
-
+#
+#def test_SO():
+#    n = argv.get("n", 6)
+#    m = argv.get("m", 3)
+#    p = 2
+#
+#    if n==6:
+#        gen = [
+#            [[1,1,1,0,1,1],
+#             [0,1,0,1,1,0],
+#             [1,0,1,1,1,1],
+#             [0,1,0,1,0,1],
+#             [0,1,1,1,0,0],
+#             [1,1,0,1,0,0]],
+#            [[1,1,1,1,1,0],
+#             [0,1,1,0,0,1],
+#             [0,0,1,1,0,1],
+#             [0,0,1,0,1,1],
+#             [1,1,0,1,1,1],
+#             [1,0,1,0,0,1]]
+#        ]
+#        order = 23040
+#    elif n==7:
+#        gen = [
+#            [[1,1,0,1,1,1,0],
+#             [0,1,0,0,1,0,1],
+#             [0,1,1,1,1,1,0],
+#             [0,1,0,1,0,0,1],
+#             [1,0,1,0,0,1,0],
+#             [1,1,1,1,1,0,0],
+#             [0,0,0,1,1,0,1]],
+#            [[0,1,1,0,1,0,0],
+#             [1,1,1,1,0,0,1],
+#             [1,0,1,1,1,0,1],
+#             [0,0,0,0,0,1,0],
+#             [1,1,0,0,1,0,0],
+#             [0,1,0,1,1,0,0],
+#             [0,1,0,0,1,0,1]]
+#        ]
+#        order = 1451520
+#    else:
+#        assert 0
+#
+#    gen = [Matrix(g) for g in gen]
+#    if argv.gen:
+#        G = mulclose(gen, verbose=True)
+#        assert len(G) == order
+#
+#    for count in range(1):
+#        while 1:
+#            M = numpy.random.randint(0, p, (m, n))
+#            M = normal_form_p(M, p, truncate=True)
+#            if len(M) < m:
+#                continue
+#            M = Matrix(M, p)
+#            w = M * M.transpose()
+#            if w.is_zero():
+#                break
+#        print(M)
+#    
+#        orbit = set([M.key[1]])
+#        bdy = set([M])
+#        while bdy:
+#            #print("(%s)"%len(bdy), end="", flush=True)
+#            _bdy = set()
+#            for M in bdy:
+#              for g in gen:
+#                gM = M*g
+#                #w = gM*gM.transpose()
+#                #assert w.is_zero()
+#                gM = gM.normal_form()
+#                s = gM.key[1]
+#                if s in orbit:
+#                    continue
+#                _bdy.add(gM)
+#                orbit.add(s)
+#                #print(gM)
+#            bdy = _bdy
+#        #print()
+#        N = len(orbit)
+#        print(N, "= [%s]_%d"%(_basep(N, p), p))
+#
 
 #def is_orthogonal(M):
 #    if isinstance(M, numpy.ndarray):
