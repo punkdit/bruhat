@@ -639,8 +639,6 @@ def search(n, m):
     gen = get_SO_gens(n)
     u = numpy.array([1]*n, dtype=scalar)
 
-    best_d = 1
-
     assert m<=20, "um..?"
     B = numpy.array(list(numpy.ndindex((2,)*m)), dtype=scalar)
 
@@ -649,15 +647,6 @@ def search(n, m):
         A[i,2*i] = 1
         A[i,2*i+1] = 1
     
-    if 0:
-        A = parse("""
-        [[1 1 1 1 0 0 0 0 0 0 0 0]
-         [1 1 0 0 1 1 0 0 0 0 0 0]
-         [0 0 0 0 0 0 1 1 1 1 0 0]
-         [0 0 0 0 0 0 1 1 0 0 1 1]
-         [1 0 1 0 1 0 1 0 1 0 1 0]]
-        """)
-
     M = Matrix(A)
     print("M =")
     print(M)
@@ -668,6 +657,8 @@ def search(n, m):
     if argv.find_random:
         find = find_random
 
+    best_d = 2
+    best_stabs = [n]*m
     count = 0
     for M in find(gen, M, verbose=True):
         count += 1
@@ -675,11 +666,6 @@ def search(n, m):
         #    break
         if M.A.sum(0).min() == 0:
             continue # distance == 1
-        #d0 = n
-        #for v in span(M):
-        #    d1 = ((v+u)%2).sum()
-        #    if d1<d0:
-        #        d0 = d1
 
         if n%2:
             C = numpy.dot(B, M.A)
@@ -709,9 +695,20 @@ def search(n, m):
                 params = code.get_params()
                 print(params)
                 assert params[2] is None or params[2] == d
-            if argv.min_stabs:
-                min_stabs(H)
+            #if argv.min_stabs:
+            A = min_stabs(H)
+            best_stabs = list(A.sum(1))
+            print("min_stabs:", best_stabs)
             print()
+        elif d == best_d > 2:
+            A = min_stabs(H)
+            stabs = list(A.sum(1))
+            if max(stabs) < max(best_stabs) or \
+                    max(stabs)==max(best_stabs) and sum(stabs)<sum(best_stabs):
+                print(M, "[[%s,%s,%s]]"%(n,n-2*m,d))
+                best_stabs = stabs
+                print("min_stabs:", best_stabs)
+                print()
     
 #
 #        C = numpy.dot(B, H)
@@ -747,18 +744,20 @@ def main_stabs():
  [0 0 0 0 0 0 1 1 0 0 1 1 0 0 0 0 0]
  [0 0 0 0 0 0 0 0 1 1 0 0 0 0 1 1 0]]
     """)
-    min_stabs(H)
+    #print("min_stabs:")
+    #print(H, H.sum(1))
+    A = min_stabs(H)
+    print(A, A.sum(1))
 
 
 def min_stabs(H):
-    print("min_stabs:")
-    print(H, H.sum(1))
+    print("min_stabs...", end="", flush=True)
     m, n = H.shape
     assert rank(H) == m
     V = list(span(H))
     ws = [(v.sum(),v) for v in V if v.sum()]
     ws.sort(key = lambda w:w[0])
-    print([w[0] for w in ws])
+    #print([w[0] for w in ws])
     
     for basis in choose_rev(ws, m):
         vs = [b[1] for b in basis]
@@ -767,7 +766,8 @@ def min_stabs(H):
         assert 0<m1<=m
         if m1==m:
             break
-    print(A, A.sum(1))
+    print("done")
+    return A
 
 
 def main_find():
