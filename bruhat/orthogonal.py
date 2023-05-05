@@ -770,6 +770,56 @@ def min_stabs(H):
     print(A, A.sum(1))
 
 
+def main_find():
+    "watch the orbit split into two pieces under the generators"
+    n = argv.get("n", 6)
+    m = argv.get("m", 2)
+    k = n-2*m
+    assert k>=0
+    print("[[%d,%d]]"%(n,k))
+
+    gen = get_SO_gens(n)
+
+    A = zeros2(m, n)
+    for i in range(m):
+        A[i,2*i] = 1
+        A[i,2*i+1] = 1
+    M = Matrix(A)
+    print("M =")
+    print(M)
+
+    orbit = set()
+    for M in find_orbit(gen, M, verbose=True):
+        orbit.add(M)
+    print(len(orbit))
+
+    from bruhat.algebraic import qchoose_2
+    count = 0
+    for Hx in qchoose_2(n, m):
+        if dot2(Hx, Hx.transpose()).sum() == 0:
+            M = Matrix(Hx)
+            #print(int(M in orbit), end=" ")
+            if M not in orbit:
+                print(M)
+            count += 1
+    #print()
+    print(count)
+
+    A = parse("""
+    [[1 1 1 1 0 0]
+     [0 0 0 0 1 1]]
+    """)
+    M = Matrix(A)
+    print("M =")
+    print(M)
+
+    orbit = set()
+    for M in find_orbit(gen, M, verbose=True):
+        orbit.add(M)
+    print(len(orbit))
+
+
+
 def main():
     n = argv.get("n", 5)
     k = argv.get("k")
