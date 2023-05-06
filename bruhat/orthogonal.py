@@ -788,27 +788,32 @@ def main_find():
     print("M =")
     print(M)
 
-    orbit = set()
+    found = set()
     for M in find_orbit(gen, M, verbose=True):
-        orbit.add(M)
-    print(len(orbit))
+        found.add(M)
+    print("orbit:", len(found))
 
-    from bruhat.algebraic import qchoose_2
-    count = 0
-    for Hx in qchoose_2(n, m):
-        if dot2(Hx, Hx.transpose()).sum() == 0:
-            M = Matrix(Hx)
-            #print(int(M in orbit), end=" ")
-            if M not in orbit:
-                print(M)
-            count += 1
-    #print()
-    print(count)
+    if 0:
+        from bruhat.algebraic import qchoose_2
+        total = 0
+        missing = set()
+        for Hx in qchoose_2(n, m):
+            if dot2(Hx, Hx.transpose()).sum() == 0:
+                M = Matrix(Hx)
+                #print(int(M in orbit), end=" ")
+                if M not in orbit:
+                    missing.add(M)
+                #    print(M)
+                total += 1
+        print("total: %d, missing:%d"%(total, len(missing)))
 
-    A = parse("""
-    [[1 1 1 1 0 0]
-     [0 0 0 0 1 1]]
-    """)
+    A = zeros2(m, n)
+    i, j = m-1, n-2
+    while i>=0:
+        A[i,j:j+2] = 1
+        i -= 1
+        j -= 2
+    A[0,0:j+2] = 1
     M = Matrix(A)
     print("M =")
     print(M)
@@ -816,7 +821,10 @@ def main_find():
     orbit = set()
     for M in find_orbit(gen, M, verbose=True):
         orbit.add(M)
-    print(len(orbit))
+        if M in found:
+            print("*", end='', flush=True)
+    print("orbit:", len(orbit))
+    print("total:", len(found)+len(orbit))
 
 
 
