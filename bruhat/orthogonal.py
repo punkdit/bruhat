@@ -385,20 +385,22 @@ def get_SO_gens(n):
         return get_SO_gens_odd(n)
     
     gen = get_perms(n)
-    A = parse("""
-    [[0 1 1 0 0 1]
-     [1 0 1 1 1 1]
-     [1 1 0 0 0 1]
-     [1 1 1 1 1 0]
-     [0 1 0 0 1 1]
-     [0 1 0 1 0 1]]
-    """)
-    B = numpy.identity(n, dtype=int)
-    n0 = (n-6)//2
-    B[n0:n0+6, n0:n0+6] = A
-    assert is_orthogonal(B)
-    M = Matrix(B)
-    gen.append(M)
+
+    if n>5:
+        A = parse("""
+        [[0 1 1 0 0 1]
+         [1 0 1 1 1 1]
+         [1 1 0 0 0 1]
+         [1 1 1 1 1 0]
+         [0 1 0 0 1 1]
+         [0 1 0 1 0 1]]
+        """)
+        B = numpy.identity(n, dtype=int)
+        n0 = (n-6)//2
+        B[n0:n0+6, n0:n0+6] = A
+        assert is_orthogonal(B)
+        M = Matrix(B)
+        gen.append(M)
     if argv.gap:
         gap_code(gen)
     return gen
