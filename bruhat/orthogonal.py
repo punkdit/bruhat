@@ -649,6 +649,15 @@ def search(n, m):
         A[i,2*i] = 1
         A[i,2*i+1] = 1
     
+    if argv.bruhat:
+        A = zeros2(m, n)
+        i, j = m-1, n-2
+        while i>=0:
+            A[i,j:j+2] = 1
+            i -= 1
+            j -= 2
+        A[0,0:j+2] = 1
+
     M = Matrix(A)
     print("M =")
     print(M)
@@ -659,7 +668,7 @@ def search(n, m):
     if argv.find_random:
         find = find_random
 
-    best_d = 2
+    best_d = argv.get("min_d", 2)
     best_stabs = [n]*m
     count = 0
     for M in find(gen, M, verbose=True):
@@ -707,7 +716,8 @@ def search(n, m):
             stabs = list(A.sum(1))
             if max(stabs) < max(best_stabs) or \
                     max(stabs)==max(best_stabs) and sum(stabs)<sum(best_stabs):
-                print(M, "[[%s,%s,%s]]"%(n,n-2*m,d))
+                print()
+                print(A, "[[%s,%s,%s]]"%(n,n-2*m,d))
                 best_stabs = stabs
                 print("min_stabs:", best_stabs)
                 print()
@@ -753,7 +763,7 @@ def main_stabs():
 
 
 def min_stabs(H):
-    print("min_stabs...", end="", flush=True)
+    print("/", end="", flush=True)
     m, n = H.shape
     assert rank(H) == m
     V = list(span(H))
@@ -768,7 +778,7 @@ def min_stabs(H):
         assert 0<m1<=m
         if m1==m:
             break
-    print("done")
+    print("\\", end="", flush=True)
     return A
 
 

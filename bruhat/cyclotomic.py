@@ -15,9 +15,9 @@ import numpy
 from bruhat.argv import argv
 #argv.fast = True
 
-from bruhat.util import is_prime, all_primes
+from bruhat.util import is_prime, all_primes, cross
 from bruhat.elim import zeros, shortstr, pseudo_inverse, dot
-from bruhat.element import Q, cyclotomic, FiniteField, PolynomialRing
+from bruhat.element import Z, Q, cyclotomic, FiniteField, PolynomialRing
 from bruhat.rational import Poly, Rational
 
 
@@ -59,7 +59,76 @@ def split_field():
     print(moduli)
 
 
-def main():
+def get_primes(ring, N=3, units=[]):
+    # argh, this is too slow 
+    deg = ring.mod.deg
+    zero, one, x = ring.zero, ring.one, ring.x
+    basis = [one, x]
+    assert deg>1
+    for i in range(2, deg):
+        basis.append(x**i)
+
+    items = set()
+    a = tuple(range(-N, N+1))
+    for cs in cross([a]*deg):
+        b = zero
+        for (c, v) in zip(cs, basis):
+            b += c*v
+        if b not in units:
+            items.add(b)
+    items.remove(zero)
+    print("items:", len(items))
+
+    units = set()
+    for a in items:
+     for b in items:
+        if a*b == one:
+            units.add(a)
+            units.add(b)
+    print("units:", [str(u) for u in units], len(units))
+    for u in units:
+        items.remove(u)
+
+    found = set(items)
+    for a in items:
+     for b in items:
+        ab = a*b
+        if ab in found:
+            found.remove(ab)
+    return found
+
+
+def main_artin():
+
+    base = PolynomialRing(Z)
+    R = base // cyclotomic(base, 12)
+    G = base // cyclotomic(base, 4) # Gaussian integers
+    E = base // cyclotomic(base, 3) # Eisenstein integers
+    #print(R, type(R))
+    #print(E.degree)
+
+    ps = set(get_primes(E))
+    assert (E.one-E.x) in ps
+
+    #def hom(p):
+    #    q = eval(str(p), {"x":
+
+    for p in get_primes(R, 2):
+        print(p)
+
+    one = R.one
+    x = R.x
+    zero = R.zero
+
+    w = x**4
+    i = x**3
+    assert i**2 == -one
+    assert w**2 + w + one == zero
+    
+
+
+def main_generating():
+    "some generating function ideas..."
     n = argv.get("n", 20)
     ring = Q
 

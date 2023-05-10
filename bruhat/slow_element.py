@@ -687,6 +687,7 @@ class PolynomialRing(Keyed, Ring):
     def __truediv__(self, mod):
         assert mod.tp == self
         return ModuloRing(self, mod)
+    __floordiv__ = __truediv__
 
     def promote(self, value):
         if isinstance(value, Polynomial):
