@@ -31,7 +31,7 @@ from bruhat.action import mulclose, mulclose_hom
 from bruhat.spec import isprime
 from bruhat.argv import argv
 from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse, intersect
-from bruhat.solve import zeros2
+from bruhat.solve import zeros2, identity2
 from bruhat.dev import geometry
 from bruhat.util import cross, allperms, choose
 from bruhat.smap import SMap
@@ -3129,6 +3129,211 @@ def test_bruhat():
             Bs = [hom.src for hom in XY.get_atoms()]
             print('\t', [B.signature(Hs) for B in Bs])
     
+def boost(g):
+    A0 = g.A
+    n = len(A0)+1
+    A = zeros2(n,n)
+    A[:n-1, :n-1] = A0
+    A[n-1, n-1] = 1
+    return Matrix(A)
+
+
+
+def test_ASp4():
+    n = 4
+    G = Algebraic.Sp(n)
+    assert len(G) == 720
+
+    # now make affine Sp
+    gen = []
+    for g in G.gen:
+        g1 = boost(g)
+        gen.append(g1)
+
+    for i in range(n):
+        #I = Matrix.identity(n+1)
+        A = identity2(n+1)
+        A[i, n] = 1
+        M = Matrix(A)
+        gen.append(M)
+    G = mulclose(gen)
+    assert len(G) == 11520
+
+    def get_weight(w):
+        pts = []
+        for idxs in choose(list(range(n)), w):
+            v = zeros2(n+1, 1)
+            v[n] = 1
+            for idx in idxs:
+                v[idx] = 1
+            v = Matrix(v)
+            pts.append(v)
+        return pts
+    pts = get_weight(1) + get_weight(3)
+    assert len(pts) == 8
+    pts = set(pts)
+    H = []
+    for g in G:
+        qts = {g*v for v in pts}
+        if qts == pts:
+            H.append(qts)
+    #assert len(H) == 96 
+    print(len(H))
+
+    return
+
+    # permutation representation -------------------
+
+    from bruhat.action import Perm, Group
+    items = list(range(2**n))
+    perm = lambda vs : Perm(vs, items)
+    gen = [
+        perm({0:0, 1:1, 2:14, 3:3, 4:4, 5:5, 6:11, 7:8, 8:7, 9:9, 10:13, 11:6, 12:12, 13:10, 14:2, 15:15}),
+        perm({0:0, 1:1, 2:2, 3:10, 4:4, 5:11, 6:6, 7:9, 8:8, 9:7, 10:3, 11:5, 12:12, 13:13, 14:15, 15:14}),
+        perm({0:0, 1:1, 2:3, 3:10, 4:11, 5:4, 6:6, 7:9, 8:8, 9:12, 10:2, 11:5, 12:7, 13:15, 14:13, 15:14}),
+        perm({0:0, 1:1, 2:3, 3:2, 4:7, 5:9, 6:8, 7:4, 8:6, 9:5, 10:10, 11:12, 12:11, 13:15, 14:14, 15:13}),
+        perm({0:0, 1:2, 2:1, 3:4, 4:3, 5:5, 6:14, 7:7, 8:15, 9:11, 10:12, 11:9, 12:10, 13:13, 14:6, 15:8}),
+        perm({0:1, 1:0, 2:3, 3:2, 4:4, 5:6, 6:5, 7:7, 8:9, 9:8, 10:14, 11:11, 12:12, 13:15, 14:10, 15:13})]
+
+    G = Group.generate(gen)
+    assert len(G) == 11520
+
+    # G is doubly transitive
+    pairs = [(i, j) for i in items for j in items if i!=j]
+    for trial in range(20):
+        src = choice(pairs)
+        tgt = choice(pairs)
+        for g in G:
+            if g(src[0]) == tgt[0] and g(src[1]) == tgt[1]:
+                break
+        else:
+            assert 0, (src, tgt)
+    print("OK")
+            
+
+    H = G.stabilizer(0)
+    assert len(H) == 720 # Sp(4,2)
+    
+    H1 = G.stabilizer(0, 1)
+    assert len(H1) == 48
+
+    #for i in range(2, 2**n):
+    #    print(len(G.stabilizer(0, 1, i)))
+    #return
+
+    A = parse("""
+    [[0 0 0 0 0 1 1 1 0 0 1 0 1 0 1 0]
+     [0 0 1 0 0 1 0 0 1 0 0 1 1 1 0 0]
+     [0 0 0 1 1 1 0 1 1 0 0 0 0 0 0 1]
+     [0 0 1 0 1 0 1 1 0 1 0 0 0 1 0 0]
+     [0 1 0 0 0 1 0 0 0 1 1 0 0 1 0 1]
+     [1 0 1 1 0 1 0 0 0 1 0 0 0 0 1 0]]
+    """)
+
+    def stabilizer(v):
+        bits = [i for i in range(2**n) if v[i]]
+        perms = []
+        for g in G:
+            _bits = [g[i] for i in bits]
+            _bits.sort()
+            if _bits == bits:
+                perms.append(g)
+        H = Group(perms, items)
+        return H
+    v = (A[0]+A[1])%2
+    H = stabilizer(v)
+    assert len(H) == 384
+
+    for i in range(2**n):
+        print(len(H.stabilizer(i)), end=" ")
+    print()
+
+    H = stabilizer(A[0])
+    assert len(H) == 720
+    #for g in H:
+    #    print(g.fixed(), end=" ")
+    #print()
+
+
+def test_ASp6():
+    # try to generalize test_ASp4, fail...
+
+    n = 6
+    G = Algebraic.Sp(n)
+    N = len(G)
+    assert N == 1451520
+
+    # now make affine Sp
+    gen = []
+    for g in G.gen:
+        g1 = boost(g)
+        gen.append(g1)
+
+    for i in range(n):
+        #I = Matrix.identity(n+1)
+        A = identity2(n+1)
+        A[i, n] = 1
+        M = Matrix(A)
+        gen.append(M)
+    #G = mulclose(gen, verbose=True)
+    #assert len(G) == 11520
+
+    N *= 2**n
+
+    def get_weight(w):
+        pts = []
+        for idxs in choose(list(range(n)), w):
+            v = zeros2(n+1, 1)
+            v[n] = 1
+            for idx in idxs:
+                v[idx] = 1
+            v = Matrix(v)
+            pts.append(v)
+        return pts
+
+    def get_key(pts):
+        pts = [str(p) for p in pts]
+        pts.sort()
+        pts = ''.join(pts)
+        return pts
+
+    # build a stabilizer
+    #pts = get_weight(1) + get_weight(n-1)
+    pts = get_weight(2) + get_weight(n-2)
+    #pts = get_weight(2)
+    #assert len(pts) == 2*n
+
+    orbit = {get_key(pts):pts}
+    bdy = [pts]
+    while bdy:
+        _bdy = []
+        for g in gen:
+          for pts in bdy:
+            qts = [g*v for v in pts]
+            key = get_key(qts)
+            if key in orbit:
+                continue
+            orbit[key] = pts
+            _bdy.append(qts)
+        bdy = _bdy
+        print(len(orbit), end=" ", flush=True)
+    print()
+    print("orbit:", len(orbit))
+    assert N % len(orbit) == 0
+
+    # look for even intersection & fail
+    ptss = list(orbit.values())
+    vals = set()
+    #for p in ptss:
+    #    for q in ptss:
+    for trial in range(1000):
+        p = choice(ptss)
+        q = choice(ptss)
+        pq = [u for u in p if u in q]
+        vals.add(len(pq))
+    print(vals) # these need to be even... fail
+
+    return orbit
 
 
 

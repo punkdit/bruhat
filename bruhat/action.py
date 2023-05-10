@@ -38,6 +38,8 @@ def mulclose_fast(gen, verbose=False, maxsize=None):
                     if maxsize and len(els)>=maxsize:
                         return els
         bdy = _bdy
+    if verbose:
+        print()
     return els 
 
 
