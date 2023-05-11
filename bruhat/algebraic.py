@@ -3176,9 +3176,42 @@ def test_ASp4():
     for g in G:
         qts = {g*v for v in pts}
         if qts == pts:
-            H.append(qts)
+            H.append(g)
     #assert len(H) == 96 
     print(len(H))
+
+    def get_key(pts):
+        pts = [str(p) for p in pts]
+        pts.sort()
+        pts = ''.join(pts)
+        return pts
+
+    orbit = {get_key(pts):pts}
+    bdy = [pts]
+    while bdy:
+        _bdy = []
+        for g in gen:
+          for pts in bdy:
+            qts = [g*v for v in pts]
+            key = get_key(qts)
+            if key in orbit:
+                continue
+            orbit[key] = pts
+            _bdy.append(qts)
+        bdy = _bdy
+        print(len(orbit), end=" ", flush=True)
+    print()
+    print("orbit:", len(orbit))
+    #assert N % len(orbit) == 0
+
+    # check even intersection
+    ptss = list(orbit.values())
+    vals = set()
+    for p in ptss:
+        for q in ptss:
+            pq = [u for u in p if u in q]
+            assert len(pq)%2 == 0
+            vals.add(len(pq))
 
     return
 
@@ -3291,17 +3324,17 @@ def test_ASp6():
             pts.append(v)
         return pts
 
-    def get_key(pts):
-        pts = [str(p) for p in pts]
-        pts.sort()
-        pts = ''.join(pts)
-        return pts
-
     # build a stabilizer
     #pts = get_weight(1) + get_weight(n-1)
     pts = get_weight(2) + get_weight(n-2)
     #pts = get_weight(2)
     #assert len(pts) == 2*n
+
+    def get_key(pts):
+        pts = [str(p) for p in pts]
+        pts.sort()
+        pts = ''.join(pts)
+        return pts
 
     orbit = {get_key(pts):pts}
     bdy = [pts]
