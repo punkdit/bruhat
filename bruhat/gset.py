@@ -1545,6 +1545,13 @@ def test_homology():
 #        print("cobetti %d ="%i, rank(d0) - nullity(d1)) # == 0
     
 
+def test_hecke():
+    G = Group.alternating(5)
+    for H in G.subgroups():
+        X = G.action_subgroup(H)
+        print(len(H), end=" ", flush=True)
+    print()
+
 
 
 def main():
