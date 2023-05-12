@@ -86,9 +86,11 @@ def get_group():
         graph.build()
         assert len(graph) == 168, len(graph)
 
-    else:
+    elif argv.D4:
         #graph = Schreier.make_B(3) # nada
         graph = Schreier.make_D(4) # order 192
+
+    elif argv.B4:
         graph = Schreier.make_B(4) # order 384
 
     G = graph.get_group()
