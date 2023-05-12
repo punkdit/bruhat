@@ -22,7 +22,7 @@ from numpy import alltrue
 scalar = numpy.int64
 
 from bruhat.algebraic import Algebraic, Matrix
-from bruhat.util import factorial, cross
+from bruhat.util import factorial, cross, is_prime
 from bruhat.action import mulclose
 from bruhat.argv import argv
 
@@ -242,14 +242,14 @@ class Perm(object):
     def __eq__(self, other):
         if self.rank != other.rank:
             return False
-        #if type( self.perm == other.perm ) is bool:
-        #    print(self, other)
-        return numpy.alltrue(self.perm == other.perm)
+        return self.perm.tobytes() == other.perm.tobytes()
+        #return numpy.alltrue(self.perm == other.perm) # bottleneck for .subgroups
+        #return numpy.allclose(self.perm, other.perm) # argh, much slower !
 
-    def __ne__(self, other):
-        if self.rank != other.rank:
-            return True
-        return not numpy.alltrue(self.perm == other.perm)
+#    def __ne__(self, other):
+#        if self.rank != other.rank:
+#            return True
+#        return not numpy.allclose(self.perm, other.perm)
 
     def __lt__(self, other):
         return self.perm.tobytes() < other.perm.tobytes()
@@ -266,6 +266,13 @@ class Perm(object):
         else:
             raise TypeError
         return result
+
+    def cross(left, right):
+        assert isinstance(right, Perm)
+        m, n = left.rank, right.rank
+        lperm, rperm = left.perm, right.perm
+        perm = [l + r*m for r in rperm for l in lperm]
+        return Perm(perm)
 
     def inverse(self):
         perm = self.perm
@@ -401,7 +408,7 @@ class Group(object):
         self._str = str(self.canonical)
         self._hash = hash(self._str)
         self._subgroups = None # cache
-        assert len(self.lookup) == self.n
+        assert len(self.lookup) == self.n, (self.n, len(self.lookup))
         if debug:
             self.do_check()
 
@@ -447,6 +454,11 @@ class Group(object):
 
     def __hash__(self):
         return self._hash
+
+    def __mul__(self, other):
+        assert isinstance(other, Group)
+        perms = [g.cross(h) for g in self for h in other]
+        return Group(perms)
 
     @classmethod
     def trivial(cls, n):
@@ -621,26 +633,33 @@ class Group(object):
         items.add(self)
         for H in items:
             yield H
-        bdy = set(G for G in cyclic if len(G)<n)
+        if verbose:
+            print("/", flush=True, end="")
+        cyclic = list(cyclic)
+        cyclic.sort(key = lambda G:(len(G), G._str)) # make this deterministic, (and fast..)
+        bdy = list(G for G in cyclic if len(G)<n)
         while bdy:
-            _bdy = set()
+            _bdy = list()
             # consider each group in bdy
             for G in bdy:
+                if is_prime(n//len(G)):
+                    # prime index
+                    continue
                 # enlarge by a cyclic subgroup
                 for H in cyclic:
                     perms = set(G.perms+H.perms)
                     k = len(perms)
                     if k==n or k==len(G) or k==len(H):
                         continue
-                    #perms = mulclose(perms)
                     perms = mulclose(perms)
                     K = Group(perms)
                     if K not in items:
                         yield K
-                        _bdy.add(K)
+                        i = n//len(K)
+                        _bdy.append(K)
                         items.add(K)
                         if verbose:
-                            print('.', flush=True, end="")
+                            print('(%s)'%i, flush=True, end="")
                     #else:
                     #    print('/')
             bdy = _bdy
@@ -1415,6 +1434,13 @@ def test_gset():
     #print()
 
     print("OK")
+
+
+def test_subgroups_only():
+    G = Group.symmetric(5)
+    print("|G| =", len(G))
+    Hs = list(G.subgroups(verbose=True))
+    print(len(Hs))
 
 
 def test_subgroups():
