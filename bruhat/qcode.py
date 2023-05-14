@@ -97,11 +97,14 @@ get_weight = get_weight_fast
 
 
 def monte_carlo(H, v, p=0.5, trials=10000):
-    m, n, o = H.shape
-    assert o==2
     H = H.view()
-    nn = 2*n
-    H.shape = m, nn
+    if len(H.shape) == 3:
+        m, n, o = H.shape
+        assert o==2
+        nn = 2*n
+        H.shape = m, nn
+    else:
+        m, nn = H.shape
     assert v.shape == (nn,)
     d0 = get_weight_fast(v)
     #print("[",d0, end=",", flush=True)
@@ -293,6 +296,19 @@ class QCode(object):
                 d = min(count, d)
         return self.n, kk//2, d
 
+    def bound_distance(self):
+        L = self.get_logops()
+        L = L.copy()
+        H = self.flatH
+        kk = len(L)
+        #H = self.flatH
+        d = self.n
+        for u in L:
+            d = min(d, u.sum())
+            w = monte_carlo(H, u)
+            d = min(w, d)
+        return d
+
     def __str__(self):
         smap = SMap()
         m, n = self.shape
@@ -473,6 +489,7 @@ class Geometry(object):
         ngens = len(orders)+1
         a, b, c, d, e = [(i,) for i in range(5)]
         orders = tuple(orders)
+        print("oeqc.Geometry.__init__:", len(lins_db.db[orders]))
         rels = lins_db.db[orders][lins_idx]
         rels = lins_db.parse(rels, **locals())
         self.orders = orders
@@ -575,9 +592,9 @@ def build_code(geometry):
         H0 = get_adj(faces, flags)
         H1 = get_adj(edges, flags)
         H2 = get_adj(verts, flags)
-        #print(shortstr(H0))
-        #print(shortstr(H1))
-        #print(shortstr(H2))
+        #print(shortstr(H0), H0.shape, H0.sum(1)) # on 6,4 lattice weight 8
+        #print(shortstr(H1), H1.shape, H1.sum(1)) # on 6,4 lattice weight 4
+        #print(shortstr(H2), H2.shape, H2.sum(1)) # on 6,4 lattice weight 12
         Hx = numpy.concatenate((H0, H1, H2))
         Hz = Hx.copy()
 
@@ -656,14 +673,19 @@ def build_code(geometry):
         return
 
     n, k, d = code.get_params()
-    print("[[%d, %d, %s]]" % (n, k, d))
-    print(code)
-
     if d is None:
-        L = code.get_logops()
-        print(list(L.sum(1)))
-    print()
+        #L = code.get_logops()
+        #print(list(L.sum(1)))
+        #print(shortstr(L))
+        #print("L", L.shape)
+        d = code.bound_distance()
+        print("[[%d, %d, d<=%d]]" % (n, k, d))
+    else:
+        print("[[%d, %d, %s]]" % (n, k, d))
 
+    if argv.show:
+        print(code)
+    print()
 
 
 def build_geometry():

@@ -13,11 +13,12 @@ from operator import mul
 
 import numpy
 
-from bruhat.gset import Group, Perm
+from bruhat.gset import Group, Perm, mulclose
 from bruhat.argv import argv
 from bruhat.solve import zeros2, dot2, span, shortstr, linear_independent
 from bruhat.util import choose
 from bruhat.orthogonal import get_logops, row_reduce
+from bruhat.oeqc import is_triorthogonal
 from bruhat.todd_coxeter import Schreier
 
 
@@ -97,7 +98,7 @@ def get_distance(H, L=None, min_d=2):
     if L is None:
         L = get_logops(H)
 
-    max_d = 4 if n>100 else 5
+    max_d = 3 if n>100 else 4
     ld = get_lower_distance(H, L, max_d)
     if ld is not None:
         return ld, ld
@@ -184,18 +185,9 @@ def get_group(name):
     return G
 
 
-def main():
-
-    n = argv.get("n", 5)
-    name = argv.next()
-    G = get_group(name)
-
-    print("|G| =", len(G))
-    Hs = list(G.subgroups())
-    Hs = [H for H in Hs if len(H)<len(G)]
-
-    print("proper subgroups:", len(Hs))
+def get_actions(G, Hs):
     Xs = [G.action_subgroup(H) for H in Hs]
+    print("|Xs| =", len(Xs))
 
     i = 0
     while i < len(Xs):
@@ -203,6 +195,7 @@ def main():
         Xi = Xs[i]
         while j < len(Xs):
             Xj = Xs[j]
+            print("/", end="", flush=True)
             if Xi.rank==Xj.rank and Xs[i].isomorphic(Xs[j]):
                 Xs.pop(j)
                 print(".", end="", flush=True)
@@ -210,6 +203,101 @@ def main():
                 j += 1
         i += 1
     print()
+    return Xs
+
+
+def main_rand():
+    name = argv.next()
+    G = get_group(name)
+    print("|G| =", len(G))
+    gen = [g for g in G if g*g!=g]
+
+    Hs = []
+    while len(Hs) < argv.get("subgroups", 5):
+        H = Group.generate([choice(gen) for i in range(1)])
+        nn = len(G) // len(H)
+        if 4 < nn:
+            Hs.append(H)
+    #while len(Hs) < 40:
+    #    H = Group.generate([choice(gen) for i in range(2)])
+    #    if 4*len(H) < len(G):
+    #        Hs.append(H)
+    Hs.sort(key = len, reverse=True)
+    print([len(H) for H in Hs])
+    
+    #Xs = get_actions(G, Hs)
+    Xs = [G.action_subgroup(H) for H in Hs]
+    print("|Xs| =", len(Xs))
+
+
+    print("make_hecke...")
+    ops = {}
+    count = 0
+    N = len(Xs)
+    for i in range(N):
+      for j in range(i, N):
+        ops[i,j] = []
+        X, Y = Xs[i], Xs[j]
+        for H in make_hecke(X, Y):
+            rw, cw = H.sum(1).max(), H.sum(0).max()
+            if rw == 1 or cw == 1 or rw>20 or cw>20:
+                continue
+            if dot2(H, H.transpose()).max() == 0:
+                ops[i,j].append(H)
+                print(H.shape, end='', flush=True)
+                count += 1
+        #print(H.shape, end='', flush=True)
+    
+    print("\nops:", count)
+
+    min_d = argv.get("min_d", 3)
+    found = set()
+    for key in ops:
+      for A in ops[key]:
+        #print(A, A.shape)
+        H = row_reduce(A)
+        m, n = H.shape
+        k = n-2*m
+        if k<=0:
+            continue
+        #ws = H.sum(0)
+        #assert ws.min()
+        #HHt = dot2(H, H.transpose())
+        #assert HHt.max() == 0
+        #if HHt.max():
+        #    continue
+
+        dmin, dmax = get_distance(H)
+        if dmax<min_d:
+            print(choice("/\\"), end='', flush=True)
+            continue
+        w = A.sum(1)[0]
+        desc = "[[%d, %d, %s<=d<=%s]]_%d"%(n, k, dmin, dmax, w)
+        if desc in found:
+            continue
+        found.add(desc)
+        print()
+        print("A.shape =", A.shape)
+        A = linear_independent(A)
+        print(shortstr(A))
+        print(desc)
+        print("is_triorthogonal:", is_triorthogonal(A))
+        print()
+
+
+
+
+def main():
+
+    name = argv.next()
+    G = get_group(name)
+    print("|G| =", len(G))
+    Hs = list(G.subgroups())
+    Hs = [H for H in Hs if len(H)<len(G)]
+
+    print("proper subgroups:", len(Hs))
+
+    Xs = get_actions(G, Hs)
     print("|Xs| =", len(Xs))
 
     print("make_hecke...")
@@ -264,7 +352,6 @@ def main():
                     print("[[%d, %d, %s %s]"%(n, k, dx, dz), min_d)
         return
 
-
     found = set()
     for key in ops:
       for A in ops[key]:
@@ -302,6 +389,8 @@ def main():
 
 if __name__ == "__main__":
     fn = "main"
+    if argv.rand:
+        fn = "main_rand"
 
     if argv.profile:
         import cProfile as profile
