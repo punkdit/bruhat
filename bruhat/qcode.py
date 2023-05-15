@@ -489,7 +489,7 @@ class Geometry(object):
         ngens = len(orders)+1
         a, b, c, d, e = [(i,) for i in range(5)]
         orders = tuple(orders)
-        print("oeqc.Geometry.__init__:", len(lins_db.db[orders]))
+        #print("oeqc.Geometry.__init__:", len(lins_db.db[orders]))
         rels = lins_db.db[orders][lins_idx]
         rels = lins_db.parse(rels, **locals())
         self.orders = orders
@@ -597,6 +597,13 @@ def build_code(geometry):
         #print(shortstr(H2), H2.shape, H2.sum(1)) # on 6,4 lattice weight 12
         Hx = numpy.concatenate((H0, H1, H2))
         Hz = Hx.copy()
+
+    elif argv.selfdual and dim==2:
+        H = get_adj(faces, verts)
+        print(H.shape)
+        print(shortstr(H))
+        Hx = H.copy()
+        Hz = H.copy()
 
     elif argv.flag and dim==3:
         flags = geometry.get_cosets([0]*(dim+1))
