@@ -698,7 +698,9 @@ def kernel(H):
 
 
 def image(H):
+    # fix this stupid code...
     m, n = H.shape
+    assert m <= 24, "memory bomb!"
     image = set()
     for v in enum2(n):
         u = dot2(H, v)

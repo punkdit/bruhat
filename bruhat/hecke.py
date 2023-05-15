@@ -165,7 +165,7 @@ def get_distance_xz(H, L, min_d=2):
     return d,d
 
 
-def find_distance(A, L):
+def find_distance_random(A, L):
     m, n = A.shape
     w = n
     for v in L:
@@ -181,6 +181,61 @@ def find_distance(A, L):
             elif w1 == w and random() < 0.5:
                 v = v1
     return w
+
+
+def minimize(A, v, min_d=2):
+    bdy = {v.tobytes() : v}
+    found = set(bdy.keys())
+    d = v.sum()
+    while bdy and d>=min_d:
+        #print(d, end=" ", flush=True)
+        _bdy = []
+        for v in bdy.values():
+            for u in A:
+                v1 = (v+u)%2
+                if v1.tobytes() in found:
+                    continue
+                found.add(v1.tobytes())
+                d1 = v1.sum()
+                if d1 < min_d:
+                    print("!",end="",flush=True)
+                    _bdy = [v1]
+                    d = d1
+                    break
+                elif d1 == min_d:
+                    _bdy.append(v1)
+                    #print("+",end="",flush=True)
+                    # keep going
+                #else:
+                #    print("[%d]"%d1, end="")
+            else:
+                continue
+            #print("!!")
+            break
+        bdy = {v.tobytes(): v for v in _bdy}
+        #print("(%s)"%len(bdy), end="\n")
+    return d
+
+
+def find_distance_dynamic(A, L):
+    #print(A.shape)
+    k, n = L.shape
+    assert k<=28, "really??"
+    count = 0
+    d = n
+    for v in enum2(k):
+        count += 1
+        #if count>100:
+        #    break
+        u = dot2(v, L)
+        if u.sum() == 0:
+            continue
+        d1 = minimize(u)
+        if d1 < d:
+            d = d1
+            print(d)
+    return d
+
     
 
 def get_distance(H, L=None, min_d=2):
