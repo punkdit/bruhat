@@ -700,7 +700,7 @@ def kernel(H):
 def image(H):
     # fix this stupid code...
     m, n = H.shape
-    assert m <= 24, "memory bomb!"
+    assert n <= 24, "%d: memory bomb!"%m
     image = set()
     for v in enum2(n):
         u = dot2(H, v)

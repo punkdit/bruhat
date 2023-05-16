@@ -448,6 +448,7 @@ def main_rand():
         print(shortstr(A))
         print(desc)
         print("is_triorthogonal:", is_triorthogonal(A))
+        colour(H)
         print()
 
 
