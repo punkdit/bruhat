@@ -132,6 +132,19 @@ def get_lower_distance(H, L, max_d=4):
     return None
 
 
+def find_lower_distance(H, L, d):
+    # search all weight d vectors
+    m, n = H.shape
+    idxs = list(range(1, n))
+    for ii in choose(idxs, d-1):
+        v = zeros2(n, 1)
+        v[0,0] = 1
+        for i in ii:
+            v[i, 0] = 1
+        if dot2(H, v).sum() == 0 and dot2(L, v).sum():
+            return True # distance <= d
+    return False # distance > d
+
 
 def get_distance_xz(H, L, min_d=2):
 

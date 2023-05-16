@@ -602,8 +602,9 @@ def build_code(geometry):
         H = get_adj(faces, verts)
         #print(H.shape)
         if argv.dump:
-            from bruhat.hecke import colour
             print(shortstr(H))
+        if argv.colour:
+            from bruhat.hecke import colour
             colour(H)
         Hx = H.copy()
         Hz = H.copy()
@@ -720,6 +721,105 @@ def build_geometry():
         code = build_code(geometry)
 
     #print("build_geometry: idx =", idx)
+
+
+def monte_carlo_css(H, v, p=0.5, trials=10000):
+    m, n = H.shape
+    assert v.shape == (n,)
+    d0 = v.sum()
+    #print("[",d0, end=",", flush=True)
+    p0 = p**d0
+    best = v
+    #randint = numpy.random.randint
+    for trial in range(trials):
+        #u = randint(2, size=m)
+        #h = dot2(u, H)
+        i = randint(0, m-1)
+        h = H[i]
+        w = (v+h)%2
+        d1 = w.sum()
+        p1 = p**d1
+        a = random()
+        if (p0/p1) < a:
+            v = w
+            d0 = d1
+            p0 = p**d0
+            best = w
+            #print(d0, end=",", flush=True)
+    #print("]")
+    return best
+
+
+def make_genons():
+
+    #solve.int_scalar = numpy.int64
+    #print(solve.int_scalar)
+    import qupy.ldpc.solve
+    solve.int_scalar = qupy.ldpc.solve.int_scalar
+    from qupy.ldpc.css import CSSCode
+
+    key = (3, 8)
+    idx = argv.get("idx", 15)
+    geometry = Geometry(key, idx, True)
+    #graph = geometry.build_graph(desc)
+    G = geometry.G
+    print("|G| = %d, idx = %d" % (len(G), idx))
+
+    faces = geometry.get_cosets([0,1,1])
+    edges = geometry.get_cosets([1,0,1])
+    verts = geometry.get_cosets([1,1,0])
+    print("faces=%d, edges=%d, verts=%d"%(len(faces), len(edges), len(verts)))
+
+    A = get_adj(faces, verts)
+    Az = get_adj(faces, edges)
+    Ax = get_adj(verts, edges)
+    print(A.shape, Az.shape, Ax.shape)
+
+    code = CSSCode(Hx=A, Hz=A)
+    print(code)
+
+    code = CSSCode(Hx=Ax, Hz=Az)
+    print(code)
+    #print(shortstr(code.Lx))
+    #print()
+    #print(shortstr(code.Lz))
+
+    Lx = code.Lx
+    Hx = code.Hx
+    k, n = Lx.shape
+    d = n
+    while d > 4:
+        best = None
+        for u in Lx:
+            u = monte_carlo_css(Hx, u)
+            d1 = u.sum()
+            if d1 < d:
+                best = u
+                d = d1
+    print("d =", d)
+    print(best) # edges
+    assert dot2(Az, best).sum() == 0
+
+    print("Ax:", Ax.shape)
+
+    print("best:")
+    for i, x in enumerate(best):
+        if x:
+            print("\tedge:", i)
+
+    v = zeros2(Ax.shape[0])
+    #for i in range(mx):
+    for vert, h in enumerate(Ax):
+        hh = h*best
+        if hh.sum() == 0:
+            continue
+        assert hh.sum() == 1
+        edge = numpy.where(hh)[0][0]
+        print("edge %d hits vertex %d" % (edge, vert))
+        v[vert] = 1
+    print(v)
+    print(dot2(A, v))
+    
 
 
 def build_hyperbolic_4():
