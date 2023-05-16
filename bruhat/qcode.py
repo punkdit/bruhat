@@ -750,6 +750,53 @@ def monte_carlo_css(H, v, p=0.5, trials=10000):
     return best
 
 
+def make_colour():
+    key = (3, 8)
+    idx = argv.get("idx")
+    if idx is None:
+        idxs = list(range(10,100))
+    else:
+        idxs = [idx]
+
+    for idx in idxs:
+        print()
+        geometry = Geometry(key, idx, True)
+        #graph = geometry.build_graph(desc)
+        G = geometry.G
+        print("|G| = %d, idx = %d" % (len(G), idx))
+    
+        faces = geometry.get_cosets([0,1,1])
+        edges = geometry.get_cosets([1,0,1])
+        verts = geometry.get_cosets([1,1,0])
+        print("faces=%d, edges=%d, verts=%d"%(len(faces), len(edges), len(verts)))
+    
+        A = get_adj(faces, verts)
+        from bruhat.hecke import colour
+        colour(A)
+    
+        G = geometry.G
+        gens = G.gens
+        a, b, c = gens
+        #for g in [a*b, a*c, b*c]:
+        #    print(g.order())
+    
+        f, e, v = gens # face, edge, vert
+        g = f*e*v*e*f
+        H = Group.generate([e, v, g])
+        print("|H| =", len(H))
+        index = len(G)//len(H)
+        print("|G:H| =", index)
+
+        if index != 3:
+            continue
+
+        cosets = G.left_cosets(H)
+        B = get_adj(faces, cosets)
+        #print(shortstr(B))
+        print("colour:", B.sum(0), B.sum(1))
+
+
+
 def make_genons():
 
     #solve.int_scalar = numpy.int64
