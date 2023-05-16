@@ -754,7 +754,7 @@ def make_colour():
     key = (3, 8)
     idx = argv.get("idx")
     if idx is None:
-        idxs = list(range(10,100))
+        idxs = list(range(20,100))
     else:
         idxs = [idx]
 
@@ -771,8 +771,8 @@ def make_colour():
         print("faces=%d, edges=%d, verts=%d"%(len(faces), len(edges), len(verts)))
     
         A = get_adj(faces, verts)
-        from bruhat.hecke import colour
-        colour(A)
+        #from bruhat.hecke import colour
+        #colour(A)
     
         G = geometry.G
         gens = G.gens
@@ -781,7 +781,7 @@ def make_colour():
         #    print(g.order())
     
         f, e, v = gens # face, edge, vert
-        g = f*e*v*e*f
+        g = f*e*v*e*f # colour symmetry
         H = Group.generate([e, v, g])
         print("|H| =", len(H))
         index = len(G)//len(H)
@@ -790,6 +790,8 @@ def make_colour():
         if index != 3:
             continue
 
+        if len(G) > 1000:
+            continue
         cosets = G.left_cosets(H)
         B = get_adj(faces, cosets)
         #print(shortstr(B))
