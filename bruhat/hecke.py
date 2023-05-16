@@ -16,7 +16,7 @@ import numpy
 
 from bruhat.gset import Group, Perm, mulclose
 from bruhat.argv import argv
-from bruhat.solve import zeros2, dot2, span, shortstr, linear_independent, parse
+from bruhat.solve import zeros2, dot2, span, shortstr, linear_independent, parse, enum2
 from bruhat.util import choose
 from bruhat.orthogonal import get_logops, row_reduce
 from bruhat.oeqc import is_triorthogonal
@@ -217,7 +217,7 @@ def minimize(A, v, min_d=2):
     return d
 
 
-def find_distance_dynamic(A, L):
+def find_distance_dynamic(A, L, min_d=2):
     #print(A.shape)
     k, n = L.shape
     assert k<=28, "really??"
@@ -230,7 +230,7 @@ def find_distance_dynamic(A, L):
         u = dot2(v, L)
         if u.sum() == 0:
             continue
-        d1 = minimize(u)
+        d1 = minimize(A, u, min_d)
         if d1 < d:
             d = d1
             print(d)

@@ -600,8 +600,11 @@ def build_code(geometry):
 
     elif argv.selfdual and dim==2:
         H = get_adj(faces, verts)
-        print(H.shape)
-        print(shortstr(H))
+        #print(H.shape)
+        if argv.dump:
+            from bruhat.hecke import colour
+            print(shortstr(H))
+            colour(H)
         Hx = H.copy()
         Hz = H.copy()
 
