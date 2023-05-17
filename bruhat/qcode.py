@@ -797,11 +797,16 @@ def make_colour():
     
         G = geometry.G
         gens = G.gens
-        a, b, c = gens
-        #for g in [a*b, a*c, b*c]:
-        #    print(g.order())
-    
         f, e, v = gens # face, edge, vert
+        H = Group.generate([f*e, f*v, e*v])
+        assert len(G) % len(H) == 0
+        index = len(G) // len(H)
+        assert index in [1, 2]
+        if index == 1:
+            print("non-orientable")
+        elif index == 2:
+            print("orientable")
+    
         g = f*e*v*e*f # colour symmetry
         H = Group.generate([e, v, g])
         print("|H| =", len(H))
