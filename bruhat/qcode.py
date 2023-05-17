@@ -599,13 +599,23 @@ def build_code(geometry):
         Hz = Hx.copy()
 
     elif argv.selfdual and dim==2:
-        H = get_adj(faces, verts)
-        #print(H.shape)
+        A = get_adj(faces, verts)
+        #print(A.shape)
+        H = linear_independent(A)
         if argv.dump:
             print(shortstr(H))
-        if argv.colour:
-            from bruhat.hecke import colour
-            colour(H)
+        if argv.distance:
+            from bruhat.hecke import get_lower_distance, find_lower_distance, get_logops
+            from bruhat.hecke import find_distance_dynamic_big
+            L = get_logops(H)
+            d = find_distance_dynamic_big(A, L)
+            print("d <=", d)
+            for dd in [4, 5, 6, 7]:
+                #if dd<7: continue
+                result = find_lower_distance(H, L, dd)
+                print("d = %d? %s" % (dd, result))
+                if result:
+                    break
         Hx = H.copy()
         Hz = H.copy()
 
@@ -751,19 +761,25 @@ def monte_carlo_css(H, v, p=0.5, trials=10000):
 
 
 def make_colour():
+    print("make_colour")
     key = (3, 8)
     idx = argv.get("idx")
     if idx is None:
-        idxs = list(range(20,100))
+        idxs = list(range(11, 29))
+        idxs = list(range(7, 18))
+        #idxs = [11, 12, 17]
     else:
         idxs = [idx]
 
+    lookup = {}
     for idx in idxs:
         print()
         geometry = Geometry(key, idx, True)
         #graph = geometry.build_graph(desc)
         G = geometry.G
         print("|G| = %d, idx = %d" % (len(G), idx))
+        lookup[idx] = G
+        #continue
     
         faces = geometry.get_cosets([0,1,1])
         edges = geometry.get_cosets([1,0,1])
@@ -796,6 +812,17 @@ def make_colour():
         B = get_adj(faces, cosets)
         #print(shortstr(B))
         print("colour:", B.sum(0), B.sum(1))
+
+    #Gs = list(lookup.values())
+    #for G1 in Gs:
+    #  for G2 in Gs:
+    for idx in idxs:
+      for jdx in idxs:
+        G1 = lookup[idx]
+        G2 = lookup[jdx]
+        if len(G2) < len(G1) and len(G1)%len(G2)==0:
+            hom = close_hom(zip(G1.gen, G2.gen))
+            print("|G_%d| = %d"%(jdx, len(G2)), "|G_%d| = %d"%(idx, len(G1)), hom is not None)
 
 
 

@@ -250,6 +250,18 @@ def find_distance_dynamic(A, L, min_d=2):
     return d
 
     
+def find_distance_dynamic_big(A, L, min_d=2):
+    #print(A.shape)
+    k, n = L.shape
+    d = n
+    for u in L:
+        d1 = minimize(A, u, min_d)
+        if d1 < d:
+            d = d1
+            print(d)
+    return d
+
+    
 
 def get_distance(H, L=None, min_d=2):
     # return lower & upper bound on distance
