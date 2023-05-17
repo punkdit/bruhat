@@ -764,11 +764,17 @@ def make_colour():
     print("make_colour")
     key = (3, 8)
     idx = argv.get("idx")
-    if idx is None:
-        idxs = list(range(7, 35))
-        #idxs = [11, 12, 17]
+    idxs = argv.get("idxs")
+    max_idx = argv.get("max_idx", 35)
+
+    if idxs is not None:
+        pass
+    elif idx is None:
+        idxs = list(range(7, max_idx+1))
+        #idxs = [22, 25, 26]
     else:
         idxs = [idx]
+    print("idxs:", idxs)
 
     lookup = {}
     for idx in idxs:
@@ -815,13 +821,14 @@ def make_colour():
     #Gs = list(lookup.values())
     #for G1 in Gs:
     #  for G2 in Gs:
-    for idx in idxs:
-      for jdx in idxs:
+    for jdx in idxs:
+      for idx in idxs:
         G1 = lookup[idx]
         G2 = lookup[jdx]
         if len(G2) < len(G1) and len(G1)%len(G2)==0:
             hom = close_hom(zip(G1.gen, G2.gen))
-            print("|G_%d| = %d"%(jdx, len(G2)), "|G_%d| = %d"%(idx, len(G1)), hom is not None)
+            if hom is not None:
+                print("|G_%d| = %d"%(jdx, len(G2)), "subgroup of |G_%d| = %d"%(idx, len(G1)))
 
 
 
