@@ -765,8 +765,7 @@ def make_colour():
     key = (3, 8)
     idx = argv.get("idx")
     if idx is None:
-        idxs = list(range(11, 29))
-        idxs = list(range(7, 18))
+        idxs = list(range(7, 35))
         #idxs = [11, 12, 17]
     else:
         idxs = [idx]
