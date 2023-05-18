@@ -839,13 +839,15 @@ def make_colour():
 def unwrap_colour():
     print("unwrap_colour")
     key = (3, 8)
-    idx0 = idx = argv.get("idx", 11)
+    idx0 = argv.get("idx0", 11)
+    idx = argv.get("idx", idx0+1)
     N = len(lins_db.db[key])
     print("N =", N)
 
-    G0 = Geometry(key, idx, True).G
-    print("|G_%d| = %d" % (idx, len(G0)))
+    G0 = Geometry(key, idx0, True).G
+    print("|G_%d| = %d" % (idx0, len(G0)))
 
+    idx -= 1
     while idx+1 < N:
         idx += 1
         geometry = Geometry(key, idx, True)
