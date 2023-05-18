@@ -836,6 +836,30 @@ def make_colour():
                 print("|G_%d| = %d"%(jdx, len(G2)), "subgroup of |G_%d| = %d"%(idx, len(G1)))
 
 
+def unwrap_colour():
+    print("unwrap_colour")
+    key = (3, 8)
+    idx0 = idx = argv.get("idx", 11)
+    N = len(lins_db.db[key])
+    print("N =", N)
+
+    G0 = Geometry(key, idx, True).G
+    print("|G_%d| = %d" % (idx, len(G0)))
+
+    while idx+1 < N:
+        idx += 1
+        geometry = Geometry(key, idx, True)
+        G = geometry.G
+        print("|G_%d| = %d" % (idx, len(G)))
+        if len(G) % len(G0) != 0:
+            continue
+    
+        hom = close_hom(zip(G.gen, G0.gen))
+        if hom is not None:
+            print("G_%d is subgroup of G_%d"%(idx0, idx))
+            break
+
+
 
 def make_genons():
 
