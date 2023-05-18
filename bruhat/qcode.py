@@ -610,7 +610,7 @@ def build_code(geometry):
             L = get_logops(H)
             d = find_distance_dynamic_big(A, L)
             print("d <=", d)
-            for dd in [4, 5, 6, 7]:
+            for dd in [2, 3, 4, 5, 6, 7]:
                 #if dd<7: continue
                 result = find_lower_distance(H, L, dd)
                 print("d = %d? %s" % (dd, result))
