@@ -16,7 +16,7 @@ from bruhat.util import cross
 from bruhat import solve 
 from bruhat.solve import (
     array2, zeros2, shortstr, dot2, linear_independent, row_reduce, find_kernel,
-    span, intersect, rank, enum2)
+    span, intersect, rank, enum2, shortstrx)
 from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
 from bruhat.todd_coxeter import Schreier
 from bruhat.argv import argv
@@ -762,7 +762,7 @@ def monte_carlo_css(H, v, p=0.5, trials=10000):
 
 def make_colour():
     print("make_colour")
-    key = (3, 8)
+    key = argv.get("key", (3, 8))
     idx = argv.get("idx")
     idxs = argv.get("idxs")
     max_idx = argv.get("max_idx", 35)
@@ -818,9 +818,9 @@ def make_colour():
 
         if len(G) > 1000:
             continue
-        cosets = G.left_cosets(H)
-        B = get_adj(faces, cosets)
-        #print(shortstr(B))
+        colours = G.left_cosets(H)
+        B = get_adj(faces, colours)
+        print(shortstr(B))
         print("colour:", B.sum(0), B.sum(1))
 
     #Gs = list(lookup.values())
@@ -871,8 +871,8 @@ def make_genons():
     solve.int_scalar = qupy.ldpc.solve.int_scalar
     from qupy.ldpc.css import CSSCode
 
-    key = (3, 8)
-    idx = argv.get("idx", 15)
+    key = (3, 6)
+    idx = argv.get("idx", 12)
     geometry = Geometry(key, idx, True)
     #graph = geometry.build_graph(desc)
     G = geometry.G
@@ -887,15 +887,20 @@ def make_genons():
     Az = get_adj(faces, edges)
     Ax = get_adj(verts, edges)
     print(A.shape, Az.shape, Ax.shape)
+    print(rank(Az))
+    print(rank(Ax))
 
     code = CSSCode(Hx=A, Hz=A)
     print(code)
 
     code = CSSCode(Hx=Ax, Hz=Az)
     print(code)
+    print(shortstrx(Ax, Az.transpose()))
     #print(shortstr(code.Lx))
     #print()
     #print(shortstr(code.Lz))
+
+    return
 
     Lx = code.Lx
     Hx = code.Hx
