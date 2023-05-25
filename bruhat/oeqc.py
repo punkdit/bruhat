@@ -769,6 +769,60 @@ def build_trinal():
 #        print(shortstr(equ.items[0]))
 #        print()
 
+
+def make_ramified():
+    from qcode import Geometry, get_adj
+
+    key = (3, 8)
+    idx = argv.get("idx", 10)
+
+    gens = (0,), (1,), (2,)
+    f, e, v = gens
+
+    for idx in [idx]:
+        print("idx =", idx)
+        geometry = Geometry(key, idx, False)
+    
+        hgens = [(1,2)*4]
+        #hgens = []
+        graph = geometry.build_graph(hgens=hgens)
+    
+        graph = graph.compress()
+        print(len(graph))
+    
+        faces = graph.components([(1,), (2,)])
+        print("faces:", [len(c) for c in faces], len(faces))
+    
+        verts = graph.components([(0,), (1,)])
+        print("verts:", [len(c) for c in verts], len(verts))
+
+        colours = graph.components([e, v, f+e+v+e+f])
+        print("colours:", [len(c) for c in colours], len(colours))
+
+        J = get_adj(faces, colours)
+        print(shortstr(J))
+    
+        H = get_adj(faces, verts)
+        HHt = dot2(H, H.transpose())
+        if HHt.sum():
+            print("Not self-dual")
+            #print(shortstr(HHt))
+            #code = CSSCode(Gx=H, Gz=H) # fail..
+            #print(code)
+            continue
+        #print(shortstr(H))
+    
+        code = CSSCode(Hx=H, Hz=H)
+        print(code)
+    
+        from bruhat.hecke import get_distance
+        print(get_distance(H, code.Lx))
+        #print(code.distance())
+
+        print()
+
+
+
 if __name__ == "__main__":
 
     _seed = argv.get("seed")

@@ -53,11 +53,11 @@ class Schreier(object):
     """
     DEBUG = False
 
-    def __init__(self, ngens, rels):
-        self.labels = []
-        self.neighbors = []
+    def __init__(self, ngens, rels, labels=None, neighbors=None):
         self.ngens = ngens
         self.rels = list(rels)
+        self.labels = [] if labels is None else labels
+        self.neighbors = [] if neighbors is None else neighbors
 
         for rel in rels:
             for gen in rel:
@@ -217,6 +217,51 @@ class Schreier(object):
             if idx == jdx:
                 print('\t', idx, row)
         print("-"*70)
+
+    def compress(self):
+        labels = self.labels
+        neighbors = self.neighbors
+        get_label = self.get_label
+        lookup = {}
+        for idx, row in enumerate(neighbors):
+            jdx = get_label(idx)
+            if idx == jdx:
+                lookup[idx] = len(lookup)
+        rows = []
+        for idx, row in enumerate(neighbors):
+            jdx = get_label(idx)
+            if idx != jdx:
+                continue
+            _row = [get_label(i) for i in row]
+            _row = [lookup[i] for i in _row]
+            rows.append(_row)
+            tgt = len(lookup)
+        labels = list(range(len(rows)))
+        graph = Schreier(self.ngens, self.rels, labels, rows)
+        return graph
+
+    def components(self, words):
+        labels = self.labels
+        neighbors = self.neighbors
+        remain = set(labels)
+        cps = []
+        while remain:
+            i = iter(remain).__next__()
+            remain.remove(i)
+            found = [i]
+            bdy = [i]
+            while bdy:
+                _bdy = []
+                for i in bdy:
+                  for word in words:
+                    j = self.follow_path(i, word)
+                    if j in remain:
+                        remain.remove(j)
+                        _bdy.append(j)
+                        found.append(j)
+                bdy = _bdy
+            cps.append(set(found))
+        return cps
 
     def __len__(self):
         return len([k for k in enumerate(self.labels) if k[0]==k[1]])

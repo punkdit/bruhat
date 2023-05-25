@@ -606,6 +606,16 @@ def build_code(geometry):
         H = linear_independent(A)
         if argv.dump:
             print(shortstr(H))
+        if argv.find_lower_distance:
+            from bruhat.hecke import find_lower_distance, get_logops
+            dd = argv.get("d", 4)
+            L = get_logops(H)
+            result = find_lower_distance(H, L, dd)
+            if result:
+                print("found weight %d logicals"%dd)
+            else:
+                print("no weight %d logicals"%dd)
+            #return
         if argv.distance:
             from bruhat.hecke import get_lower_distance, find_lower_distance, get_logops
             from bruhat.hecke import find_distance_dynamic_big
@@ -763,6 +773,11 @@ def monte_carlo_css(H, v, p=0.5, trials=10000):
 
 
 def make_ramified():
+    import bruhat.solve
+    from qupy.ldpc import solve
+    solve.int_scalar = bruhat.solve.int_scalar
+    from qupy.ldpc.css import CSSCode
+
     print("make_ramified")
     key = (3, 8)
     idx = argv.get("idx", 10)
@@ -772,24 +787,24 @@ def make_ramified():
     #hgens = []
     graph = geometry.build_graph(hgens=hgens)
 
-    graph.dump()
+    graph = graph.compress()
+    print(len(graph))
 
-    #words = graph.get_words()
-    #print(words)
-    #words = graph.find_words()
-    #print(words)
-    return
+    faces = graph.components([(1,), (2,)])
+    print(len(faces))
+    print([len(c) for c in faces])
 
+    verts = graph.components([(0,), (1,)])
+    print(len(verts))
+    print([len(c) for c in verts])
 
-    G = graph.get_group()
-    print(len(graph), len(G))
+    H = get_adj(faces, verts)
+    print(shortstr(H))
+    print(dot2(H, H.transpose()))
 
-    geometry.G = G
+    code = CSSCode(Hx=H, Hz=H)
+    print(code)
 
-    faces = geometry.get_cosets([0,1,1])
-    edges = geometry.get_cosets([1,0,1])
-    verts = geometry.get_cosets([1,1,0])
-    print("faces=%d, edges=%d, verts=%d"%(len(faces), len(edges), len(verts)))
 
 
 def make_colour():

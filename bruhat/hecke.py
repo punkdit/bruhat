@@ -132,12 +132,35 @@ def get_lower_distance(H, L, max_d=4):
     return None
 
 
+def find_lower_distance_5(H, L):
+    # search all weight d vectors
+    m, n = H.shape
+    v = zeros2(n, 1)
+    #for ii in choose(idxs, d-1):
+    for i0 in range(1, n):
+     for i1 in range(i0+1, n):
+      for i2 in range(i1+1, n):
+       for i3 in range(i2+1, n):
+            v[:] = 0
+            v[0,  0] = 1
+            v[i0, 0] = 1
+            v[i1, 0] = 1
+            v[i2, 0] = 1
+            v[i3, 0] = 1
+            if dot2(H, v).sum() == 0 and dot2(L, v).sum():
+                return True # distance <= d
+    return False # distance > d
+
+
 def find_lower_distance(H, L, d):
+    if d == 5:
+        return find_lower_distance_5(H, L)
     # search all weight d vectors
     m, n = H.shape
     idxs = list(range(1, n))
+    v = zeros2(n, 1)
     for ii in choose(idxs, d-1):
-        v = zeros2(n, 1)
+        v[:] = 0
         v[0,0] = 1
         for i in ii:
             v[i, 0] = 1
