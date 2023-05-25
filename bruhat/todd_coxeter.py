@@ -295,7 +295,7 @@ class Schreier(object):
         return G
 
     def get_words(self):
-        cosets = set([c for i, c in enumerate(self.labels) if i == c])
+        #cosets = set([c for i, c in enumerate(self.labels) if i == c])
         ngens = self.ngens
         words = [()]
         found = set([0])

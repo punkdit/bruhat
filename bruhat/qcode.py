@@ -499,7 +499,7 @@ class Geometry(object):
         if build:
             self.G = self.build_group()
 
-    def build_graph(self, figure=None):
+    def build_graph(self, figure=None, hgens=None):
         gens = [(i,) for i in range(5)]
         ngens = self.ngens
         rels = [gens[i]*2 for i in range(ngens)]
@@ -517,6 +517,8 @@ class Geometry(object):
             assert len(figure) == len(gens)
             gens = [gens[i] for i, fig in enumerate(figure) if fig] or [G.identity]
             graph.build(gens)
+        elif hgens is not None:
+            graph.build(hgens)
         else:
             graph.build()
         return graph
@@ -758,6 +760,36 @@ def monte_carlo_css(H, v, p=0.5, trials=10000):
             #print(d0, end=",", flush=True)
     #print("]")
     return best
+
+
+def make_ramified():
+    print("make_ramified")
+    key = (3, 8)
+    idx = argv.get("idx", 10)
+    geometry = Geometry(key, idx, False)
+
+    hgens = [(1,2)*4]
+    #hgens = []
+    graph = geometry.build_graph(hgens=hgens)
+
+    graph.dump()
+
+    #words = graph.get_words()
+    #print(words)
+    #words = graph.find_words()
+    #print(words)
+    return
+
+
+    G = graph.get_group()
+    print(len(graph), len(G))
+
+    geometry.G = G
+
+    faces = geometry.get_cosets([0,1,1])
+    edges = geometry.get_cosets([1,0,1])
+    verts = geometry.get_cosets([1,1,0])
+    print("faces=%d, edges=%d, verts=%d"%(len(faces), len(edges), len(verts)))
 
 
 def make_colour():
