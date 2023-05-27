@@ -770,6 +770,45 @@ def build_trinal():
 #        print()
 
 
+
+def make_colour():
+    from qcode import Geometry, get_adj
+
+    key = argv.get("key", (3, 8))
+    idx = argv.get("idx", 10)
+
+    gens = (0,), (1,), (2,)
+    f, e, v = gens
+
+    name = argv.name
+
+    for idx in [idx]:
+        print("idx =", idx)
+        geometry = Geometry(key, idx, False)
+    
+        hgens = []
+        graph = geometry.build_graph(hgens=hgens)
+    
+        graph = graph.compress()
+        print(len(graph))
+    
+        faces = graph.components([(1,), (2,)])
+        print("faces:", [len(c) for c in faces], len(faces))
+    
+        verts = graph.components([(0,), (1,)])
+        print("verts:", [len(c) for c in verts], len(verts))
+
+        H = get_adj(faces, verts)
+        H = linear_independent(H)
+        print(H.shape)
+        assert dot2(H, H.transpose()).sum() == 0
+
+        if name:
+            f = open(name, 'w')
+            print(shortstr(H), file=f)
+            f.close()
+
+
 def make_ramified():
     from qcode import Geometry, get_adj
 
