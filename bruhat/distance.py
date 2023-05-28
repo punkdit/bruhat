@@ -11,7 +11,7 @@ start_time = time()
 from random import choice
 from functools import reduce
 from operator import mul
-from random import random
+from random import random, randint
 
 import numpy
 
@@ -23,6 +23,64 @@ from bruhat.orthogonal import get_logops, row_reduce
 from bruhat.oeqc import is_triorthogonal
 from bruhat.todd_coxeter import Schreier
 
+
+
+def make_check(H):
+    m, n = H.shape
+
+    lines = ["def check(v):"]
+    for i in range(m):
+        line = []
+        for j in range(n):
+            if H[i,j]==0:
+                continue
+            line.append("v[%d]"%(j,))
+        line = "  if (%s)%%2:" % ("+".join(line),)
+        lines.append(line)
+        lines.append("    return False")
+    lines.append("  return True")
+    co = ("\n".join(lines))
+    ns = {}
+    fn = exec(co, ns)
+    return ns["check"]
+
+
+def perf():
+    name = argv.load
+    H = parse(open(name).read())
+    print(H.shape)
+    m, n = H.shape
+    check = make_check(H)
+
+    import numba
+    check = numba.njit(check)
+
+    print("warmup...")
+    v = zeros2(n)
+    for _ in range(10):
+        assert check(v) == (dot2(H, v).sum() == 0)
+        i = randint(0,n-1)
+        v[i] = (v[i]+1)%2
+
+    print("go...")
+    N=10000
+    t0 = time()
+    v = zeros2(n)
+    count = 0
+    for _ in range(N):
+        count += check(v)
+        i = randint(0,n-1)
+        v[i] = (v[i]+1)%2
+    print("time:", time() - t0)
+
+    t0 = time()
+    v = zeros2(n)
+    count = 0
+    for _ in range(N):
+        count += dot2(H,v).sum()
+        i = randint(0,n-1)
+        v[i] = (v[i]+1)%2
+    print("time:", time() - t0)
 
 
 def find_lower_distance(H, L, d):
@@ -90,7 +148,7 @@ def search_distance(H, L, d, homogeneous=False):
     assert dot2(H, v).sum() == 0
 
     print(dot2(L, v))
-    assert sum(v) == d
+    assert sum(v) == d, "z3 bug found"
 
     return True
 
@@ -107,19 +165,21 @@ def _tree_distance(H, L, d, v, remain, max_check):
     remain = set(remain)
     for i in list(remain):
         assert v[i] == 0
-        v[i] = 1
+        v[i] = 1 # <------- set
 
-        check = dot2(H, v).sum()
-        if check==0 and dot2(L, v).sum():
+        weight = dot2(H, v).sum()
+        if weight==0 and dot2(L, v).sum():
             return True
 
-        if check <= max_check and w0 < d:
+        #if weight==0: we made a stabilizer
+
+        if weight <= max_check and w0 < d:
             remain.remove(i)
             if _tree_distance(H, L, d, v, remain, max_check): # <----- recurse
                 return True
             remain.add(i)
 
-        v[i] = 0
+        v[i] = 0 # <------- reset
 
 
 def tree_distance(H, L, d, homogeneous=False):
@@ -135,12 +195,14 @@ def tree_distance(H, L, d, homogeneous=False):
     #print(H.sum(0))
     #print(H.sum(1))
 
+    check = lambda v : dot(H, v).sum() == 0
+
     v = zeros2(n)
     v[0] = 1
     remain = set(range(1, n))
 
     max_check = dot2(H, v).sum()
-    if not argv.quick:
+    if argv.slow:
         max_check += 1 # hmmm... adding 1 here, see test()
     print("max_check:", max_check)
 
@@ -265,7 +327,7 @@ def main():
 
 
 if __name__ == "__main__":
-    fn = "main"
+    fn = argv.next() or "main"
 
     if argv.profile:
         import cProfile as profile
