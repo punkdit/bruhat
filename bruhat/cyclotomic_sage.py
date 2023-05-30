@@ -38,7 +38,7 @@ def main():
 #    print(f)
 #    print(f(i))
 
-    N = 50
+    N = 30
     ps = []
     for a in range(N):
      for b in range(N):
@@ -84,9 +84,16 @@ def main():
         if tgt.is_prime():
             cvs.fill(p)
         else:
+            fs = (tgt.factor())
+            #if len(fs)==1:
+            #    print(fs, src, len(fs), )
+            if src==2+3*i:
+                print(src, "-->", tgt, "-->", fs)
             cvs.fill(p, [white])
             cvs.stroke(p, [red])
-    cvs.writePDFfile("images/gauss_split_3.pdf")
+    #cvs.writePDFfile("images/gauss_split_3.pdf")
+    cvs.writePDFfile("images/gauss_split_total.pdf")
+    print("images/gauss_split_total.pdf")
 
 
 def main_34():

@@ -782,6 +782,31 @@ def min_stabs(H):
     return A
 
 
+def main_16():
+    from bruhat.oeqc import get_autos_nauty, gap_matrix
+    H = parse("""
+    ..11...1.111..11
+    .....11..11.1111
+    ....1..11..11111
+    .1.1..1.1.11.1.1
+    1.1.11.1.1..1.1.
+    """)
+    m, n = H.shape
+    L = get_logops(H)
+    print(L.shape)
+
+    N, perms = get_autos_nauty(H)
+    print(N)
+
+    gens = []
+    for g in perms:
+        idxs = [g[i] for i in range(n)]
+        L1 = L[:, idxs]
+        A = dot2(L1, L.transpose())
+        gens.append(gap_matrix(A))
+    print("Group(%s)"%(','.join(gens)))
+
+
 def main_find():
     "watch the orbit split into two pieces under the generators"
     n = argv.get("n", 6)
@@ -855,6 +880,7 @@ def main():
 
 if __name__ == "__main__":
     fn = argv.next() or "main"
+    print("%s()"%fn)
 
     if argv.profile:
         import cProfile as profile

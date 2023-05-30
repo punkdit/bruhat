@@ -379,6 +379,16 @@ def main_triorthogonal():
     """)
     assert is_triorthogonal(H)
 
+    H = parse("""
+..11...1.111..11
+.....11..11.1111
+....1..11..11111
+.1.1..1.1.11.1.1
+1.1.11.1.1..1.1.
+    """)
+    assert is_triorthogonal(H)
+
+    m, n = H.shape
     nn = 2*n
     _, perms = get_autos_nauty(H)
     G = []
@@ -421,7 +431,7 @@ def main_triorthogonal():
     # S-gate
     g = identity2(2*k)
     g[:k, k:] = gx
-    gen.append(g)
+    #gen.append(g)
 
     for A in G:
         Lx = numpy.dot(code.Lx, A)
@@ -432,6 +442,9 @@ def main_triorthogonal():
         g[:k, :k] = gx
         g[k:, k:] = gz
         gen.append(g)
+        print(shortstr(g))
+        print()
+    #return
 
     vs = []
     for i, g in enumerate(gen):
@@ -773,6 +786,7 @@ def build_trinal():
 
 def make_colour():
     from qcode import Geometry, get_adj
+    from lins_db import db
 
     key = argv.get("key", (3, 8))
     idx = argv.get("idx", 10)
@@ -782,7 +796,8 @@ def make_colour():
 
     name = argv.name
 
-    for idx in [idx]:
+    #for idx in range(11, len(db[key])):
+    for idx in range(2, 11):
         print("idx =", idx)
         geometry = Geometry(key, idx, False)
     
@@ -801,7 +816,12 @@ def make_colour():
         H = get_adj(faces, verts)
         H = linear_independent(H)
         print(H.shape)
-        assert dot2(H, H.transpose()).sum() == 0
+        if dot2(H, H.transpose()).sum() != 0:
+            continue
+        m, n = H.shape
+        k = n-2*m
+
+        name = "codes/code_%d_%d_%d.txt"%(n, k, idx)
 
         if name:
             f = open(name, 'w')

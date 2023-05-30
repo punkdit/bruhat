@@ -17,7 +17,8 @@ https://arxiv.org/pdf/2012.09271.pdf p10.
 
 import sys
 from random import randint, seed, choice
-from time import sleep
+from time import sleep, time
+start_time = time()
 from functools import reduce
 from operator import mul
 
@@ -827,6 +828,6 @@ if __name__ == "__main__":
         test()
         test_coxeter()
 
-    print("OK\n")
+    print("OK: finished in %.3f seconds\n"%(time() - start_time))
 
         

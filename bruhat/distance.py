@@ -8,6 +8,7 @@ thereby bounding/finding the distance.
 
 from time import time
 start_time = time()
+import os
 from random import choice
 from functools import reduce
 from operator import mul
@@ -184,39 +185,34 @@ def _sparse_distance(H, L, d, v, remain, max_check):
 
         j = v.pop()
         assert j==i
-    #print()
 
 
-def sparse_distance(H, L, d, homogeneous=False):
-    # this works for codes where we never violate more checks
-    # than the first bit, ie. codes with string-like logical operators,
-    # eg. 2d topological codes.
-    print("sparse_distance: d=%d"%d)
+def sparse_distance(H, L, d, homogeneous=True, verbose=False):
+    # faster version of tree_distance
+    if verbose:
+        print("sparse_distance: d=%d"%d)
     m, n = H.shape
     k, n1 = L.shape
     assert n==n1
 
-    #print(shortstr(H))
-    #print(H.sum(0))
-    #print(H.sum(1))
-
-    check = lambda v : dot(H, v).sum() == 0
-
+    assert homogeneous
     v = [0]
     remain = set(range(1, n))
 
-    #max_check = dot2(H, v).sum()
     max_check = H[:, 0].sum()
     if argv.slow:
         max_check += 1 # hmmm... adding 1 here, see test()
-    print("max_check:", max_check)
+    if verbose:
+        print("max_check:", max_check)
 
     if _sparse_distance(H, L, d-1, v, remain, max_check):
-        print("found!")
-        print(v)
+        if verbose:
+            print("found!")
+            print(v)
         return True
 
-    print("not found")
+    if verbose:
+        print("not found")
 
 
 def _tree_distance(H, L, d, v, remain, max_check):
@@ -338,6 +334,34 @@ def test():
     assert dot2(L, v).sum()
     print("OK")
     return
+
+
+def update():
+    names = os.listdir("codes")
+    names.sort(key = lambda name:int(name.split("_")[1]))
+    print(names)
+
+    idx = argv.get("idx")
+
+    for name in names:
+        stem = name[:-4]
+        n, k, _idx = [int(s) for s in stem.split("_")[1:4]]
+        if idx is not None and _idx != idx:
+            continue
+        s = open("codes/"+name).read()
+        print(name, end=" ", flush=True)
+        H = parse(s)
+        L = get_logops(H)
+        d = argv.get("d", 2)
+        while 1:
+            print("[%d]"%d, end="", flush=True)
+            result = sparse_distance(H, L, d)
+            if result is not None:
+                print(" d=%s"%d)
+                break
+            d += 2
+
+
 
 def main():
 
