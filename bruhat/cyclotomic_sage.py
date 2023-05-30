@@ -65,7 +65,8 @@ def main():
      for y in range(N):
         cvs.fill(path.circle(x, y, 0.03))
 
-    A = numpy.array([[3,2],[-2,3]])
+    #A = numpy.array([[3,2],[-2,3]])
+    A = numpy.array([[3,0],[0,3]])
     for i0 in range(-7, N//3+1):
       for i1 in range(-2, N//3+2):
         v0 = numpy.dot(A, [i0,i1])
@@ -85,8 +86,42 @@ def main():
         else:
             cvs.fill(p, [white])
             cvs.stroke(p, [red])
-    cvs.writePDFfile("images/gauss_split.pdf")
+    cvs.writePDFfile("images/gauss_split_3.pdf")
 
+
+def main_34():
+    """
+    we can think of one of the "combined" quantities as 
+    "(a + bi) + (c+di)w", or equivalently as "a + bi + cw + diw"
+    ....  and the eisenstein conjugate is "a + bi - cw -diw"
+    .  i guess there's also the gaussian conjugate 
+    "a - bi + cw - diw" but i don't think we're going to use that
+    in this context ....
+    """
+
+    cvs = Canvas()
+    R = 4.0
+    cvs.stroke(path.circle(0, 0, R), [orange])
+    cvs.stroke(path.line(-2*R, 0, +2*R, 0), st_arrow)
+    cvs.stroke(path.line(0, -2*R, 0, +2*R), st_arrow)
+
+    def roots(N, r=0.1, st=[], fill=False):
+        for i in range(N):
+            theta = 2*pi*i/N
+            x, y = R*cos(theta), R*sin(theta)
+            p = path.circle(x, y, r)
+            if fill:
+                cvs.fill(p, st)
+            else:
+                cvs.stroke(p, st)
+
+    roots(12, 0.05, fill=True)
+    roots(4)
+    roots(3, 0.15, [red])
+
+    cvs.writePDFfile("images/cyclotomic_12.pdf")
+
+    
 
 
 if __name__ == "__main__":

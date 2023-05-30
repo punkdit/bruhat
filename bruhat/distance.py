@@ -153,6 +153,72 @@ def search_distance(H, L, d, homogeneous=False):
     return True
 
 
+def _sparse_distance(H, L, d, v, remain, max_check):
+
+    m, n = H.shape
+    k, _ = L.shape
+
+    w0 = len(v)
+
+    remain = set(remain)
+    for i in list(remain):
+        assert i not in v
+        v.append(i)
+
+        weight = H[:, v]
+        weight = weight.sum(1) % 2
+        weight = weight.sum()
+        Lv = L[:, v]
+        Lv = Lv.sum(1)
+        Lv = Lv%2
+        if weight==0 and Lv.sum():
+            return True
+
+        #if weight==0: we made a stabilizer
+
+        if weight <= max_check and w0 < d:
+            remain.remove(i)
+            if _sparse_distance(H, L, d, v, remain, max_check): # <----- recurse
+                return True
+            remain.add(i)
+
+        j = v.pop()
+        assert j==i
+    #print()
+
+
+def sparse_distance(H, L, d, homogeneous=False):
+    # this works for codes where we never violate more checks
+    # than the first bit, ie. codes with string-like logical operators,
+    # eg. 2d topological codes.
+    print("sparse_distance: d=%d"%d)
+    m, n = H.shape
+    k, n1 = L.shape
+    assert n==n1
+
+    #print(shortstr(H))
+    #print(H.sum(0))
+    #print(H.sum(1))
+
+    check = lambda v : dot(H, v).sum() == 0
+
+    v = [0]
+    remain = set(range(1, n))
+
+    #max_check = dot2(H, v).sum()
+    max_check = H[:, 0].sum()
+    if argv.slow:
+        max_check += 1 # hmmm... adding 1 here, see test()
+    print("max_check:", max_check)
+
+    if _sparse_distance(H, L, d-1, v, remain, max_check):
+        print("found!")
+        print(v)
+        return True
+
+    print("not found")
+
+
 def _tree_distance(H, L, d, v, remain, max_check):
 
     m, n = H.shape
@@ -315,6 +381,8 @@ def main():
 
         if argv.tree:
             result = tree_distance(H, L, d, homogeneous)
+        elif argv.sparse:
+            result = sparse_distance(H, L, d, homogeneous)
         else:
             result = search_distance(H, L, d, homogeneous)
         if result:
