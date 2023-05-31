@@ -11,7 +11,7 @@ start_time = time()
 import os
 from random import choice
 from functools import reduce
-from operator import mul
+from operator import mul, add
 from random import random, randint
 
 import numpy
@@ -26,7 +26,7 @@ from bruhat.todd_coxeter import Schreier
 
 
 
-def make_check(H):
+def make_checksum(H):
     m, n = H.shape
 
     lines = ["def check(v):"]
@@ -46,6 +46,27 @@ def make_check(H):
     return ns["check"]
 
 
+def make_check(H):
+    m, n = H.shape
+
+    lines = ["def check(v):"]
+    lines.append("  count = 0")
+    for i in range(m):
+        line = []
+        for j in range(n):
+            if H[i,j]==0:
+                continue
+            line.append("v[%d]"%(j,))
+        line = "  if (%s)%%2:" % ("+".join(line),)
+        lines.append(line)
+        lines.append("    count += 1")
+    lines.append("  return count")
+    co = ("\n".join(lines))
+    ns = {}
+    fn = exec(co, ns)
+    return ns["check"]
+
+
 def perf():
     name = argv.load
     H = parse(open(name).read())
@@ -59,7 +80,7 @@ def perf():
     print("warmup...")
     v = zeros2(n)
     for _ in range(10):
-        assert check(v) == (dot2(H, v).sum() == 0)
+        assert check(v) == dot2(H, v).sum()
         i = randint(0,n-1)
         v[i] = (v[i]+1)%2
 
@@ -282,6 +303,76 @@ def tree_distance(H, L, d, homogeneous=False):
     print("not found")
 
 
+def dynamic_distance(H, L):
+    print("dynamic_distance")
+
+    m, n = H.shape
+    k, n1 = L.shape
+    assert n==n1
+
+    check = make_check(H)
+    #check = lambda v : dot2(H, v).sum()
+    if argv.fastnumba:
+        import numba
+        check = numba.njit(check)
+    #else:
+
+    #print(shortstr(H))
+    support = [list(numpy.where(h)[0]) for h in H]
+    #print(support)
+
+    v = zeros2(n)
+    v[0] = 1
+    remain = set(range(1, n))
+
+    max_check = dot2(H, v).sum()
+    assert max_check == check(v)
+    if argv.slow:
+        max_check += 1 # hmmm... adding 1 here, see test()
+    print("max_check:", max_check)
+
+    found = {(0,)}
+    bdy = list(found)
+    d = 2
+    while bdy:
+        #print()
+        #print("="*79)
+        print("d =", d)
+        print("bdy:", len(bdy))
+        _bdy = []
+        for path in bdy:
+            #print("path:", path)
+            v = zeros2(n)
+            v[list(path)] = 1
+            syndrome = dot2(H, v)
+            #print("syndrome:", syndrome)
+            idxs = numpy.where(syndrome)[0]
+            #print("idxs:", idxs)
+            nbd = set(reduce(add, [support[i] for i in idxs]))
+            nbd = [i for i in nbd if v[i]==0]
+            #print("nbd:", nbd)
+            for i in nbd:
+                v[i] = 1 # <----- set
+                #Hv = dot2(H, v)
+                #w = Hv.sum()
+                w = check(v)
+                if w == 0:
+                    k = dot2(L, v).sum()
+                    if k:
+                        return v.sum()
+                elif w <= max_check:
+                    p = list(path)
+                    p.append(i)
+                    p.sort()
+                    p = tuple(p)
+                    if p not in found:
+                        found.add(p)
+                        _bdy.append(p)
+                v[i] = 0 # <------ unset
+        bdy = _bdy
+        d += 1
+
+
 def test():
     H = parse("""
 ......1.11.........1.....1........1..1.1................
@@ -341,7 +432,7 @@ def update():
     names.sort(key = lambda name:int(name.split("_")[1]))
     #print(names)
 
-    idx = argv.get("idx")
+    idx = argv.get("idx", 10)
 
     for name in names:
         stem = name[:-4]
@@ -384,13 +475,18 @@ def main():
     """)
 
 
-    name = argv.load
-    if name:
+    name = argv.next() or argv.load
+    if name is not None:
         H = parse(open(name).read())
-        print(H.shape)
         L = get_logops(H)
+    print(H.shape)
 
-    if 0:
+    if argv.dynamic_distance:
+        result = dynamic_distance(H, L)
+        print("d =", result)
+        return
+
+    if 1:
       for d in range(1, 4):
         result = find_lower_distance(H, L, d)
         if result:
