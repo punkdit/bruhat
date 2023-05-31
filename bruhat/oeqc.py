@@ -797,26 +797,30 @@ def make_colour():
     name = argv.name
 
     #for idx in range(11, len(db[key])):
-    for idx in range(2, 11):
+    #for idx in range(2, 11):
+    #for idx in [47]:
+    while 1:
         print("idx =", idx)
         geometry = Geometry(key, idx, False)
     
         hgens = []
         graph = geometry.build_graph(hgens=hgens)
+        print("build_graph:", len(graph))
     
         graph = graph.compress()
-        print(len(graph))
+        print("compress:", len(graph))
     
         faces = graph.components([(1,), (2,)])
-        print("faces:", [len(c) for c in faces], len(faces))
+        #print("faces:", [len(c) for c in faces], len(faces))
     
         verts = graph.components([(0,), (1,)])
-        print("verts:", [len(c) for c in verts], len(verts))
+        #print("verts:", [len(c) for c in verts], len(verts))
 
         H = get_adj(faces, verts)
         H = linear_independent(H)
-        print(H.shape)
+        print("H:", H.shape)
         if dot2(H, H.transpose()).sum() != 0:
+            idx += 1
             continue
         m, n = H.shape
         k = n-2*m
@@ -827,6 +831,8 @@ def make_colour():
             f = open(name, 'w')
             print(shortstr(H), file=f)
             f.close()
+
+        idx += 1
 
 
 def make_ramified():

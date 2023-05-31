@@ -339,14 +339,14 @@ def test():
 def update():
     names = os.listdir("codes")
     names.sort(key = lambda name:int(name.split("_")[1]))
-    print(names)
+    #print(names)
 
     idx = argv.get("idx")
 
     for name in names:
         stem = name[:-4]
         n, k, _idx = [int(s) for s in stem.split("_")[1:4]]
-        if idx is not None and _idx != idx:
+        if idx is not None and _idx < idx:
             continue
         s = open("codes/"+name).read()
         print(name, end=" ", flush=True)
