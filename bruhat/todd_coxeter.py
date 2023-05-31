@@ -47,6 +47,8 @@ def cycle(perm):
     return "("+")(".join(parts)+")"
     
 
+SENTINEL = -1
+
 class Schreier(object):
     """ 
     A Schreier coset graph coming from a group acting on the cosets
@@ -59,6 +61,7 @@ class Schreier(object):
         self.rels = list(rels)
         self.labels = [] if labels is None else labels
         self.neighbors = [] if neighbors is None else neighbors
+        self.idx = 0 # length of neighbors == index of any new entry
 
         for rel in rels:
             for gen in rel:
@@ -86,6 +89,7 @@ class Schreier(object):
     def get_label(self, c):
         labels = self.labels
         assert c is not None
+        assert c != SENTINEL
         c2 = labels[c]
         if c == c2:
             return c
@@ -134,9 +138,9 @@ class Schreier(object):
         for d in range(ngens):
             n1 = neighbors[c1][d]
             n2 = neighbors[c2][d]
-            if n1 == None:
+            if n1 == SENTINEL:
                 neighbors[c1][d] = n2
-            elif n2 != None:
+            elif n2 != SENTINEL:
                 #self.unify(n1, n2) # recurse
                 to_unify.append((n1, n2))
         for n1, n2 in to_unify:
@@ -160,9 +164,9 @@ class Schreier(object):
             for d in range(ngens):
                 n1 = neighbors[c1][d]
                 n2 = neighbors[c2][d]
-                if n1 == None:
+                if n1 == SENTINEL:
                     neighbors[c1][d] = n2
-                elif n2 != None:
+                elif n2 != SENTINEL:
                     to_unify.append((n1, n2))
 
     #unify = unify_recursive
@@ -183,7 +187,8 @@ class Schreier(object):
         ngens = self.ngens
         c = len(labels)
         labels.append(c)
-        neighbors.append(ngens*[None])
+        neighbors.append(ngens*[SENTINEL])
+        self.idx = len(neighbors)
         return c
 
     # For following paths, we have the following two functions: 
@@ -193,7 +198,7 @@ class Schreier(object):
         neighbors = self.neighbors
         c = self.get_label(c)
         ns = neighbors[c]
-        if ns[d] == None:
+        if ns[d] == SENTINEL:
             ns[d] = self.add_vertex()
         return self.get_label(ns[d])
     
@@ -213,7 +218,9 @@ class Schreier(object):
         labels = self.labels
         neighbors = self.neighbors
         print(labels)
-        for idx, row in enumerate(neighbors):
+        #for idx, row in enumerate(neighbors):
+        for idx in range(self.idx):
+            row = neighbors[idx]
             jdx = self.get_label(idx)
             if idx == jdx:
                 print('\t', idx, row)
@@ -224,12 +231,16 @@ class Schreier(object):
         neighbors = self.neighbors
         get_label = self.get_label
         lookup = {}
-        for idx, row in enumerate(neighbors):
+        #for idx, row in enumerate(neighbors):
+        for idx in range(self.idx):
+            row = neighbors[idx]
             jdx = get_label(idx)
             if idx == jdx:
                 lookup[idx] = len(lookup)
         rows = []
-        for idx, row in enumerate(neighbors):
+        #for idx, row in enumerate(neighbors):
+        for idx in range(self.idx):
+            row = neighbors[idx]
             jdx = get_label(idx)
             if idx != jdx:
                 continue
@@ -314,7 +325,9 @@ class Schreier(object):
         neighbors = self.neighbors
         ngens = self.ngens
         cosets = [] # act on these
-        for idx, row in enumerate(neighbors):
+        #for idx, row in enumerate(neighbors):
+        for idx in range(self.idx):
+            row = neighbors[idx]
             jdx = self.get_label(idx)
             if idx == jdx:
                 cosets.append(idx)
@@ -327,7 +340,7 @@ class Schreier(object):
             perm = {}
             for idx in cosets:
                 nbd = neighbors[idx]
-                assert nbd[i] is not None, nbd
+                assert nbd[i] is not SENTINEL, nbd
                 src, tgt = lookup[idx], lookup[self.get_label(nbd[i])]
                 assert perm.get(src) is None
                 perm[src] = tgt
@@ -392,7 +405,7 @@ class Schreier(object):
                 word = words[idx]
                 nbd = self.neighbors[idx]
                 for j, jdx in enumerate(nbd):
-                    if jdx is None:
+                    if jdx is SENTINEL:
                         continue
                     jdx = self.labels[jdx]
                     if jdx not in words:
@@ -578,6 +591,44 @@ class Schreier(object):
         return Schreier.make_reflection(N, links)
 
     
+class BigSchreier(Schreier):
+    "Can handle much bigger graphs than Schreier, but is about 2 or 3 times slower...!"
+    def __init__(self, ngens, rels, labels=None, neighbors=None, size=128):
+        self.ngens = ngens
+        self.rels = list(rels)
+        self.labels = [] if labels is None else labels
+        if neighbors is None:
+            neighbors = numpy.zeros((size, ngens), dtype=numpy.int64)
+            neighbors[:] = -1
+        #self.neighbors = [] if neighbors is None else neighbors
+        self.neighbors = neighbors
+        self.idx = 0
+
+        for rel in rels:
+            for gen in rel:
+                assert type(gen) is int, repr(gen)
+                assert 0 <= gen < ngens, repr(rel)
+
+    def add_vertex(self): # may change neighbors object
+        labels = self.labels
+        neighbors = self.neighbors
+        ngens = self.ngens
+        c = len(labels)
+        labels.append(c)
+        #neighbors.append(ngens*[None])
+        n = len(neighbors)
+        if self.idx == n:
+            size = 4*n
+            print("Schreier.add_vertex: growing", size)
+            cpy = numpy.zeros((size, ngens), dtype=numpy.int64)
+            cpy[:n] = neighbors
+            neighbors = cpy
+            self.neighbors = neighbors
+        neighbors[self.idx, :] = SENTINEL
+        self.idx += 1
+        return c
+
+
 def test():
     ngens = 4 # include the inverses
     rels = [
