@@ -337,8 +337,8 @@ def dynamic_distance(H, L):
     while bdy:
         #print()
         #print("="*79)
-        print("d =", d)
-        print("bdy:", len(bdy))
+        print("[d = %d]"%d, end="", flush=True)
+        print("[bdy: %d]"%len(bdy), end="", flush=True)
         _bdy = []
         for path in bdy:
             #print("path:", path)
@@ -359,7 +359,8 @@ def dynamic_distance(H, L):
                 if w == 0:
                     k = dot2(L, v).sum()
                     if k:
-                        return v.sum()
+                        print()
+                        return v.sum() # <------- return
                 elif w <= max_check:
                     p = list(path)
                     p.append(i)

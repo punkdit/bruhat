@@ -27,19 +27,29 @@ def split_field():
     deg, N = 8, 8
     deg, N = 10, 5
     deg, N = 20, 63
+    N = argv.get("N", 63)
+    deg = argv.get("deg")
+    maxp = argv.get("maxp", 2000)
+    if deg is not None:
+        poly = lambda x : cyclotomic(x.tp, deg)
+    elif argv.poly:
+        poly = eval("lambda x : %s"%argv.poly)
+    else:
+        poly = lambda x : x**3-7*x-7
     moduli = set()
-    for p in all_primes(2000):
-        if p < 10:
-            continue
+    for p in all_primes(maxp):
+        #if p < 10:
+        #    continue
         print("p=%d:\t"%p, end="")
         ring = FiniteField(p)
         ring = PolynomialRing(ring)
         #f = cyclotomic(ring, deg)
         #print(f)
-        x = ring.x
-        #f = x**4 + 3*x**2 + 1
-        f = x**2 -x - 1
-        f = x**3 -7*x - 7
+#        x = ring.x
+#        #f = x**4 + 3*x**2 + 1
+#        f = x**2 -x - 1
+#        f = x**3 -7*x - 7
+        f = poly(ring.x)
         splits = False
         for i in range(p):
             val = f(i)
