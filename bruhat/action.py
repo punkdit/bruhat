@@ -2952,15 +2952,31 @@ def test_group():
     g = mkperm('dcbaefgh')
 
     G = Group.generate([f, g])
-    print(G)
+    #print(G)
+
+def test_rowcol_perm():
+    #rows, cols = 3, 7
+    for rows in range(1, 30, 1):
+      for cols in range(1, 30, 1):
+        #items = [i + j*rows for i in range(rows) for j in range(cols)]
+        items = [(i, j) for i in range(rows) for j in range(cols)]
+        jtems = [(i, j) for j in range(cols) for i in range(rows)]
+        perm = Perm(dict((items[idx], jtems[idx]) for idx in range(rows*cols)), items)
+        #print(perm)
+        r = (rows-1)//2 if rows%2 else rows//2
+        c = (cols-1)//2 if cols%2 else cols//2
+        lhs, rhs = perm.sign(), (-1)**(r*c)
+        #print(lhs, rhs)
+        assert lhs == rhs
 
 
 if __name__ == "__main__":
 
     if argv.test:
-        test_action()
-        test()
+        #test_action()
+        #test()
         test_group()
+        test_rowcol_perm()
         print("OK")
 
     elif argv.profile:
