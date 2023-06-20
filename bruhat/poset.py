@@ -2,6 +2,8 @@
 
 import os
 from random import choice
+from time import time
+start_time = time()
 
 from bruhat.species import all_subsets
 from bruhat.action import all_functions
@@ -329,6 +331,8 @@ class Poset(PreOrder):
 
     def sup2(self, a, b): 
         "return colimit of a & b, if it exists, otherwise None"
+        assert a in self
+        assert b in self
         if a>b:
             a, b = b, a
         if (a, b) in self._sup:
@@ -342,6 +346,8 @@ class Poset(PreOrder):
 
     def inf2(self, a, b): 
         "return limit of a & b, if it exists, otherwise None"
+        assert a in self
+        assert b in self
         if a>b:
             a, b = b, a
         if (a, b) in self._inf:
@@ -931,6 +937,20 @@ class Hom(object):
                 return False
         return True
 
+    def left_adjoint_to(left, right):
+        C = left.src
+        D = left.tgt
+        assert C == right.tgt
+        assert D == right.src
+
+        for c in C:
+          for d in D:
+            lhs = (left[c], d) in D.pairs
+            rhs = (c, right[d]) in C.pairs
+            if lhs != rhs:
+                return False
+        return True
+
     def get_ladj(self, check=False):
         src = self.src
         tgt = self.tgt
@@ -945,7 +965,8 @@ class Hom(object):
             for y in els:
                 if radj[y] in up:
                     items.append(y)
-            ladj[x] = tgt.inf(items)
+                    assert y in src, y
+            ladj[x] = src.inf(items)
             # much slower:
             #ladj[x] = tgt.inf([y for y in src.els if (x,radj[y]) in tgt.pairs])
         ladj = Hom(tgt, src, ladj)
@@ -956,6 +977,32 @@ class Hom(object):
             assert self.is_radj(), self
             assert ladj.is_ladj(), ladj
         return ladj
+
+    def get_radj(self, check=False):
+        src = self.src
+        tgt = self.tgt
+        ladj = self.send
+        radj = {}
+        els = src.els
+        pairs = tgt.pairs
+        for x in tgt.els:
+            items = []
+            dn = tgt.dns[x]
+            for y in els:
+                if ladj[y] in dn:
+                    items.append(y)
+            radj[x] = src.sup(items)
+            # much slower:
+            #radj[x] = tgt.inf([y for y in src.els if (x,ladj[y]) in tgt.pairs])
+        radj = Hom(tgt, src, radj)
+        if check:
+            #print(src, "-->")
+            #print(tgt)
+            #print(self)
+            assert self.is_ladj(), self
+            assert radj.is_radj(), radj
+        return radj
+
 
 
 def main():
@@ -1310,13 +1357,77 @@ def main():
     print("OK")
 
 
+def test_heyting():
+    bot, top, Ux, Uy, meet, join = "bot top Ux Uy meet join".split()
+    D = Poset.generate([
+        (bot, Ux),
+        (bot, top),
+        (Ux, top),
+    ]).tgt
+
+    C = Poset.generate([
+        (bot, meet),
+        (meet, Ux),
+        (meet, Uy),
+        (Ux, join),
+        (Uy, join),
+        (join, top)
+    ]).tgt
+
+    print(C)
+
+    F = Hom(D, C, {bot:bot, Ux:Ux, top:top})
+    print("F:", F)
+
+    assert F.is_ladj()
+    assert F.is_radj()
+
+    L = F.get_ladj(True)
+    assert L.left_adjoint_to(F)
+    print("L:", L)
+
+    R = F.get_radj(True)
+    assert F.left_adjoint_to(R)
+    print("R:", R)
+    
+    print()
+    F = Hom(C, D, {bot:bot, Ux:Ux, Uy:Ux, join:Ux, meet:Ux, top:top})
+    print("F:", F)
+    assert F.is_ladj()
+    assert F.is_radj()
+
+    L = F.get_ladj(True) # Fail
+    assert L.left_adjoint_to(F)
+    print("L:", L)
+
+    R = F.get_radj(True)
+    assert F.left_adjoint_to(R)
+    print("R:", R)
+    
+
+
 if __name__ == "__main__":
 
-    if argv.profile:
+    _seed = argv.get("seed")
+    if _seed is not None:
+        print("seed(%s)"%_seed)
+        seed(_seed)
+
+    profile = argv.profile
+    fn = argv.next() or "main"
+
+    print("%s()"%fn)
+
+    if profile:
         import cProfile as profile
-        profile.run("main()")
+        profile.run("%s()"%fn)
+
     else:
-        main()
+        fn = eval(fn)
+        fn()
+
+    print("\nOK: finished in %.3f seconds"%(time() - start_time))
+    print()
 
 
 
