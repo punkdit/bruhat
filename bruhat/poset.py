@@ -16,6 +16,9 @@ CHECK = False
 OPEN_COMMAND = "gvfs-open" # used to display pdf files
 #OPEN_COMMAND = "open" # used to display pdf files
 
+BOT = "⊥"
+TOP = "⊤"
+
 def closure(pairs, els):
     homs = set((a,b) for (a,b) in pairs) # set of (a,b) where a<=b
     for a in els:
@@ -845,7 +848,14 @@ class Hom(object):
                 raise AssertionError
 
     def __str__(self):
-        s = ', '.join("%s:%s"%k for k in self.items)
+        pairs = []
+        for (a,b) in self.items:
+            if str(a) == '':
+                a = BOT
+            if str(b) == '':
+                b = BOT
+            pairs.append((a, b))
+        s = ', '.join("%s:%s"%k for k in pairs)
         return "Hom(%s)"%(s,)
     __repr__ = __str__
 
@@ -914,7 +924,7 @@ class Hom(object):
         return True
     
     def is_ladj(self):
-        "is a left adjoint functor"
+        "is a left adjoint functor (preserves sup's)"
         src = self.src
         tgt = self.tgt
         send = self.send
@@ -923,10 +933,12 @@ class Hom(object):
             c = src.sup2(a, b)
             if send[c] != tgt.sup2(send[a], send[b]):
                 return False
+        if src.bot is not None and send[src.bot] != tgt.bot:
+            return False
         return True
 
     def is_radj(self):
-        "is a right adjoint functor"
+        "is a right adjoint functor (preserves inf's)"
         src = self.src
         tgt = self.tgt
         send = self.send
@@ -935,6 +947,8 @@ class Hom(object):
             c = src.inf2(a, b)
             if send[c] != tgt.inf2(send[a], send[b]):
                 return False
+        if src.top is not None and send[src.top] != tgt.top:
+            return False
         return True
 
     def left_adjoint_to(left, right):
@@ -948,6 +962,8 @@ class Hom(object):
             lhs = (left[c], d) in D.pairs
             rhs = (c, right[d]) in C.pairs
             if lhs != rhs:
+                print("%s %s %s"%(left[c], ["!<=", "<="][lhs], d), end=", but ")
+                print("%s %s %s"%(c, ["!<=", "<="][rhs], right[d]))
                 return False
         return True
 
@@ -1003,6 +1019,86 @@ class Hom(object):
             assert radj.is_radj(), radj
         return radj
 
+
+
+def test_boolean():
+
+    x, y = "xy"
+    xy = "x+y"
+    bot = ''
+
+    D = SupPoset.free([x])
+    print("D:", D)
+    
+    C = SupPoset.free([x,y])
+    print("C:", C)
+
+    F = Hom(D, C, {bot:bot, x:x}, check=True)
+    print("F:", F)
+
+    assert F.is_ladj()
+    assert not F.is_radj()
+
+    #L = Hom(C, D, {bot:bot, x:x, xy:x, y:bot}, check=True)
+
+    #L = F.get_ladj(True)
+    #print("L:", L)
+    #assert L.left_adjoint_to(F)
+
+    R = F.get_radj(True)
+    print("R:", R)
+    assert F.left_adjoint_to(R)
+    
+    
+    
+
+def test_heyting():
+    bot, top, Ux, Uy, meet, join = "bot top Ux Uy meet join".split()
+    D = Poset.generate([
+        (bot, Ux),
+        (bot, top),
+        (Ux, top),
+    ]).tgt
+
+    C = Poset.generate([
+        (bot, meet),
+        (meet, Ux),
+        (meet, Uy),
+        (Ux, join),
+        (Uy, join),
+        (join, top)
+    ]).tgt
+
+    print(C)
+
+    F = Hom(D, C, {bot:bot, Ux:Ux, top:top})
+    print("F:", F)
+
+    assert F.is_ladj()
+    assert F.is_radj()
+
+    L = F.get_ladj(True)
+    assert L.left_adjoint_to(F)
+    print("L:", L)
+
+    R = F.get_radj(True)
+    assert F.left_adjoint_to(R)
+    print("R:", R)
+    
+    print()
+    F = Hom(C, D, {bot:bot, Ux:Ux, Uy:Ux, join:Ux, meet:Ux, top:top})
+    print("F:", F)
+    assert F.is_ladj()
+    assert F.is_radj()
+
+    L = F.get_ladj(True)
+    assert L.left_adjoint_to(F)
+    print("L:", L)
+
+    R = F.get_radj(True)
+    assert F.left_adjoint_to(R)
+    print("R:", R)
+    
 
 
 def main():
@@ -1355,55 +1451,6 @@ def main():
             assert result[0] # distributive implies duals
 
     print("OK")
-
-
-def test_heyting():
-    bot, top, Ux, Uy, meet, join = "bot top Ux Uy meet join".split()
-    D = Poset.generate([
-        (bot, Ux),
-        (bot, top),
-        (Ux, top),
-    ]).tgt
-
-    C = Poset.generate([
-        (bot, meet),
-        (meet, Ux),
-        (meet, Uy),
-        (Ux, join),
-        (Uy, join),
-        (join, top)
-    ]).tgt
-
-    print(C)
-
-    F = Hom(D, C, {bot:bot, Ux:Ux, top:top})
-    print("F:", F)
-
-    assert F.is_ladj()
-    assert F.is_radj()
-
-    L = F.get_ladj(True)
-    assert L.left_adjoint_to(F)
-    print("L:", L)
-
-    R = F.get_radj(True)
-    assert F.left_adjoint_to(R)
-    print("R:", R)
-    
-    print()
-    F = Hom(C, D, {bot:bot, Ux:Ux, Uy:Ux, join:Ux, meet:Ux, top:top})
-    print("F:", F)
-    assert F.is_ladj()
-    assert F.is_radj()
-
-    L = F.get_ladj(True) # Fail
-    assert L.left_adjoint_to(F)
-    print("L:", L)
-
-    R = F.get_radj(True)
-    assert F.left_adjoint_to(R)
-    print("R:", R)
-    
 
 
 if __name__ == "__main__":
