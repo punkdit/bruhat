@@ -1025,32 +1025,39 @@ def test_boolean():
 
     x, y = "xy"
     xy = "x+y"
+    x, y, z = "xyz"
+    xyz = "x+y+z"
     bot = ''
 
     D = SupPoset.free([x])
-    print("D:", D)
-    
     C = SupPoset.free([x,y])
-    print("C:", C)
-
     F = Hom(D, C, {bot:bot, x:x}, check=True)
-    print("F:", F)
 
     assert F.is_ladj()
     assert not F.is_radj()
 
-    #L = Hom(C, D, {bot:bot, x:x, xy:x, y:bot}, check=True)
-
-    #L = F.get_ladj(True)
-    #print("L:", L)
-    #assert L.left_adjoint_to(F)
-
     R = F.get_radj(True)
-    print("R:", R)
     assert F.left_adjoint_to(R)
     
+    F = Hom(D, C, {bot:bot, x:xy}, check=True)
+    assert F.is_ladj()
+    assert F.is_radj()
+    L = F.get_ladj(True)
+    R = F.get_radj(True)
     
-    
+    # truth values
+    B = Poset.generate([(BOT, TOP)]).tgt
+
+    P2 = SupPoset.free([x,y])
+    P3 = SupPoset.free([x,y,z])
+    d = Hom(B, P3, {BOT:'', TOP:xyz})
+    L = d.get_ladj(True)
+    R = d.get_radj(True)
+
+    d = Hom(P2, P3, {bot:bot, P2.top:P3.top, x:x, y:y})
+    L = d.get_ladj(True)
+    #R = d.get_radj(True)
+
 
 def test_heyting():
     bot, top, Ux, Uy, meet, join = "bot top Ux Uy meet join".split()
