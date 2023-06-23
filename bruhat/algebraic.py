@@ -144,6 +144,7 @@ def row_reduce_p(A, p=DEFAULT_P, truncate=False, inplace=False, check=False, ver
     return A
 
 
+# see orthogonal.py for numba version
 def normal_form_p(A, p=DEFAULT_P, truncate=True):
     "reduced row-echelon form"
     #print("normal_form")
@@ -214,95 +215,6 @@ def normal_form(A, p=DEFAULT_P):
     _cache[key] = A
     return A
 
-#if argv.numba:
-#
-#    import numba
-#
-#    @numba.njit
-#    def swap_row(A, j, k):
-#        row = A[j, :].copy()
-#        A[j, :] = A[k, :]
-#        A[k, :] = row
-#    
-#    @numba.njit
-#    def swap_col(A, j, k):
-#        col = A[:, j].copy()
-#        A[:, j] = A[:, k]
-#        A[:, k] = col
-#
-#    @numba.njit
-#    def row_reduce(H, truncate=True, inplace=False, check=False):
-#        """Remove zero rows if truncate=True
-#        """
-#    
-#        #assert len(H.shape)==2, H.shape
-#        m, n = H.shape
-#        orig = H
-#        if not inplace:
-#            H = H.copy()
-#    
-#        if m*n==0:
-#            return H
-#    
-#        i = 0
-#        j = 0
-#        while i < m and j < n:
-#            assert i<=j
-#            if i and check:
-#                assert H[i:,:j].max() == 0 # XX rm
-#    
-#            # first find a nonzero entry in this col
-#            for i1 in range(i, m):
-#                if H[i1, j]:
-#                    break
-#            else:
-#                j += 1 # move to the next col
-#                continue # <----------- continue ------------
-#    
-#            if i != i1:
-#                swap_row(H, i, i1)
-#    
-#            assert H[i, j]
-#            for i1 in range(i+1, m):
-#                if H[i1, j]:
-#                    H[i1, :] += H[i, :]
-#                    H[i1, :] %= 2
-#    
-#            #assert 0<=H.max()<=1, orig
-#    
-#            i += 1
-#            j += 1
-#        if truncate:
-#            m = H.shape[0]-1
-#            #print "sum:", m, H[m, :], H[m, :].sum()
-#            while m>=0 and H[m, :].sum()==0:
-#                m -= 1
-#            H = H[:m+1, :]
-#    
-#        return H
-#
-#
-#    @numba.njit
-#    def normal_form(A, p=DEFAULT_P):
-#        "reduced row-echelon form"
-#        assert p==2
-#        A = row_reduce(A)
-#        #print(A)
-#        m, n = A.shape
-#        j = 0
-#        for i in range(m):
-#            while A[i, j] == 0:
-#                j += 1
-#            i0 = i-1
-#            while i0>=0:
-#                r = A[i0, j]
-#                if r!=0:
-#                    A[i0, :] += A[i, :]
-#                    A %= p
-#                i0 -= 1
-#            j += 1
-#        #print(A)
-#        return A
 
 
 def all_matrices(m, n, p=DEFAULT_P):

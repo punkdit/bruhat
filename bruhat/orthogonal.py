@@ -804,7 +804,7 @@ def main_16():
         L1 = L[:, idxs]
         A = dot2(L1, L.transpose())
         gens.append(gap_matrix(A))
-    print("Group(%s)"%(','.join(gens)))
+    print("G := Group(%s);"%(','.join(gens)))
 
 
 def main_find():
