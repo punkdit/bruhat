@@ -172,6 +172,18 @@ class QCode(object):
         code = cls.build_gauge(J)
         return code
 
+    @classmethod
+    def fromstr(cls, s, check=True):
+        stabs = s.split()
+        H = []
+        I, X, Z, Y = [0,0], [1,0], [0,1], [1,1]
+        lookup = {'X':X, 'Z':Z, 'Y':Y, 'I':I, '.':I}
+        for stab in stabs:
+            row = [lookup[c] for c in stab]
+            H.append(row)
+        H = array2(H)
+        return QCode(H, check=check)
+
     @property
     def flatH(self):
         H = self.H.view()
