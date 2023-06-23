@@ -9,21 +9,26 @@ import numpy
 from bruhat.dev.geometry import all_codes
 from bruhat.sp_pascal import i_grassmannian
 from bruhat.qcode import QCode
-from bruhat.solve import zeros2, enum2, dot2, shortstr
-#from bruhat.algebraic import normal_form_p as normal_form
-from bruhat.orthogonal import normal_form # numba version
+from bruhat.solve import zeros2, enum2, dot2, shortstr, array2
 from bruhat.util import choose
 from bruhat.argv import argv
+
+if argv.numba:
+    from bruhat.orthogonal import normal_form # numba version
+else:
+    from bruhat.algebraic import normal_form_p as normal_form
+
 
 from time import time
 start_time = time()
 
 CHECK = False
 
-def equal(a_code, b_code):
-    lhs = a_code.flatH
-    rhs = b_code.flatH
+def equal(lhs, rhs):
     assert lhs.shape == rhs.shape
+    m, n, k = lhs.shape
+    lhs.shape = (m, 2*n)
+    rhs.shape = (m, 2*n)
     m, n = lhs.shape
     #print()
     #print("equal")
@@ -57,7 +62,7 @@ def test_equal():
     return
 
 
-def search(n, m):
+def search(n, m, accept):
 
     if m==0:
         return 1
@@ -77,40 +82,45 @@ def search(n, m):
         H1 = H[:, cols]
         #print(H1)
         H1.shape = m, n, 2
-        code = QCode(H1)
-        c = code
-        for idx in range(n):
-            c = c.apply_S(idx)
-        #if str(code) != str(c):
-        #    continue
-        if 0:
-            print(code)
-            print("-"*n)
-            print(c)
-            print()
-        if not equal(code, c):
-            continue
-        #if str(code) != str(c):
-        #    print(code)
-        #    print("-"*n)
-        #    print(c)
-        #    print()
-        count += 1
+        if accept(H1):
+            count += 1
     return count
 
 
+S = array2([[1,1],[0,1]])
+def has_transversal_S(H1):
+    H2 = dot2(H1, S)
+    return equal(H1, H2)
+
+#@cache
+#def get_cycle(n):
+
+def is_cyclic(H1):
+    m, n, _ = H1.shape
+    cols = [(i+1)%n for i in range(n)]
+    H2 = H1[:, cols]
+    return equal(H1, H2)
+
+
 def main():
+
+    accept = argv.get("accept", "has_transversal_S")
+    print("accept", accept)
+    accept = eval(accept)
+
     n = argv.get("n")
     m = argv.get("m", 1)
     if n is not None:
-        count = search(n, m)
+        count = search(n, m, accept)
         print(count)
         return
 
-    #for n in range(1, 6):
-    for n in range(6, 7):
+    n0 = argv.get("n0", 1)
+    #for n in range(6, 7):
+    #  for m in range(4, n+1):
+    for n in range(n0, 10):
       for m in range(n+1):
-        count = search(n, m)
+        count = search(n, m, accept)
         print("%3d"%count, end=" ", flush=True)
       print()
 
