@@ -544,7 +544,6 @@ def linear_independent(A, check=False, verbose=False):
 def find_kernel(A, inplace=False, check=False, verbose=False):
     """return a list of vectors that span the nullspace of A
     """
-    assert 0
 
     if check:
         A0 = A.copy() # save

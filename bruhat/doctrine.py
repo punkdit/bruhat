@@ -102,6 +102,19 @@ def is_cyclic(H1):
     return equal(H1, H2)
 
 
+def is_symmetric(H1):
+    m, n, _ = H1.shape
+    for j in range(n-1):
+        cols = list(range(n))
+        cols[j:j+2] = [j+1, j]
+        #print(cols)
+        H2 = H1[:, cols, :]
+        #print(H1.shape, H2.shape)
+        if not equal(H1.view(), H2):
+            return False
+    return True
+
+
 def main():
 
     accept = argv.get("accept", "has_transversal_S")
