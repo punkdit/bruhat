@@ -2,7 +2,8 @@
 
 
 """
-Weyl groups and Pascal triangles 
+Weyl groups (thin geometry) and their Pascal triangles,
+and bijective (combinatorial) correspondences.
 
 """
 

@@ -30,9 +30,10 @@ class Equ(object):
         while other.parent:
             other = other.parent
         if top is other:
-            return
+            return top
         other.parent = top
         top.items += other.items
+        return top
 
     def eq(e1, e2):
         while e1.parent:

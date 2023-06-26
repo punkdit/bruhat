@@ -10,7 +10,7 @@ see also: gset.py
 import sys
 import string
 from random import randint, shuffle
-from functools import reduce
+from functools import reduce, cache
 
 from bruhat.util import factorial, all_subsets, write, uniqtuples
 from bruhat.equ import Equ, quotient_rep
@@ -852,7 +852,7 @@ class Group(object):
         assert n == sum(len(g.fixed()) for g in group)
 
     def subgroups_slow(self): # XXX SLOW
-        "All subgroups, acting on the same items."
+        "All subgroups, _acting on the same items."
         subs = set()
         I = self.identity
         items = self.items
@@ -897,6 +897,7 @@ class Group(object):
             cyclic.add(group)
         return cyclic
 
+    @cache
     def subgroups(self, verbose=False):
         I = self.identity
         items = self.items
@@ -984,6 +985,23 @@ class Group(object):
         cosets = self.left_cosets(H)
         hom = self.left_action(cosets, H)
         return hom
+
+    def tautological_action(self):
+        send_perms = {g:g for g in self}
+        action = Action(self, send_perms, self.items)
+        return action
+
+    def cayley_action(self, H=None):
+        "the left Cayley action of a subgroup on self"
+        if H is None:
+            H = self
+        items = self.perms
+        send_perms = {}
+        for g in H:
+            perm = Perm({h : g*h for h in items}, items)
+            send_perms[g] = perm
+        action = Action(H, send_perms, items)
+        return action
 
     def is_subgroup(self, H):
         assert H.items == self.items
@@ -1160,7 +1178,7 @@ def conjugacy_subgroups(G, Hs=None):
 
 class Action(object):
     """
-        A Group acting on a set, possibly with a basepoint.
+        A Group _acting on a set, possibly with a basepoint.
         For each perm in the source Group G we map to a perm of items.
     """
     def __init__(self, G, send_perms, items, basepoint=None, check=False):
@@ -1187,6 +1205,9 @@ class Action(object):
     def __eq__(self, other):
         assert isinstance(other, Action)
         return (self.G==other.G and self.send_perms==other.send_perms)
+
+    def __str__(self):
+        return "Action(%s, %s)"%(self.G, len(self.items))
 
     def __ne__(self, other):
         assert isinstance(other, Action)
@@ -1377,9 +1398,8 @@ class Action(object):
                 item2 = send_items[perm1[item1]]
                 assert item2 == perm2[send_items[item1]]
 
-    def isomorphic(self, other, check=False):
+    def slow_isomorphic(self, other, check=False):
         "is isomorphic in the category of G-sets"
-
         assert isinstance(other, Action)
         for send_items in self.isomorphisms(other):
             self.check_isomorphism(other, send_items)
@@ -1396,8 +1416,13 @@ class Action(object):
                 break
         return fixed
 
-    def signature(self, Hs):
+    def signature(self, Hs=None):
+        if Hs is None:
+            Hs = self.G.subgroups()
         return [len(self.fixed_points(H)) for H in Hs]
+
+    def isomorphic(self, other):
+        return self.signature() == other.signature()
 
     def _refute_isomorphism(self, other, Hs):
         "return True if it is impossible to find an isomorphism"
@@ -1432,7 +1457,7 @@ r"""
 Here we calculate the Burnside Ring corresponding to a particular G-set.
 
 Finite kleinian geometry: 
-(1) a set of "points" and a group G acting on the set.
+(1) a set of "points" and a group G _acting on the set.
 (2) (conjugacy classes of) subgroups of G are the "geometric properties" 
 
 For example, a triangle.
