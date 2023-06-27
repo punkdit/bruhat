@@ -111,37 +111,39 @@ def test():
     src = G.cayley_action(H)
     tgt = X
     count = 0
-    for f in all_homs(src, tgt):
+    for f in src.find_homs(tgt):
         count += 1
     print("homs:", count)
 
 
-def all_homs_atomic(src, tgt):
-    assert len(src.orbits()) == 1
-    assert len(tgt.orbits()) == 1
-
-
-def all_homs(src, tgt):
-    assert src.G is tgt.G
-    G = src.G
-    orbits = src.orbits()
-    print("orbits:", orbits, len(orbits))
-    #yield None
-
-    remain = list(src.items)
-    send = {}
-    while remain:
-        item = remain.pop()
-
 
 def test_hom():
+
+    C3 = Group.cyclic(3)
+    X = C3.tautological_action()
+    assert len(list(X._find_homs_atomic(X))) == 3
+
+    G = Group.symmetric(3)
+    Xs = [G.action_subgroup(H) for H in G.subgroups()]
+    for X in Xs:
+      for Y in Xs:
+        homs = list(X._find_homs_atomic(Y))
+        #print("%2d"%len(homs), end=" ")
+      #print()
 
     G = Group.symmetric(4)
     H = Group([g for g in G if g[3] == 3], G.items)
 
     A = G.tautological_action()
     B = H.tautological_action()
-    print(B.orbits())
+    assert len(B.orbits()) == 2
+
+    G = Group.cyclic(2)
+    X = G.tautological_action()
+    X = X.coproduct(X)
+    assert len(list(X.find_homs(X))) == 16
+    #for hom in X.find_homs(X):
+    #    print(hom)
 
 
 if __name__ == "__main__":

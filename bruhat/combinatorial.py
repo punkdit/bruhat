@@ -88,7 +88,7 @@ class Space(Action):
         send = {}
         for y in src.items:
             h = src.repr[y]
-            x = tgt[h*~g](tgt.basepoint)
+            x = tgt(h*~g)(tgt.basepoint)
             assert x in tgt.items
             send[y] = x
         src.check_isomorphism(tgt, send)
@@ -191,9 +191,9 @@ class Pascal(object):
         func = {} # map src --> tgt
         for x in src.items:
             g = src.repr[x] # a coset representative for x
-            assert src[g](src.basepoint) == x
+            assert src(g)(src.basepoint) == x
             h = self.get_hom(n)[g]
-            y = Y[h](Y.basepoint)
+            y = Y(h)(Y.basepoint)
             y = self.get_iso(n+1,m)[y] # send Y --> tgt
             func[x] = y
         check_injection(src.items, tgt.items, func)
@@ -229,9 +229,9 @@ class PascalA(Pascal):
         func = {} # map src --> tgt
         for x in src.items:
             g = src.repr[x] # a coset representative for x
-            assert src[g](src.basepoint) == x
+            assert src(g)(src.basepoint) == x
             h = self.get_hom(n)[g]
-            y = tgt[h](tgt.basepoint)
+            y = tgt(h)(tgt.basepoint)
             func[x] = y
         check_injection(src.items, tgt.items, func)
         return func
@@ -387,9 +387,9 @@ class PascalB(Pascal):
             func = {} # map src --> tgt
             for x in src.items:
                 g = src.repr[x] # a coset representative for x
-                assert src[g](src.basepoint) == x
+                assert src(g)(src.basepoint) == x
                 h = self.get_hom(n)[g]
-                y = tgt[h](tgt.basepoint)
+                y = tgt(h)(tgt.basepoint)
                 func[x] = y
             check_injection(src.items, tgt.items, func)
             return func
@@ -401,9 +401,9 @@ class PascalB(Pascal):
             func = {} # map src --> tgt
             for x in src.items:
                 g = src.repr[x] # a coset representative for x
-                assert src[g](src.basepoint) == x
+                assert src(g)(src.basepoint) == x
                 h = self.get_hom(n)[g]
-                y = Z[h](Z.basepoint)
+                y = Z(h)(Z.basepoint)
                 func[x] = iso[y]
             check_injection(src.items, tgt.items, func)
             return func

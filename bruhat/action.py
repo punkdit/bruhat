@@ -12,7 +12,7 @@ import string
 from random import randint, shuffle
 from functools import reduce, cache
 
-from bruhat.util import factorial, all_subsets, write, uniqtuples
+from bruhat.util import factorial, all_subsets, write, uniqtuples, cross
 from bruhat.equ import Equ, quotient_rep
 from bruhat.argv import argv
 from bruhat import isomorph
@@ -1199,6 +1199,7 @@ class Action(object):
 
     @property
     def src(self):
+        assert 0, "use .G"
         return self.G
 
     # Equality on-the-nose:
@@ -1239,9 +1240,26 @@ class Action(object):
             h2 = send_perms[g2]
             assert send_perms[g1*g2] == h1*h2
 
-    def __getitem__(self, g):
+    def __call__(self, g):
         perm = self.send_perms[g]
         return perm
+
+#    def __getitem__(self, g): # use __call__ ???
+#        assert 0, "use __call__"
+#        perm = self.send_perms[g]
+#        return perm
+#    # should __getitem__ index into .items ?? seems more useful/meaningful...
+
+    # i am a set (list) of items
+    def __getitem__(self, idx):
+        return self.items[idx]
+
+    # with a len'gth
+    def __len__(self):
+        return len(self.items)
+
+    def __contains__(self, x):
+        return x in self.items # ouch it's a list
 
     def get_repr(self, x):
         return self.repr[x]
@@ -1258,28 +1276,43 @@ class Action(object):
             new_send[g] = perm
         return Action(self.G, new_send, items)
 
-    def pushout(self, other): # HOTSPOT
-        assert self.src == other.src
+    def coproduct(*Xs):
+        self = Xs[0]
+        for X in Xs:
+            assert X.G is self.G
+        items = [(i, x) for (i,X) in enumerate(Xs) for x in X]
+        #print(items)
+        send_perms = {}
+        for g in self.G:
+            perm = {}
+            for (i,X) in enumerate(Xs):
+                for x in X:
+                    perm[i,x] = (i, X(g)[x])
+            #print(perm)
+            perm = Perm(perm, items)
+            send_perms[g] = perm
+        return Action(self.G, send_perms, items)
+
+    def product(self, other): # HOTSPOT
+        assert self.G == other.G
         items = []
-        perms = []
         for a1 in self.items:
           for a2 in other.items:
             items.append((a1, a2))
         send_perms = {}
-        for g in self.src:
+        for g in self.G:
             perm = {}
             h1 = self.send_perms[g]
             h2 = other.send_perms[g]
             for a1, a2 in items:
                 perm[(a1, a2)] = h1(a1), h2(a2)
             perm = Perm(perm, items)
-            perms.append(perm)
             send_perms[g] = perm
-        return Action(self.src, send_perms, items)
+        return Action(self.G, send_perms, items)
 
     def hecke(self, other):
         import numpy
-        assert self.src == other.src
+        assert self.G == other.G
         m, n = (len(self.items), len(other.items))
         marked = set((i, j) for i in range(m) for j in range(n))
         assert marked
@@ -1290,7 +1323,7 @@ class Action(object):
             H[i, j] = 1
             ai = self.items[i]
             aj = other.items[j]
-            for g in self.src:
+            for g in self.G:
                 bi = self.send_perms[g][ai]
                 bj = other.send_perms[g][aj]
                 ii = self.items.index(bi)
@@ -1319,29 +1352,87 @@ class Action(object):
             orbits.append(orbit)
         return orbits
 
-    def components(self):
-        src = self.src
+    def get_components(self):
+        G = self.G
+        orbits = self.orbits()
+        actions = []
+        for orbit in orbits:
+            send_perms = {}
+            perms = []
+            for perm in G:
+                perm1 = self.send_perms[perm].restrict(orbit)
+                send_perms[perm] = perm1
+                perms.append(perm1)
+            actions.append(Action(G, send_perms, orbit))
+        return actions
+    components = get_components # backward compat
+
+    def get_atoms(self):
+        G = self.G
         orbits = self.orbits()
         homs = []
         for orbit in orbits:
             send_perms = {}
+            send_items = {item:item for item in orbit} # inclusion
             perms = []
-            for perm in src:
+            for perm in G:
                 perm1 = self.send_perms[perm].restrict(orbit)
                 send_perms[perm] = perm1
                 perms.append(perm1)
-            homs.append(Action(src, send_perms, orbit))
+            src = Action(G, send_perms, orbit)
+            hom = Hom(src, self, send_items)
+            homs.append(hom)
         return homs
+
+    def _find_homs_atomic(X, Y):
+        assert X.G is Y.G
+        if not len(X.items):
+            yield Hom(X, Y, {})
+            return
+        G = X.G
+        #x = iter(X.items).__next__()
+        x = X[0]
+        for y in Y:
+            send_items = {x:y}
+            for g in G:
+                gx = X(g)[x]
+                gy = Y(g)[y]
+                _gy = send_items.get(gx)
+                if _gy is None:
+                    send_items[gx] = gy
+                elif _gy != gy:
+                    break # not a Hom
+            else:
+                #print("Hom", send_items)
+                yield Hom(X, Y, send_items)
+
+    def find_homs(X, Y):
+        assert X.G is Y.G
+        Xs = X.get_components()
+        Ys = Y.get_components()
+        #print("find_homs")
+        #print(Xs, Ys)
+        for section in cross([Ys]*len(Xs)):
+            homss = []
+            for (Xi,Yi) in zip(Xs, section):
+                homs = list(Xi._find_homs_atomic(Yi))
+                homss.append(homs)
+            for homs in cross(homss):
+              send_items = {}
+              for hom in homs:
+                send_items.update(hom.send_items)
+              #print(send_items)
+              yield Hom(X, Y, send_items)
 
     def get_graph(self):
         graph = isomorph.Graph()
-        src = self.src
+        G = self.G
         send_perms = self.send_perms
         items = self.items
         n = len(items)
         # fibres are all the same:
         fibres = [graph.add("fibre") for item in items]
-        for i, perm in enumerate(src):
+        for i, perm in enumerate(G):
             lookup = dict((item, graph.add()) for item in items)
             for j in range(n):
                 graph.join(fibres[j], lookup[items[j]])
@@ -1357,10 +1448,10 @@ class Action(object):
         return graph
 
     def get_shape(self):
-        src = self.src
+        G = self.G
         send_perms = self.send_perms
         shape = []
-        for perm in src:
+        for perm in G:
             perm = send_perms[perm]
             shape.append(perm.conjugacy_cls())
         return shape
@@ -1374,7 +1465,7 @@ class Action(object):
             an isomorphism maps H1.items -> H2.items
         """
         assert isinstance(other, Action)
-        assert self.src == other.src
+        assert self.G == other.G
         n = len(self.items)
         if n != len(other.items):
             return
@@ -1391,7 +1482,7 @@ class Action(object):
 
     def check_isomorphism(self, other, send_items):
         assert isinstance(other, Action)
-        for perm in self.src:
+        for perm in self.G:
             perm1 = self.send_perms[perm]
             perm2 = other.send_perms[perm]
             for item1 in self.items:
@@ -1427,13 +1518,13 @@ class Action(object):
     def _refute_isomorphism(self, other, Hs):
         "return True if it is impossible to find an isomorphism"
         assert isinstance(other, Action)
-        assert self.src == other.src
+        assert self.G == other.G
         n = len(self.items)
         if n != len(other.items):
             return True
 
-        n = len(self.src)
-        for perm in self.src:
+        n = len(self.G)
+        for perm in self.G:
             perm1 = self.send_perms[perm]
             perm2 = other.send_perms[perm]
             if perm1.conjugacy_cls() != perm2.conjugacy_cls():
@@ -1450,6 +1541,88 @@ class Action(object):
         elif self.signature(Hs) != other.signature(Hs):
             ref = True
         return ref
+
+
+class Hom(object):
+    "Hom'omorphism of Action's"
+    def __init__(self, src, tgt, send_items, check=True):
+        assert isinstance(src, Action)
+        assert isinstance(tgt, Action)
+        G = src.G
+        assert G == tgt.G
+        self.src = src
+        self.tgt = tgt
+        self.G = G
+        self.send_items = dict(send_items)
+        if check:
+            self.do_check()
+
+    def do_check(self):
+        src = self.src
+        tgt = self.tgt
+        send_items = self.send_items
+        for x,y in send_items.items():
+            assert x in src
+            assert y in tgt
+        for x in src:
+            assert x in send_items
+        for g in self.G:
+            for item in src.items:
+                left = send_items[src(g)[item]]
+                right = tgt(g)[send_items[item]]
+                if left != right:
+                    print("item =", item)
+                    print("g =", g, "src(g) =", src(g), "tgt(g) =", tgt(g))
+                    print("send_items =", send_items)
+                    print("%s != %s"%(left, right))
+                    assert 0
+
+    def __str__(self):
+        return "Hom(%s, %s, %s)"%(self.src, self.tgt, self.send_items)
+    __repr__ = __str__
+
+    def __eq__(self, other):
+        assert self.G is other.G # too strict ?
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        return self.send_items == other.send_items
+
+    def __ne__(self, other):
+        assert self.G is other.G # too strict ?
+        assert self.src == other.src
+        assert self.tgt == other.tgt
+        return self.send_items != other.send_items
+
+    @cache
+    def __hash__(self):
+        pairs = list(self.send_items.items())
+        pairs.sort(key = str) # canonical form
+        pairs = tuple(pairs)
+        self._hash = hash(pairs)
+        return self._hash
+
+    def compose(self, other):
+        # other o self
+        assert isinstance(other, Hom)
+        assert self.tgt == other.src
+        a = self.send_items
+        b = other.send_items
+        send_items = [b[i] for i in a]
+        return Hom(self.src, other.tgt, send_items)
+
+    def __mul__(self, other):
+        assert isinstance(other, Hom)
+        return other.compose(self)
+
+#    def mul(f, g):
+#        assert isinstance(g, Hom)
+#        cone = Action.mul(f.src, g.src)
+#        src = cone.apex
+#        cone = Cone(src, [cone[0].compose(f), cone[1].compose(g)])
+#        cone, univ = Action.mul(f.tgt, g.tgt, cone)
+#        return univ
+#    __mul__ = mul
+
 
 
 
@@ -2270,7 +2443,7 @@ def hecke(G):
 #            print "sum:", H.sum()
 #            print
 
-#        C = A.pushout(B)
+#        C = A.product(B)
 #        assert C.src is G
 #
 #        #print C.items
@@ -2360,7 +2533,7 @@ class CFunc(object):
         G = action.G
         func = {}
         for g in G:
-            ga = action[g]
+            ga = action(g)
             func[g] = len(ga.fixed())
         return cls(G, func)
 
@@ -2549,7 +2722,7 @@ def burnside(G, Hs=None):
       for j in range(i, len(homs)):
         A = homs[i]
         B = homs[j]
-        C = A.pushout(B)
+        C = A.product(B)
         assert C.src is G
         write("%s*%s ="%(A.name, B.name))
         names = []
