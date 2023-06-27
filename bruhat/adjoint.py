@@ -3,62 +3,9 @@
 from time import time
 start_time = time()
 
-from bruhat.action import Group, Perm, Action
+from bruhat.action import Group, Perm, Action, Hom
 from bruhat.equ import Equ
 from bruhat.argv import argv
-
-
-#def test_0():
-#
-#    G = Group.symmetric(4)
-#    print(G)
-#
-#    H = Group([g for g in G if g[3] == 3], G.items)
-#    print(H)
-#
-#    #X = H.tautological_action()
-#
-#    H1 = Group.symmetric(3)
-#    items = H1.items
-#    send_perms = {}
-#    for h0 in H:
-#      for h1 in H1:
-#        if [h0[i] for i in items] == [h1[i] for i in items]:
-#            send_perms[h0] = h1
-#    X = Action(H, send_perms, items)
-#    print("X:", X)
-#
-#    Y = G.action_subgroup(H)
-#    print("Y:", Y)
-#
-#    #cosets = G.left_cosets(H)
-#    cosets = Y.items
-#    assert Y.basepoint in cosets
-#    assert H is Y.basepoint
-#
-#    lookup = {H : G.identity}
-#    for g in G:
-#        H1 = Y.send_perms[g][H]
-#        lookup[H1] = g
-#    assert len(lookup) == len(cosets)
-#
-#    items = [(a, b) for a in Y.items for b in X.items]
-#    print(len(items))
-#    send_perms = {}
-#    for g in G:
-#        f = Y.send_perms[g]
-#        H1 = f[H]
-#        g1 = lookup[H1]
-#        #assert f == Y.send_perms[g1]
-#        f1 = Y.send_perms[g1]
-#        h = (~g1)*g
-#        assert h in H
-#        perm = {}
-#        for (a, b) in items:
-#            perm[a, b] = (f1[a], h[b])
-#        perm = Perm(perm, items)
-#        send_perms[g] = perm
-#    induced = Action(G, send_perms, items, check=True) # FAIL
 
 
 def test():
@@ -76,7 +23,7 @@ def test():
       for h1 in H1:
         if [h0[i] for i in items] == [h1[i] for i in items]:
             send_perms[h0] = h1
-    X = Action(H, send_perms, items)
+    X = Action(H, send_perms, items, check=True)
 
     # construct induced GSet action as G*X modulo an equivalence relation
     GX = [(g, x) for g in G for x in X.items]
@@ -107,14 +54,91 @@ def test():
     induced = Action(G, send_perms, items, check=True)
     print(induced)
 
+
+def test_coinduction_abelian():
     # co-induction...
+    G = Group.cyclic(4)
+    print(G)
+
+    H = Group([g for g in G if g[0]%2 == 0], G.items)
+    for g in H:
+      for h in H:
+        assert g*h in H
+    assert G.is_subgroup(H)
+
+    items = [0, 1]
+    send_perms = {}
+    for h0 in H:
+        if h0.is_identity():
+            perm = {0:0, 1:1}
+        else:
+            perm = {0:1, 1:0}
+        h1 = Perm(perm, items)
+        send_perms[h0] = h1
+    X = Action(H, send_perms, items, check=True)
+
     src = G.cayley_action(H)
     tgt = X
-    count = 0
-    for f in src.find_homs(tgt):
-        count += 1
-    print("homs:", count)
+    items = [f for f in src.find_homs(tgt)]
+    found = set(items)
+    assert len(found) == len(items)
+    print("homs:", len(items))
 
+    # now we find an action of G on items
+    send_perms = {}
+    for g in G:
+        perm = {}
+        for hom in items:
+            # hom : G --> X
+            send_items = {h:hom.send_items[g*h] for h in src}
+            gom = Hom(src, tgt, send_items)
+            assert gom in found
+            perm[hom] = gom
+        perm = Perm(perm, items)
+        send_perms[g] = perm
+    action = Action(G, send_perms, items, check=True)
+    print(action)
+
+
+def test_coinduction():
+    # co-induction...
+
+    G = Group.symmetric(4)
+    print(G)
+
+    H = Group([g for g in G if g[3] == 3], G.items)
+    print(H)
+
+    H1 = Group.symmetric(3)
+    items = H1.items
+    send_perms = {}
+    for h0 in H:
+      for h1 in H1:
+        if [h0[i] for i in items] == [h1[i] for i in items]:
+            send_perms[h0] = h1
+    X = Action(H, send_perms, items, check=True)
+
+    src = G.cayley_action(H)
+    tgt = X
+    items = [f for f in src.find_homs(tgt)]
+    found = set(items)
+    assert len(found) == len(items)
+    print("homs:", len(items))
+
+    # now we find an action of G on items
+    send_perms = {}
+    for g in G:
+        perm = {}
+        for hom in items:
+            # hom : G --> X
+            send_items = {h:hom.send_items[g*h] for h in src}
+            gom = Hom(src, tgt, send_items)
+            assert gom in found
+            perm[hom] = gom
+        perm = Perm(perm, items)
+        send_perms[g] = perm
+    action = Action(G, send_perms, items, check=True)
+    print(action)
 
 
 def test_hom():

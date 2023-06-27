@@ -1575,7 +1575,7 @@ class Hom(object):
                     print("g =", g, "src(g) =", src(g), "tgt(g) =", tgt(g))
                     print("send_items =", send_items)
                     print("%s != %s"%(left, right))
-                    assert 0
+                    assert 0, "not a Hom of Action's"
 
     def __str__(self):
         return "Hom(%s, %s, %s)"%(self.src, self.tgt, self.send_items)
@@ -1593,8 +1593,10 @@ class Hom(object):
         assert self.tgt == other.tgt
         return self.send_items != other.send_items
 
-    @cache
+    _hash = None
     def __hash__(self):
+        if self._hash is not None:
+            return self._hash
         pairs = list(self.send_items.items())
         pairs.sort(key = str) # canonical form
         pairs = tuple(pairs)
