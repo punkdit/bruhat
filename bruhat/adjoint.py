@@ -8,30 +8,15 @@ from bruhat.equ import Equ
 from bruhat.argv import argv
 
 
-def test():
-
-    G = Group.symmetric(4)
-    print(G)
-
-    H = Group([g for g in G if g[3] == 3], G.items)
-    print(H)
-
-    H1 = Group.symmetric(3)
-    items = H1.items
-    send_perms = {}
-    for h0 in H:
-      for h1 in H1:
-        if [h0[i] for i in items] == [h1[i] for i in items]:
-            send_perms[h0] = h1
-    X = Action(H, send_perms, items, check=True)
-
+def induced_action(G, H, X):
     # construct induced GSet action as G*X modulo an equivalence relation
+    assert X.G is H
     GX = [(g, x) for g in G for x in X.items]
     lookup = {gx:Equ(gx) for gx in GX}
     for (g,x) in GX:
       for h in H:
         lhs = lookup[g*h, x]
-        rhs = lookup[g, h[x]]
+        rhs = lookup[g, X(h)[x]]
         lhs.merge(rhs)
 
     equs = set(equ.top for equ in lookup.values())
@@ -51,8 +36,62 @@ def test():
             perm[src] = tgt
         perm = Perm(perm, items)
         send_perms[g] = perm
-    induced = Action(G, send_perms, items, check=True)
-    print(induced)
+    action = Action(G, send_perms, items, check=True)
+    return action
+
+
+def coinduced_action(G, H, X):
+    src = G.cayley_action(H)
+    tgt = X
+    items = [f for f in src.find_homs(tgt)]
+    return items
+
+
+def test_coinduction():
+
+    n = 4
+    G = Group.symmetric(n)
+    #H = Group([g for g in G if g[n-1] == n-1], G.items)
+    H = Group([g for g in G if g.sign()==1], G.items)
+
+    # right adjoints preserve products
+    Xs = [H.action_subgroup(K) for K in H.subgroups()]
+    for X1 in Xs:
+      Y1 = coinduced_action(G, H, X1)
+      for X2 in Xs:
+        Y2 = coinduced_action(G, H, X2)
+        X = X1 * X2
+        Y = coinduced_action(G, H, X)
+        print(len(Y1), len(Y2), len(Y))
+        assert len(Y1) * len(Y2) == len(Y)
+
+
+def test_induction():
+
+    G = Group.symmetric(4)
+
+    H = Group([g for g in G if g[3] == 3], G.items)
+
+    H1 = Group.symmetric(3)
+    items = H1.items
+    send_perms = {}
+    for h0 in H:
+      for h1 in H1:
+        if [h0[i] for i in items] == [h1[i] for i in items]:
+            send_perms[h0] = h1
+    X = Action(H, send_perms, items, check=True)
+    action = induced_action(G, H, X)
+    assert len(action) == 12
+
+    # left adjoints preserve coproducts
+    Xs = [H.action_subgroup(K) for K in H.subgroups()]
+    for X1 in Xs:
+      Y1 = induced_action(G, H, X1)
+      for X2 in Xs:
+        Y2 = induced_action(G, H, X2)
+        X = X1 + X2
+        Y = induced_action(G, H, X)
+        assert len(Y1) + len(Y2) == len(Y)
 
 
 def test_coinduction_abelian():
@@ -100,7 +139,7 @@ def test_coinduction_abelian():
     print(action)
 
 
-def test_coinduction():
+def test_coinduction_fail():
     # co-induction...
 
     G = Group.symmetric(4)
@@ -172,6 +211,8 @@ def test_hom():
 
 if __name__ == "__main__":
     fn = argv.next() or "test"
+
+    print("%s()"%fn)
 
     if argv.profile:
         import cProfile as profile

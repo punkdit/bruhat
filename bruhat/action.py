@@ -1292,6 +1292,7 @@ class Action(object):
             perm = Perm(perm, items)
             send_perms[g] = perm
         return Action(self.G, send_perms, items)
+    __add__ = coproduct
 
     def product(self, other): # HOTSPOT
         assert self.G == other.G
@@ -1309,6 +1310,7 @@ class Action(object):
             perm = Perm(perm, items)
             send_perms[g] = perm
         return Action(self.G, send_perms, items)
+    __mul__ = product
 
     def hecke(self, other):
         import numpy
