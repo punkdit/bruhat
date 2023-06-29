@@ -40,16 +40,34 @@ def induced_action(G, H, X):
     return action
 
 
-def coinduced_action(G, H, X):
+def coinduced_action(G, H, X, check=True):
     src = G.cayley_action(H)
     tgt = X
     items = [f for f in src.find_homs(tgt)]
-    return items
+
+    found = set(items)
+    assert len(found) == len(items)
+    #print("homs:", len(items))
+
+    # now we find an action of G on items
+    send_perms = {}
+    for g in G:
+        perm = {}
+        for hom in items:
+            # hom : G --> X
+            send_items = {h:hom.send_items[h*(~g)] for h in src}
+            gom = Hom(src, tgt, send_items)
+            assert gom in found
+            perm[hom] = gom
+        perm = Perm(perm, items)
+        send_perms[~g] = perm
+    action = Action(G, send_perms, items, check=check)
+    return action
 
 
-def test_coinduction():
+def test_coinduction_products():
 
-    n = 4
+    n = 3
     G = Group.symmetric(n)
     #H = Group([g for g in G if g[n-1] == n-1], G.items)
     H = Group([g for g in G if g.sign()==1], G.items)
@@ -62,7 +80,7 @@ def test_coinduction():
         Y2 = coinduced_action(G, H, X2)
         X = X1 * X2
         Y = coinduced_action(G, H, X)
-        print(len(Y1), len(Y2), len(Y))
+        #print(len(Y1), len(Y2), len(Y))
         assert len(Y1) * len(Y2) == len(Y)
 
 
@@ -139,7 +157,7 @@ def test_coinduction_abelian():
     print(action)
 
 
-def test_coinduction_fail():
+def test_coinduction_general():
     # co-induction...
 
     G = Group.symmetric(4)
@@ -157,28 +175,7 @@ def test_coinduction_fail():
             send_perms[h0] = h1
     X = Action(H, send_perms, items, check=True)
 
-    src = G.cayley_action(H)
-    tgt = X
-    items = [f for f in src.find_homs(tgt)]
-    found = set(items)
-    assert len(found) == len(items)
-    print("homs:", len(items))
-
-    # now we find an action of G on items
-    send_perms = {}
-    for g in G:
-        perm = {}
-        for hom in items:
-            # hom : G --> X
-            send_items = {h:hom.send_items[g*h] for h in src}
-            gom = Hom(src, tgt, send_items)
-            assert gom in found
-            perm[hom] = gom
-        perm = Perm(perm, items)
-        send_perms[g] = perm
-    action = Action(G, send_perms, items, check=True)
-    print(action)
-
+    action = coinduced_action(G, H, X)
 
 def test_hom():
 
