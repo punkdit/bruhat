@@ -3,13 +3,13 @@
 from time import time
 start_time = time()
 
-from bruhat.action import Group, Perm, Action, Hom
+from bruhat.action import Group, Perm, Morphism, Action, Hom
 from bruhat.equ import Equ
 from bruhat.argv import argv
 
 
 def induced_action(G, H, X):
-    # construct induced GSet action as G*X modulo an equivalence relation
+    # construct induced GSet action as G*X _modulo an equivalence relation
     assert X.G is H
     GX = [(g, x) for g in G for x in X.items]
     lookup = {gx:Equ(gx) for gx in GX}
@@ -65,6 +65,28 @@ def coinduced_action(G, H, X, check=True):
     return action
 
 
+def restricted_action(morphism, action, check=True):
+    src = morphism.src
+    tgt = morphism.tgt
+    assert action.G is tgt
+    send_perms = {g:action(morphism(g)) for g in src}
+    action = Action(src, send_perms, action.items, check=check)
+    return action
+
+
+def test_restriction():
+    n = argv.get("n", 3)
+    G = Group.symmetric(n)
+    #H = Group([g for g in G if g[n-1] == n-1], G.items)
+    H = Group([g for g in G if g.sign()==1], G.items)
+
+    morphism = Morphism(H, G, {g:g for g in H})
+    
+    X = G.tautological_action()
+    Y = restricted_action(morphism, X)
+    print(Y)
+
+
 def test_coinduction_products():
 
     n = argv.get("n", 3)
@@ -112,54 +134,31 @@ def test_induction():
         assert len(Y1) + len(Y2) == len(Y)
 
 
-def test_coinduction_abelian():
-    # co-induction...
-    G = Group.cyclic(4)
-    print(G)
-
-    H = Group([g for g in G if g[0]%2 == 0], G.items)
-    for g in H:
-      for h in H:
-        assert g*h in H
-    assert G.is_subgroup(H)
-
-    items = [0, 1]
-    send_perms = {}
-    for h0 in H:
-        if h0.is_identity():
-            perm = {0:0, 1:1}
-        else:
-            perm = {0:1, 1:0}
-        h1 = Perm(perm, items)
-        send_perms[h0] = h1
-    X = Action(H, send_perms, items, check=True)
-
-    src = G.cayley_action(H)
-    tgt = X
-    items = [f for f in src.find_homs(tgt)]
-    found = set(items)
-    assert len(found) == len(items)
-    print("homs:", len(items))
-
-    # now we find an action of G on items
-    send_perms = {}
-    for g in G:
-        perm = {}
-        for hom in items:
-            # hom : G --> X
-            send_items = {h:hom.send_items[g*h] for h in src}
-            gom = Hom(src, tgt, send_items)
-            assert gom in found
-            perm[hom] = gom
-        perm = Perm(perm, items)
-        send_perms[g] = perm
-    action = Action(G, send_perms, items, check=True)
-    print(action)
+#def test_coinduction_abelian():
+#    # co-induction...
+#    G = Group.cyclic(4)
+#    print(G)
+#
+#    H = Group([g for g in G if g[0]%2 == 0], G.items)
+#    for g in H:
+#      for h in H:
+#        assert g*h in H
+#    assert G.is_subgroup(H)
+#
+#    items = [0, 1]
+#    send_perms = {}
+#    for h0 in H:
+#        if h0.is_identity():
+#            perm = {0:0, 1:1}
+#        else:
+#            perm = {0:1, 1:0}
+#        h1 = Perm(perm, items)
+#        send_perms[h0] = h1
+#    X = Action(H, send_perms, items, check=True)
+#
 
 
 def test_coinduction_general():
-    # co-induction...
-
     G = Group.symmetric(4)
     print(G)
 

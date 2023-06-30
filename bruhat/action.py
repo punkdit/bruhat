@@ -1175,6 +1175,34 @@ def conjugacy_subgroups(G, Hs=None):
     return Hs
 
 
+class Morphism(object):
+    "A _homomorphism of groups"
+    def __init__(self, src, tgt, send_perms, check=True):
+        assert isinstance(src, Group)
+        assert isinstance(tgt, Group)
+        self.src = src
+        self.tgt = tgt
+        self.send_perms = dict(send_perms)
+        if check:
+            self.check()
+
+    def check(self):
+        src = self.src
+        tgt = self.tgt
+        send_perms = self.send_perms
+        for (s,t) in send_perms.items():
+            assert s in src
+            assert t in tgt
+        for s in src:
+            assert s in send_perms
+        for s in send_perms:
+          for t in send_perms:
+            assert send_perms[s*t] == send_perms[s]*send_perms[t]
+
+    def __call__(self, s):
+        return self.send_perms[s]
+
+
 
 class Action(object):
     """
