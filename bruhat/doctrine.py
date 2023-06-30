@@ -3,7 +3,8 @@
 doctrines for various code families.
 """
 
-from functools import cache
+from functools import cache, reduce
+from operator import matmul, mul
 import numpy
 
 from bruhat.dev.geometry import all_codes
@@ -27,6 +28,8 @@ CHECK = False
 def equal(lhs, rhs):
     assert lhs.shape == rhs.shape
     m, n, k = lhs.shape
+    lhs = lhs.view()
+    rhs = rhs.view()
     lhs.shape = (m, 2*n)
     rhs.shape = (m, 2*n)
     m, n = lhs.shape
@@ -62,7 +65,7 @@ def test_equal():
     return
 
 
-def search(n, m, accept):
+def search(n, m, accept, verbose=False):
 
     if m==0:
         return 1
@@ -83,17 +86,82 @@ def search(n, m, accept):
         #print(H1)
         H1.shape = m, n, 2
         if accept(H1):
+            if verbose:
+                print(".", end='', flush=True)
             count += 1
+    if verbose:
+        print()
     return count
 
 
 S = array2([[1,1],[0,1]])
-def has_transversal_S(H1):
+def has_transversal_S_upto_sign(H1):
     H2 = dot2(H1, S)
     return equal(H1, H2)
 
+
+# slightly faster with cache... not the bottleneck 
 #@cache
-#def get_cycle(n):
+def get_op(desc):
+    from qupy.dense import Gate
+    lookup = {(0, 0) : Gate.I, (1, 0) : Gate.X, (0, 1) : Gate.Z, (1, 1) : Gate.Y}
+    op = reduce(matmul, [lookup[d] for d in desc])
+    return op
+
+def get_projector(H1):
+    m, n, _ = H1.shape
+    from qupy.dense import Gate
+    I, X, Z, Y, S, T = Gate.I, Gate.X, Gate.Z, Gate.Y, Gate.S, Gate.T
+    stabs = []
+    for row in H1:
+        desc = tuple(tuple(bit) for bit in row)
+        stabs.append(get_op(desc))
+    for g in stabs:
+      for h in stabs:
+        assert g*h == h*g
+    In = reduce(matmul, [I]*n)
+    P = reduce(mul, [In + stab for stab in stabs])
+    return P
+
+def has_transversal_gate(H1, *gates):
+    #result = has_transversal_S_upto_sign(H1)
+    #if not result:
+    #    return False
+    m, n, _ = H1.shape
+    P = get_projector(H1)
+    L = reduce(matmul, [gates[i%len(gates)] for i in range(n)])
+    return P*L == L*P
+
+
+def has_transversal_S(H1):
+    if not has_transversal_S_upto_sign(H1):
+        return False
+    from qupy.dense import Gate
+    m, n, _ = H1.shape
+    P = get_projector(H1)
+    L = reduce(matmul, [Gate.S]*n)
+    return P*L == L*P
+
+
+def has_transversal_SSdag(H1):
+    if not has_transversal_S_upto_sign(H1):
+        return False
+    from qupy.dense import Gate
+    m, n, _ = H1.shape
+    P = get_projector(H1)
+    L = reduce(matmul, [[Gate.S, ~Gate.S][i%2] for i in range(n)])
+    return P*L == L*P
+
+
+def has_transversal_TTdag(H1):
+    if not has_transversal_S_upto_sign(H1):
+        return False
+    from qupy.dense import Gate
+    m, n, _ = H1.shape
+    P = get_projector(H1)
+    L = reduce(matmul, [[Gate.T, ~Gate.T][i%2] for i in range(n)])
+    return P*L == L*P
+
 
 def is_cyclic(H1):
     m, n, _ = H1.shape
@@ -124,14 +192,15 @@ def main():
     n = argv.get("n")
     m = argv.get("m", 1)
     if n is not None:
-        count = search(n, m, accept)
+        count = search(n, m, accept, argv.verbose)
         print(count)
         return
 
     n0 = argv.get("n0", 1)
+    n1 = argv.get("n1", 10)
     #for n in range(6, 7):
     #  for m in range(4, n+1):
-    for n in range(n0, 10):
+    for n in range(n0, n1):
       for m in range(n+1):
         count = search(n, m, accept)
         print("%3d"%count, end=" ", flush=True)
