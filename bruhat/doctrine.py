@@ -171,6 +171,24 @@ def has_transversal_TTdag(H1):
 
 
 @cache 
+def get_transversal_H(n):
+    from qupy.dense import Gate
+    L = reduce(matmul, [Gate.H]*n)
+    return L
+
+@cache 
+def get_transversal_S(n):
+    from qupy.dense import Gate
+    L = reduce(matmul, [Gate.S]*n)
+    return L
+
+@cache 
+def get_transversal_T(n):
+    from qupy.dense import Gate
+    L = reduce(matmul, [Gate.T]*n)
+    return L
+
+@cache 
 def get_transversal_THT(n):
     from qupy.dense import Gate
     U = Gate.T * Gate.H * Gate.T
@@ -230,6 +248,20 @@ def has_transversal_SHSdag(H1):
     return P*L == L*P
 
 
+def has_transversal_clifford(H1):
+    m, n, _ = H1.shape
+    if not has_transversal_upto_sign(H1, S):
+        return False
+    if not has_transversal_upto_sign(H1, H):
+        return False
+    P = get_projector(H1)
+    L = get_transversal_S(n)
+    if P*L != L*P:
+        return False
+    L = get_transversal_H(n)
+    return P*L == L*P
+
+
 
 
 def is_cyclic(H1):
@@ -251,6 +283,14 @@ def is_symmetric(H1):
             return False
     return True
 
+
+def clifford():
+    from qupy.dense import Gate
+    from qupy.util import mulclose
+
+    G = mulclose([Gate.S, Gate.H])
+    print(len(G))
+    
 
 def main():
 
