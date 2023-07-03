@@ -95,10 +95,17 @@ def search(n, m, accept, verbose=False):
 
 
 S = array2([[1,1],[0,1]])
+H = array2([[0,1],[1,0]])
+SH = dot2(S, H)
+SHS = dot2(SH, S)
 def has_transversal_S_upto_sign(H1):
     H2 = dot2(H1, S)
     return equal(H1, H2)
 
+def has_transversal_upto_sign(H1, op):
+    H2 = dot2(H1, op)
+    return equal(H1, H2)
+    
 
 # slightly faster with cache... not the bottleneck 
 #@cache
@@ -161,6 +168,68 @@ def has_transversal_TTdag(H1):
     P = get_projector(H1)
     L = reduce(matmul, [[Gate.T, ~Gate.T][i%2] for i in range(n)])
     return P*L == L*P
+
+
+@cache 
+def get_transversal_THT(n):
+    from qupy.dense import Gate
+    U = Gate.T * Gate.H * Gate.T
+    L = reduce(matmul, [U]*n)
+    return L
+
+def has_transversal_THT(H1):
+    m, n, _ = H1.shape
+    P = get_projector(H1)
+    L = get_transversal_THT(n)
+    return P*L == L*P
+
+@cache 
+def get_transversal_SH(n):
+    from qupy.dense import Gate
+    U = Gate.S * Gate.H
+    L = reduce(matmul, [U]*n)
+    return L
+
+def has_transversal_SH(H1):
+    m, n, _ = H1.shape
+    if not has_transversal_upto_sign(H1, SH):
+        return False
+    P = get_projector(H1)
+    L = get_transversal_SH(n)
+    return P*L == L*P
+
+@cache 
+def get_transversal_SHS(n):
+    from qupy.dense import Gate
+    U = Gate.S * Gate.H * Gate.S
+    L = reduce(matmul, [U]*n)
+    return L
+
+def has_transversal_SHS(H1):
+    m, n, _ = H1.shape
+    if not has_transversal_upto_sign(H1, SHS):
+        return False
+    P = get_projector(H1)
+    L = get_transversal_SHS(n)
+    return P*L == L*P
+
+@cache 
+def get_transversal_SHSdag(n):
+    from qupy.dense import Gate
+    U = Gate.S * Gate.H * ~Gate.S
+    L = reduce(matmul, [U]*n)
+    return L
+
+def has_transversal_SHSdag(H1):
+    m, n, _ = H1.shape
+    if not has_transversal_upto_sign(H1, SHS):
+        #assert P*L!=L*P
+        return False
+    P = get_projector(H1)
+    L = get_transversal_SHSdag(n)
+    return P*L == L*P
+
+
 
 
 def is_cyclic(H1):
