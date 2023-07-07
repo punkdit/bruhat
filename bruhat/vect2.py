@@ -11,7 +11,7 @@ Here we call these types Cell0, Cell1, Cell2.
 
 from time import time
 start_time = time()
-from functools import reduce, lru_cache, add
+from functools import reduce, lru_cache
 cache = lru_cache(maxsize=None)
 
 import operator
@@ -594,6 +594,15 @@ class Cell2(Matrix):
         rig = self.rig
         A = self.A * other.A # _compose Lin's elementwise
         return Cell2(self.tgt, other.src, A)
+
+    def weak_mul(self, other):
+        "(vertical) _composition of 2-morphism's"
+        other = Cell2.promote(other)
+        assert self.rig == other.rig
+        if self.src != other.tgt:
+            self = self * self.src.from_normal() # recurse
+            other = other.tgt.to_normal() * other # recurse
+        return self*other
 
     def __lshift__(left, right):
         "horizontal _composition of 2-morphism's"
@@ -1310,6 +1319,54 @@ def test_bialgebra():
     #print((Delete<<Zero).hom)
 
     
+def test_bialgebra_frobenius():
+    ring = element.Z
+
+    rig = Rig(ring)
+    zero = Cell0(rig, 0, "0")
+    m = Cell0(rig, 1, "1")
+
+    I = Cell1.all_ones(m, m)
+    Null = Cell1.zero(zero, zero)
+    NAdd = Cell1.zero(zero, zero+zero)
+    NCopy = Cell1.zero(zero+zero, zero)
+    Add = Cell1.all_ones(m, m+m)
+    Zero = Cell1.zero(m, zero)
+    Copy = Cell1.all_ones(m+m, m)
+    Delete = Cell1.zero(zero, m)
+
+    # make a frobenius structure on X
+    X = Add << Copy
+
+    assert str(X) == "[[(K@K+K@K)]]"
+    Cap = Cell2(I, X, [[Lin(I[0,0], X[0,0], [[1,1]])]])
+    Cup = Cap.transpose2()
+    assert (Cap*Cup)[0,0][0,0] == 2
+
+    src = Copy << Add
+    tgt = I+I
+    linss = [
+        [Lin.iso(tgt[0,0], src[0,0]), Lin.zero(tgt[0,1], src[0,1])],
+        [Lin.zero(tgt[1,0], src[1,0]), Lin.iso(tgt[1,1], src[1,1])],
+    ]
+    Cocap = Cell2(tgt, src, linss)
+    Cocup = Cocap.transpose2()
+
+    Cell2.strict = False
+
+    # frobenius structure
+    mul = Add << Cocap << Copy
+    comul = Add << Cocup << Copy
+    unit = Cup
+    counit = Cap
+    #print(mul.src)
+    #print(X<<X)
+    #print(mul.normalized[0,0])
+    assert mul.src.normalized == (X<<X).normalized
+
+    XX = Cell2.identity(X<<X)
+    print(mul * (X<<X))
+
 
 def test_frobeniator():
 
@@ -1397,7 +1454,7 @@ def test():
     assert A<<I_m == A<<I_m
     assert A != A<<I_m
 
-    # Does not hold strictly, only up to 2-cell 
+    # Does not hold _strictly, only up to 2-cell 
     #assert (A<<I_m)<<B == A<<(I_m<<B) # nope
 
     i_A = Cell2.identity(A)
