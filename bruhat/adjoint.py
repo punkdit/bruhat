@@ -123,6 +123,10 @@ def test_induction():
     action = induced_action(G, H, X)
     assert len(action) == 12
 
+    print(len(list(action.find_homs(G.tautological_action()))))
+
+    return
+
     # left adjoints preserve coproducts
     Xs = [H.action_subgroup(K) for K in H.subgroups()]
     for X1 in Xs:
@@ -132,30 +136,6 @@ def test_induction():
         X = X1 + X2
         Y = induced_action(G, H, X)
         assert len(Y1) + len(Y2) == len(Y)
-
-
-#def test_coinduction_abelian():
-#    # co-induction...
-#    G = Group.cyclic(4)
-#    print(G)
-#
-#    H = Group([g for g in G if g[0]%2 == 0], G.items)
-#    for g in H:
-#      for h in H:
-#        assert g*h in H
-#    assert G.is_subgroup(H)
-#
-#    items = [0, 1]
-#    send_perms = {}
-#    for h0 in H:
-#        if h0.is_identity():
-#            perm = {0:0, 1:1}
-#        else:
-#            perm = {0:1, 1:0}
-#        h1 = Perm(perm, items)
-#        send_perms[h0] = h1
-#    X = Action(H, send_perms, items, check=True)
-#
 
 
 def test_coinduction_general():
