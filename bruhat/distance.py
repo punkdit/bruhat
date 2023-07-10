@@ -18,7 +18,7 @@ import numpy
 
 from bruhat.gset import Group, Perm, mulclose
 from bruhat.argv import argv
-from bruhat.solve import zeros2, dot2, span, shortstr, linear_independent, parse, enum2
+from bruhat.solve import zeros2, dot2, span, shortstr, linear_independent, parse, enum2, rank
 from bruhat.util import choose
 from bruhat.orthogonal import get_logops, row_reduce
 from bruhat.oeqc import is_triorthogonal
@@ -481,6 +481,11 @@ def main():
         H = parse(open(name).read())
         L = get_logops(H)
     print(H.shape)
+    m = rank(H)
+    n = H.shape[1]
+    k = len(L)
+    print("[[%d, %d, --]]"%(n, k))
+    assert n == 2*m + k
 
     if argv.dynamic_distance:
         result = dynamic_distance(H, L)
