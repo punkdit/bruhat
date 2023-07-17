@@ -708,6 +708,22 @@ class Group(object):
         assert len(G) == 2*n
         return G
 
+    @classmethod
+    def coxeter_bc(cls, n, check=False):
+        items = [(i,0) for i in range(n)]
+        items += [(i,1) for i in range(n)]
+        perms = []
+        for i in range(n-1):
+            jtems = list(items)
+            jtems[i:i+2] = jtems[i+1], jtems[i]
+            jtems[n+i:n+i+2] = jtems[n+i+1], jtems[n+i]
+            perms.append(Perm(dict(zip(items, jtems)), items))
+        jtems = list(items)
+        jtems[n-1], jtems[2*n-1] = jtems[2*n-1], jtems[n-1]
+        perms.append(Perm(dict(zip(items, jtems)), items))
+        G = Group.generate(perms, check=check)
+        return G
+
     def __repr__(self):
         return "%s(%s, %s)"%(self.__class__.__name__, self.perms, self.items)
 
