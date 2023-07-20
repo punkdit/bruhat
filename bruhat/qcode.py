@@ -127,6 +127,22 @@ def monte_carlo(H, v, p=0.5, trials=10000):
     #print("]")
     return d0
 
+def strop(H):
+    smap = SMap()
+    m, n = H.shape[:2]
+    for i in range(m):
+      for j in range(n):
+        x, z = H[i, j]
+        c = '.'
+        if x and z:
+            c = 'Y'
+        elif x:
+            c = 'X'
+        elif z:
+            c = 'Z'
+        smap[i,j] = c
+    return str(smap)
+
 
 class QCode(object):
     def __init__(self, H, J=None, d=None, check=False):
@@ -322,21 +338,10 @@ class QCode(object):
         return d
 
     def __str__(self):
-        smap = SMap()
-        m, n = self.shape
-        H = self.H
-        for i in range(m):
-          for j in range(n):
-            x, z = H[i, j]
-            c = '.'
-            if x and z:
-                c = 'Y'
-            elif x:
-                c = 'X'
-            elif z:
-                c = 'Z'
-            smap[i,j] = c
-        return str(smap)
+        s = "H =\n%s"%strop(self.H)
+        if self.L is not None:
+            s += "L =\n%s"%shortstr(self.L) #strop(self.L)
+        return s
 
     def shortstr(self):
         H = self.H.view()
@@ -688,6 +693,9 @@ def build_code(geometry):
         assert 0
 
     if Hx is not None:
+        Ax = Hx.copy()
+        Az = Hz.copy()
+
         Hx = linear_independent(Hx)
         Hz = linear_independent(Hz)
 
@@ -732,6 +740,97 @@ def build_code(geometry):
         print(code)
     print()
 
+    if not argv.autos:
+        return
+
+    test_zx(Ax, Az)
+
+
+def test_zx(Ax, Az):
+    ax, n = Ax.shape
+    az, _ = Az.shape
+    print("Ax =")
+    print(shortstr(Ax))
+    print("Az =")
+    print(shortstr(Az))
+
+    from bruhat.isomorph import Tanner, search
+    print(Ax.shape, Az.shape)
+    U = Tanner.build2(Ax, Az)
+    V = Tanner.build2(Ax, Az)
+    perms = []
+    for f in search(U, V):
+        perms.append(f)
+    print("autos:", len(perms))
+    assert len(f) == n+ax+az
+    items = list(range(len(f)))
+    # each perm acts on ax+az+n in that order
+    perms = [Perm(perm, items) for perm in perms]
+    G = Group(perms, items, check=True)
+    print(G)
+    for g in G:
+        for i in range(ax):
+            assert 0<=g[i]<ax
+        for i in range(ax, ax+az):
+            assert ax<=g[i]<ax+az
+
+    # find a zx duality
+    U = Tanner.build2(Ax, Az)
+    V = Tanner.build2(Az, Ax)
+    for f in search(U, V):
+        break
+    print([f[i] for i in range(ax+az+n)])
+
+    fx = [f[i] for i in range(ax)]
+    fz = [f[i]-ax for i in range(ax,ax+az)]
+    fn = [f[i]-ax-az for i in range(ax+az,ax+az+n)]
+
+    print(fx, fz, fn)
+    Ax = Ax[fz, :][:, fn]
+    Az = Az[fx, :][:, fn]
+    print("Ax =")
+    print(shortstr(Ax))
+    print("Az =")
+    print(shortstr(Az))
+
+    import bruhat.solve
+    from qupy.ldpc import solve
+    solve.int_scalar = bruhat.solve.int_scalar
+
+    from qupy.ldpc.css import CSSCode
+    Hx = linear_independent(Ax)
+    Hz = linear_independent(Az)
+    code = CSSCode(Hx=Hx, Hz=Hz, check=True)
+    print(code)
+    Lx, Lz = code.Lx, code.Lz
+    print("Lx =")
+    print(shortstr(Lx))
+    print("Lz =")
+    print(shortstr(Lz))
+    print(dot2(Lx, Lz.transpose()))
+
+
+
+def main_zx():
+    Ax = parse("""
+    .1.....111..1..
+    ......1...111.1
+    1..1.....1.1.1.
+    .11.1........11
+    1.1..1..1.1....
+    ...11111.......
+    """)
+    Az = parse("""
+    .111.1...1.....
+    .1......1.11.1.
+    1...11.....1..1
+    1..1...1..1.1..
+    ......11.1...11
+    ..1.1.1.1...1..
+    """)
+    test_zx(Ax, Az)
+
+    
 
 def build_geometry():
 
