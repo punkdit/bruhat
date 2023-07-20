@@ -1407,18 +1407,25 @@ def test_surface():
 #    print("face -- edge")
 #    show_incident(A)
 
-    from bruhat.isomorph import Tanner, search
-    U = Tanner.build2(A, B)
-    V = Tanner.build2(A, B)
-    perms = []
-    for f in search(U, V):
-        perms.append(f)
-    print("autos:", len(perms))
+    if argv.autos:
+        from bruhat.isomorph import Tanner, search
+        U = Tanner.build2(A, B)
+        V = Tanner.build2(A, B)
+        perms = []
+        for f in search(U, V):
+            perms.append(f)
+        print("autos:", len(perms))
     
     assert dot2(A, B.transpose()).sum() == 0
     Hx, Hz = A, B
     Hx = linear_independent(Hx)
     Hz = linear_independent(Hz)
+    print(Hx.shape)
+    print(shortstr(Hx))
+    print()
+    print(Hz.shape)
+    print(shortstr(Hz))
+    
 
     return
 
