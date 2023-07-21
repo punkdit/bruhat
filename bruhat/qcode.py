@@ -8,6 +8,7 @@ from random import randint, choice, random
 from time import sleep, time
 from functools import reduce
 from operator import matmul
+import json
 
 import numpy
 from numpy import alltrue, zeros, dot
@@ -200,6 +201,21 @@ class QCode(object):
         H = array2(H)
         return QCode(H, check=check)
 
+    def __str__(self):
+        s = "H =\n%s"%strop(self.H)
+        if self.L is not None and len(self.L):
+            L = self.L.view()
+            k, n = L.shape
+            L = L.view()
+            L.shape = k, n//2, 2
+            s += "\nL =\n%s"%strop(L)
+        return s
+
+    def shortstr(self):
+        H = self.H.view()
+        H.shape = (self.m, 2*self.n)
+        return shortstr(H)
+
     @property
     def flatH(self):
         H = self.H.view()
@@ -337,17 +353,18 @@ class QCode(object):
             d = min(w, d)
         return d
 
-    def __str__(self):
-        s = "H =\n%s"%strop(self.H)
-        if self.L is not None:
-            s += "L =\n%s"%shortstr(self.L) #strop(self.L)
-        return s
-
-    def shortstr(self):
-        H = self.H.view()
-        H.shape = (self.m, 2*self.n)
-        return shortstr(H)
-
+    def unwrap(self, check=True):
+        H0 = self.H
+        m, n, _ = H0.shape
+        Sx = H0[:, :, 0]
+        Sz = H0[:, :, 1]
+        Sxz = numpy.concatenate((Sx, Sz), axis=1)
+        Szx = numpy.concatenate((Sz, Sx), axis=1)
+        H = zeros2(2*m, 2*n, 2)
+        H[:m, :, 0] = Sxz
+        H[m:, :, 1] = Szx
+        code = QCode(H, check=check)
+        return code
 
     
 def find_code(H, css=False, yop=False, degen=False):
@@ -829,6 +846,34 @@ def main_zx():
     ..1.1.1.1...1..
     """)
     test_zx(Ax, Az)
+
+
+def main_unwrap():
+
+    stabs = "XZZXI IXZZX XIXZZ ZXIXZ" # five qubit code
+    code = QCode.fromstr(stabs)
+    print(code)
+    print(code.get_params())
+
+    code = code.unwrap()
+    print(code)
+    print(code.get_params())
+
+    f = open("codetables.txt")
+    data = {}
+    for line in f:
+        record = json.loads(line)
+        n = record['n']
+        k = record['k']
+        data[n,k] = record
+        if n > 8:
+            break
+        stabs = record["stabs"]
+        code = QCode.fromstr(stabs)
+        print(code, code.get_params())
+        code = code.unwrap()
+        print(code, code.get_params())
+        print()
 
     
 
