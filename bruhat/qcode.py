@@ -17,7 +17,7 @@ from bruhat.util import cross
 from bruhat import solve 
 from bruhat.solve import (
     array2, zeros2, shortstr, dot2, linear_independent, row_reduce, find_kernel,
-    span, intersect, rank, enum2, shortstrx)
+    span, intersect, rank, enum2, shortstrx, identity2, eq2)
 from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
 from bruhat.todd_coxeter import Schreier
 from bruhat.argv import argv
@@ -145,6 +145,13 @@ def strop(H):
     return str(smap)
 
 
+def symplectic_form(n):
+    F = zeros2(2*n, 2*n)
+    for i in range(n):
+        F[2*i:2*i+2, 2*i:2*i+2] = [[0,1],[1,0]]
+    return F
+
+
 class QCode(object):
     def __init__(self, H, J=None, d=None, check=False):
         m, n, k = H.shape
@@ -251,7 +258,12 @@ class QCode(object):
         H[:, idx] = dot(self.H[:, idx], gate) % 2
         return QCode(H)
 
-    def apply_H(self, idx):
+    def apply_H(self, idx=None):
+        if idx is None:
+            code = self
+            for idx in range(self.n):
+                code = code.apply_H(idx)
+            return code
         # swap X<-->Z on bit idx
         H = array2([[0,1],[1,0]])
         return self.apply(idx, H)
@@ -875,7 +887,254 @@ def main_unwrap():
         print(code, code.get_params())
         print()
 
+
+def main_symplectic_unwrap():
+    from qupy.ldpc.css import CSSCode
+    Hx = parse("""
+    X..X..XX..
+    .X..X..XX.
+    X.X.....XX
+    .X.X.X...X
+    """)
+    Tz = parse("""
+    ...ZZ...ZZ
+    Z..Z.Z..Z.
+    .Z.Z..Z.Z.
+    ..ZZ...ZZ.
+    """)
+    Hz = parse("""
+    .ZZ..Z..Z.
+    ..ZZ..Z..Z
+    ...ZZZ.Z..
+    Z...Z.Z.Z.
+    """)
+    Tx = parse("""
+    ...XX...XX
+    X..X.X..X.
+    .X.X..X.X.
+    ..XX...XX.
+    """)
+    Lx = parse("""
+    XXXXX.....
+    .....XXXXX
+    """)
+    Lz = parse("""
+    ZZZZZ.....
+    .....ZZZZZ
+    """)
+
+    code = CSSCode(Hx=Hx, Hz=Hz, Tx=Tx, Tz=Tz, Lx=Lx, Lz=Lz, check=True)
+    #print(code.longstr())
+
+    n = code.n
+
+    H = ("""
+    X..X..XX..
+    .X..X..XX.
+    X.X.....XX
+    .X.X.X...X
+    XXXXX.....
+    .ZZ..Z..Z.
+    ..ZZ..Z..Z
+    ...ZZZ.Z..
+    Z...Z.Z.Z.
+    .....ZZZZZ
+    """)
+
+    T = ("""
+    ...ZZ...ZZ
+    Z..Z.Z..Z.
+    .Z.Z..Z.Z.
+    ..ZZ...ZZ.
+    ZZZZZ.....
+    ...XX...XX
+    X..X.X..X.
+    .X.X..X.X.
+    ..XX...XX.
+    .....XXXXX
+    """)
+
+    HC = QCode.fromstr(H, check=True)
+    TC = QCode.fromstr(T, check=True)
+
+    F = symplectic_form(n)
+
+    H = HC.flatH
+    T = TC.flatH
+    for i in range(5):
+        H[i] += H[i+5]
+        T[i+5] += T[i]
+
+    M = list(zip(H, T))
+    M = numpy.array(M)
+    M.shape = (2*n, 2*n)
+
+    print(shortstr(M))
+
+    #print()
+    #for i in range(10):
+    #    M[i] += M[i+10]
+    #print(shortstr(M))
+
+    # M is symplectic:
+    A = (dot2(dot2(M, F), M.transpose()))
+    assert eq2(A, F)
+
+    Mi = dot2(dot2(F, M.transpose(), F)) # inverse
+    assert eq2(dot2(Mi, M), identity2(2*n))
+
+    print()
+
+    # ---------------------------------------
+
+    n = 5
     
+    H = ("""
+    XZZX.
+    .XZZX
+    X.XZZ
+    ZX.XZ
+    XXXXX
+    """)
+    T = ("""
+    ...YY
+    Y..Y.
+    .Y.Y.
+    ..YY.
+    ZZZZZ
+    """)
+
+    Hx = QCode.fromstr(H, check=True)
+    Tz = QCode.fromstr(T, check=True)
+    Hz = Hx.apply_H()
+    Tx = Tz.apply_H()
+
+    F = symplectic_form(n)
+
+    Hx = Hx.flatH
+    Tz = Tz.flatH
+    Hz = Hz.flatH
+    Tx = Tx.flatH
+
+    M = list(zip(Hx, Tz))
+    M = numpy.array(M)
+    M.shape = (2*n, 2*n)
+
+    #print(shortstr(M))
+
+    # M is symplectic:
+    A = (dot2(dot2(M, F), M.transpose()))
+    assert eq2(A, F)
+    
+    # ---------------------------------------
+
+    n = 5
+    #H = numpy.block([[H, zeros2(n,2*n)], [zeros2(n,2*n), H]])
+    #T = numpy.block([[T, zeros2(n,2*n)], [zeros2(n,2*n), T]])
+    #H = numpy.block([[Hx, Hx], [zeros2(n,2*n), Hx]])
+    #T = numpy.block([[Tz, zeros2(n,2*n)], [Tz, Tz]])
+    H = numpy.block([[Hx, Hz], [zeros2(n,2*n), Hz]])
+    T = numpy.block([[Tz, zeros2(n,2*n)], [Tz, Tx]])
+
+    n = 10
+    F = symplectic_form(n)
+
+    M1 = list(zip(H, T))
+    M1 = numpy.array(M1)
+    M1.shape = (2*n, 2*n)
+
+    print(shortstr(M1))
+
+    # M1 is symplectic:
+    A = (dot2(dot2(M1, F), M1.transpose()))
+    assert eq2(A, F)
+
+    A = dot2(M1, Mi)
+    print()
+    print(shortstr(A), A.sum())
+    print(A.shape)
+
+    pairs = [(i,j) for (i,j) in zip(*numpy.where(A)) if i!=j]
+    print(pairs)
+    print(len(pairs))
+    remain = list(pairs)
+    for (i,j) in pairs:
+        if i>j:
+            continue
+        if i%2 != j%2:
+            continue
+        assert i%2
+        a,b = i//2, j//2
+        print("CNOT(%s, %s)"%(a,b))
+        assert (2*b, 2*a) in pairs
+        remain.remove((i,j))
+        remain.remove((2*b, 2*a))
+    print(remain, len(remain))
+
+    for (i,j) in list(remain):
+        if i>j or i%2==0:
+            continue
+        assert j%2==0
+        a, b = i//2, j//2
+        print("CZ(%s, %s)"%(a,b))
+        #print((a,b), (i,j), (2*a+1, 2*b) in remain, (2*b+1, 2*a) in remain)
+        remain.remove((i, j))
+        remain.remove((2*b+1, 2*a))
+    print(remain, len(remain))
+
+    for (i,j) in list(remain):
+        assert i%2 == 0
+        assert j%2 == 1
+        if i>j:
+            continue
+        a, b = i//2, j//2
+        print("CZH(%s, %s)"%(a,b))
+        remain.remove((i, j))
+        remain.remove((2*b, 2*a+1))
+    assert not remain
+
+    #B = A - identity2(2*n)
+    #print(shortstr(B))
+    #print()
+
+#    W = parse("""
+#    1...
+#    11..
+#    ..11
+#    ...1
+#    """)
+#    print(W)
+#    W = W[[0,2,1,3],:][:, [0,2,1,3]]
+#    print(W)
+
+    def cnot(i, j):
+        assert i!=j
+        W = identity2(2*n)
+        W[2*j, 2*i] = 1
+        W[2*i+1, 2*j+1] = 1
+        return W
+
+    def cz(i, j):
+        assert i!=j
+        W = identity2(2*n)
+        W[2*j+1, 2*i] = 1
+        W[2*i+1, 2*j] = 1
+        return W
+    
+    def czh(i, j):
+        assert i!=j
+        W = identity2(2*n)
+        W[2*j, 2*i+1] = 1
+        W[2*i, 2*j+1] = 1
+        return W
+    
+    n = 2
+    #print(czh(0,1))
+
+    #print(shortstr(cnot(0, 6)))
+    
+    # ---------------------------------------
+
 
 def build_geometry():
 
