@@ -1289,7 +1289,7 @@ def main_symplectic_unwrap_13():
 
     pairs = [(i,j) for (i,j) in zip(*numpy.where(A)) if i!=j]
     print(pairs)
-    print(len(pairs))
+    print("2-qubit gates:", len(pairs)//2)
     
     # 162 2-qubit gates... too many 
 
