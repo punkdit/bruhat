@@ -871,6 +871,20 @@ def main_unwrap():
     print(code)
     print(code.get_params())
 
+    # 13,1,5
+    op = "XZIIIZXIIIIII"
+    n = len(op)
+    assert n==13
+    stabs = ' '.join(''.join(op[(j+i)%n] for j in range(n)) for i in range(n-1))
+    code = QCode.fromstr(stabs, check=True)
+    print(code)
+    print(code.get_params())
+
+    code = code.unwrap()
+    print(code)
+    print(code.get_params())
+    return
+
     f = open("codetables.txt")
     data = {}
     for line in f:
@@ -888,7 +902,7 @@ def main_unwrap():
         print()
 
 
-def main_symplectic_unwrap():
+def main_symplectic_unwrap_5():
     from qupy.ldpc.css import CSSCode
     Hx = parse("""
     X..X..XX..
@@ -1134,6 +1148,152 @@ def main_symplectic_unwrap():
     #print(shortstr(cnot(0, 6)))
     
     # ---------------------------------------
+
+
+def main_symplectic_unwrap_13():
+
+    n = 13
+    H = """
+    XZ...ZX......
+    Z...ZX......X
+    ...ZX......XZ
+    ..ZX......XZ.
+    .ZX......XZ..
+    ZX......XZ...
+    X......XZ...Z
+    ......XZ...ZX
+    .....XZ...ZX.
+    ....XZ...ZX..
+    ...XZ...ZX...
+    ..XZ...ZX....
+    XXXXXXXXXXXXX
+    """
+
+    Hx = QCode.fromstr(H, check=True)
+    HHx = Hx.flatH
+
+    rows = []
+    for idx in range(n-1):
+      for bits in numpy.ndindex((2,)*n):
+        if sum(bits)%2:
+            continue
+        v = zeros2((1,2*n))
+        v[0, ::2] = bits
+        v[0, 1::2] = bits
+        #print(shortstr(v))
+        A = dot2(HHx, v.transpose())
+        if A[idx] == 1 and A.sum() == 1:
+            print(idx, bits, sum(bits))
+            rows.append(''.join('.Y'[ii] for ii in bits))
+    print('\n'.join(rows))
+
+    T = """
+    ..Y..Y..YY.YY
+    .YY.YY.Y.YY.Y
+    YYYYYYY.....Y
+    YY.YY...YY...
+    Y..Y.Y.Y.Y.Y.
+    ....YYY..YYY.
+    ..YYY.....YYY
+    .Y.Y.Y..Y.Y.Y
+    Y...YY.YY...Y
+    ..YYYYYYYY...
+    .Y.YY.YY.Y.YY
+    Y..Y..Y..YY.Y
+    ZZZZZZZZZZZZZ
+    """
+
+    Tz = QCode.fromstr(T, check=True)
+    TTz = Tz.unwrap()
+    HHx = Hx.unwrap()
+
+    Hz = Hx.apply_H()
+    Tx = Tz.apply_H()
+
+    F = symplectic_form(n)
+
+    Hx = Hx.flatH
+    Tz = Tz.flatH
+    Hz = Hz.flatH
+    Tx = Tx.flatH
+
+    M = list(zip(Hx, Tz))
+    M = numpy.array(M)
+    M.shape = (2*n, 2*n)
+
+    #print(shortstr(M))
+
+    # M is symplectic:
+    A = (dot2(dot2(M, F), M.transpose()))
+    assert eq2(A, F)
+    
+    # ---------------------------------------
+    # two copies of the 13 qubit code
+
+    #H = numpy.block([[H, zeros2(n,2*n)], [zeros2(n,2*n), H]])
+    #T = numpy.block([[T, zeros2(n,2*n)], [zeros2(n,2*n), T]])
+    #H = numpy.block([[Hx, Hx], [zeros2(n,2*n), Hx]])
+    #T = numpy.block([[Tz, zeros2(n,2*n)], [Tz, Tz]])
+    H = numpy.block([[Hx, Hz], [zeros2(n,2*n), Hz]])
+    T = numpy.block([[Tz, zeros2(n,2*n)], [Tz, Tx]])
+
+    n = 26
+    F = symplectic_form(n)
+
+    M1 = list(zip(H, T))
+    M1 = numpy.array(M1)
+    M1.shape = (2*n, 2*n)
+
+    #print(shortstr(M1))
+
+    # M1 is symplectic:
+    A = (dot2(dot2(M1, F), M1.transpose()))
+    assert eq2(A, F)
+
+    # ---------------------------------------
+
+    n = 26
+    F = symplectic_form(n)
+
+    print(HHx)
+    print(TTz)
+
+    H = HHx.flatH
+    T = TTz.flatH
+
+    # swap X/Z ops
+    T = numpy.concatenate((T[n//2:], T[:n//2]))
+
+    # change basis
+    for i in range(13):
+        H[i] += H[i+13]
+        T[i+13] += T[i]
+
+    M = list(zip(H, T))
+    M = numpy.array(M)
+    M.shape = (2*n, 2*n)
+
+    # M is symplectic:
+    A = (dot2(dot2(M, F), M.transpose()))
+    assert eq2(A, F)
+
+    Mi = dot2(dot2(F, M.transpose(), F)) # inverse
+    assert eq2(dot2(Mi, M), identity2(2*n))
+
+    # ---------------------------------------
+
+    A = dot2(M1, Mi)
+    print()
+    print(shortstr(A), A.sum())
+    print(A.shape)
+
+    pairs = [(i,j) for (i,j) in zip(*numpy.where(A)) if i!=j]
+    print(pairs)
+    print(len(pairs))
+    
+    # 162 2-qubit gates... too many 
+
+
 
 
 def build_geometry():
