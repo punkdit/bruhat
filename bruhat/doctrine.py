@@ -188,6 +188,14 @@ def get_transversal_T(n):
     L = reduce(matmul, [Gate.T]*n)
     return L
 
+def has_transversal_T(H1):
+    if not has_transversal_S_upto_sign(H1):
+        return False
+    m, n, _ = H1.shape
+    P = get_projector(H1)
+    L = get_transversal_T(n)
+    return P*L == L*P
+
 @cache 
 def get_transversal_THT(n):
     from qupy.dense import Gate
