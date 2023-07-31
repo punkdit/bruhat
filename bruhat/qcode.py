@@ -754,7 +754,7 @@ def build_code(geometry):
     else:
         return
 
-    n, k, d = code.get_params()
+    n, k, d = code.get_params(max_mk=15)
     if d is None:
         #L = code.get_logops()
         #print(list(L.sum(1)))
@@ -803,40 +803,72 @@ def test_zx(Ax, Az):
         for i in range(ax, ax+az):
             assert ax<=g[i]<ax+az
 
-    # find a zx duality
-    U = Tanner.build2(Ax, Az)
-    V = Tanner.build2(Az, Ax)
-    for f in search(U, V):
-        break
-    print([f[i] for i in range(ax+az+n)])
-
-    fx = [f[i] for i in range(ax)]
-    fz = [f[i]-ax for i in range(ax,ax+az)]
-    fn = [f[i]-ax-az for i in range(ax+az,ax+az+n)]
-
-    print(fx, fz, fn)
-    Ax = Ax[fz, :][:, fn]
-    Az = Az[fx, :][:, fn]
-    print("Ax =")
-    print(shortstr(Ax))
-    print("Az =")
-    print(shortstr(Az))
+    if 0:
+        # find a zx duality
+        U = Tanner.build2(Ax, Az)
+        V = Tanner.build2(Az, Ax)
+        for f in search(U, V):
+            break
+        print([f[i] for i in range(ax+az+n)])
+    
+        fx = [f[i] for i in range(ax)]
+        fz = [f[i]-ax for i in range(ax,ax+az)]
+        fn = [f[i]-ax-az for i in range(ax+az,ax+az+n)]
+    
+        print(fx, fz, fn)
+        Ax = Ax[fz, :][:, fn]
+        Az = Az[fx, :][:, fn]
+        print("Ax =")
+        print(shortstr(Ax))
+        print("Az =")
+        print(shortstr(Az))
 
     import bruhat.solve
     from qupy.ldpc import solve
     solve.int_scalar = bruhat.solve.int_scalar
+    from bruhat.algebraic import Matrix
 
     from qupy.ldpc.css import CSSCode
     Hx = linear_independent(Ax)
     Hz = linear_independent(Az)
     code = CSSCode(Hx=Hx, Hz=Hz, check=True)
     print(code)
+    k = code.k
     Lx, Lz = code.Lx, code.Lz
     print("Lx =")
     print(shortstr(Lx))
     print("Lz =")
     print(shortstr(Lz))
-    print(dot2(Lx, Lz.transpose()))
+    assert eq2(dot2(Lx, Lz.transpose()), identity2(k))
+
+    G = []
+    perms = [[f[i]-ax-az for i in range(ax+az,ax+az+n)] for f in perms]
+    kk = 2*k
+    F = zeros2(kk, kk)
+    F[:k, k:] = identity2(k)
+    F[k:, :k] = identity2(k)
+    for f in perms:
+        #print(f)
+        c1 = code.permute(f)
+        #print(c1)
+        Sx = dot2(Lx, c1.Lz.transpose())
+        Sz = dot2(Lz, c1.Lx.transpose())
+        #print(shortstr(Sx))
+        #print('--')
+        #print(shortstr(Sz))
+        S = zeros2(2*k, 2*k)
+        S[:k, :k] = Sx
+        S[k:, k:] = Sz
+        #print(shortstr(S))
+        G.append(Matrix(S))
+        lhs = dot2(dot2(S, F, S.transpose()))
+        assert eq2(lhs, F)
+        #print()
+
+    print(len(G))
+    for g in G:
+      for h in G:
+        assert g*h in G
 
 
 
