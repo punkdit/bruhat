@@ -6,7 +6,8 @@ Use group theory to build surface codes, color codes, etc.
 import string, os
 from random import randint, choice, random
 from time import sleep, time
-from functools import reduce
+from functools import reduce, lru_cache
+cache = lru_cache(maxsize=None)
 from operator import matmul
 import json
 
@@ -17,7 +18,7 @@ from bruhat.util import cross
 from bruhat import solve 
 from bruhat.solve import (
     array2, zeros2, shortstr, dot2, linear_independent, row_reduce, find_kernel,
-    span, intersect, rank, enum2, shortstrx, identity2, eq2)
+    span, intersect, rank, enum2, shortstrx, identity2, eq2, pseudo_inverse)
 from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
 from bruhat.todd_coxeter import Schreier
 from bruhat.argv import argv
@@ -34,8 +35,16 @@ def parse(s):
         s = s.replace(c, '')
     return solve.parse(s)
 
+def css_to_symplectic(Lx, Lz):
+    assert Lz.shape == Lx.shape
+    m, n = Lx.shape
+    L = zeros2(2*m, n, 2)
+    L[0::2, :, 0] = Lx
+    L[1::2, :, 1] = Lz
+    return L
 
-def css_to_symplectic(Hx, Hz):
+
+def css_to_isotropic(Hx, Hz):
     mx, n = Hx.shape
     mz, n1 = Hz.shape
     assert n==n1
@@ -106,7 +115,7 @@ def monte_carlo(H, v, p=0.5, trials=10000):
         H.shape = m, nn
     else:
         m, nn = H.shape
-    assert v.shape == (nn,)
+    assert v.shape == (nn,), v.shape
     d0 = get_weight_fast(v)
     #print("[",d0, end=",", flush=True)
     p0 = p**d0
@@ -144,7 +153,7 @@ def strop(H):
         smap[i,j] = c
     return str(smap)
 
-
+@cache
 def symplectic_form(n):
     F = zeros2(2*n, 2*n)
     for i in range(n):
@@ -153,24 +162,32 @@ def symplectic_form(n):
 
 
 class QCode(object):
-    def __init__(self, H, J=None, d=None, check=False):
-        m, n, k = H.shape
-        assert k == 2 # X, Z components
+    def __init__(self, H, L=None, J=None, d=None, check=False):
+        m, n, u = H.shape
+        assert u == 2 # X, Z components
         assert H.max() <= 1
         self.H = H # stabilizers
+        self.L = L # logicals
         self.J = J # gauge generators
-        self.L = None # logicals
         self.m = m
         self.n = n
+        self.k = n - m # logicals
         self.d = d
         self.shape = m, n
+        if L is not None:
+            assert len(L.shape) == 3, L.shape
+            assert L.shape[0] == 2*self.k, (self.k, L.shape)
+            assert L.shape[1] == self.n, L.shape
+            assert L.shape[2] == 2, L.shape
         if check:
             self.check()
 
     @classmethod
-    def build_css(cls, Hx, Hz):
-        H = css_to_symplectic(Hx, Hz)
-        return QCode(H)
+    def build_css(cls, Hx, Hz, Lx=None, Lz=None, Jx=None, Jz=None):
+        H = css_to_isotropic(Hx, Hz)
+        L = css_to_symplectic(Lx, Lz) if Lx is not None else None
+        J = css_to_symplectic(Jx, Jz) if Jx is not None else None
+        return QCode(H, L, J)
 
     @classmethod
     def build_gauge(cls, J):
@@ -187,18 +204,18 @@ class QCode(object):
         #print("H:", H.shape)
         H.shape = len(H), n, 2
         J.shape = len(J), n, 2
-        code = QCode(H, J)
+        code = QCode(H, None, J)
         return code
 
     @classmethod
     def build_gauge_css(cls, Jx, Jz):
-        J = css_to_symplectic(Jx, Jz)
+        J = css_to_isotropic(Jx, Jz)
         code = cls.build_gauge(J)
         return code
 
     @classmethod
-    def fromstr(cls, s, check=True):
-        stabs = s.split()
+    def fromstr(cls, Hs, Ls=None, check=True):
+        stabs = Hs.split()
         H = []
         I, X, Z, Y = [0,0], [1,0], [0,1], [1,1]
         lookup = {'X':X, 'Z':Z, 'Y':Y, 'I':I, '.':I}
@@ -210,13 +227,15 @@ class QCode(object):
 
     def __str__(self):
         s = "H =\n%s"%strop(self.H)
-        if self.L is not None and len(self.L):
-            L = self.L.view()
+        L = self.L
+        if L is not None and len(L):
+            L = self.flatL
             k, n = L.shape
             L = L.view()
             L.shape = k, n//2, 2
             s += "\nL =\n%s"%strop(L)
         return s
+    __repr__ = __str__
 
     def shortstr(self):
         H = self.H.view()
@@ -229,6 +248,17 @@ class QCode(object):
         m, n = self.shape
         H.shape = m, 2*n
         return H
+
+    @property
+    def flatL(self):
+        L = self.L.view()
+        assert len(L.shape) == 3
+        assert L.shape[2] == 2
+        assert L.shape[0] == 2*self.k
+        assert L.shape[1] == self.n
+        #print(L.shape, self.k, 2*self.n)
+        L.shape = 2*self.k, 2*self.n
+        return L
 
     def check(self):
         H = self.H
@@ -253,30 +283,61 @@ class QCode(object):
         H = dot(self.H, D) % 2
         return QCode(H)
 
-    def apply(self, idx, gate):
-        H = self.H.copy()
-        H[:, idx] = dot(self.H[:, idx], gate) % 2
-        return QCode(H)
+    def overlap(self, other):
+        F = symplectic_form(self.n)
+        A = dot2(dot2(self.flatL, F), other.flatL.transpose())
+        #A = dot2(self.flatL, other.flatL.transpose())
+        A = dot2(symplectic_form(self.k), A)
+        return A
 
-    def apply_H(self, idx=None):
+    def permute(self, f):
+        n = self.n
+        H = self.H[:, [f[i] for i in range(n)], :].copy()
+        L = self.L
+        if L is not None:
+            L = L[:, [f[i] for i in range(n)], :].copy()
+        return QCode(H, L)
+
+    def apply(self, idx, gate):
         if idx is None:
             code = self
             for idx in range(self.n):
-                code = code.apply_H(idx)
+                code = code.apply(idx, gate) # <--- recurse
             return code
+        H = self.H.copy()
+        H[:, idx] = dot(self.H[:, idx], gate) % 2
+        L = self.L
+        if L is not None:
+            L = self.L.copy()
+            L[:, idx] = dot(L[:, idx], gate) % 2
+        return QCode(H, L)
+
+    def apply_H(self, idx=None):
         # swap X<-->Z on bit idx
         H = array2([[0,1],[1,0]])
         return self.apply(idx, H)
 
-    def apply_S(self, idx):
+    def apply_S(self, idx=None):
         # swap X<-->Y
         S = array2([[1,1],[0,1]])
         return self.apply(idx, S)
 
-    def apply_SH(self, idx):
+    def apply_SH(self, idx=None):
         # X-->Z-->Y-->X 
         SH = array2([[0,1],[1,1]])
         return self.apply(idx, SH)
+
+    def apply_CZ(self, idx, jdx):
+        assert idx != jdx
+        n = self.n
+        A = identity2(2*n)
+        A[2*idx, 2*jdx+1] = 1
+        A[2*jdx, 2*idx+1] = 1
+        H = dot2(self.flatH, A)
+        H.shape = self.m, self.n, 2
+        L = dot2(self.flatL, A)
+        L.shape = 2*self.k, self.n, 2
+        return QCode(H, L)
 
     def row_reduce(self):
         H = self.H.copy()
@@ -289,7 +350,7 @@ class QCode(object):
 
     def get_logops(self):
         if self.L is not None:
-            return self.L
+            return self.flatL
         H = self.H
         H1 = H.copy()
         H1[:, :, :] = H1[:, :, [1,0]]
@@ -323,7 +384,8 @@ class QCode(object):
             #print("rank(J):", rank(J1))
             L = intersect(L, Jc)
             #print("L:", L.shape)
-        self.L = L
+        self.L = L.copy()
+        self.L.shape = (2*k, self.n, 2)
         return L
 
     def get_all_logops(self):
@@ -769,13 +831,28 @@ def build_code(geometry):
         print(code)
     print()
 
+#    L = code.flatL
+#    print(L)
+#
+#    F = symplectic_form(n)
+#    LFLt = dot2(dot2(L, F, L.transpose()))
+#    print(shortstr(LFLt))
+#    print()
+#    B = pseudo_inverse(LFLt)
+#    L1 = dot2(B, L)
+#    LFLt = dot2(dot2(L1, F, L1.transpose()))
+#    print(shortstr(LFLt))
+
+#    K = find_kernel(F)
+#    print(K)
+
     if not argv.autos:
         return
 
-    test_zx(Ax, Az)
+    test_autos(Ax, Az)
 
 
-def test_zx(Ax, Az):
+def test_autos(Ax, Az):
     ax, n = Ax.shape
     az, _ = Az.shape
     print("Ax =")
@@ -803,21 +880,23 @@ def test_zx(Ax, Az):
         for i in range(ax, ax+az):
             assert ax<=g[i]<ax+az
 
-    if 0:
+    if 1:
         # find a zx duality
         U = Tanner.build2(Ax, Az)
         V = Tanner.build2(Az, Ax)
-        for f in search(U, V):
+        for duality in search(U, V):
             break
-        print([f[i] for i in range(ax+az+n)])
+        else:
+            assert 0
+        print([duality[i] for i in range(ax+az+n)])
     
-        fx = [f[i] for i in range(ax)]
-        fz = [f[i]-ax for i in range(ax,ax+az)]
-        fn = [f[i]-ax-az for i in range(ax+az,ax+az+n)]
+        dual_x = [duality[i] for i in range(ax)]
+        dual_z = [duality[i]-ax for i in range(ax,ax+az)]
+        dual_n = [duality[i]-ax-az for i in range(ax+az,ax+az+n)]
     
-        print(fx, fz, fn)
-        Ax = Ax[fz, :][:, fn]
-        Az = Az[fx, :][:, fn]
+        print(dual_x, dual_z, dual_n)
+        Ax = Ax[dual_z, :][:, dual_n]
+        Az = Az[dual_x, :][:, dual_n]
         print("Ax =")
         print(shortstr(Ax))
         print("Az =")
@@ -826,7 +905,7 @@ def test_zx(Ax, Az):
     import bruhat.solve
     from qupy.ldpc import solve
     solve.int_scalar = bruhat.solve.int_scalar
-    from bruhat.algebraic import Matrix
+    from bruhat.algebraic import Matrix, Algebraic
 
     from qupy.ldpc.css import CSSCode
     Hx = linear_independent(Ax)
@@ -835,41 +914,102 @@ def test_zx(Ax, Az):
     print(code)
     k = code.k
     Lx, Lz = code.Lx, code.Lz
-    print("Lx =")
-    print(shortstr(Lx))
-    print("Lz =")
-    print(shortstr(Lz))
+    #print("Lx =")
+    #print(shortstr(Lx))
+    #print("Lz =")
+    #print(shortstr(Lz))
     assert eq2(dot2(Lx, Lz.transpose()), identity2(k))
 
-    G = []
-    perms = [[f[i]-ax-az for i in range(ax+az,ax+az+n)] for f in perms]
-    kk = 2*k
-    F = zeros2(kk, kk)
-    F[:k, k:] = identity2(k)
-    F[k:, :k] = identity2(k)
+    qcode = QCode.build_css(Hx, Hz, Lx, Lz)
+    L = qcode.flatL
+    Fn = symplectic_form(n)
+    Fk = symplectic_form(k)
+    assert eq2(dot2(dot2(L, Fn), L.transpose()), Fk)
+    print(qcode)
+
+    #tgt = qcode.apply_H()
+    #print(tgt)
+    #print(qcode.overlap(tgt))
+
+    gen = []
+    perms = [{i-ax-az:f[i]-ax-az for i in range(ax+az,ax+az+n)} for f in perms]
+    items = list(range(n))
+    perms = [Perm(f, items) for f in perms]
+    zx0 = Perm(dual_n, items)
+    phase_gates = []
     for f in perms:
-        #print(f)
-        c1 = code.permute(f)
-        #print(c1)
-        Sx = dot2(Lx, c1.Lz.transpose())
-        Sz = dot2(Lz, c1.Lx.transpose())
-        #print(shortstr(Sx))
-        #print('--')
-        #print(shortstr(Sz))
-        S = zeros2(2*k, 2*k)
-        S[:k, :k] = Sx
-        S[k:, k:] = Sz
+        zx = zx0*f
+        if (zx*zx).is_identity() and len(zx.fixed())%2==0:
+            phase_gates.append(zx)
+        tgt = qcode.permute(f)
+        #print(tgt)
+        S = qcode.overlap(tgt)
         #print(shortstr(S))
-        G.append(Matrix(S))
-        lhs = dot2(dot2(S, F, S.transpose()))
-        assert eq2(lhs, F)
         #print()
+        lhs = dot2(S, Fk, S.transpose())
+        assert eq2(lhs, Fk)
+        S = Matrix(S)
+        gen.append(S)
+    print("phase_gates:", len(phase_gates))
 
-    print(len(G))
-    for g in G:
-      for h in G:
-        assert g*h in G
+    gen = set(gen)
+    print("|gen| =", len(gen))
+    for g in gen:
+      for h in gen:
+        assert g*h in gen
 
+    gen = list(gen)
+    while 1:
+        gens = [choice(gen), choice(gen), choice(gen)]
+        G = mulclose(gens)
+        if len(G) == len(gen):
+            break
+
+    fixed = [i for i in range(n) if dual_n[i]==i]
+    #print("dual_n:", dual_n)
+    #print("fixed:", fixed)
+
+    # hadamard gate
+    tgt = qcode.permute(dual_n)
+    tgt = tgt.apply_H()
+    #print(tgt)
+    S = qcode.overlap(tgt)
+    #print(shortstr(S))
+    lhs = dot2(S, Fk, S.transpose())
+    assert eq2(lhs, Fk)
+    S = Matrix(S)
+    gens.append(S)
+
+    if phase_gates:
+        # phase-type gate
+        tgt = qcode
+        zx = phase_gates[0]
+        remain = set(range(n))
+        for i in zx.fixed():
+            tgt = tgt.apply_S(i)
+            remain.remove(i)
+        for i in range(n):
+            if i not in remain:
+                continue
+            j = zx[i]
+            assert zx[j] == i
+            remain.remove(i)
+            remain.remove(j)
+            tgt = tgt.apply_CZ(i, j)
+        print(tgt)
+        S = qcode.overlap(tgt)
+        #print(shortstr(S))
+        lhs = dot2(S, Fk, S.transpose())
+        assert eq2(lhs, Fk)
+        S = Matrix(S)
+        gens.append(S)
+
+    else:
+        G = Algebraic(list(gens))
+        print("|G| =", len(G))
+
+    from bruhat.orthogonal import gap_code
+    gap_code(gens)
 
 
 def main_zx():
