@@ -54,7 +54,7 @@ def css_to_isotropic(Hx, Hz):
     return H
 
 def flatten(H):
-    if len(H.shape)==3:
+    if H is not None and len(H.shape)==3:
         H = H.view()
         m, n, _ = H.shape
         H.shape = m, 2*n
@@ -138,11 +138,12 @@ def monte_carlo(H, v, p=0.5, trials=10000):
     return d0
 
 def strop(H):
+    assert len(H.shape) == 2, H.shape
     smap = SMap()
-    m, n = H.shape[:2]
+    m, nn = H.shape
     for i in range(m):
-      for j in range(n):
-        x, z = H[i, j]
+      for j in range(nn//2):
+        x, z = H[i, 2*j:2*j+2]
         c = '.'
         if x and z:
             c = 'Y'
@@ -162,10 +163,14 @@ def symplectic_form(n):
 
 
 class QCode(object):
-    def __init__(self, H, L=None, J=None, d=None, check=False):
-        m, n, u = H.shape
-        assert u == 2 # X, Z components
+    def __init__(self, H, L=None, J=None, d=None, check=True):
         assert H.max() <= 1
+        H = flatten(H) # stabilizers
+        m, nn = H.shape
+        assert nn%2 == 0
+        n = nn//2
+        L = flatten(L) # logicals
+        J = flatten(J) # gauge generators
         self.H = H # stabilizers
         self.L = L # logicals
         self.J = J # gauge generators
@@ -175,10 +180,7 @@ class QCode(object):
         self.d = d
         self.shape = m, n
         if L is not None:
-            assert len(L.shape) == 3, L.shape
-            assert L.shape[0] == 2*self.k, (self.k, L.shape)
-            assert L.shape[1] == self.n, L.shape
-            assert L.shape[2] == 2, L.shape
+            assert L.shape == (2*self.k, nn)
         if check:
             self.check()
 
@@ -202,8 +204,8 @@ class QCode(object):
         J.shape = m, 2*n
         H = intersect(J, K)
         #print("H:", H.shape)
-        H.shape = len(H), n, 2
-        J.shape = len(J), n, 2
+        #H.shape = len(H), n, 2
+        #J.shape = len(J), n, 2
         code = QCode(H, None, J)
         return code
 
@@ -229,10 +231,6 @@ class QCode(object):
         s = "H =\n%s"%strop(self.H)
         L = self.L
         if L is not None and len(L):
-            L = self.flatL
-            k, n = L.shape
-            L = L.view()
-            L.shape = k, n//2, 2
             s += "\nL =\n%s"%strop(L)
         return s
     __repr__ = __str__
@@ -243,33 +241,25 @@ class QCode(object):
         return shortstr(H)
 
     @property
-    def flatH(self):
+    def deepH(self):
         H = self.H.view()
         m, n = self.shape
-        H.shape = m, 2*n
+        H.shape = m, n, 2
         return H
 
     @property
-    def flatL(self):
+    def deepL(self):
         L = self.L.view()
-        assert len(L.shape) == 3
-        assert L.shape[2] == 2
-        assert L.shape[0] == 2*self.k
-        assert L.shape[1] == self.n
-        #print(L.shape, self.k, 2*self.n)
-        L.shape = 2*self.k, 2*self.n
+        L.shape = 2*self.k, self.n, 2
         return L
 
     def check(self):
         H = self.H
         m, n = self.shape
-        H1 = H.copy()
-        H1[:, :, :] = H1[:, :, [1,0]]
-        H = H.view()
-        H.shape = H1.shape = (m, 2*n)
+        H1 = dot2(H, symplectic_form(n))
         R = dot2(H, H1.transpose())
         if R.sum() != 0:
-            assert 0
+            assert 0, "not isotropic"
         L = self.get_logops()
         L = flatten(L)
         R = dot2(L, H1.transpose())
@@ -285,15 +275,15 @@ class QCode(object):
 
     def overlap(self, other):
         F = symplectic_form(self.n)
-        A = dot2(dot2(self.flatL, F), other.flatL.transpose())
-        #A = dot2(self.flatL, other.flatL.transpose())
+        A = dot2(dot2(self.L, F), other.L.transpose())
+        #A = dot2(self.L, other.L.transpose())
         A = dot2(symplectic_form(self.k), A)
         return A
 
     def permute(self, f):
         n = self.n
-        H = self.H[:, [f[i] for i in range(n)], :].copy()
-        L = self.L
+        H = self.deepH[:, [f[i] for i in range(n)], :].copy()
+        L = self.deepL
         if L is not None:
             L = L[:, [f[i] for i in range(n)], :].copy()
         return QCode(H, L)
@@ -304,11 +294,11 @@ class QCode(object):
             for idx in range(self.n):
                 code = code.apply(idx, gate) # <--- recurse
             return code
-        H = self.H.copy()
-        H[:, idx] = dot(self.H[:, idx], gate) % 2
+        H = self.deepH.copy()
+        H[:, idx] = dot(H[:, idx], gate) % 2
         L = self.L
         if L is not None:
-            L = self.L.copy()
+            L = self.deepL.copy()
             L[:, idx] = dot(L[:, idx], gate) % 2
         return QCode(H, L)
 
@@ -333,9 +323,9 @@ class QCode(object):
         A = identity2(2*n)
         A[2*idx, 2*jdx+1] = 1
         A[2*jdx, 2*idx+1] = 1
-        H = dot2(self.flatH, A)
+        H = dot2(self.H, A)
         H.shape = self.m, self.n, 2
-        L = dot2(self.flatL, A)
+        L = dot2(self.L, A)
         L.shape = 2*self.k, self.n, 2
         return QCode(H, L)
 
@@ -345,17 +335,13 @@ class QCode(object):
         H.shape = m, 2*n
         H = row_reduce(H)
         m, nn = H.shape
-        H.shape = m, nn//2, 2
         return QCode(H)
 
     def get_logops(self):
         if self.L is not None:
-            return self.flatL
+            return self.L
         H = self.H
-        H1 = H.copy()
-        H1[:, :, :] = H1[:, :, [1,0]]
-        H1 = flatten(H1)
-        H = flatten(H)
+        H1 = dot2(H, symplectic_form(self.n))
         H = row_reduce(H)
         m = len(H)
         #print("H:", H.shape)
@@ -385,19 +371,19 @@ class QCode(object):
             L = intersect(L, Jc)
             #print("L:", L.shape)
         self.L = L.copy()
-        self.L.shape = (2*k, self.n, 2)
+        #self.L.shape = (2*k, self.n, 2)
         return L
 
     def get_all_logops(self):
         L = self.get_logops()
-        H = self.flatH
+        H = self.H
         HL = numpy.concatenate((H, L))
         return HL
 
     def get_params(self, max_mk=22):
         L = self.get_logops()
         kk = len(L)
-        H = self.flatH
+        H = self.H
         m = len(H)
         HL = numpy.concatenate((H, L))
         mk = len(HL)
@@ -417,9 +403,9 @@ class QCode(object):
     def bound_distance(self):
         L = self.get_logops()
         L = L.copy()
-        H = self.flatH
+        H = self.H
         kk = len(L)
-        #H = self.flatH
+        #H = self.H
         d = self.n
         for u in L:
             d = min(d, u.sum())
@@ -428,7 +414,7 @@ class QCode(object):
         return d
 
     def unwrap(self, check=True):
-        H0 = self.H
+        H0 = self.deepH
         m, n, _ = H0.shape
         Sx = H0[:, :, 0]
         Sz = H0[:, :, 1]
@@ -831,21 +817,6 @@ def build_code(geometry):
         print(code)
     print()
 
-#    L = code.flatL
-#    print(L)
-#
-#    F = symplectic_form(n)
-#    LFLt = dot2(dot2(L, F, L.transpose()))
-#    print(shortstr(LFLt))
-#    print()
-#    B = pseudo_inverse(LFLt)
-#    L1 = dot2(B, L)
-#    LFLt = dot2(dot2(L1, F, L1.transpose()))
-#    print(shortstr(LFLt))
-
-#    K = find_kernel(F)
-#    print(K)
-
     if not argv.autos:
         return
 
@@ -921,7 +892,7 @@ def test_autos(Ax, Az):
     assert eq2(dot2(Lx, Lz.transpose()), identity2(k))
 
     qcode = QCode.build_css(Hx, Hz, Lx, Lz)
-    L = qcode.flatL
+    L = qcode.L
     Fn = symplectic_form(n)
     Fk = symplectic_form(k)
     assert eq2(dot2(dot2(L, Fn), L.transpose()), Fk)
@@ -1145,8 +1116,8 @@ def main_symplectic_unwrap_5():
 
     F = symplectic_form(n)
 
-    H = HC.flatH
-    T = TC.flatH
+    H = HC.H
+    T = TC.H
     for i in range(5):
         H[i] += H[i+5]
         T[i+5] += T[i]
@@ -1197,10 +1168,10 @@ def main_symplectic_unwrap_5():
 
     F = symplectic_form(n)
 
-    Hx = Hx.flatH
-    Tz = Tz.flatH
-    Hz = Hz.flatH
-    Tx = Tx.flatH
+    Hx = Hx.H
+    Tz = Tz.H
+    Hz = Hz.H
+    Tx = Tx.H
 
     M = list(zip(Hx, Tz))
     M = numpy.array(M)
@@ -1342,7 +1313,7 @@ def main_symplectic_unwrap_13():
     """
 
     Hx = QCode.fromstr(H, check=True)
-    HHx = Hx.flatH
+    HHx = Hx.H
 
     rows = []
     for idx in range(n-1):
@@ -1384,10 +1355,10 @@ def main_symplectic_unwrap_13():
 
     F = symplectic_form(n)
 
-    Hx = Hx.flatH
-    Tz = Tz.flatH
-    Hz = Hz.flatH
-    Tx = Tx.flatH
+    Hx = Hx.H
+    Tz = Tz.H
+    Hz = Hz.H
+    Tx = Tx.H
 
     M = list(zip(Hx, Tz))
     M = numpy.array(M)
@@ -1430,8 +1401,8 @@ def main_symplectic_unwrap_13():
     print(HHx)
     print(TTz)
 
-    H = HHx.flatH
-    T = TTz.flatH
+    H = HHx.H
+    T = TTz.H
 
     # swap X/Z ops
     T = numpy.concatenate((T[n//2:], T[:n//2]))
@@ -2636,7 +2607,7 @@ def test_color():
     H = array2(H)
     #print(shortstr(H))
     code = QCode(H)
-    #print(shortstr(code.flatH))
+    #print(shortstr(code.H))
     print(code.get_params())
 
     L = code.get_logops()
