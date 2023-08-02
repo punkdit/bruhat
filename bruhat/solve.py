@@ -879,12 +879,14 @@ def pseudo_inverse(A, check=False):
     return A1
 
 
-def solve(H, u, force=False, debug=False):
+def solve2(H, u, force=False, debug=False):
     "Solve Hv = u"
+    assert H.shape[0] == u.shape[0], (H.shape, u.shape)
     A = pseudo_inverse(H)
     v = dot2(A, u)
     if eq2(dot2(H, v), u) or force:
         return v
+solve = solve2
 
 
 def randsolve(A, b, C=10, **kw):

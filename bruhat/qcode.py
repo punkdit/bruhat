@@ -17,7 +17,7 @@ from numpy import alltrue, zeros, dot
 from bruhat.util import cross
 from bruhat import solve 
 from bruhat.solve import (
-    array2, zeros2, shortstr, dot2, linear_independent, row_reduce, find_kernel,
+    array2, zeros2, shortstr, dot2, solve2, linear_independent, row_reduce, find_kernel,
     span, intersect, rank, enum2, shortstrx, identity2, eq2, pseudo_inverse)
 from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
 from bruhat.todd_coxeter import Schreier
@@ -163,15 +163,17 @@ def symplectic_form(n):
 
 
 class QCode(object):
-    def __init__(self, H, L=None, J=None, d=None, check=True):
+    def __init__(self, H, T=None, L=None, J=None, d=None, check=True):
         assert H.max() <= 1
         H = flatten(H) # stabilizers
         m, nn = H.shape
         assert nn%2 == 0
         n = nn//2
-        L = flatten(L) # logicals
-        J = flatten(J) # gauge generators
+        T = flatten(T)
+        L = flatten(L)
+        J = flatten(J)
         self.H = H # stabilizers
+        self.T = T # destabilizers
         self.L = L # logicals
         self.J = J # gauge generators
         self.m = m
@@ -181,6 +183,8 @@ class QCode(object):
         self.shape = m, n
         if L is not None:
             assert L.shape == (2*self.k, nn)
+        if T is not None:
+            assert T.shape == (self.m, nn)
         if check:
             self.check()
 
@@ -189,7 +193,8 @@ class QCode(object):
         H = css_to_isotropic(Hx, Hz)
         L = css_to_symplectic(Lx, Lz) if Lx is not None else None
         J = css_to_symplectic(Jx, Jz) if Jx is not None else None
-        return QCode(H, L, J)
+        T = None
+        return QCode(H, T, L, J)
 
     @classmethod
     def build_gauge(cls, J):
@@ -206,7 +211,7 @@ class QCode(object):
         #print("H:", H.shape)
         #H.shape = len(H), n, 2
         #J.shape = len(J), n, 2
-        code = QCode(H, None, J)
+        code = QCode(H, None, None, J)
         return code
 
     @classmethod
@@ -229,6 +234,9 @@ class QCode(object):
 
     def __str__(self):
         s = "H =\n%s"%strop(self.H)
+        T = self.T
+        if T is not None and len(T):
+            s += "\nT =\n%s"%strop(T)
         L = self.L
         if L is not None and len(L):
             s += "\nL =\n%s"%strop(L)
@@ -253,6 +261,12 @@ class QCode(object):
         L.shape = 2*self.k, self.n, 2
         return L
 
+    @property
+    def deepT(self):
+        T = self.T.view()
+        T.shape = self.m, self.n, 2
+        return T
+
     def check(self):
         H = self.H
         m, n = self.shape
@@ -261,12 +275,20 @@ class QCode(object):
         if R.sum() != 0:
             assert 0, "not isotropic"
         L = self.get_logops()
-        L = flatten(L)
         R = dot2(L, H1.transpose())
         if R.sum() != 0:
             print("R:")
             print(shortstr(R))
             assert 0
+        R = dot2(L, symplectic_form(n), L.transpose())
+        if not eq2(R, symplectic_form(self.k)):
+            assert 0
+        T = self.get_destabilizers()
+        HT = array2(list(zip(H, T)))
+        HT.shape = 2*m, 2*n
+        A = numpy.concatenate((HT, L))
+        F = dot2(A, symplectic_form(n), A.transpose())
+        assert eq2(F, symplectic_form(n))
 
     def dual(self):
         D = array2([[0,1],[1,0]])
@@ -286,7 +308,10 @@ class QCode(object):
         L = self.deepL
         if L is not None:
             L = L[:, [f[i] for i in range(n)], :].copy()
-        return QCode(H, L)
+        T = self.deepT
+        if T is not None:
+            T = T[:, [f[i] for i in range(n)], :].copy()
+        return QCode(H, T, L)
 
     def apply(self, idx, gate):
         if idx is None:
@@ -296,11 +321,15 @@ class QCode(object):
             return code
         H = self.deepH.copy()
         H[:, idx] = dot(H[:, idx], gate) % 2
+        T = self.T
+        if T is not None:
+            T = self.deepT.copy()
+            T[:, idx] = dot(T[:, idx], gate) % 2
         L = self.L
         if L is not None:
             L = self.deepL.copy()
             L[:, idx] = dot(L[:, idx], gate) % 2
-        return QCode(H, L)
+        return QCode(H, T, L)
 
     def apply_H(self, idx=None):
         # swap X<-->Z on bit idx
@@ -324,10 +353,9 @@ class QCode(object):
         A[2*idx, 2*jdx+1] = 1
         A[2*jdx, 2*idx+1] = 1
         H = dot2(self.H, A)
-        H.shape = self.m, self.n, 2
+        T = dot2(self.T, A)
         L = dot2(self.L, A)
-        L.shape = 2*self.k, self.n, 2
-        return QCode(H, L)
+        return QCode(H, T, L)
 
     def row_reduce(self):
         H = self.H.copy()
@@ -337,42 +365,106 @@ class QCode(object):
         m, nn = H.shape
         return QCode(H)
 
+#    def get_logops(self):
+#        if self.L is not None:
+#            return self.L
+#        H = self.H
+#        H1 = dot2(H, symplectic_form(self.n))
+#        H = row_reduce(H)
+#        m = len(H)
+#        #print("H:", H.shape)
+#        #print(shortstr(H))
+#        W = complement(H)
+#        #print("W:", W.shape)
+#        #print(shortstr(W))
+#        K = find_kernel(H1)
+#        #print("find_kernel(H):", K.shape)
+#        L = intersect(W, K)
+#        #print("L:", L.shape)
+#        #print("L")
+#        #print(shortstr(L))
+#        kk = len(L)
+#        assert kk%2 == 0
+#        k = kk//2
+#        assert dot2(H1, L.transpose()).sum() == 0 # commutes w stabilizers
+#        HL = numpy.concatenate((H, L))
+#        assert rank(HL) == m + 2*k # linearly independant
+#        J = self.J
+#        if J is not None:
+#            J1 = J.view()
+#            J1.shape = len(J1), J1.shape[1]*2
+#            Jc = complement(J)
+#            #print("Jc:", Jc.shape)
+#            #print("rank(J):", rank(J1))
+#            L = intersect(L, Jc)
+#            #print("L:", L.shape)
+#        self.L = L.copy()
+#        #self.L.shape = (2*k, self.n, 2)
+#        return L
+
     def get_logops(self):
         if self.L is not None:
             return self.L
+        m, n = self.shape
+        k = self.k
         H = self.H
-        H1 = dot2(H, symplectic_form(self.n))
-        H = row_reduce(H)
-        m = len(H)
-        #print("H:", H.shape)
-        #print(shortstr(H))
-        W = complement(H)
-        #print("W:", W.shape)
-        #print(shortstr(W))
-        K = find_kernel(H1)
-        #print("find_kernel(H):", K.shape)
-        L = intersect(W, K)
-        #print("L:", L.shape)
-        #print("L")
-        #print(shortstr(L))
-        kk = len(L)
-        assert kk%2 == 0
-        k = kk//2
-        assert dot2(H1, L.transpose()).sum() == 0 # commutes w stabilizers
-        HL = numpy.concatenate((H, L))
-        assert rank(HL) == m + 2*k # linearly independant
-        J = self.J
-        if J is not None:
-            J1 = J.view()
-            J1.shape = len(J1), J1.shape[1]*2
-            Jc = complement(J)
-            #print("Jc:", Jc.shape)
-            #print("rank(J):", rank(J1))
-            L = intersect(L, Jc)
-            #print("L:", L.shape)
-        self.L = L.copy()
-        #self.L.shape = (2*k, self.n, 2)
+        L = []
+        for i in range(k):
+            M = dot2(H, symplectic_form(n))
+            K = find_kernel(M) # XXX do this incrementally for more speed XXX
+            J = dot2(K, symplectic_form(n), K.transpose())
+            for (row, col) in zip(*numpy.where(J)):
+                break
+            lx = K[row:row+1]
+            lz = K[col:col+1]
+            L.append(lx)
+            L.append(lz)
+            H = numpy.concatenate((H, lx, lz))
+    
+        L = array2(L)
+        L.shape = (2*k, 2*n)
+    
+        M = dot2(L, symplectic_form(n), L.transpose())
+        assert eq2(M, symplectic_form(k))
+        self.L = L
         return L
+
+    def get_destabilizers(self):
+        if self.T is not None:
+            return self.T
+        m, n = self.shape
+        H = self.H
+        L = self.get_logops()
+        HL = numpy.concatenate((H, L))
+        T = []
+        for i in range(m):
+            A = dot2(HL, symplectic_form(n))
+            #B = numpy.concatenate((identity2(m), zeros2(2*self.k+i, m)))
+            B = zeros2(len(A), 1)
+            B[i] = 1
+            #print("A =")
+            #print(A)
+            tt = solve2(A, B) # XXX do this incrementally for more speed XXX
+            assert tt is not None
+            t = tt.transpose()
+            t.shape = (1, 2*n)
+            T.append(t)
+            HL = numpy.concatenate((HL, t))
+        T = array2(T)
+        T.shape = (m, 2*n)
+        self.T = T
+
+        HT = array2(list(zip(H, T)))
+        HT.shape = 2*m, 2*n
+        A = numpy.concatenate((HT, L))
+        M = dot2(A, symplectic_form(n), A.transpose())
+        assert eq2(M, symplectic_form(n))
+
+        return T
+
+    def build(self):
+        self.get_logops()
+        self.get_destabilizers()
 
     def get_all_logops(self):
         L = self.get_logops()
@@ -817,6 +909,8 @@ def build_code(geometry):
         print(code)
     print()
 
+    code.build()
+
     if not argv.autos:
         return
 
@@ -1041,6 +1135,26 @@ def main_unwrap():
         code = QCode.fromstr(stabs)
         print(code, code.get_params())
         code = code.unwrap()
+        print(code, code.get_params())
+        print()
+
+
+def test_build():
+
+    f = open("codetables.txt")
+    data = {}
+    for line in f:
+        record = json.loads(line)
+        n = record['n']
+        k = record['k']
+        data[n,k] = record
+        if n > 10:
+            break
+        stabs = record["stabs"]
+        print("stabs:")
+        print(stabs)
+        code = QCode.fromstr(stabs)
+        code.build()
         print(code, code.get_params())
         print()
 
