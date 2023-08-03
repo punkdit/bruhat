@@ -914,10 +914,10 @@ def build_code(geometry):
     if not argv.autos:
         return
 
-    test_autos(Ax, Az)
+    test_zx(Ax, Az)
 
 
-def test_autos(Ax, Az):
+def test_zx(Ax, Az):
     ax, n = Ax.shape
     az, _ = Az.shape
     print("Ax =")
