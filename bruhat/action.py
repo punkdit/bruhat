@@ -11,6 +11,7 @@ import sys
 import string
 from random import randint, shuffle
 from functools import reduce, cache
+from operator import mul
 
 from bruhat.util import factorial, all_subsets, write, uniqtuples, cross
 from bruhat.equ import Equ, quotient_rep
@@ -1355,6 +1356,11 @@ class Action(object):
             send_perms[g] = perm
         return Action(self.G, send_perms, items)
     __mul__ = product
+
+    def __pow__(self, n):
+        assert n>0
+        X = reduce(mul, [self]*n)
+        return X
 
     def hecke(self, other):
         import numpy

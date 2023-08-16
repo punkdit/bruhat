@@ -4,7 +4,10 @@ Symbolically find a cocommutative comonoid
 on a 2d vector space.
 """
 
+from time import time
+start_time = time()
 from functools import reduce
+from operator import mul, add
 
 import numpy
 from numpy import dot, array, empty, alltrue, allclose, exp, zeros, kron
@@ -19,9 +22,11 @@ def compose(*items):
 tensor = lambda *items : reduce(numpy.kron, items)
 
 # https://docs.sympy.org/latest/modules/solvers/solvers.html
-from sympy.solvers import solve
-from sympy.solvers import nonlinsolve
-from sympy import Symbol
+#from sympy.solvers import solve
+#from sympy.solvers import nonlinsolve
+
+#from sympy import Symbol
+from bruhat.sympy import Symbol
 
 from bruhat.argv import argv
 
@@ -94,6 +99,20 @@ class System(object):
         #print("slns = solve(eqs, vs, solution_dict=True)")
         print("slns = solve(eqs, vs)")
 
+    def py_func_args(self, verbose=False):
+        arg = ",".join(str(v) for v in self.vs)
+        lines = ["def f(%s):"%arg]
+        lines.append("  return (")
+        for eq in self.eqs:
+            lines.append("    %s,"%(eq,))
+        lines.append("  )")
+        code = '\n'.join(lines)
+        if verbose:
+            print(code)
+        ns = {}
+        exec(code, ns, ns)
+        return ns['f']
+    
     def py_func(self, verbose=False):
         arg = ",".join(str(v) for v in self.vs)
         #lines = ["def f(%s):"%arg]
@@ -104,6 +123,27 @@ class System(object):
             lines.append("    %s,"%(eq,))
         lines.append("  ]")
         lines.append("  return value")
+        code = '\n'.join(lines)
+        code = code.replace(" 1.0*", " ")
+        if verbose:
+            print(code)
+        ns = {}
+        exec(code, ns, ns)
+        return ns['f']
+    
+    def py_jac_args(self, verbose=False):
+        arg = ",".join(str(v) for v in self.vs)
+        lines = ["def f(%s):"%arg]
+        #lines.append("  print('jac')")
+        lines.append("  return [")
+        vs = self.vs
+        for eq in self.eqs:
+          row = []
+          for v in vs:
+            d = eq.diff(v)
+            row.append(str(d))
+          lines.append("    [%s]," % (', '.join(row)))
+        lines.append("  ]")
         code = '\n'.join(lines)
         if verbose:
             print(code)
@@ -150,18 +190,30 @@ class System(object):
         n = len(self.vs)
         f = self.py_func()
         jac = self.py_jac()
+        eol = ''
         for trial in range(trials):
             x0 = numpy.random.normal(size=n)*scale
-            solution = root(f, x0, jac=jac, method=method, 
-                tol=tol, options={"maxiter":maxiter})
+            solution = root(f, x0, method=method, jac=jac, tol=tol, options={"maxiter":maxiter})
+            #solution = root(f, x0, method=method, tol=tol, options={"maxiter":maxiter})
             #print(solution)
             if solution.success:
                 break
+            print(".", end='', flush=True)
+            eol = '\n'
         else:
+            print()
             return None
+        print(eol, end='')
         x = solution.x
         values = self.subs(x=x)
         return values
+
+    def get_root(self):
+        from mpmath import mp
+        f = self.py_func_args(True)
+        J = self.py_jac_args(True)
+        sol = mp.findroot(f, (0.,)*len(self.vs), J=J)
+        return sol
 
     def minimize(self, trials=10, scale=1, method=None, exclude=[], sigma=1000):
         from scipy.optimize import minimize
@@ -258,6 +310,12 @@ def test():
     
     system.add(compose(G, Gi), I)
     #system.eqs.append(G[0,0]*G[1,1] - G[0,1]*G[1,0]-1) # SL(2)
+
+    #system.py_func_args(verbose=True)
+    #sol = system.get_root()
+    #print(sol)
+    #return
+
     system.py_func(verbose=True)
     values = system.minimize()
     
@@ -352,9 +410,9 @@ def test_root():
     A, B = values
     #print(A)
     #print(B)
-    assert numpy.allclose(compose(A, A), I)
-    assert numpy.allclose(compose(B, B), I)
-    assert numpy.allclose(compose(A, B), compose(B, A))
+    assert allclose(compose(A, A), I)
+    assert allclose(compose(B, B), I)
+    assert allclose(compose(A, B), compose(B, A))
 
 
 def test_symplectic():
@@ -418,6 +476,43 @@ def test_symplectic():
 #    B = dot(FF, dot(IS, SI))
 #    C = dot(FF, dot(SI, IS))
 #    print((A + B + C))
+
+
+def find_copyable(CM):
+    #print("\nminimize...")
+    dim = CM.shape[1]
+    system = System()
+    v = system.array(dim, 1)
+    system.add(compose(v, CM), tensor(v, v))
+    #system.py_func(True)
+    found = []
+    trials = 0
+    exclude = [numpy.zeros(dim)]
+    exclude = []
+    #while trials < 1000:
+    while len(found) < dim and trials<1000:
+        trials += 1
+        values = system.root(scale=10)
+        if values is None:
+            values = system.minimize(scale=10, method="TNC", exclude=exclude, sigma=3000)
+        if values is None:
+            continue
+        v = values[0]
+        v = v.transpose()[0]
+        #print(v)
+        if norm(v) < 1e-2:
+            continue
+        for w in found:
+            if norm(v-w) < 1e-2:
+                break
+        else:
+            found.append(v)
+            print("found:", len(found))
+            print(v)
+            exclude.append(v)
+    print()
+    g = numpy.array(found).transpose()
+    return g
 
 
 def main():
@@ -508,24 +603,21 @@ def main():
     f = system.py_func()
 
     trials = argv.get("trials", 100)
-    _seed = argv.get("seed")
-    if _seed is not None:
-        print("seed:", _seed)
-        numpy.random.seed(_seed)
 
     #for trial in range(trials):
     while 1:
 
         print(".", end="", flush=True)
+        #system.get_root()
         values = system.root(maxiter=10000000)
         if values is None:
             continue
         F, G, D, E = values[:4]
 
         lhs = compose(SWAP, F)
-        commutative = numpy.allclose(lhs, F, atol=1e-8)
+        commutative = allclose(lhs, F, atol=1e-8)
         lhs = compose(D, SWAP)
-        cocommutative = numpy.allclose(lhs, D, atol=1e-8)
+        cocommutative = allclose(lhs, D, atol=1e-8)
 
         if commutative != cocommutative:
             lhs = compose(SWAP, F)
@@ -556,42 +648,6 @@ def main():
     print(A)
     vals = numpy.linalg.eig(A)[0]
     print("vals:", vals)
-
-    def find_copyable(D):
-        #print("\nminimize...")
-        system = System()
-        v = system.array(dim, 1)
-        system.add(compose(v, D), tensor(v, v))
-        #system.py_func(True)
-        found = []
-        trials = 0
-        exclude = [numpy.zeros(dim)]
-        exclude = []
-        #while trials < 1000:
-        while len(found) < dim and trials<1000:
-            trials += 1
-            values = system.root(scale=10)
-            if values is None:
-                values = system.minimize(scale=10, method="TNC", exclude=exclude, sigma=3000)
-            if values is None:
-                continue
-            v = values[0]
-            v = v.transpose()[0]
-            #print(v)
-            if norm(v) < 1e-2:
-                continue
-            for w in found:
-                if norm(v-w) < 1e-2:
-                    break
-            else:
-                found.append(v)
-                print("found:", len(found))
-                print(v)
-                exclude.append(v)
-        print()
-        g = numpy.array(found).transpose()
-        return g
-
     g = find_copyable(D)
 
     if g.shape == (dim,dim) and dim==3:
@@ -613,10 +669,335 @@ def main():
         g1 = find_copyable(D1)
         print(g1)
 
-        assert numpy.allclose(D, D1, rtol=1e-6)
+        assert allclose(D, D1, rtol=1e-6)
 
         F1 = dot(Q, dot(F, QQi))
-        assert numpy.allclose(F, F1, rtol=1e-6)
+        assert allclose(F, F1, rtol=1e-6)
+
+
+def main_structure():
+    # See:
+    # https://math.stackexchange.com/q/424236
+
+    dim = argv.get("dim", 4)
+    assert dim%2 == 0
+    
+    I = empty((dim, dim), dtype=float)
+    I[:] = 0
+    for i in range(dim):
+        I[i, i] = 1
+    #print(I)
+    
+    SWAP = get_swap(dim)
+    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    
+    # -----------------------------------------------------------
+    # 
+
+    system = System()
+
+    # complex structure
+    J = system.array(dim, dim, "J")
+    system.add(dot(J, J), -I)
+
+    # orthogonal structure
+    O = system.array(1, dim**2, "O")
+    O1 = dot(O, SWAP)
+    system.add(O, O1) # symmetric
+    JJ = tensor(J, J)
+    system.add(O, dot(O, JJ))
+
+    # symplectic structure
+    F = system.array(1, dim**2, "F")
+    F1 = dot(F, SWAP)
+    system.add(F, -F1) # anti-symmetric
+    JJ = tensor(J, J)
+    system.add(F, dot(F, JJ))
+
+    while 1:
+        values = system.root(maxiter=10000000)
+        if values is not None:
+            break
+
+    J, O, F = values
+    #print(J)
+    #print(dot(J, J))
+    JJ = tensor(J, J)
+    tol = 1e-8
+    assert allclose(dot(J, J), -I, tol)
+    assert allclose(O, dot(O, SWAP), tol)
+    assert allclose(O, dot(O, JJ), tol)
+    assert allclose(-F, dot(F, SWAP), tol)
+    assert allclose(F, dot(F, JJ), tol)
+
+    print("unitary structure: done")
+
+    O1 = O.reshape(dim, dim)
+    Oi = numpy.linalg.inv(O1)
+    Oi = Oi.reshape(dim**2, 1)
+
+    o_cap = O
+    o_cup = Oi
+
+    F1 = F.reshape(dim, dim)
+    Fi = numpy.linalg.inv(F1)
+    Fi = Fi.reshape(dim**2, 1)
+
+    f_cap = F
+    f_cup = Fi
+
+    lhs = compose(tensor(I, o_cup), tensor(o_cap, I))
+    assert allclose(lhs, I, tol)
+    lhs = compose(tensor(o_cup, I), tensor(I, o_cap))
+    assert allclose(lhs, I, tol)
+
+    lhs = compose(tensor(I, f_cup), tensor(f_cap, I))
+    assert allclose(lhs, I, tol)
+    lhs = compose(tensor(f_cup, I), tensor(I, f_cap))
+    assert allclose(lhs, I, tol)
+
+#    lhs = compose(tensor(I, o_cup), tensor(f_cap, I))
+#    rhs = compose(tensor(I, f_cup), tensor(o_cap, I))
+#    rhs = compose(tensor(f_cup, I), tensor(I, o_cap))
+#    print(lhs)
+#    print(rhs)
+#    print(J)
+
+    # -----------------------------------------------------------
+    # Frobenius structure
+    # see: https://arxiv.org/abs/2306.08826
+
+    system = System()
+    add = system.add
+    
+    M = system.array(dim, dim**2, "M") # mul
+    U = system.array(dim, 1, "U") # unit
+    P = system.array(dim, dim, "P") # phi
+
+    CU = compose(tensor(U, I), o_cap) # counit
+
+    # comul
+    CM = compose(tensor(o_cup, o_cup), tensor(I, M, I), tensor(I, SWAP))
+    CM = compose(tensor(CM, I), tensor(I, I, o_cap))
+    #print(CM.shape)
+    
+    IM = tensor(I, M)
+    MI = tensor(M, I)
+    
+    IU = tensor(I, U)
+    UI = tensor(U, I)
+    
+    # unit
+    add(compose(IU, M), I)
+    add(compose(UI, M), I)
+    
+    # _assoc
+    add(compose(MI, M), compose(IM, M))
+    
+    # commutative
+    add(M, compose(SWAP, M))
+    
+    # one equation is enough for the Frobenius structure
+    add(
+        compose(tensor(I, CM), tensor(M, I)), 
+        compose(tensor(CM, I), tensor(I, M)))
+
+    # special Frobenius
+    add( compose(CM, M), I )
+
+    # P involution
+    add( compose(P, P), I )
+    add( compose(tensor(P, P), M), compose(M, P) )
+    add( compose(U, P), U )
+    add( compose(o_cup, tensor(P, I), M), 0*U )
+    add( compose(P, CM), compose(CM, tensor(P,P)) )
+    add( compose(P, CU), CU )
+
+    values = system.root(trials=100, maxiter=100)
+
+    M, U, P = values
+
+    PP = tensor(P, P)
+    PI = tensor(P, I)
+    IP = tensor(I, P)
+
+    CU = compose(tensor(U, I), o_cap) # counit
+
+    # comul
+    CM = compose(tensor(o_cup, o_cup), tensor(I, M, I), tensor(I, SWAP))
+    CM = compose(tensor(CM, I), tensor(I, I, o_cap))
+
+    assert(allclose( CM, compose(CM, SWAP) ))
+    assert(allclose( I, dot(tensor(CU, I), CM) ))
+
+    assert(allclose( 
+        compose(tensor(I, CM), tensor(M, I)), 
+        compose(tensor(CM, I), tensor(I, M))))
+
+    assert(allclose( 
+        compose(tensor(I, CM), tensor(M, I)), 
+        compose(M, CM)))
+
+    lhs = compose(tensor(M, I), SWAP)
+    rhs = compose(tensor(I, SWAP), tensor(SWAP, I), tensor(I, M))
+    assert(allclose(lhs, rhs))
+
+    print("special:", allclose(compose(CM, M), I))
+
+    print(P)
+
+    print(allclose(compose(P, CM), compose(CM, tensor(P,P)), 1e-6))
+    print(allclose( compose(o_cup, PI), compose(o_cup, IP), 1e-4))
+    print(allclose( compose(P, CU), CU ))
+
+    #print(allclose( compose(J, CU), CU ))
+
+    print("frobenius structure: done")
+
+    return locals()
+
+
+def main_extra():
+    # See:
+    # https://math.stackexchange.com/q/424236
+
+    dim = argv.get("dim", 4)
+    assert dim%2 == 0
+    
+    I = empty((dim, dim), dtype=float)
+    I[:] = 0
+    for i in range(dim):
+        I[i, i] = 1
+    #print(I)
+    
+    SWAP = get_swap(dim)
+    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    
+    # -----------------------------------------------------------
+    # Frobenius structure
+    # see: https://arxiv.org/abs/2306.08826
+
+    system = System()
+    add = system.add
+    
+    M = system.array(dim, dim**2, "M") # mul
+    U = system.array(dim, 1, "U") # unit
+    CM = system.array(dim**2, dim, "CM") # co-mul
+    CU = system.array(1, dim, "CU") # co-unit
+    P = system.array(dim, dim, "P") # phi
+
+    IM = tensor(I, M)
+    MI = tensor(M, I)
+    
+    IU = tensor(I, U)
+    UI = tensor(U, I)
+    
+    # unit
+    add(compose(IU, M), I)
+    add(compose(UI, M), I)
+    
+    # _assoc
+    add(compose(MI, M), compose(IM, M))
+    
+    # commutative
+    add(M, compose(SWAP, M))
+
+    # co-unit
+    add(dot(tensor(CU, I), CM), I)
+    add(dot(tensor(I, CU), CM), I)
+
+    # co-assoc
+    add(compose(CM, tensor(CM, I)), compose(CM, tensor(I, CM)))
+    
+    # one equation is enough for the Frobenius structure
+    add(
+        compose(tensor(I, CM), tensor(M, I)), 
+        compose(tensor(CM, I), tensor(I, M)))
+
+    # special Frobenius
+    add( compose(CM, M), I )
+
+    cup = compose(U, CM)
+    cap = compose(M, CU)
+
+    # P involution
+    add( compose(P, P), I )
+    add( compose(tensor(P, P), M), compose(M, P) )
+    add( compose(U, P), U )
+    add( compose(cup, tensor(P, I), M), 0*U )
+    add( compose(P, CM), compose(CM, tensor(P,P)) )
+    add( compose(P, CU), CU )
+
+    print("frobenius structure", end=' ', flush=True)
+    values = system.root(trials=100, maxiter=400)
+    print("done")
+
+    # ------------------------------------------------
+
+    M, U, CM, CU, P = values
+    cup = compose(U, CM)
+    cap = compose(M, CU)
+
+    PP = tensor(P, P)
+    PI = tensor(P, I)
+    IP = tensor(I, P)
+
+    assert(allclose( CM, compose(CM, SWAP) ))
+    assert(allclose( I, dot(tensor(CU, I), CM) ))
+
+    assert(allclose( 
+        compose(tensor(I, CM), tensor(M, I)), 
+        compose(tensor(CM, I), tensor(I, M))))
+
+    assert(allclose( 
+        compose(tensor(I, CM), tensor(M, I)), 
+        compose(M, CM)))
+
+    lhs = compose(tensor(M, I), SWAP)
+    rhs = compose(tensor(I, SWAP), tensor(SWAP, I), tensor(I, M))
+    assert(allclose(lhs, rhs))
+
+    assert allclose(compose(CM, M), I) # special
+
+    print(P)
+
+    print(allclose(compose(P, CM), compose(CM, tensor(P,P)), 1e-6))
+    print(allclose( compose(cup, PI), compose(cup, IP), 1e-4))
+    print(allclose( compose(P, CU), CU ))
+
+    #print(allclose( compose(J, CU), CU ))
+
+    g = find_copyable(CM)
+    print(g)
+
+    #print( compose(tensor(g, g), M) )
+    #print( M )
+    assert allclose( compose(cup, tensor(P, I), M), 0*U )
+    assert allclose( compose(CM, tensor(P, I), cap), 0*CU )
+
+    basis = list(g.transpose())
+    for v in basis:
+        for u in basis:
+            r = compose(tensor(u, v), M, CU)[0]
+            print("%.3f"%r, end=" ")
+        print()
+        
+    print()
+    for v in basis:
+        for u in basis:
+            Pu = dot(P, u)
+            r = compose(tensor(Pu, v), cap)[0]
+            print("%.3f"%r, end=" ")
+        print()
+        
+    for v in basis:
+        assert allclose( compose(v, CM), tensor(v, v) )
+        Pv = dot(P, v)
+        assert allclose( compose(tensor(Pv, v), cap), [0] )
+        print(v, Pv)
+
+    return locals()
+
 
 
 def main_hopf(dim=2):
@@ -979,7 +1360,7 @@ def ffield():
                 continue
             lhs = dot(D, v)
             rhs = tensor(v, v)
-            if numpy.allclose(lhs, rhs):
+            if allclose(lhs, rhs):
                 print(v.transpose())
     
         block_model(solver)
@@ -988,16 +1369,25 @@ def ffield():
     print("done")
 
 
+
 if __name__ == "__main__":
+    _seed = argv.get("seed")
+    if _seed is not None:
+        print("seed:", _seed)
+        numpy.random.seed(_seed)
 
-    name = argv.next() or "main"
-    fn = eval(name)
+    fn = argv.next() or "main"
 
-    print("%s()"%name)
-    fn()
+    print("%s()"%fn)
 
-    print("OK")
-    print()
+    if argv.profile:
+        import cProfile as profile
+        profile.run("%s()"%fn)
+    else:
+        fn = eval(fn)
+        fn()
+
+    print("OK: finished in %.3f seconds.\n"%(time() - start_time))
 
 
 

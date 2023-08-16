@@ -165,6 +165,7 @@ def complement(H):
 
 @numba.njit
 def swap_row(A, j, k):
+    assert 0
     row = A[j, :].copy()
     A[j, :] = A[k, :]
     A[k, :] = row
