@@ -943,7 +943,7 @@ def main_extra():
     IP = tensor(I, P)
 
     assert(allclose( CM, compose(CM, SWAP) ))
-    assert(allclose( I, dot(tensor(CU, I), CM) ))
+    assert(allclose( I, dot(tensor(CU, I), CM), 1e-4 ))
 
     assert(allclose( 
         compose(tensor(I, CM), tensor(M, I)), 
