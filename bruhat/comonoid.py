@@ -1007,6 +1007,46 @@ def main_extra():
 #            print("%.3f"%r, end=" ")
 #        print()
         
+    system = System()
+    F = system.array(dim, dim, "F") # symplectic form
+    add = system.add
+    add(dot(P, F), -dot(F, P))
+    Fc = compose(tensor(F, I), cap)
+    add(Fc, -compose(SWAP, Fc))
+    add(compose(tensor(U, I), Fc), CU)
+
+    print("symplectic structure", end=' ', flush=True)
+    #values = system.root(trials=100, maxiter=400)
+#    values = system.minimize(scale=10, method="TNC", exclude=exclude, sigma=3000)
+    values = system.minimize(trials=100, scale=10, method="TNC", sigma=3000)
+    print("done")
+    if values is None:
+        print("no solution")
+        return
+
+    # ------------------------------------------------
+
+    print("cap:")
+    print(cap)
+
+    F, = values
+    Fc = compose(tensor(F, I), cap)
+    print(F)
+    print(Fc)
+
+    print( tensor(F,I).shape, cap.shape, Fc.shape )
+
+    print()
+    for v in basis:
+        for u in basis:
+            r = compose(tensor(u, v), Fc)[0]
+            print("%.3f"%r, end=" ")
+        print()
+        
+    print(allclose( dot(P, F), -dot(F, P), 1e-2))
+
+    print(compose(tensor(U, I), Fc))
+    print(CU)
 
     return locals()
 
