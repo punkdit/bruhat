@@ -32,6 +32,9 @@ class SMC(object):
         return Lin(V, K, v)
     
     def bra(self, i):
+        v = self.ket(i)
+        v = v.transpose()
+        return v
         ring = self.ring
         K, V = self.K, self.V
         v = [ring.zero]*self.n
@@ -74,15 +77,12 @@ def main():
     Z = Lin(V, V, [[1, 0], [0, -1]])
 
     I = v0*u0 + v1*u1
-    print(I)
+    assert green(1, 1) == I
 
     assert tpow(ket(0), 1) == v0
     assert tpow(ket(0), 2) == v0@v0
     assert green(2, 2) == v0 @ v0 @ u0 @ u0 + v1 @ v1 @ u1 @ u1 
     a = ket(0) * bra(0)
-    #print(green(1,2).shape)
-    #print((v0@v0@u0).shape)
-    #print(green(1,2))
     assert green(1,2).shape == (v0@u0@u0).shape
 
     mul = green(1, 2)
@@ -92,14 +92,12 @@ def main():
 
     assert mul * (I @ unit) == I
     assert mul * (I @ mul) == mul * (mul @ I)
+    assert mul * comul == I
 
     cap = counit * mul
     cup = comul * unit
 
     assert (I @ cap)*(cup @ I) == I
-    print(cap*cup)
-    print(repr(cap))
-    assert cap * cup == one
 
     assert ( mul * (v0 @ v0) ) == v0
     assert ( mul * (v1 @ v1) ) == v1
@@ -113,9 +111,6 @@ def main():
     assert (X@X) * comul == comul*X
     assert counit * X == counit
     assert X * unit == unit
-
-    print(unit)
-    print(counit)
 
     return
 

@@ -996,8 +996,97 @@ def main_extra():
         assert allclose( compose(tensor(Pv, v), cap), [0] )
         print(v, Pv)
 
+#    # zero !
+#    F = dot(M, tensor(P, I)) - dot(M, tensor(I, P))
+#    F = dot(CU, F)
+#    
+#    print()
+#    for v in basis:
+#        for u in basis:
+#            r = compose(tensor(u, v), F)[0]
+#            print("%.3f"%r, end=" ")
+#        print()
+        
+
     return locals()
 
+
+def main_frobenius():
+    dim = argv.get("dim", 4)
+    assert dim%2 == 0
+    
+    I = empty((dim, dim), dtype=float)
+    I[:] = 0
+    for i in range(dim):
+        I[i, i] = 1
+    #print(I)
+    
+    SWAP = get_swap(dim)
+    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    
+    # -----------------------------------------------------------
+    # Frobenius structure
+    # see: https://arxiv.org/abs/2306.08826
+
+    system = System()
+    add = system.add
+    
+    M = system.array(dim, dim**2, "M") # mul
+    U = system.array(dim, 1, "U") # unit
+    CM = system.array(dim**2, dim, "CM") # co-mul
+    CU = system.array(1, dim, "CU") # co-unit
+
+    IM = tensor(I, M)
+    MI = tensor(M, I)
+    
+    IU = tensor(I, U)
+    UI = tensor(U, I)
+    
+    # unit
+    add(compose(IU, M), I)
+    add(compose(UI, M), I)
+    
+    # _assoc
+    add(compose(MI, M), compose(IM, M))
+    
+    # commutative
+    add(M, compose(SWAP, M))
+
+    # co-unit
+    add(dot(tensor(CU, I), CM), I)
+    add(dot(tensor(I, CU), CM), I)
+
+    # co-assoc
+    add(compose(CM, tensor(CM, I)), compose(CM, tensor(I, CM)))
+    
+    # one equation is enough for the Frobenius structure
+    add(
+        compose(tensor(I, CM), tensor(M, I)), 
+        compose(tensor(CM, I), tensor(I, M)))
+
+    # special Frobenius
+    add( compose(CM, M), I )
+
+    cup = compose(U, CM)
+    cap = compose(M, CU)
+
+    print("frobenius structure", end=' ', flush=True)
+    values = system.root(trials=100, maxiter=400)
+    print("done")
+
+    # ------------------------------------------------
+
+    M, U, CM, CU = values
+
+    basis = find_copyable(CM)
+    basis = list(basis.transpose())
+
+    for v in basis:
+        for u in basis:
+            r = compose(tensor(u, v), M, CU)[0]
+            print("%.3f"%r, end=" ")
+        print()
+        
 
 
 def main_hopf(dim=2):
