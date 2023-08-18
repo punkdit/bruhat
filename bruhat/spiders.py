@@ -5,61 +5,90 @@ from functools import reduce
 from time import time
 start_time = time()
 
+import numpy
+
+from bruhat.lin import Space, Lin, element
 from bruhat.argv import argv
 
-from qupy.dense import Qu, Gate, bitvec
-I, X, Z, H = Gate.I, Gate.X, Gate.Z, Gate.H
-
-DIM = 2
-
-one = Qu((), '', 1.)
-
-def ket(*bits):
-    return bitvec(*bits)
-
-def bra(*bits):
-    return ~bitvec(*bits)
-
-def tpow(v, n):
+def tpow(v, n, one=None):
     return reduce(matmul, [v]*n) if n>0 else one
 
-def green(m, n):
-    # m legs <--- n legs
-    G = reduce(add, [tpow(ket(i), m) * tpow(bra(i), n) for i in range(DIM)])
-    return G
 
-def red(m, n):
-    # m legs <--- n legs
-    G = green(m, n)
-    R = tpow(H, m) * G * tpow(H, n)
-    return R
+class SMC(object):
+    def __init__(self, ring, n):
+        self.K = Space(ring, 1, 0, "K")
+        self.V = Space(ring, n, 0, "V")
+        self.one = Lin(self.K, self.K, [[1]])
+        self.ring = ring
+        self.n = n
+    
+    def ket(self, i):
+        ring = self.ring
+        K, V = self.K, self.V
+        v = [ring.zero]*self.n
+        v[i] = ring.one
+        v = numpy.array(v)
+        v.shape = (V.n, K.n)
+        return Lin(V, K, v)
+    
+    def bra(self, i):
+        ring = self.ring
+        K, V = self.K, self.V
+        v = [ring.zero]*self.n
+        v[i] = ring.one
+        v = numpy.array(v)
+        v.shape = (K.n, V.n)
+        return Lin(K, V, v)
+
+    def green(self, m, n):
+        # m legs <--- n legs
+        K, V = self.K, self.V
+        mid = Lin(tpow(K, m, K), tpow(K, n, K), [[1]])
+        G = reduce(add, [
+            tpow(self.ket(i), m, self.one) * mid * tpow(self.bra(i), n, self.one)
+            for i in range(self.n)])
+        return G
+    
+    def red(self, m, n):
+        # m legs <--- n legs
+        G = self.green(m, n)
+        R = tpow(H, m, self.one) * G * tpow(H, n, self.one)
+        return R
 
 def main():
 
-    assert Z*X == -X*Z
+    ring = element.Z
+    c = SMC(ring, 2)
+
+    ket, bra = c.ket, c.bra
+    green, red = c.green, c.red
+    K, V = c.K, c.V
+    one = c.one
 
     v0 = ket(0) # |0>
     v1 = ket(1)
-    assert v0 * ~v0 + v1*~v1 == I
+    u0 = bra(0) # |0>
+    u1 = bra(1)
+
+    X = Lin(V, V, [[0, 1], [1, 0]])
+    Z = Lin(V, V, [[1, 0], [0, -1]])
+
+    I = v0*u0 + v1*u1
+    print(I)
 
     assert tpow(ket(0), 1) == v0
     assert tpow(ket(0), 2) == v0@v0
-    assert green(2, 2) == v0 @ v0 @ ~v0 @ ~v0 + v1 @ v1 @ ~v1 @ ~v1 
-    assert green(1,2).shape == (v0@v0@ ~v0).shape
-
-    #print(red(2, 2).shortstr() )
-
-    inv = H 
+    assert green(2, 2) == v0 @ v0 @ u0 @ u0 + v1 @ v1 @ u1 @ u1 
+    a = ket(0) * bra(0)
+    #print(green(1,2).shape)
+    #print((v0@v0@u0).shape)
+    #print(green(1,2))
+    assert green(1,2).shape == (v0@u0@u0).shape
 
     mul = green(1, 2)
     comul = green(2, 1)
     unit = green(1, 0)
     counit = green(0, 1)
-
-    _mul = red(1, 2)
-    _comul = red(2, 1)
-    _unit = red(1, 0)
-    _counit = red(0, 1)
 
     assert mul * (I @ unit) == I
     assert mul * (I @ mul) == mul * (mul @ I)
@@ -68,14 +97,9 @@ def main():
     cup = comul * unit
 
     assert (I @ cap)*(cup @ I) == I
-
-    assert counit * H == _counit
-    assert H * unit == _unit
-
-#    A = counit * mul * (H @ I) * comul
-#    print(A)
-#    A = _counit * mul * (H @ I) * comul
-#    print(A)
+    print(cap*cup)
+    print(repr(cap))
+    assert cap * cup == one
 
     assert ( mul * (v0 @ v0) ) == v0
     assert ( mul * (v1 @ v1) ) == v1
@@ -83,12 +107,22 @@ def main():
     assert ( mul * (v1 @ v0) ).is_zero()
 
     A = counit * mul * (X @ I) * comul
-    print(A.is_zero())
+    assert A.is_zero()
 
     assert mul * (X@X) == X*mul
     assert (X@X) * comul == comul*X
     assert counit * X == counit
     assert X * unit == unit
+
+    print(unit)
+    print(counit)
+
+    return
+
+    _mul = red(1, 2)
+    _comul = red(2, 1)
+    _unit = red(1, 0)
+    _counit = red(0, 1)
 
 
 
