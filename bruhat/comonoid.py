@@ -10,33 +10,32 @@ from functools import reduce
 from operator import mul, add
 
 import numpy
-from numpy import dot, array, empty, alltrue, allclose, exp, zeros, kron
+from numpy import array, empty, alltrue, allclose, exp, zeros, kron
 from numpy.linalg import norm
 
-#def compose(first, second):
-    #return numpy.dot(second, first)
-def compose(*items):
-    items = reversed(items)
-    return reduce(numpy.dot, items)
-#tensor = numpy.kron
-tensor = lambda *items : reduce(numpy.kron, items)
-
-# https://docs.sympy.org/latest/modules/solvers/solvers.html
-#from sympy.solvers import solve
-#from sympy.solvers import nonlinsolve
-
-#from sympy import Symbol
 from bruhat.sympy import Symbol
-
 from bruhat.argv import argv
 
 
+def compose(*items):
+    items = reversed(items)
+    return reduce(numpy.dot, items)
+
+def dot(*items):
+    return reduce(numpy.dot, items)
+
+tensor = lambda *items : reduce(numpy.kron, items)
+
+
 class System(object):
-    def __init__(self):
+    def __init__(self, dim):
         self.eqs = []
         self.idx = 0
         self.vs = []
         self.items = [] # list of array's
+        self.dim = dim
+        self.I = numpy.identity(dim)
+        self.swap = get_swap(dim)
 
     def get_var(self, stem='v'):
         ch = "%s_%d"%(stem, self.idx)
@@ -185,17 +184,17 @@ class System(object):
                 return False
         return True
 
-    def root(self, trials=1, scale=1., method="lm", tol=1e-6, maxiter=1000000):
+    def root(self, trials=1, scale=1., method="lm",  # only lm works...
+            tol=1e-6, maxiter=1000, jac=True, debug=False):
         from scipy.optimize import root
         n = len(self.vs)
         f = self.py_func()
-        jac = self.py_jac()
+        if jac:
+            jac = self.py_jac()
         eol = ''
         for trial in range(trials):
             x0 = numpy.random.normal(size=n)*scale
             solution = root(f, x0, method=method, jac=jac, tol=tol, options={"maxiter":maxiter})
-            #solution = root(f, x0, method=method, tol=tol, options={"maxiter":maxiter})
-            #print(solution)
             if solution.success:
                 break
             print(".", end='', flush=True)
@@ -204,15 +203,27 @@ class System(object):
             print()
             return None
         print(eol, end='')
+        self.solution = solution
         x = solution.x
+        if debug:
+            print("x = ", x)
+            print("f(x) =", ' '.join("%.3f"%xi for xi in f(x)))
+            df = jac(x)
+            print("df(x) =", df)
+            #sol = self.get_root(list(x))
+            #print("sol:", sol)
+            #x = sol
         values = self.subs(x=x)
         return values
 
-    def get_root(self):
+    def get_root(self, x0=None):
         from mpmath import mp
-        f = self.py_func_args(True)
-        J = self.py_jac_args(True)
-        sol = mp.findroot(f, (0.,)*len(self.vs), J=J)
+        f = self.py_func_args()
+        J = self.py_jac_args()
+        if x0 is None:
+            x0 = (0.,)*len(self.vs)
+        sol = mp.findroot(f, x0, J=J, tol=1e-4)
+        #sol = mp.findroot(f, x0)
         return sol
 
     def minimize(self, trials=10, scale=1, method=None, exclude=[], sigma=1000):
@@ -237,6 +248,7 @@ class System(object):
             return None
         #print(solution)
         x = solution.x
+        self.solution = solution
         values = self.subs(x=x)
         return values
 
@@ -260,6 +272,41 @@ class System(object):
             assert val == 0
         return result
 
+    def add_frobenius(system, M, U, CM, CU):
+        I = system.I
+        swap = system.swap
+        add = system.add
+        IM = tensor(I, M)
+        MI = tensor(M, I)
+        
+        IU = tensor(I, U)
+        UI = tensor(U, I)
+        
+        # unit
+        add(compose(IU, M), I)
+        add(compose(UI, M), I)
+        
+        # _assoc
+        add(compose(MI, M), compose(IM, M))
+        
+        # commutative
+        add(M, compose(swap, M))
+    
+        # co-unit
+        add(dot(tensor(CU, I), CM), I)
+        add(dot(tensor(I, CU), CM), I)
+    
+        # co-assoc
+        add(compose(CM, tensor(CM, I)), compose(CM, tensor(I, CM)))
+        
+        # one equation is enough for the Frobenius structure
+        add(compose(tensor(I, CM), tensor(M, I)), 
+            compose(tensor(CM, I), tensor(I, M)))
+    
+        # special Frobenius
+        add( compose(CM, M), I )
+
+
         
 def test_sympy():
     dim = 2
@@ -267,7 +314,7 @@ def test_sympy():
     I[:] = 0
     for i in range(dim):
         I[i, i] = 1
-    system = System()
+    system = System(dim)
     #M = system.array(2, 4, "M")
     M = array([
         [1, 0, 0, 0],
@@ -303,7 +350,7 @@ def test():
         [0, 0, 0, 1],
     ], dtype=float)
 
-    system = System()
+    system = System(dim)
     G = system.array(2, 2, "G")
     Gi = system.array(2, 2, "Gi")
     GG = tensor(G, G)
@@ -384,7 +431,7 @@ def get_identity(dim):
 def test_root():
     dim = 4
 
-    system = System()
+    system = System(dim)
     I = get_identity(dim)
     A = system.array(dim, dim)
     B = system.array(dim, dim)
@@ -479,9 +526,9 @@ def test_symplectic():
 
 
 def find_copyable(CM):
-    #print("\nminimize...")
+    print("find_copyable:")
     dim = CM.shape[1]
-    system = System()
+    system = System(dim)
     v = system.array(dim, 1)
     system.add(compose(v, CM), tensor(v, v))
     #system.py_func(True)
@@ -494,7 +541,10 @@ def find_copyable(CM):
         trials += 1
         values = system.root(scale=10)
         if values is None:
+            print("\tminimize")
             values = system.minimize(scale=10, method="TNC", exclude=exclude, sigma=3000)
+        #else:
+        #    print(system.solution.message)
         if values is None:
             continue
         v = values[0]
@@ -511,7 +561,7 @@ def find_copyable(CM):
             print(v)
             exclude.append(v)
     print()
-    g = numpy.array(found).transpose()
+    g = numpy.array(found)
     return g
 
 
@@ -541,7 +591,7 @@ def main():
     # -----------------------------------------------------------
     # Build some Frobenius algebra's ... find the copyable states
 
-    system = System()
+    system = System(dim)
     
     F = system.array(dim, dim**2, "F") # mul
     G = system.array(dim, 1, "G") # unit
@@ -648,7 +698,7 @@ def main():
     print(A)
     vals = numpy.linalg.eig(A)[0]
     print("vals:", vals)
-    g = find_copyable(D)
+    g = find_copyable(D).transpose()
 
     if g.shape == (dim,dim) and dim==3:
         # Check the Frobenius structure is invariant if
@@ -666,7 +716,7 @@ def main():
         D1 = dot(QQ, dot(D, Qi))
         print(D1)
     
-        g1 = find_copyable(D1)
+        g1 = find_copyable(D1).transpose()
         print(g1)
 
         assert allclose(D, D1, rtol=1e-6)
@@ -694,7 +744,7 @@ def main_structure():
     # -----------------------------------------------------------
     # 
 
-    system = System()
+    system = System(dim)
 
     # complex structure
     J = system.array(dim, dim, "J")
@@ -767,7 +817,7 @@ def main_structure():
     # Frobenius structure
     # see: https://arxiv.org/abs/2306.08826
 
-    system = System()
+    system = System(dim)
     add = system.add
     
     M = system.array(dim, dim**2, "M") # mul
@@ -877,7 +927,7 @@ def main_extra():
     # Frobenius structure
     # see: https://arxiv.org/abs/2306.08826
 
-    system = System()
+    system = System(dim)
     add = system.add
     
     M = system.array(dim, dim**2, "M") # mul
@@ -967,7 +1017,7 @@ def main_extra():
 
     #print(allclose( compose(J, CU), CU ))
 
-    g = find_copyable(CM)
+    g = find_copyable(CM).transpose()
     print(g)
 
     #print( compose(tensor(g, g), M) )
@@ -1007,7 +1057,7 @@ def main_extra():
 #            print("%.3f"%r, end=" ")
 #        print()
         
-    system = System()
+    system = System(dim)
     F = system.array(dim, dim, "F") # symplectic form
     add = system.add
     add(dot(P, F), -dot(F, P))
@@ -1050,7 +1100,6 @@ def main_extra():
 
     return locals()
 
-
 def main_frobenius():
     dim = argv.get("dim", 4)
     assert dim%2 == 0
@@ -1068,7 +1117,7 @@ def main_frobenius():
     # Frobenius structure
     # see: https://arxiv.org/abs/2306.08826
 
-    system = System()
+    system = System(dim)
     add = system.add
     
     M = system.array(dim, dim**2, "M") # mul
@@ -1119,7 +1168,6 @@ def main_frobenius():
     M, U, CM, CU = values
 
     basis = find_copyable(CM)
-    basis = list(basis.transpose())
 
     for v in basis:
         for u in basis:
@@ -1128,6 +1176,127 @@ def main_frobenius():
         print()
         
 
+def show_form(cap, basis):
+    for v in basis:
+        for u in basis:
+            x = compose(tensor(u, v), cap)[0]
+            print("%.3f"%x, end=" ")
+        print()
+
+
+def main_interacting_hopf():
+
+    dim = argv.get("dim", 2)
+    I = numpy.identity(dim)
+    swap = get_swap(dim)
+    
+    system = System(dim)
+
+    # time is going <--------
+    
+    # green spiders
+    g_gg = F = system.array(dim, dim**2, "F") # mul
+    g_   = G = system.array(dim, 1, "G") # unit
+    gg_g = D = system.array(dim**2, dim, "D") # comul
+    _g   = E = system.array(1, dim, "E") # counit
+
+    system.add_frobenius(g_gg, g_, gg_g, _g)
+
+    #system.py_func(True)
+
+    print("frobenius structure", end=' ', flush=True)
+    values = system.root(trials=100, maxiter=400)
+    print("done")
+
+    # ------------------------------------------------------
+
+    g_gg, g_, gg_g, _g = values
+    _gg = dot(_g, g_gg) # cap
+    g_basis = find_copyable(gg_g)
+    show_form(dot(_g, g_gg), g_basis)
+
+    # ------------------------------------------------------
+    # ------------------------------------------------------
+    # ------------------------------------------------------
+
+    system = System(dim)
+    add = system.add
+
+    # red spiders
+    r_rr = system.array(dim, dim**2, "r_rr") # mul
+    r_   = system.array(dim, 1, "r_") # unit
+    rr_r = system.array(dim**2, dim, "rr_r") # comul
+    _r   = system.array(1, dim, "_r") # counit
+    d = system.array(dim, dim, "d") # dualizer
+
+    _rr = dot(_r, r_rr) # cap
+
+    system.add_frobenius(r_rr, r_, rr_r, _r)
+
+    add(_gg, _rr)
+    add( dot(d, d), I )
+    add( dot( _g, d ), _r )
+    add( dot( d, g_ ), r_ )
+    add( dot( d, g_gg, tensor(d, d) ), r_rr )
+    add( dot( tensor(d, d), gg_g, d ), rr_r )
+    add( dot(_r, g_gg), tensor(_r, _r) )
+    add( dot(_g, r_rr), tensor(_g, _g) )
+
+    #add( dot(rr_r, g_gg), 
+    #    dot( tensor(g_gg, g_gg), tensor(I, swap, I), tensor(gg_g, gg_g) ))
+
+    #system.py_func(True)
+
+    print("frobenius structure", end=' ', flush=True)
+    values = system.root(trials=100, maxiter=400, debug=True)
+    #values = system.root(trials=100, maxiter=4000, jac=False, method='lm')
+    #values = system.minimize(trials=100)
+    if values is None:
+        print("fail")
+        return
+    print("done")
+    print(system.solution.message)
+
+    # ------------------------------------------------------
+
+    r_rr, r_, rr_r, _r, d = values
+    _rr = dot(_r, r_rr) # cap
+
+    def compare(lhs, rhs):
+        result = allclose(lhs, rhs, 1e-2)
+        print("compare:", result)
+        #if not result:
+        #    print(lhs)
+        #    print("!=")
+        #    print(rhs)
+        #    print()
+
+    r_basis = find_copyable(rr_r)
+    show_form(dot(_r, r_rr), r_basis)
+
+    compare(_gg, _rr)
+    compare( dot(d, d), I )
+    compare( dot( _g, d ), _r )
+    compare( dot( d, g_ ), r_ )
+    compare( dot( d, g_gg, tensor(d, d) ), r_rr )
+    compare( dot( tensor(d, d), gg_g, d ), rr_r )
+    compare( dot(_r, g_gg), tensor(_r, _r) )
+    compare( dot(rr_r, g_gg), 
+        dot( tensor(g_gg, g_gg), tensor(I, swap, I), tensor(gg_g, gg_g) ))
+
+    return
+
+    print()
+    show_form(dot(_r, r_rr), g_basis)
+    print()
+    show_form(dot(_g, g_gg), r_basis)
+
+    print( dot(rr_r, g_gg), )
+    print( dot( tensor(g_gg, g_gg), tensor(I, swap, I), tensor(gg_g, gg_g) ) )
+    print(
+    allclose( dot(rr_r, g_gg), 
+        dot( tensor(g_gg, g_gg), tensor(I, swap, I), tensor(gg_g, gg_g) ), 1e-2)
+    )
 
 def main_hopf(dim=2):
 
@@ -1144,7 +1313,9 @@ def main_hopf(dim=2):
     # -----------------------------------------------------------
     # Build some Frobenius algebra's & Hopf algebra's
 
-    system = System()
+    system = System(dim)
+
+    # time is going -------->
     
     # green spiders
     g_gg = D = system.array(dim**2, dim, "D") # comul
@@ -1190,6 +1361,9 @@ def main_hopf(dim=2):
     mk_frobenius(system, D, E, F, G)
     mk_frobenius(system, J, K, L, M)
 
+    system.add( compose(r_rr, swap), r_rr )
+    system.add( compose(g_gg, swap), g_gg )
+
     #print(tensor(I, swap, I).shape)
     #print(tensor(r_rr, r_rr).shape)
     lhs = compose(tensor(r_rr, r_rr), tensor(I, swap, I))
@@ -1207,28 +1381,20 @@ def main_hopf(dim=2):
     system.add(compose(tensor(I, _r), gg_g, g_), r_)
     system.add(compose(tensor(_r, I), gg_g, g_), r_)
 
+    system.add(compose(r_rr, rr_r), I) # special
+    system.add(compose(g_gg, gg_g), I) # special
+
     inv = compose(tensor(I, r_cup), tensor(swap, I), tensor(I, g_cap))
     if argv.inv:
         print("inv")
         system.add(compose(g_gg, tensor(I, inv), rr_r), compose(g_, _r))
         system.add(compose(g_gg, tensor(inv, I), rr_r), compose(g_, _r))
 
-    print("py_func")
-
-    f = system.py_func()
-
     trials = argv.get("trials", 100)
-    _seed = argv.get("seed")
-    if _seed is not None:
-        print("seed:", _seed)
-        numpy.random.seed(_seed)
 
-
-    values = system.root(maxiter=10000000)
+    values = system.root(trials=trials)
     if values is None:
         assert 0
-
-    print()
 
     D, E, F, G, J, K, L, M = values
 
@@ -1242,28 +1408,69 @@ def main_hopf(dim=2):
     rr_r = L
     _r   = M
 
-    print(r_rr)
-    print(rr_r)
-    print(g_gg)
-    print(gg_g)
-
-    print("commutative:")
-    print("r_rr", allclose(compose(r_rr, swap), r_rr))
-    print("g_gg", allclose(compose(g_gg, swap), g_gg))
-    print("rr_r", allclose(compose(swap, rr_r), rr_r))
-    print("gg_g", allclose(compose(swap, gg_g), gg_g))
+    assert( allclose(compose(r_rr, swap), r_rr, 1e-4))
+    assert( allclose(compose(g_gg, swap), g_gg, 1e-4))
+    assert( allclose(compose(swap, rr_r), rr_r, 1e-4))
+    assert( allclose(compose(swap, gg_g), gg_g, 1e-4))
 
     r_cup = compose(_r, r_rr)
     g_cup = compose(_g, g_gg)
     g_cap = compose(gg_g, g_)
     r_cap = compose(rr_r, r_)
 
-    print("g_cap", allclose(compose(swap, g_cap), g_cap))
-    print("r_cap", allclose(compose(swap, r_cap), r_cap))
-    print("r_cup", allclose(compose(r_cup, swap), r_cup))
-    print("g_cup", allclose(compose(g_cup, swap), g_cup))
+    assert( allclose(compose(swap, g_cap), g_cap, 1e-4))
+    assert( allclose(compose(swap, r_cap), r_cap, 1e-4))
+    assert( allclose(compose(r_cup, swap), r_cup, 1e-4))
+    assert( allclose(compose(g_cup, swap), g_cup, 1e-4))
 
     inv = compose(tensor(I, r_cup), tensor(swap, I), tensor(I, g_cap))
+
+    g_basis = find_copyable(g_gg)
+
+    r_basis = find_copyable(r_rr)
+
+    print()
+    for g in g_basis:
+        print( g )
+        print( compose( g , g_gg ) )
+        print( tensor(g, g) )
+        print( allclose( compose( g , g_gg ) , tensor(g, g), rtol=1e-3 ) )
+        print()
+
+    print()
+    for r in r_basis:
+        print( r )
+        print( compose( r , r_rr ) )
+        print( tensor(r, r) )
+        print( allclose( compose( r , r_rr ) , tensor(r, r), rtol=1e-3 ) )
+        print()
+
+    for v in g_basis:
+        for u in g_basis:
+            x = compose(tensor(u, v), g_cap)[0]
+            print("%.3f"%x, end=" ")
+        print()
+
+    print()
+    for v in r_basis:
+        for u in r_basis:
+            x = compose(tensor(u, v), r_cap)[0]
+            print("%.3f"%x, end=" ")
+        print()
+
+    print()
+    for v in r_basis:
+        for u in r_basis:
+            x = compose(tensor(u, v), g_cap)[0]
+            print("%.3f"%x, end=" ")
+        print()
+
+    print()
+    for v in g_basis:
+        for u in g_basis:
+            x = compose(tensor(u, v), r_cap)[0]
+            print("%.3f"%x, end=" ")
+        print()
 
     return locals()
 
@@ -1358,7 +1565,7 @@ def ffield():
     # -----------------------------------------------------------
     # Build some Frobenius algebra's ... find the copyable states
 
-    system = System()
+    system = System(dim)
     
     F = system.array(dim, dim**2, "F") # mul
     G = system.array(dim, 1, "G") # unit
