@@ -185,7 +185,7 @@ class System(object):
         return True
 
     def root(self, trials=1, scale=1., method="lm",  # only lm works...
-            tol=1e-6, maxiter=1000, jac=True, debug=False):
+            tol=1e-6, maxiter=1000, jac=True, debug=False, guess=1):
         from scipy.optimize import root
         n = len(self.vs)
         f = self.py_func()
@@ -193,11 +193,33 @@ class System(object):
             jac = self.py_jac()
         eol = ''
         for trial in range(trials):
-            x0 = numpy.random.normal(size=n)*scale
+            best = None
+            r = None
+            for _ in range(guess):
+                x0 = numpy.random.normal(size=n)*scale
+                fx0 = f(x0)
+                value = sum(abs(y) for y in fx0)
+                if best is None or value < r:
+                    best = x0
+                    r = value
+                    if guess>1:
+                        print("[%.3f]"%r, end="", flush=True)
+            if guess>1:
+                print()
+            x0 = best
             solution = root(f, x0, method=method, jac=jac, tol=tol, options={"maxiter":maxiter})
-            if solution.success:
+            if not solution.success:
+                print(".", end='', flush=True)
+                eol = '\n'
+
+            x = solution.x
+            fx = f(x)
+            for y in fx:
+                if abs(y) > 1e-4:
+                    break
+            else:
                 break
-            print(".", end='', flush=True)
+            print("X", end='', flush=True)
             eol = '\n'
         else:
             print()
@@ -205,11 +227,16 @@ class System(object):
         print(eol, end='')
         self.solution = solution
         x = solution.x
+        fx = f(x)
+        for y in fx:
+            if abs(y) > 1e-4:
+                print("System.root FAIL: %s != 0.0" % y)
+                return None
         if debug:
             print("x = ", x)
-            print("f(x) =", ' '.join("%.3f"%xi for xi in f(x)))
+            print("f(x) =", (' '.join("%.3f"%xi for xi in f(x))))
             df = jac(x)
-            print("df(x) =", df)
+            print("df(x) =", str(df)[:1000]+"...")
             #sol = self.get_root(list(x))
             #print("sol:", sol)
             #x = sol
@@ -989,7 +1016,7 @@ def main_extra():
     add( compose(P, CU), CU )
 
     print("frobenius structure", end=' ', flush=True)
-    values = system.root(trials=100, maxiter=400)
+    values = system.root(trials=100, maxiter=400, debug=argv.debug)
     print("done")
 
     # ------------------------------------------------
@@ -1232,8 +1259,11 @@ def main_interacting_hopf():
 
     #system.py_func(True)
 
-    print("frobenius structure", end=' ', flush=True)
+    print("green frobenius structure", end=' ', flush=True)
     values = system.root(trials=100, maxiter=400)
+    if values is None:
+        print("fail")
+        return
     print("done")
 
     # ------------------------------------------------------
@@ -1241,6 +1271,8 @@ def main_interacting_hopf():
     g_gg, g_, gg_g, _g = values
     _gg = dot(_g, g_gg) # cap
     g_basis = find_copyable(gg_g)
+    if g_basis.shape != (dim, dim):
+        return
     show_form(dot(_g, g_gg), g_basis)
 
     # ------------------------------------------------------
@@ -1275,10 +1307,10 @@ def main_interacting_hopf():
 
     #system.py_func(True)
 
-    print("frobenius structure", end=' ', flush=True)
-    #values = system.root(trials=100, maxiter=400, debug=True)
+    print("red frobenius structure", end=' ', flush=True)
+    values = system.root(trials=1000, maxiter=4000, guess=1000)
     #values = system.root(trials=100, maxiter=4000, jac=False, method='lm')
-    values = system.minimize(trials=100)
+    #values = system.minimize(trials=100)
     if values is None:
         print("fail")
         return
@@ -1313,6 +1345,9 @@ def main_interacting_hopf():
         dot( tensor(g_gg, g_gg), tensor(I, swap, I), tensor(gg_g, gg_g) ))
 
     # fail !!
+    print("finished !")
+
+    sys.exit(0)
 
 
 def compare(lhs, rhs, tol=1e-4):
@@ -1777,6 +1812,8 @@ if __name__ == "__main__":
         print("seed:", _seed)
         numpy.random.seed(_seed)
 
+    forever = argv.forever
+
     fn = argv.next() or "main"
 
     print("%s()"%fn)
@@ -1786,7 +1823,13 @@ if __name__ == "__main__":
         profile.run("%s()"%fn)
     else:
         fn = eval(fn)
-        fn()
+        if forever:
+            while 1:
+                print("forever:")
+                fn()
+                print()
+        else:
+            fn()
 
     print("OK: finished in %.3f seconds.\n"%(time() - start_time))
 
