@@ -936,6 +936,9 @@ def main_extra():
     CU = system.array(1, dim, "CU") # co-unit
     P = system.array(dim, dim, "P") # phi
 
+    if argv.crosscap:
+        T = system.array(dim, 1, "T")
+
     IM = tensor(I, M)
     MI = tensor(M, I)
     
@@ -974,7 +977,14 @@ def main_extra():
     add( compose(P, P), I )
     add( compose(tensor(P, P), M), compose(M, P) )
     add( compose(U, P), U )
-    add( compose(cup, tensor(P, I), M), 0*U )
+    if argv.crosscap:
+        add(
+            dot(M, tensor(I, T)),
+            dot(P, M, tensor(I, T)))
+        add( dot(M, tensor(P, I), cup), 
+            dot(M, tensor(T, T) ))
+    else:
+        add( compose(cup, tensor(P, I), M), 0*U )
     add( compose(P, CM), compose(CM, tensor(P,P)) )
     add( compose(P, CU), CU )
 
@@ -984,7 +994,12 @@ def main_extra():
 
     # ------------------------------------------------
 
-    M, U, CM, CU, P = values
+    if argv.crosscap:
+        M, U, CM, CU, P, T = values
+    else:
+        M, U, CM, CU, P = values
+        T = numpy.zeros((dim, 1))
+
     cup = compose(U, CM)
     cap = compose(M, CU)
 
@@ -1009,7 +1024,10 @@ def main_extra():
 
     assert allclose(compose(CM, M), I) # special
 
+    print("P:")
     print(P)
+    print("T:")
+    print(T)
 
     print(allclose(compose(P, CM), compose(CM, tensor(P,P)), 1e-6))
     print(allclose( compose(cup, PI), compose(cup, IP), 1e-4))
@@ -1022,8 +1040,14 @@ def main_extra():
 
     #print( compose(tensor(g, g), M) )
     #print( M )
-    assert allclose( compose(cup, tensor(P, I), M), 0*U )
-    assert allclose( compose(CM, tensor(P, I), cap), 0*CU )
+    if argv.crosscap:
+        TT = tensor(T, T)
+        assert allclose(
+            compose(T, CM, M),
+            compose(tensor(compose(TT, M), T), M))
+    else:
+        assert allclose( compose(cup, tensor(P, I), M), 0*U )
+        assert allclose( compose(CM, tensor(P, I), cap), 0*CU )
 
     basis = list(g.transpose())
     for v in basis:
@@ -1043,8 +1067,12 @@ def main_extra():
     for v in basis:
         assert allclose( compose(v, CM), tensor(v, v) )
         Pv = dot(P, v)
-        assert allclose( compose(tensor(Pv, v), cap), [0] )
-        print(v, Pv)
+        if not argv.crosscap:
+            assert allclose( compose(tensor(Pv, v), cap), [0] )
+        #print(v, Pv)
+
+    return
+
 
 #    # zero !
 #    F = dot(M, tensor(P, I)) - dot(M, tensor(I, P))
@@ -1242,20 +1270,20 @@ def main_interacting_hopf():
     add( dot(_r, g_gg), tensor(_r, _r) )
     add( dot(_g, r_rr), tensor(_g, _g) )
 
-    #add( dot(rr_r, g_gg), 
-    #    dot( tensor(g_gg, g_gg), tensor(I, swap, I), tensor(gg_g, gg_g) ))
+    add( dot(rr_r, g_gg), 
+        dot( tensor(g_gg, g_gg), tensor(I, swap, I), tensor(gg_g, gg_g) ))
 
     #system.py_func(True)
 
     print("frobenius structure", end=' ', flush=True)
-    values = system.root(trials=100, maxiter=400, debug=True)
+    #values = system.root(trials=100, maxiter=400, debug=True)
     #values = system.root(trials=100, maxiter=4000, jac=False, method='lm')
-    #values = system.minimize(trials=100)
+    values = system.minimize(trials=100)
     if values is None:
         print("fail")
         return
     print("done")
-    print(system.solution.message)
+    #print(system.solution.message)
 
     # ------------------------------------------------------
 
@@ -1284,19 +1312,56 @@ def main_interacting_hopf():
     compare( dot(rr_r, g_gg), 
         dot( tensor(g_gg, g_gg), tensor(I, swap, I), tensor(gg_g, gg_g) ))
 
-    return
+    # fail !!
 
-    print()
-    show_form(dot(_r, r_rr), g_basis)
-    print()
-    show_form(dot(_g, g_gg), r_basis)
 
-    print( dot(rr_r, g_gg), )
-    print( dot( tensor(g_gg, g_gg), tensor(I, swap, I), tensor(gg_g, gg_g) ) )
-    print(
-    allclose( dot(rr_r, g_gg), 
-        dot( tensor(g_gg, g_gg), tensor(I, swap, I), tensor(gg_g, gg_g) ), 1e-2)
-    )
+def compare(lhs, rhs, tol=1e-4):
+    result = allclose(lhs, rhs, atol=tol)
+    print("compare:", result)
+    #if not result:
+    #    print(lhs)
+    #    print("!=")
+    #    print(rhs)
+    #    print()
+
+
+def main_gl():
+
+    dim = argv.get("dim", 2)
+    system = System(dim)
+    add = system.add
+    I, swap = system.I, system.swap
+
+    U = system.array(dim, dim, "U")
+    V = system.array(dim, dim, "V")
+
+    add( dot(U, V), I )
+
+    print("gl:", end=' ', flush=True)
+    values = system.minimize(trials=100)
+    if values is None:
+        print("fail")
+        return
+    print("done")
+
+    U, V = values
+    print(U)
+    print(V)
+
+    compare(dot(U, V), I)
+    compare(dot(V, U), I)
+
+    basis = list(U)
+    dual = [V[:, i] for i in range(dim)]
+    for u in basis:
+      for v in dual:
+#        print("%.3f"%dot(u, v), end=' ')
+        print(dot(v, u), end=' ')
+      print()
+
+    for v in dual:
+        print(v)
+
 
 def main_hopf(dim=2):
 

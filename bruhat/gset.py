@@ -538,6 +538,23 @@ class Group(object):
         return G
 
     @classmethod
+    def coxeter_d(cls, n, check=False):
+        Lookup = lambda perm, items : Perm([items.index(perm[item]) for item in items])
+        items = [(i,0) for i in range(n)]
+        items += [(i,1) for i in range(n)]
+        perms = []
+        for i in range(n-2):
+            jtems = list(items)
+            jtems[i:i+3] = jtems[i+1], jtems[i+2], jtems[i]
+            jtems[n+i:n+i+3] = jtems[n+i+1], jtems[n+i+2], jtems[n+i]
+            perms.append(Lookup(dict(zip(items, jtems)), items))
+        jtems = list(items)
+        jtems[n-1], jtems[2*n-1] = jtems[2*n-1], jtems[n-1]
+        perms.append(Lookup(dict(zip(items, jtems)), items))
+        G = Group.generate(perms)
+        return G
+
+    @classmethod
     def from_action(cls, G, X):
         lookup = dict((v, idx) for (idx, v) in enumerate(X))
         perms = []
@@ -564,7 +581,6 @@ class Group(object):
         #assert send_perms == [tgt.lookup[perm] for perm in perms]
         X = GSet(self, tgt)
         return X
-
 
     @property
     def i(self):
