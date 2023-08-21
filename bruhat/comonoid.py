@@ -14,6 +14,7 @@ from numpy import array, empty, alltrue, allclose, exp, zeros, kron
 from numpy.linalg import norm
 
 from bruhat.sympy import Symbol
+from bruhat.util import cross
 from bruhat.argv import argv
 
 
@@ -113,7 +114,7 @@ class System(object):
         return ns['f']
     
     def py_func(self, verbose=False):
-        arg = ",".join(str(v) for v in self.vs)
+        arg = "".join(str(v)+"," for v in self.vs)
         #lines = ["def f(%s):"%arg]
         lines = ["def f(x):"]
         lines.append("  %s = x" % (arg,))
@@ -299,6 +300,21 @@ class System(object):
             assert val == 0
         return result
 
+    def groebner(system):
+        from sage.all_cmdline import PolynomialRing, QQ, QQbar, ideal
+        names = system.vs
+        R = PolynomialRing(QQ, order='lex', names=names)
+        vs = R._first_ngens(len(names))
+    
+        f = system.py_func()
+        fv = f(vs)
+        deal = ideal(fv)
+        print("groebner:")
+        #print(deal.gens())
+        print("dim =", deal.dimension())
+        #gb = deal.groebner_basis()
+        #print(gb)
+
     def add_frobenius(system, M, U, CM, CU):
         I = system.I
         swap = system.swap
@@ -396,6 +412,122 @@ def test():
     assert values is not None
     G, Gi = values
     print(compose(G, Gi))
+
+
+def test_interval():
+    if 1:
+        from mpmath import iv
+        interval = lambda a,b : iv.mpf([a, b])
+        def splitpow(box): # scales badly
+            splits = [(interval(x.a, x.mid), interval(x.mid, x.b)) for x in box]
+            return cross(splits)
+        def split(box): # useless...
+            n = len(box)
+            for i,x in enumerate(box):
+                items = list(box)
+                bot, top = interval(x.a, x.mid), interval(x.mid, x.b)
+                items[i] = bot
+                yield items
+                items[i] = top
+                yield items
+        def width(box):
+            return sum(x.delta for x in box)
+        #print(dir(interval(0, 0)))
+        #print(interval(0,0.2).delta)
+        #return
+    
+    else:
+        from interval import interval as _interval
+        interval = lambda a,b : _interval([a, b])
+        def split(box):
+            splits = [(interval(x[0].inf, x.midpoint), interval(x.midpoint, x[-1].sup)) for x in box]
+            return cross(splits)
+
+    dim = 2
+    system = System(dim)
+    I = system.I
+    G = system.array(dim, dim, "G")
+    #Gi = system.array(dim, dim, "Gi")
+
+    #system.add(compose(G, Gi), I)
+    system.add(compose(G, G), I)
+
+    n = len(system.vs)
+    box = tuple(interval(-1.234, 1.3456) for i in range(n))
+
+    #assert len(list(split(box))) == 2**n
+    #for b in split(box):
+    #    print(b)
+    #return
+
+    zero = tuple(0. for i in range(n))
+
+
+    f = system.py_func(verbose=True)
+    print()
+
+    boxs = list(split(box))
+    while 0 < len(boxs) < 1000000:
+        found = []
+        #print()
+        for box in boxs:
+          for box in split(box):
+            #print(box)
+            fx = f(box)
+            #print("\t", fx, end=" ")
+            for fxi in fx:
+                if 0. not in fxi:
+                    #print(" X ")
+                    break
+            else:
+                if width(box) < 1e-1:
+                    print("solution", box)
+                    return
+                #print("append", box)
+                found.append(box)
+        print(len(found), width(box))
+        boxs = found
+
+    #print(fx)
+
+    #values = system.root()
+    #G, Gi = values
+    #G, = values
+    #print(G)
+
+
+def test_groebner():
+    
+    dim = 2
+    system = System(dim)
+    I = system.I
+    G = system.array(dim, dim, "G")
+    Gi = system.array(dim, dim, "Gi")
+
+    system.add(compose(G, Gi), I)
+    #system.add(compose(G, G), I)
+
+    from sage.all_cmdline import PolynomialRing, QQ, QQbar, ideal
+    names = system.vs
+    R = PolynomialRing(QQ, order='lex', names=names)
+    vs = R._first_ngens(len(names))
+    print(vs)
+
+    f = system.py_func()
+    fv = f(vs)
+    print(fv)
+    deal = ideal(fv)
+    gb = deal.groebner_basis()
+    print(gb)
+    print(deal.gens())
+    print(deal.dimension())
+
+    xsol = deal.elimination_ideal([])
+    print(vs[:-4])
+    d = deal.elimination_ideal(vs[:1])
+
+    for sol in d.gens():
+        sol[0].factor()
 
 
 
@@ -1015,6 +1147,9 @@ def main_extra():
     add( compose(P, CM), compose(CM, tensor(P,P)) )
     add( compose(P, CU), CU )
 
+    #system.groebner()
+    #return
+
     print("frobenius structure", end=' ', flush=True)
     values = system.root(trials=100, maxiter=400, debug=argv.debug)
     print("done")
@@ -1156,8 +1291,7 @@ def main_extra():
     return locals()
 
 def main_frobenius():
-    dim = argv.get("dim", 4)
-    assert dim%2 == 0
+    dim = argv.get("dim", 2)
     
     I = empty((dim, dim), dtype=float)
     I[:] = 0
@@ -1179,6 +1313,9 @@ def main_frobenius():
     U = system.array(dim, 1, "U") # unit
     CM = system.array(dim**2, dim, "CM") # co-mul
     CU = system.array(1, dim, "CU") # co-unit
+
+    if argv.copyable:
+        B = system.array(dim, 1, "B")
 
     IM = tensor(I, M)
     MI = tensor(M, I)
@@ -1211,8 +1348,15 @@ def main_frobenius():
     # special Frobenius
     add( compose(CM, M), I )
 
+    if argv.copyable:
+        add( compose(B, CM), tensor(B, B) )
+
     cup = compose(U, CM)
     cap = compose(M, CU)
+
+    if argv.groebner:
+        system.groebner()
+        return
 
     print("frobenius structure", end=' ', flush=True)
     values = system.root(trials=100, maxiter=400)
