@@ -72,10 +72,10 @@ def test_zx():
 
         code2 = code2.to_css()
         #code2.get_params()
-        print(code, "CSS" if code.is_css() else " ")
+        print(code, "CSS" if code.is_css() else " ", end=" ", flush=True)
         print("--->", code2, end=" ", flush=True)
         d = code2.x_distance()
-        print("distance =", d)
+        print("d =", d)
         #iso = code2.find_zx_duality()
         #print("iso", iso)
         
@@ -84,10 +84,44 @@ def test_zx():
             print("FAIL")
             continue
         assert code.is_selfdual()
-        print(code, "self-dual")
+        print("\t", code, "self-dual")
+
+        if code.n <= 10:
+            code = code.to_css()
+            d = code.x_distance()
+            print("\td =", d)
 
 
-test = test_zx
+#test = test_zx
+
+def get_jaunty():
+    # https://arxiv.org/abs/2010.06628
+    code = QCode.fromstr("""
+    XXX..X........
+    ..XX..XX......
+    .......XX..XX.
+    X........X..XX
+    .YYYY.........
+    ..Y..YY...Y...
+    ....Y...YY..Y.
+    ..........YYYY
+    ZZ..Z....Z....
+    ...ZZ..ZZ.....
+    ......ZZ..ZZ..
+    """, check=True)
+    return code
+
+
+def test():
+
+    code = get_jaunty()
+    print(code)
+
+    code2 = unwrap(code)
+    print(code2)
+    print(code2.longstr())
+    print(code2.is_selfdual())
+    print(code2.to_css().distance())
 
 
 if __name__ == "__main__":
