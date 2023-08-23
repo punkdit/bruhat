@@ -112,16 +112,40 @@ def get_jaunty():
     return code
 
 
+def get_prism():
+    code = QCode.fromstr("""
+    XXXX....
+    ZZ..ZZ..
+    ....XXXX
+    ..ZZ..ZZ
+    Y.Z.X...
+    .Y.Z.X..
+    ..X.Z.Y.
+    """, check=True)
+    return code
+
+
 def test():
 
-    code = get_jaunty()
+    #code = get_jaunty()
+    #code = get_prism()
+
+    code = QCode.fromstr("ZYX. .XZY YZ.X")
+
     print(code)
+    print(code.get_params())
+    print(code.longstr())
 
     code2 = unwrap(code)
     print(code2)
     print(code2.longstr())
     print(code2.is_selfdual())
     print(code2.to_css().distance())
+
+    toric = construct.get_toric(2, 2, 1)
+    toric = toric.to_qcode()
+    assert code2.is_isomorphic(toric)
+
 
 
 if __name__ == "__main__":
