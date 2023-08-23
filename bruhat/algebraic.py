@@ -1655,6 +1655,7 @@ class Sp(Algebraic):
         return W
 
     def get_borel(self):
+        F = self.invariant_form
         pairs = self.get_pairs()
         gen = []
         lookup = {}
@@ -1677,7 +1678,7 @@ class Sp(Algebraic):
     
             A = numpy.identity(self.n, dtype=scalar)
             A[a, c] = 1
-            A[d, b] = 1
+            A[d, b] = self.p-1
     
             M = Matrix(A, self.p, name="E%d%d"%(b,d))
             gen.append(M)
@@ -1699,11 +1700,10 @@ class Sp(Algebraic):
             assert (c, a) not in lookup
             lookup[c, a] = M
     
-        F = self.invariant_form
         for M in gen:
             assert M*F*M.transpose() == F
     
-        B = Algebraic(gen)
+        B = Algebraic(gen, p=self.p)
         B.lookup = lookup
         return B
 
