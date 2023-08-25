@@ -6,11 +6,14 @@ from random import shuffle, choice
 
 import numpy
 
+from bruhat.action import Perm
+
 from qumba.solve import (parse, shortstr, linear_independent, eq2, dot2, identity2,
     rank, rand2, pseudo_inverse, kernel, direct_sum, zeros2, solve2, normal_form)
 from qumba.qcode import QCode, SymplecticSpace
 from qumba import construct
 from qumba.autos import get_isos
+from qumba.csscode import find_zx_duality
 from qumba.argv import argv
 
 
@@ -56,6 +59,35 @@ def zxcat(code, duality):
     code = left << right
     return code
 
+
+def test_biplanar():
+    code = construct.biplanar()
+    print(code)
+    duality = find_zx_duality(code.Ax, code.Az)
+    print("duality:", duality)
+    print("fixed:", [i for i,j in enumerate(duality) if i==j])
+
+    items = list(range(code.n))
+    f = Perm(dict(enumerate(duality)), items)
+    assert (f*f).is_identity()
+    pairs = [tuple(o) for o in f.orbits()]
+    print(pairs)
+    n = len(pairs)
+    m = code.mx
+    H = zeros2(m, 2*n)
+    lookup = {}
+    
+    return
+
+    code = code.to_qcode()
+    print(code)
+
+    dode = zxcat(code, duality)
+    print(dode)
+    print(dode.is_selfdual())
+    dode = dode.to_css()
+    Hx, Hz = dode.Hx, dode.Hz
+    print(Hx.sum(0), Hx.sum(1))
 
 
 def test_zx():
