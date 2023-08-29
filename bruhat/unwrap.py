@@ -3,6 +3,8 @@
 from time import time
 start_time = time()
 from random import shuffle, choice
+from functools import reduce
+from operator import add
 
 import numpy
 
@@ -13,7 +15,7 @@ from qumba.solve import (parse, shortstr, linear_independent, eq2, dot2, identit
 from qumba.qcode import QCode, SymplecticSpace
 from qumba import construct
 from qumba.autos import get_isos
-from qumba.csscode import find_zx_duality
+from qumba.csscode import find_zx_duality, find_autos
 from qumba.argv import argv
 
 
@@ -61,33 +63,61 @@ def zxcat(code, duality):
 
 
 def test_biplanar():
-    code = construct.biplanar()
+    code = construct.get_toric(4, 4)
+    #code = construct.get_toric(2, 2, 1)
+    #code = construct.biplanar(12, 6)
+
     print(code)
-    duality = find_zx_duality(code.Ax, code.Az)
-    print("duality:", duality)
-    print("fixed:", [i for i,j in enumerate(duality) if i==j])
+    #print(code.distance())
 
     items = list(range(code.n))
-    f = Perm(dict(enumerate(duality)), items)
-    assert (f*f).is_identity()
-    pairs = [tuple(o) for o in f.orbits()]
+    perm = lambda f:Perm(dict(enumerate(f)), items)
+
+    isos = find_autos(code.Ax, code.Az)
+    isos = [perm(iso) for iso in isos]
+    print(len(isos))
+
+    duality = find_zx_duality(code.Ax, code.Az)
+    duality = perm(duality)
+
+    for iso in isos:
+        d = duality * iso
+        fixed = d.fixed()
+        if len(fixed):
+            continue
+        if (d*d).is_identity():
+            print("found", d)
+            break
+    else:
+        print("not found")
+        return
+
+    pairs = [tuple(o) for o in d.orbits()]
+    pairs.sort()
     print(pairs)
     n = len(pairs)
     m = code.mx
     H = zeros2(m, 2*n)
     lookup = {}
-    
-    return
+
+    cols = reduce(add, pairs)
+    Hx = code.Hx
+    print("Hx:", Hx.shape)
+    H = Hx[:, cols]
+    qcode = QCode(H)
+    print(qcode)
+    print(qcode.longstr())
+    #print(qcode.get_params())
 
     code = code.to_qcode()
-    print(code)
 
-    dode = zxcat(code, duality)
-    print(dode)
-    print(dode.is_selfdual())
+    dode = zxcat(code, [d[i] for i in range(code.n)])
+    print()
+    print(dode, dode.get_params())
+    assert dode.is_selfdual()
     dode = dode.to_css()
     Hx, Hz = dode.Hx, dode.Hz
-    print(Hx.sum(0), Hx.sum(1))
+    print("row weights:", Hx.sum(1))
 
 
 def test_zx():
