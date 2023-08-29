@@ -63,8 +63,8 @@ def zxcat(code, duality):
 
 
 def test_biplanar():
-    code = construct.get_toric(4, 4)
-    #code = construct.get_toric(2, 2, 1)
+    code = construct.toric(4, 4)
+    #code = construct.toric(2, 2, 1)
     #code = construct.biplanar(12, 6)
 
     print(code)
@@ -204,7 +204,7 @@ def test():
     print(code2.is_selfdual())
     print(code2.to_css().distance())
 
-    toric = construct.get_toric(2, 2, 1)
+    toric = construct.toric(2, 2, 1)
     toric = toric.to_qcode()
     assert code2.is_isomorphic(toric)
 
