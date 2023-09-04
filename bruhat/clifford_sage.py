@@ -13,59 +13,66 @@ from bruhat.argv import argv
 from sage.all_cmdline import FiniteField, CyclotomicField
 from sage import all_cmdline 
 
-#Matrix = lambda *args : all_cmdline.Matrix(*args, immutable=True)
-
-#def Matrix(*args):
-#    m = all_cmdline.Matrix(*args)
-#    m.set_immutable()
-#    return m
-
 
 class Matrix(object):
     def __init__(self, ring, rows):
-        m = all_cmdline.Matrix(ring, rows)
-        m.set_immutable()
-        self.m = m
+        M = all_cmdline.Matrix(ring, rows)
+        M.set_immutable()
+        self.M = M
         self.ring = ring
 
     def __eq__(self, other):
         assert isinstance(other, Matrix)
         assert self.ring == other.ring
-        return self.m == other.m
+        return self.M == other.M
 
     def __hash__(self):
-        return hash(self.m)
+        return hash(self.M)
+
+    def __str__(self):
+        return str(self.M)
 
     def __mul__(self, other):
         assert isinstance(other, Matrix)
         assert self.ring == other.ring
-        m = self.m * other.m
-        return Matrix(self.ring, m)
+        M = self.M * other.M
+        return Matrix(self.ring, M)
 
     def __rmul__(self, r):
-        m = r*self.m
-        return Matrix(self.ring, m)
+        M = r*self.M
+        return Matrix(self.ring, M)
 
     def __matmul__(self, other):
         assert isinstance(other, Matrix)
         assert self.ring == other.ring
-        m = self.m.tensor_product(other.m)
-        return Matrix(self.ring, m)
+        M = self.M.tensor_product(other.M)
+        return Matrix(self.ring, M)
     tensor_product = __matmul__
 
     def inverse(self):
-        m = self.m.inverse()
-        return Matrix(self.ring, m)
+        M = self.M.inverse()
+        return Matrix(self.ring, M)
 
     def transpose(self):
-        m = self.m.transpose()
-        return Matrix(self.ring, m)
+        M = self.M.transpose()
+        return Matrix(self.ring, M)
+
+    def is_diagonal(self):
+        M = self.M
+        return M.is_diagonal()
+        print(' '.join(dir(M)))
+        n = len(M) # XX
+        for i in range(n):
+          for j in range(n):
+            if i==j:
+                continue
+            if M[i,j] != 0:
+                return False
+        return True
 
 
 
 def mulclose(gen, verbose=False, maxsize=None):
-#    for g in gen:
-#        g.set_immutable()
     els = set(gen)
     bdy = list(els)
     changed = True
@@ -76,7 +83,6 @@ def mulclose(gen, verbose=False, maxsize=None):
         for A in gen:
             for B in bdy:
                 C = A*B
-#                C.set_immutable()
                 if C not in els:
                     els.add(C)
                     _bdy.append(C)
@@ -99,7 +105,6 @@ class Coset(object):
     def __mul__(self, other):
         assert isinstance(other, Coset)
         gh = self.g * other.g
-#        gh.set_immutable()
         result = self.group.lookup[gh]
         return result
 
@@ -116,14 +121,13 @@ class FactorGroup(object):
             coset = []
             for h in H:
                 gh = g*h
-#                gh.set_immutable()
                 remain.remove(gh)
                 coset.append(gh)
             coset = Coset(self, coset) # promote
             cosets.append(coset)
-            if len(remain)%1000 == 0:
-                print(len(remain), end=" ", flush=True)
-        print()
+            #if len(remain)%1000 == 0:
+            #    print(len(remain), end=" ", flush=True)
+        #print()
         self.G = G
         self.H = H
         lookup = {g:coset for coset in cosets for g in coset.items}
@@ -136,6 +140,125 @@ class FactorGroup(object):
 
     def __len__(self):
         return len(self.cosets)
+
+
+def test_bruhat():
+    K = CyclotomicField(8)
+    w = K.gen()
+    one = K.one()
+    w2 = w*w
+    r2 = w+w.conjugate()
+    ir2 = r2 / 2
+    
+    I = Matrix(K, [[1, 0], [0, 1]])
+    w2I = Matrix(K, [[w2, 0], [0, w2]])
+    S = Matrix(K, [[1, 0], [0, w2]])
+    X = Matrix(K, [[0, 1], [1, 0]])
+    Z = Matrix(K, [[1, 0], [0, -1]])
+    H = Matrix(K, [[ir2, ir2], [ir2, -ir2]])
+    
+    Pauli1 = mulclose([w2I, X, Z])
+    Cliff1 = mulclose([w2I, S, H])
+    
+    assert len(Pauli1) == 16
+    assert len(Cliff1) == 192
+    
+    CNOT = Matrix(K,
+       [[1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1],
+        [0, 0, 1, 0]])
+    
+    CZ = Matrix(K,
+       [[1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0,-1]])
+    
+    SWAP = Matrix(K,
+       [[1, 0, 0, 0],
+        [0, 0, 1, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1]])
+    
+    II = I @ I
+    w2II = w2*II
+    XI = X @ I
+    IX = I @ X
+    ZI = Z @ I
+    IZ = I @ Z
+    SI = S @ I
+    IS = I @ S
+    HI = H @ I
+    IH = I @ H
+
+    Cliff2 = mulclose([SI, IS, HI, IH, CZ], verbose=True)
+    #assert len(Cliff2) == 92160
+
+    torus = []
+    for g in Cliff2:
+        if g.is_diagonal():
+            #print(g)
+            torus.append(g)
+    print("torus:", len(torus))
+
+    while 1:
+        gen = [choice(torus) for i in range(4)]
+        T = mulclose(gen)
+        if len(T) == len(torus):
+            break
+    print("gen", len(gen))
+
+    # ------------------------------------------------------------------
+    # See:
+    # https://arxiv.org/abs/2003.09412
+    # Hadamard-free circuits expose the structure of the Clifford group
+    # Sergey Bravyi, Dmitri Maslov
+    # XXX this _appears to be the projective Clifford group only :-(
+
+    n = 2
+    W = mulclose([HI, IH, SWAP]) # Weyl group
+    assert len(W) == 8
+
+    #B = mulclose([XI, IX, CNOT, CZ, SI, IS])
+    B = mulclose([XI, IX, CNOT, CZ, SI, IS]+gen, verbose=True)
+    print("Borel:", len(B))
+
+    #T = [g for g in torus if g in B]
+    #print(len(T))
+    #return
+    #B.extend(torus)
+
+    # build the double cosets:
+    dcs = {w:set() for w in W}
+    total = 0
+    for w in W:
+        dc = dcs[w]
+        size = 0
+        for l in B:
+          lw = l*w
+          for r in B:
+            lwr = lw*r
+            dc.add(lwr)
+          if len(dc) > size:
+            size = len(dc)
+            print(size, end=" ", flush=True)
+        print("//")
+        total += size
+    print("total:", total) # == 92160 ?
+
+    for w in W:
+        for u in W:
+            if u==w:
+                continue
+            a = dcs[w].intersection(dcs[u])
+            #assert len(a) == 0
+            print(len(a), end=" ")
+    print()
+
+    return dcs
+
+
 
 
 def main():
@@ -189,7 +312,8 @@ def main():
     sy_gen = [ZI, IZ, XI, IX]
     pauli_lin = lambda g: [int(g*h != h*g) for h in sy_gen]
     
-    Cliff2 = mulclose([SI, IS, HI, IH, w2II, CZ], verbose=True)
+    # no phase generator needed here
+    Cliff2 = mulclose([SI, IS, HI, IH, CZ], verbose=True)
     assert len(Cliff2) == 92160
 
     F2 = FiniteField(2)
@@ -205,7 +329,6 @@ def main():
         g = coset.g # Cliff2
         assert g in Cliff2
         h = cliff_lin(g)
-#        h.set_immutable()
         hom[coset] = h
     
     Sp4_i = Matrix(F2, [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
@@ -218,9 +341,6 @@ def main():
     #print([len(v) for v in homi.values()])
     def cocyc(g, h): # Sp4xSp4 --> Z/2
         gh = g*h
-#        gh.set_immutable()
-#        g.set_immutable()
-#        h.set_immutable()
         gi, hi, ghi = homi[g], homi[h], homi[gh]
         lhs = gi[0]*hi[0]
         assert lhs in ghi
