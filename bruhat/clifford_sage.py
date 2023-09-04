@@ -6,22 +6,66 @@ build clifford/pauli groups in sage
 
 from time import time
 start_time = time()
+from random import choice
 
 from bruhat.argv import argv
 
-from sage.all_cmdline import *
+from sage.all_cmdline import FiniteField, CyclotomicField
 from sage import all_cmdline 
 
 #Matrix = lambda *args : all_cmdline.Matrix(*args, immutable=True)
 
-def Matrix(*args):
-    m = all_cmdline.Matrix(*args)
-    m.set_immutable()
-    return m
+#def Matrix(*args):
+#    m = all_cmdline.Matrix(*args)
+#    m.set_immutable()
+#    return m
+
+
+class Matrix(object):
+    def __init__(self, ring, rows):
+        m = all_cmdline.Matrix(ring, rows)
+        m.set_immutable()
+        self.m = m
+        self.ring = ring
+
+    def __eq__(self, other):
+        assert isinstance(other, Matrix)
+        assert self.ring == other.ring
+        return self.m == other.m
+
+    def __hash__(self):
+        return hash(self.m)
+
+    def __mul__(self, other):
+        assert isinstance(other, Matrix)
+        assert self.ring == other.ring
+        m = self.m * other.m
+        return Matrix(self.ring, m)
+
+    def __rmul__(self, r):
+        m = r*self.m
+        return Matrix(self.ring, m)
+
+    def __matmul__(self, other):
+        assert isinstance(other, Matrix)
+        assert self.ring == other.ring
+        m = self.m.tensor_product(other.m)
+        return Matrix(self.ring, m)
+    tensor_product = __matmul__
+
+    def inverse(self):
+        m = self.m.inverse()
+        return Matrix(self.ring, m)
+
+    def transpose(self):
+        m = self.m.transpose()
+        return Matrix(self.ring, m)
+
+
 
 def mulclose(gen, verbose=False, maxsize=None):
-    for g in gen:
-        g.set_immutable()
+#    for g in gen:
+#        g.set_immutable()
     els = set(gen)
     bdy = list(els)
     changed = True
@@ -32,7 +76,7 @@ def mulclose(gen, verbose=False, maxsize=None):
         for A in gen:
             for B in bdy:
                 C = A*B
-                C.set_immutable()
+#                C.set_immutable()
                 if C not in els:
                     els.add(C)
                     _bdy.append(C)
@@ -55,7 +99,7 @@ class Coset(object):
     def __mul__(self, other):
         assert isinstance(other, Coset)
         gh = self.g * other.g
-        gh.set_immutable()
+#        gh.set_immutable()
         result = self.group.lookup[gh]
         return result
 
@@ -72,7 +116,7 @@ class FactorGroup(object):
             coset = []
             for h in H:
                 gh = g*h
-                gh.set_immutable()
+#                gh.set_immutable()
                 remain.remove(gh)
                 coset.append(gh)
             coset = Coset(self, coset) # promote
@@ -104,10 +148,10 @@ def main():
     
     I = Matrix(K, [[1, 0], [0, 1]])
     w2I = Matrix(K, [[w2, 0], [0, w2]])
-    S = Matrix([[1, 0], [0, w2]])
+    S = Matrix(K, [[1, 0], [0, w2]])
     X = Matrix(K, [[0, 1], [1, 0]])
     Z = Matrix(K, [[1, 0], [0, -1]])
-    H = Matrix([[ir2, ir2], [ir2, -ir2]])
+    H = Matrix(K, [[ir2, ir2], [ir2, -ir2]])
     
     Pauli1 = mulclose([w2I, X, Z])
     Cliff1 = mulclose([w2I, S, H])
@@ -121,16 +165,16 @@ def main():
         [0, 0, 1, 0],
         [0, 0, 0,-1]])
     
-    II = I.tensor_product(I)
+    II = I @ I
     w2II = w2*II
-    XI = X.tensor_product(I)
-    IX = I.tensor_product(X)
-    ZI = Z.tensor_product(I)
-    IZ = I.tensor_product(Z)
-    SI = S.tensor_product(I)
-    IS = I.tensor_product(S)
-    HI = H.tensor_product(I)
-    IH = I.tensor_product(H)
+    XI = X @ I
+    IX = I @ X
+    ZI = Z @ I
+    IZ = I @ Z
+    SI = S @ I
+    IS = I @ S
+    HI = H @ I
+    IH = I @ H
 
     pauli_gen = [XI, IX, ZI, IZ]
     Pauli2 = mulclose([w2II] + pauli_gen)
@@ -161,7 +205,7 @@ def main():
         g = coset.g # Cliff2
         assert g in Cliff2
         h = cliff_lin(g)
-        h.set_immutable()
+#        h.set_immutable()
         hom[coset] = h
     
     Sp4_i = Matrix(F2, [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
@@ -174,9 +218,9 @@ def main():
     #print([len(v) for v in homi.values()])
     def cocyc(g, h): # Sp4xSp4 --> Z/2
         gh = g*h
-        gh.set_immutable()
-        g.set_immutable()
-        h.set_immutable()
+#        gh.set_immutable()
+#        g.set_immutable()
+#        h.set_immutable()
         gi, hi, ghi = homi[g], homi[h], homi[gh]
         lhs = gi[0]*hi[0]
         assert lhs in ghi

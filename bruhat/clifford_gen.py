@@ -3,6 +3,9 @@
 Build the clifford group on two qubits
 from generators and relations ( https://arxiv.org/pdf/1310.6813.pdf ).
 It has order 92160.
+
+See also: word.py
+
 """
 
 from bruhat.argv import argv
