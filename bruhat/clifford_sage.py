@@ -4,10 +4,11 @@
 build clifford/pauli groups in sage
 """
 
-from time import time
-start_time = time()
 from random import choice
+from operator import matmul
+from functools import reduce, cache
 
+from solve import zeros2, identity2
 from bruhat.argv import argv
 
 from sage.all_cmdline import FiniteField, CyclotomicField
@@ -31,6 +32,7 @@ class Matrix(object):
 
     def __str__(self):
         return str(self.M)
+    __repr__ = __str__
 
     def __mul__(self, other):
         assert isinstance(other, Matrix)
@@ -48,6 +50,15 @@ class Matrix(object):
         M = self.M.tensor_product(other.M)
         return Matrix(self.ring, M)
     tensor_product = __matmul__
+
+    @classmethod
+    def identity(cls, ring, n):
+        rows = []
+        for i in range(n):
+            row = [0]*n
+            row[i] = 1
+            rows.append(row)
+        return Matrix(ring, rows)
 
     def inverse(self):
         M = self.M.inverse()
@@ -142,6 +153,120 @@ class FactorGroup(object):
         return len(self.cosets)
 
 
+class Clifford(object):
+    "clifford group on n qubits"
+    def __init__(self, n):
+        self.n = n
+        K = CyclotomicField(8)
+        self.K = K
+        self.I = Matrix.identity(K, 2**n)
+
+    def w(self):
+        K = self.K
+        w = K.gen()
+        return w*self.I
+
+    def mkop(self, i, g):
+        n = self.n
+        K = self.K
+        assert 0<=i<n
+        I = Matrix.identity(K, 2)
+        items = [I]*n
+        Z = Matrix(K, [[1, 0], [0, -1]])
+        items[i] = g
+        gi = reduce(matmul, items)
+        return gi
+        
+    @cache
+    def Z(self, i):
+        K = self.K
+        Z = Matrix(K, [[1, 0], [0, -1]])
+        Zi = self.mkop(i, Z)
+        return Zi
+        
+    @cache
+    def S(self, i):
+        K = self.K
+        w = K.gen()
+        S = Matrix(K, [[1, 0], [0, w*w]])
+        Si = self.mkop(i, S)
+        return Si
+        
+    @cache
+    def X(self, i):
+        K = self.K
+        X = Matrix(K, [[0, 1], [1,  0]])
+        Xi = self.mkop(i, X)
+        return Xi
+        
+    @cache
+    def H(self, i):
+        K = self.K
+        w = K.gen()
+        r2 = w+w.conjugate()
+        ir2 = r2 / 2
+        H = Matrix(K, [[ir2, ir2], [ir2, -ir2]])
+        Hi = self.mkop(i, H)
+        return Hi
+
+    @cache
+    def CZ(self, idx, jdx):
+        n = self.n
+        K = self.K
+        assert 0<=idx<n
+        assert 0<=jdx<n
+        assert idx!=jdx
+        N = 2**n
+        A = zeros2(N, N)
+        ii, jj = 2**idx, 2**jdx
+        for i in range(N):
+            if i & ii and i & jj:
+                A[i, i] = -1
+            else:
+                A[i, i] = 1
+        return Matrix(K, A)
+
+    @cache
+    def CX(self, idx, jdx):
+        CZ = self.CZ(idx, jdx)
+        H = self.H(jdx)
+        return H*CZ*H
+
+    @cache
+    def SWAP(self, idx, jdx):
+        HH = self.H(idx) * self.H(jdx)
+        CZ = self.CZ(idx, jdx)
+        return HH*CZ*HH*CZ*HH*CZ
+
+
+def test_clifford():
+
+    cliff = Clifford(2)
+    X0 = cliff.X(0)
+    X1 = cliff.X(1)
+    Z0 = cliff.Z(0)
+    Z1 = cliff.Z(1)
+    wI = cliff.w()
+
+    Pauli = mulclose([wI*wI, X0, X1, Z0, Z1])
+    assert len(Pauli) == 64
+
+    SI = cliff.S(0)
+    IS = cliff.S(1)
+    HI = cliff.H(0)
+    IH = cliff.H(1)
+    CZ = cliff.CZ(0, 1)
+
+    #C2 = mulclose([SI, IS, HI, IH, CZ], verbose=True) # slow
+    #assert len(C2) == 92160
+
+    CX = cliff.CX(0, 1)
+    SWAP = cliff.SWAP(0, 1)
+
+    assert SWAP * CZ * SWAP == CZ
+
+
+
 def test_bruhat():
     K = CyclotomicField(8)
     w = K.gen()
@@ -163,7 +288,7 @@ def test_bruhat():
     assert len(Pauli1) == 16
     assert len(Cliff1) == 192
     
-    CNOT = Matrix(K,
+    CX = Matrix(K,
        [[1, 0, 0, 0],
         [0, 1, 0, 0],
         [0, 0, 0, 1],
@@ -192,6 +317,18 @@ def test_bruhat():
     HI = H @ I
     IH = I @ H
 
+    Pauli2 = mulclose([XI, IX, ZI, IZ])
+
+    lhs = CZ * CX
+    rhs = CX * CZ
+
+    g = rhs * lhs.inverse()
+    print(g)
+    print(g == ZI)
+    print(g == IZ)
+
+    return
+
     Cliff2 = mulclose([SI, IS, HI, IH, CZ], verbose=True)
     #assert len(Cliff2) == 92160
 
@@ -214,14 +351,14 @@ def test_bruhat():
     # https://arxiv.org/abs/2003.09412
     # Hadamard-free circuits expose the structure of the Clifford group
     # Sergey Bravyi, Dmitri Maslov
-    # XXX this _appears to be the projective Clifford group only :-(
+    # although this is for the projective Clifford group only 
 
     n = 2
     W = mulclose([HI, IH, SWAP]) # Weyl group
     assert len(W) == 8
 
-    #B = mulclose([XI, IX, CNOT, CZ, SI, IS])
-    B = mulclose([XI, IX, CNOT, CZ, SI, IS]+gen, verbose=True)
+    #B = mulclose([XI, IX, CX, CZ, SI, IS])
+    B = mulclose([XI, IX, CX, CZ, SI, IS]+gen, verbose=True)
     print("Borel:", len(B))
 
     #T = [g for g in torus if g in B]
@@ -259,9 +396,7 @@ def test_bruhat():
     return dcs
 
 
-
-
-def main():
+def test_cocycle():
     K = CyclotomicField(8)
     w = K.gen()
     one = K.one()
@@ -355,9 +490,17 @@ def main():
         print("%s=%s"%(lhs%2,rhs%2), end=" ")
 
 
+def test():
+    test_clifford()
+    test_bruhat()
+    test_cocycle()
+
 
 
 if __name__ == "__main__":
+
+    from time import time
+    start_time = time()
 
     _seed = argv.get("seed")
     if _seed is not None:
@@ -365,7 +508,7 @@ if __name__ == "__main__":
         seed(_seed)
 
     profile = argv.profile
-    fn = argv.next() or "main"
+    fn = argv.next() or "test"
 
     print("%s()"%fn)
 

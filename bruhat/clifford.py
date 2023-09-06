@@ -1,10 +1,26 @@
 #!/usr/bin/env python
 
+
+"""
+Implement Bruhat decomposition of the Clifford group
+as described here:
+
+Hadamard-free circuits expose the structure of the Clifford group
+Sergey Bravyi, Dmitri Maslov
+https://arxiv.org/abs/2003.09412
+
+maybe ?
+
+"""
+
+
+
 from bruhat.action import mulclose
+from bruhat.clifford_sage import Clifford
 from bruhat.argv import argv
 
 
-class Atom(object):
+class Gen(object):
     def __init__(self, name):
         self.name = name
 
@@ -19,61 +35,31 @@ class Atom(object):
         return hash(self.name)
 
     def __mul__(self, other):
-        return Compound([self, other])
+        return Word([self, other])
 
 
-class Compound(Atom):
-    def __init__(self, atoms):
-        _atoms = []
-        for atom in atoms:
-            if isinstance(atom, Compound):
-                _atoms += atom.atoms
+class Word(Gen):
+    def __init__(self, gens):
+        _gens = []
+        for gen in gens:
+            if isinstance(gen, Word):
+                _gens += gen.gens
             else:
-                _atoms.append(atom)
-        self.atoms = _atoms
-        name = "*".join(str(atom) for atom in atoms)
-        Atom.__init__(self, name)
-
-
-class Cyclotomic(Atom):
-    def __init__(self, i, p):
-        self.i = i%p
-        self.p = p
-        #name = "zeta%d^%d"%(p, i)
-        name = "w(%d,%d)"%(i,p)
-        Atom.__init__(self, name)
-
-    def __mul__(self, other):
-        if isinstance(other, Cyclotomic):
-            assert self.p == other.p
-            atom = Cyclotomic(self.i+other.i, self.p) 
-        else:
-            atom = Atom.__mul__(self, other)
-        return atom
-
-
-#class Pauli(Atom):
-#    def __init__(self, zx):
+                _gens.append(gen)
+        self.gens = _gens
+        name = "*".join(str(gen) for gen in gens)
+        Gen.__init__(self, name)
 
 
 
 def test():
 
-    U = Atom("U")
-    V = Atom("V")
+    U = Gen("U")
+    V = Gen("V")
 
     assert U==U
     assert U*V != V*U
     assert str(U*V) == "U*V"
-
-    p = 8
-    I = Cyclotomic(0, p)
-    w = Cyclotomic(1, p)
-    assert I*I == I
-    assert I*w == w
-    assert len(mulclose([w])) == p
-    
-
 
 
 
