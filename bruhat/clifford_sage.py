@@ -5,7 +5,7 @@ build clifford/pauli groups in sage
 """
 
 from random import choice
-from operator import matmul
+from operator import mul, matmul
 from functools import reduce, cache
 
 from solve import zeros2, identity2
@@ -39,6 +39,12 @@ class Matrix(object):
         assert self.ring == other.ring
         M = self.M * other.M
         return Matrix(self.ring, M)
+
+    def __pow__(self, n):
+       assert n>=0
+       if n==0:
+           return Matrix.identity(self.ring, n)
+       return reduce(mul, [self]*n)
 
     def __rmul__(self, r):
         M = r*self.M
@@ -178,14 +184,14 @@ class Clifford(object):
         return gi
         
     @cache
-    def Z(self, i):
+    def Z(self, i=0):
         K = self.K
         Z = Matrix(K, [[1, 0], [0, -1]])
         Zi = self.mkop(i, Z)
         return Zi
         
     @cache
-    def S(self, i):
+    def S(self, i=0):
         K = self.K
         w = K.gen()
         S = Matrix(K, [[1, 0], [0, w*w]])
@@ -193,14 +199,14 @@ class Clifford(object):
         return Si
         
     @cache
-    def X(self, i):
+    def X(self, i=0):
         K = self.K
         X = Matrix(K, [[0, 1], [1,  0]])
         Xi = self.mkop(i, X)
         return Xi
         
     @cache
-    def H(self, i):
+    def H(self, i=0):
         K = self.K
         w = K.gen()
         r2 = w+w.conjugate()
@@ -210,7 +216,7 @@ class Clifford(object):
         return Hi
 
     @cache
-    def CZ(self, idx, jdx):
+    def CZ(self, idx=0, jdx=1):
         n = self.n
         K = self.K
         assert 0<=idx<n
@@ -227,13 +233,13 @@ class Clifford(object):
         return Matrix(K, A)
 
     @cache
-    def CX(self, idx, jdx):
+    def CX(self, idx=0, jdx=1):
         CZ = self.CZ(idx, jdx)
         H = self.H(jdx)
         return H*CZ*H
 
     @cache
-    def SWAP(self, idx, jdx):
+    def SWAP(self, idx=0, jdx=1):
         HH = self.H(idx) * self.H(jdx)
         CZ = self.CZ(idx, jdx)
         return HH*CZ*HH*CZ*HH*CZ
@@ -264,6 +270,18 @@ def test_clifford():
     SWAP = cliff.SWAP(0, 1)
 
     assert SWAP * CZ * SWAP == CZ
+
+    cliff = Clifford(3)
+    A = cliff.CX(0, 1)
+    B = cliff.CX(1, 2)
+    assert A*B != B*A
+
+    A = cliff.CZ(0, 1)
+    B = cliff.CZ(1, 2)
+    assert A*B == B*A
+
+
+
 
 
 
