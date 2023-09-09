@@ -685,13 +685,13 @@ class Lin(object):
 
     # XXX should be direct sum here, consistent with Space.__add__ ?
     def __add__(self, other):
-        assert self.hom == other.hom
+        assert self.hom == other.hom, "%s != %s"%(self.hom, other.hom)
         A = self.A + other.A
         return Lin(*self.hom, A)
     add = __add__
 
     def __sub__(self, other):
-        assert self.hom == other.hom
+        assert self.hom == other.hom, "%s != %s"%(self.hom, other.hom)
         A = self.A - other.A
         return Lin(*self.hom, A)
 
@@ -1084,6 +1084,54 @@ def test_structure():
         assert fi.tgt == src
         assert f*fi == tgt.identity()
         assert fi*f == src.identity()
+
+
+
+def test_frobenius():
+    ring = element.Q
+    one = ring.one
+    N = Space(ring, 0, 0, 'N')
+    I = Space(ring, 1, 0, 'I')
+    V = Space(ring, 2, 0, 'V')
+
+    counit = Lin(I, V, [[2, 0]])
+
+    mul = Lin(V, V@V, [[1, 0, 0, -1], [0, 1, 1, 0]])
+    unit = Lin(V, I, [[1], [0]])
+    iV = V.identity()
+    swap = (V@V).get_swap([1, 0])
+
+    # assoc
+    lhs = mul * (iV @ mul)
+    rhs = mul * (mul @ iV)
+    assert lhs == rhs
+
+    # unit
+    assert iV == mul * (iV @ unit)
+    assert iV == mul * (unit @ iV)
+
+    # comm
+    assert mul == mul * swap
+
+    cap = counit * mul
+    #print(cap)
+
+    cup = Lin(V@V, I, [[one/2],[0],[0],[-one/2]])
+    #print(cap*cup)
+
+    assert (cap @ iV) * (iV @ cup) == iV
+
+    u3 = Lin(I, I@I@I, [[1]])
+    u2 = Lin(I, I@I, [[1]])
+    op = (u3 * (counit @ counit @ counit)
+        - u2 * (counit @ cap)
+        - u2 * (counit @ cap) * (swap @ iV) 
+        - u2 * (cap @ counit)
+        + 2 * counit * mul * (mul @ iV)
+    )
+
+    assert op.is_zero()
+
 
 
 def test_young():
