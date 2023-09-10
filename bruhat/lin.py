@@ -1094,12 +1094,24 @@ def test_frobenius():
     I = Space(ring, 1, 0, 'I')
     V = Space(ring, 2, 0, 'V')
 
-    counit = Lin(I, V, [[2, 0]])
+    if 1:
+        # complex numbers as a real algebra
+        counit = Lin(I, V, [[2, 0]])
+        mul = Lin(V, V@V, [[1, 0, 0, -1], [0, 1, 1, 0]])
+        cup = Lin(V@V, I, [[one/2],[0],[0],[-one/2]])
+    else:
+        counit = Lin(I, V, [[1, 0]])
+        mul = Lin(V, V@V, [[1, 0, 0, 0], [0, 0, 0, 1]])
+        cup = Lin(V@V, I, [[1],[0],[0],[1]])
 
-    mul = Lin(V, V@V, [[1, 0, 0, -1], [0, 1, 1, 0]])
     unit = Lin(V, I, [[1], [0]])
     iV = V.identity()
     swap = (V@V).get_swap([1, 0])
+
+    cap = counit * mul
+    #print( (cap*cup)[0,0] )
+    #print(cap)
+    #print(cup)
 
     # assoc
     lhs = mul * (iV @ mul)
@@ -1113,13 +1125,17 @@ def test_frobenius():
     # comm
     assert mul == mul * swap
 
-    cap = counit * mul
-    #print(cap)
-
-    cup = Lin(V@V, I, [[one/2],[0],[0],[-one/2]])
-    #print(cap*cup)
-
+    # adjoint
     assert (cap @ iV) * (iV @ cup) == iV
+    assert (iV @ cap) * (cup @ iV) == iV
+
+    comul = (iV @ mul @ iV) * (cup @ cup)
+    comul = (iV @ swap) * comul
+    comul = (iV @ iV @ cap) * (comul @ iV)
+    comul = comul.tgt.unitor() * comul
+    
+    # special
+    assert mul * comul == iV
 
     u3 = Lin(I, I@I@I, [[1]])
     u2 = Lin(I, I@I, [[1]])
