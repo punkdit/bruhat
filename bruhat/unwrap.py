@@ -2,7 +2,7 @@
 
 from time import time
 start_time = time()
-from random import shuffle, choice
+from random import shuffle, choice, randint
 from functools import reduce
 from operator import add
 
@@ -33,7 +33,7 @@ def unwrap(code, check=True):
     return code
 
 
-def zxcat(code, duality):
+def zxcat(code, duality=None):
     #print(duality)
     pairs = []
     perm = []
@@ -60,6 +60,58 @@ def zxcat(code, duality):
 
     code = left << right
     return code
+
+
+def test_randcat():
+    #css = construct.toric(2, 2)
+    css = QCode.fromstr("""
+.XX.XX..
+X..XXX..
+..ZZZ.Z.
+..ZZ.Z.Z
+X.X...XX
+ZZ...ZZ.
+    """)
+    css = construct.reed_muller()
+    css = construct.get_10_2_3()
+
+    code = css.to_qcode()
+    assert code.n%2 == 0
+    inner = construct.get_422()
+
+    idxs = list(range(code.n))
+
+    for trial in range(1000):
+        remain = list(idxs)
+        pairs = []
+        while remain:
+            idx = remain.pop(randint(0, len(remain)-1))
+            jdx = remain.pop(randint(0, len(remain)-1))
+            pairs.append((idx, jdx))
+        duality = [None]*code.n
+        for (i,j) in pairs:
+            duality[i] = j
+            duality[j] = i
+    
+        #lhs = reduce(add, [inner]*(code.n//2))
+        #print(lhs)
+    
+        dode = zxcat(code, duality)
+        lhs = dode.is_selfdual()
+
+        dode = code.apply_perm(duality)
+        dode = dode.apply_H()
+        rhs = dode.equiv(code)
+
+        assert lhs == rhs
+        if lhs:
+            print("/", flush=True, end="")
+        else:
+            print(".", flush=True, end="")
+
+    print()
+    
+
 
 
 def test_biplanar():
