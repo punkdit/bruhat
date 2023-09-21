@@ -829,6 +829,14 @@ def build_code(geometry):
         Hx = numpy.concatenate((H0, H1, H2, H3))
         Hz = Hx.copy()
 
+    elif argv.cells:
+        A = get_adj(faces, edges)
+        B = get_adj(edges, verts)
+        print("A =")
+        print(shortstr(A))
+        print("B =")
+        print(shortstr(B))
+
     elif argv.partial_flags and dim==3:
         flags = geometry.get_cosets([0]*(dim+1))
         Hs = [get_adj(p, flags) for p in partial_flags]
@@ -2740,6 +2748,8 @@ def test_color():
 
 
 if __name__ == "__main__":
+
+    from time import time
 
     start_time = time()
 
