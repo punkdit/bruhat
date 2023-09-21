@@ -478,6 +478,7 @@ def main():
 
     name = argv.next() or argv.load
     if name is not None:
+        print(name)
         H = parse(open(name).read())
         L = get_logops(H)
     print(H.shape)
