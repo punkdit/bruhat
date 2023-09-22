@@ -35,13 +35,6 @@ class SMC(object):
         v = self.ket(i)
         v = v.transpose()
         return v
-        ring = self.ring
-        K, V = self.K, self.V
-        v = [ring.zero]*self.n
-        v[i] = ring.one
-        v = numpy.array(v)
-        v.shape = (K.n, V.n)
-        return Lin(K, V, v)
 
     def green(self, m, n):
         # m legs <--- n legs
@@ -54,14 +47,15 @@ class SMC(object):
     
     def red(self, m, n):
         # m legs <--- n legs
-        G = self.green(m, n)
-        R = tpow(H, m, self.one) * G * tpow(H, n, self.one)
+        # hmmmmm...
         return R
+
 
 def main():
 
+    dim = 2
     ring = element.Z
-    c = SMC(ring, 2)
+    c = SMC(ring, dim)
 
     ket, bra = c.ket, c.bra
     green, red = c.green, c.red
@@ -69,9 +63,9 @@ def main():
     one = c.one
 
     v0 = ket(0) # |0>
-    v1 = ket(1)
+    v1 = ket(1) #    <1|
     u0 = bra(0) # |0>
-    u1 = bra(1)
+    u1 = bra(1) #    <1|
 
     X = Lin(V, V, [[0, 1], [1, 0]])
     Z = Lin(V, V, [[1, 0], [0, -1]])
@@ -111,6 +105,9 @@ def main():
     assert (X@X) * comul == comul*X
     assert counit * X == counit
     assert X * unit == unit
+
+    print( green(2, 1) * green(1, 2) )
+    print( (X@I) * green(2, 1) * green(1, 2) * (X@I) )
 
     return
 
