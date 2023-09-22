@@ -8,7 +8,7 @@ import numpy
 import bruhat.solve
 
 from bruhat.solve import parse, span, shortstr, array2, solve, intersect, row_reduce, zeros2
-from bruhat.solve import dot2, identity2, linear_independent
+from bruhat.solve import dot2, identity2, linear_independent, find_kernel
 from bruhat.isomorph import Tanner, search
 from bruhat.equ import Equ, quotient
 from bruhat.action import Perm, Group, mulclose
@@ -886,6 +886,134 @@ def make_ramified():
 
         print()
 
+
+def make_ramified_homology():
+    from qcode import Geometry, get_adj
+
+    key = (5, 5)
+    key = argv.get("key", key)
+    idx = argv.get("idx", 4)
+
+    gens = (0,), (1,), (2,)
+    f, e, v = gens
+
+    print("idx =", idx)
+    geometry = Geometry(key, idx, False)
+    graph = geometry.build_graph()
+    graph = graph.compress()
+    gens = [w for w in reversed(graph.get_words())]
+    gens.pop(0) # remove the [[15,5,3]] gen
+
+    for g0 in gens:
+      for g1 in gens:
+        hgens = [g0, g1]
+        graph = geometry.build_graph(hgens=hgens)
+        graph = graph.compress()
+        #print("tiles:", len(graph))
+    
+        #for w in graph.get_words():
+        #    print(w)
+    
+        faces = graph.components([e, v])
+        #print("faces:", [len(c) for c in faces], len(faces))
+    
+        edges = graph.components([f, v])
+        if len(edges) < 10:
+            continue
+        print("edges", [len(c) for c in edges], len(edges))
+    
+        verts = graph.components([f, e])
+        #print("verts:", [len(c) for c in verts], len(verts))
+    
+        #colours = graph.components([e, v, f+e+v+e+f])
+        #print("colours:", [len(c) for c in colours], len(colours))
+    
+        Hz = get_adj(faces, edges)
+        #print("Hz =")
+        #print(shortstr(Hz))
+    
+        Hx = get_adj(verts, edges)
+        #print("Hx =")
+        #print(shortstr(Hx))
+    
+        if (dot2(Hz, Hx.transpose())).sum() != 0:
+            print("fail")
+            continue
+    
+        code = CSSCode(Hx=Hx, Hz=Hz)
+        print(code)
+        break
+
+    # fail...
+
+def classical_codes(n, m, distance=3):
+    from bruhat.algebraic import qchoose_2
+
+    for H in qchoose_2(n, m):
+        if H.sum(0).min() == 0: # distance=1
+            continue
+        if H.sum(1).min() == 1: # dead bit
+            continue
+        K = find_kernel(H)
+        k, n = K.shape
+        assert k==n-m, k
+        d = n
+        for idx in numpy.ndindex((2,)*k):
+            v = dot2(idx, K)
+            if 0 < v.sum() < d:
+                d = v.sum()
+        #print("d =", d)
+        if d>=distance:
+            yield H
+
+
+def kron(A, B):
+    if 0 in A.shape or 0 in B.shape:
+        C = zeros2(A.shape[0]*B.shape[0], A.shape[1]*B.shape[1])
+    else:
+        #print("kron", A.shape, B.shape)
+        C = numpy.kron(A, B)
+        #print("\t", C.shape)
+    return C
+
+def hypergraph_product(A, B, check=False):
+    #print("hypergraph_product: A=%s, B=%s"%(A.shape, B.shape))
+
+    ma, na = A.shape
+    mb, nb = B.shape
+
+    Ima = identity2(ma)
+    Imb = identity2(mb)
+    Ina = identity2(na)
+    Inb = identity2(nb)
+
+    Hz0 = kron(Ina, B.transpose()), kron(A.transpose(), Inb)
+    Hz = numpy.concatenate(Hz0, axis=1) # horizontal concatenate
+
+    Hx0 = kron(A, Imb), kron(Ima, B)
+    #print("Hx0:", Hx0[0].shape, Hx0[1].shape)
+    Hx = numpy.concatenate(Hx0, axis=1) # horizontal concatenate
+
+    assert dot2(Hx, Hz.transpose()).sum() == 0
+
+    return Hx, Hz
+
+
+def hgp():
+    n, m = 6, 4
+    for H in classical_codes(n, m, 3):
+        print("H=")
+        print(shortstr(H))
+        Hx, Hz = hypergraph_product(H, H.transpose())
+        code = CSSCode(Hx=Hx, Hz=Hz)
+        print(code)
+        #print(code.distance())
+        #print("Hz =")
+        #print(shortstr(Hz))
+        #print("Hx =")
+        #print(shortstr(Hx))
+        #print()
+    
 
 
 if __name__ == "__main__":
