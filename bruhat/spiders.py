@@ -106,8 +106,7 @@ def main():
     assert counit * X == counit
     assert X * unit == unit
 
-    print( green(2, 1) * green(1, 2) )
-    print( (X@I) * green(2, 1) * green(1, 2) * (X@I) )
+    assert green(2, 1) * green(1, 2) + (X@I) * green(2, 1) * green(1, 2) * (X@I) == I@I
 
     return
 
