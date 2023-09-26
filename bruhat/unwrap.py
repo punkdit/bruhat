@@ -11,7 +11,7 @@ import numpy
 from bruhat.action import Perm
 
 from qumba.solve import (parse, shortstr, linear_independent, eq2, dot2, identity2,
-    rank, rand2, pseudo_inverse, kernel, direct_sum, zeros2, solve2, normal_form)
+    rank, rand2, pseudo_inverse, kernel, direct_sum, zeros2, solve2, normal_form, array2)
 from qumba.qcode import QCode, SymplecticSpace
 from qumba import construct
 from qumba.autos import get_isos
@@ -239,7 +239,7 @@ def get_prism():
     return code
 
 
-def test():
+def test_tetrahedron():
 
     #code = get_jaunty()
     #code = get_prism()
@@ -260,6 +260,82 @@ def test():
     toric = toric.to_qcode()
     assert code2.is_isomorphic(toric)
 
+
+def fixed(f):
+    return [i for i in range(len(f)) if f[i]==i]
+
+def is_identity(f):
+    for i in range(len(f)):
+        if f[i] != i:
+            return False
+    return True
+
+def mul(f, g):
+    return [f[g[i]] for i in range(len(g))]
+
+
+def test():
+    src = construct.toric(3, 3)
+    print(src)
+    #print(src.longstr())
+    Ax, Az = src.Ax, src.Az
+    print("Ax =")
+    print(shortstr(Ax))
+    print("Az =")
+    print(shortstr(Az))
+
+    duality = find_zx_duality(Ax, Az)
+    autos = find_autos(Ax, Az)
+
+#    Bx = Ax[:, duality]
+#    print("Bx =")
+#    print(shortstr(Bx))
+
+    codes = []
+    for auto in autos:
+        f = mul(duality, auto)
+        code = zxcat(src, f)
+        print(code.get_params())
+        if len(fixed(f)) == 0 and is_identity(mul(f, f)):
+            codes.append(wrap(src, f))
+            #print(shortstr(code.H))
+            #codes.append(zxcat(src, f))
+
+    print(len(codes))
+
+    from bruhat.equ import quotient
+    lookup = quotient(codes, lambda a,b:a.is_isomorphic(b))
+    found = []
+    for k,v in lookup.items():
+        if v in found:
+            continue
+        found.append(v)
+        print('\t', len(v))
+
+        
+
+def wrap(code, duality):
+    pairs = []
+    for (i, j) in enumerate(duality):
+        if i==j:
+            assert 0
+        assert i!=j
+        assert duality[j] == i
+        if i < j:
+            pairs.append((i, j))
+    assert len(pairs)*2 == len(duality)
+    #print(pairs)
+
+    rows = []
+    for a in code.Hx:
+        row = []
+        for (i, j) in pairs:
+            row.append(a[i])
+            row.append(a[j])
+        rows.append(row)
+    H = array2(rows)
+    code = QCode(H)
+    return code
 
 
 if __name__ == "__main__":
