@@ -634,21 +634,17 @@ def test_CCZ():
         rows.append(row)
     CCZ = Matrix(c3.K, rows)
 
-    g = CCZ * IXI*IIX * CCZ.inverse()
+    g = CCZ * XII*IXI*IIX * CCZ.inverse()
     print("g =")
     print(g)
-    h = IIX * CZ01
-    print(g==h)
 
     half = c3.K.one() / 2
     op = half*(IIX + ZII*IIX + IZI*IIX - ZII*IZI*IIX)
-    print(op==g)
 
-    #print(SWAP01*op*SWAP01)
-    print(SWAP01)
-
-    names = "wI SII ISI IIS HII IHI IIH CZ01 CZ02 CZ12".split()
     ns =locals()
+
+    #names = "wI SII ISI IIS HII IHI IIH CZ01 CZ02 CZ12".split()
+    names = "XII IXI IIX CZ01 CZ02 CZ12".split()
     gen = [ns[name] for name in names]
     name = mulclose_find(gen, names, g, verbose=True)
     print(name)

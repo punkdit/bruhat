@@ -9,7 +9,7 @@ import numpy
 
 from bruhat.dev.geometry import all_codes
 from bruhat.sp_pascal import i_grassmannian
-from bruhat.qcode import QCode
+from bruhat.qcode import QCode, strop
 from bruhat.solve import zeros2, enum2, dot2, shortstr, array2
 from bruhat.util import choose
 from bruhat.argv import argv
@@ -68,7 +68,10 @@ def test_equal():
 def search(n, m, accept, verbose=False):
 
     if m==0:
-        return 1
+        H = zeros2(m, 2*n)
+        H.shape = m, n, 2
+        yield H
+        return 
 
     nn = 2*n
     refl = zeros2(nn, nn)
@@ -88,10 +91,19 @@ def search(n, m, accept, verbose=False):
         if accept(H1):
             if verbose:
                 print(".", end='', flush=True)
-            count += 1
+            #count += 1
+            yield H1
     if verbose:
         print()
-    return count
+    #return count
+
+
+def show(H):
+    m, n, _ = H.shape
+    nn = 2*n
+    H.shape = m, nn
+    print()
+    print(strop(H))
 
 
 S = array2([[1,1],[0,1]])
@@ -216,6 +228,46 @@ def get_transversal_SH(n):
     L = reduce(matmul, [U]*n)
     return L
 
+@cache
+def get_transversal_CZ(n):
+    assert n%2 == 0
+    from qupy.dense import Qu
+    CZ = Qu((2,)*4, 'udud')
+    CZ[0, 0, 0, 0] = 1.
+    CZ[0, 1, 0, 1] = 1.
+    CZ[1, 0, 1, 0] = 1.
+    CZ[1, 1, 1, 1] = -1.
+    L = reduce(matmul, [CZ]*(n//2))
+    return L
+
+def has_transversal_CZ(H1):
+    m, n, _ = H1.shape
+    if n%2:
+        return False
+    P = get_projector(H1)
+    L = get_transversal_CZ(n)
+    return P*L == L*P
+
+@cache
+def get_transversal_CCZ(n):
+    assert n%3 == 0
+    from qupy.dense import Qu
+    CCZ = Qu((2,)*6, 'ud'*3)
+    for a in [0,1]:
+     for b in [0,1]:
+      for c in [0,1]:
+        CCZ[a, b, c, a, b, c] = -1 if a==b==c==1 else 1
+    L = reduce(matmul, [CCZ]*(n//3))
+    return L
+
+def has_transversal_CCZ(H1):
+    m, n, _ = H1.shape
+    if n%3:
+        return False
+    P = get_projector(H1)
+    L = get_transversal_CCZ(n)
+    return P*L == L*P
+
 def has_transversal_SH(H1):
     m, n, _ = H1.shape
     if not has_transversal_upto_sign(H1, SH):
@@ -313,13 +365,24 @@ def main():
         print(count)
         return
 
+    post = argv.get("post", "lambda H:None")
+    post = eval(post)
+
+    mod = argv.get("mod", 0)
+
     n0 = argv.get("n0", 1)
     n1 = argv.get("n1", 10)
     #for n in range(6, 7):
     #  for m in range(4, n+1):
     for n in range(n0, n1):
+      if mod!=0 and n%mod:
+        continue
+      print("n=%2d:"%n, end=" ", flush=True)
       for m in range(n+1):
-        count = search(n, m, accept)
+        count = 0
+        for H in search(n, m, accept):
+            post(H)
+            count += 1
         print("%3d"%count, end=" ", flush=True)
       print()
 
