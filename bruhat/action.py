@@ -66,6 +66,29 @@ def mulclose_names(gen, names, verbose=False, maxsize=None):
     return names 
 
 
+def mulclose_find(gen, names, tgt, verbose=False, maxsize=None):
+    bdy = list(set(gen))
+    assert len(names) == len(gen)
+    names = dict((gen[i], (names[i],)) for i in range(len(gen)))
+    if tgt in gen:
+        return names[tgt]
+    changed = True 
+    while bdy:
+        _bdy = []
+        for A in gen:
+            for B in bdy:
+                C = A*B  
+                if C not in names: 
+                    #els.add(C)
+                    names[C] = names[A] + names[B]
+                    _bdy.append(C)
+                    if C == tgt:
+                        return names[C]
+                    if maxsize and len(names)>=maxsize:
+                        return 
+        bdy = _bdy
+    return 
+
 
 def mulclose_hom(gen1, gen2, verbose=False, maxsize=None):
     "build a group hom from generators: gen1 -> gen2"

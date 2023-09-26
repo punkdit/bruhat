@@ -8,7 +8,8 @@ from random import choice
 from operator import mul, matmul
 from functools import reduce, cache
 
-from solve import zeros2, identity2
+from bruhat.solve import zeros2, identity2
+from bruhat.action import mulclose, mulclose_find
 from bruhat.argv import argv
 
 from sage.all_cmdline import FiniteField, CyclotomicField
@@ -38,6 +39,18 @@ class Matrix(object):
         assert isinstance(other, Matrix)
         assert self.ring == other.ring
         M = self.M * other.M
+        return Matrix(self.ring, M)
+
+    def __add__(self, other):
+        assert isinstance(other, Matrix)
+        assert self.ring == other.ring
+        M = self.M + other.M
+        return Matrix(self.ring, M)
+
+    def __sub__(self, other):
+        assert isinstance(other, Matrix)
+        assert self.ring == other.ring
+        M = self.M - other.M
         return Matrix(self.ring, M)
 
     def __pow__(self, n):
@@ -86,31 +99,6 @@ class Matrix(object):
             if M[i,j] != 0:
                 return False
         return True
-
-
-
-def mulclose(gen, verbose=False, maxsize=None):
-    els = set(gen)
-    bdy = list(els)
-    changed = True
-    while bdy:
-        if verbose:
-            print(len(els), end=" ", flush=True)
-        _bdy = []
-        for A in gen:
-            for B in bdy:
-                C = A*B
-                if C not in els:
-                    els.add(C)
-                    _bdy.append(C)
-                    if maxsize and len(els)>=maxsize:
-                        if verbose:
-                            print()
-                        return els
-        bdy = _bdy
-    if verbose:
-        print()
-    return els
 
 
 class Coset(object):
@@ -178,10 +166,13 @@ class Clifford(object):
         assert 0<=i<n
         I = Matrix.identity(K, 2)
         items = [I]*n
-        Z = Matrix(K, [[1, 0], [0, -1]])
         items[i] = g
         gi = reduce(matmul, items)
         return gi
+        #while len(items)>1:
+        #    #items[-2:] = [items[-2] @ items[-1]]
+        #    items[:2] = [items[0] @ items[1]]
+        #return items[0]
         
     @cache
     def Z(self, i=0):
@@ -224,7 +215,7 @@ class Clifford(object):
         assert idx!=jdx
         N = 2**n
         A = zeros2(N, N)
-        ii, jj = 2**idx, 2**jdx
+        ii, jj = 2**(n-idx-1), 2**(n-jdx-1)
         for i in range(N):
             if i & ii and i & jj:
                 A[i, i] = -1
@@ -234,12 +225,14 @@ class Clifford(object):
 
     @cache
     def CX(self, idx=0, jdx=1):
+        assert idx != jdx
         CZ = self.CZ(idx, jdx)
         H = self.H(jdx)
         return H*CZ*H
 
     @cache
     def SWAP(self, idx=0, jdx=1):
+        assert idx != jdx
         HH = self.H(idx) * self.H(jdx)
         CZ = self.CZ(idx, jdx)
         return HH*CZ*HH*CZ*HH*CZ
@@ -247,42 +240,94 @@ class Clifford(object):
 
 def test_clifford():
 
-    cliff = Clifford(2)
-    X0 = cliff.X(0)
-    X1 = cliff.X(1)
-    Z0 = cliff.Z(0)
-    Z1 = cliff.Z(1)
-    wI = cliff.w()
+    c2 = Clifford(2)
+    II = c2.I
+    XI = c2.X(0)
+    IX = c2.X(1)
+    ZI = c2.Z(0)
+    IZ = c2.Z(1)
+    wI = c2.w()
 
-    Pauli = mulclose([wI*wI, X0, X1, Z0, Z1])
+    Pauli = mulclose([wI*wI, XI, IX, ZI, IZ])
     assert len(Pauli) == 64
 
-    SI = cliff.S(0)
-    IS = cliff.S(1)
-    HI = cliff.H(0)
-    IH = cliff.H(1)
-    CZ = cliff.CZ(0, 1)
+    SI = c2.S(0)
+    IS = c2.S(1)
+    HI = c2.H(0)
+    IH = c2.H(1)
+    CZ = c2.CZ(0, 1)
 
     #C2 = mulclose([SI, IS, HI, IH, CZ], verbose=True) # slow
     #assert len(C2) == 92160
 
-    CX = cliff.CX(0, 1)
-    SWAP = cliff.SWAP(0, 1)
+    CX = c2.CX(0, 1)
+    SWAP = c2.SWAP(0, 1)
 
     assert SWAP * CZ * SWAP == CZ
 
-    cliff = Clifford(3)
-    A = cliff.CX(0, 1)
-    B = cliff.CX(1, 2)
+    c2 = Clifford(3)
+    A = c2.CX(0, 1)
+    B = c2.CX(1, 2)
     assert A*B != B*A
 
-    A = cliff.CZ(0, 1)
-    B = cliff.CZ(1, 2)
+    A = c2.CZ(0, 1)
+    B = c2.CZ(1, 2)
     assert A*B == B*A
 
+    CX01 = c2.CX(0, 1)
+    CX10 = c2.CX(1, 0)
+    CZ01 = c2.CZ(0, 1)
+    CZ10 = c2.CZ(1, 0)
+    SWAP01 = c2.SWAP(0, 1)
 
+    assert HI*HI == II
+    assert HI*XI*HI == ZI
+    assert HI*ZI*HI == XI
+    assert HI*IX*HI == IX
+    assert SWAP01 == CX01*CX10*CX01
 
+def test_clifford3():
+    c3 = Clifford(3)
+    wI = c3.w()
+    III = c3.I
+    XII = c3.X(0)
+    IXI = c3.X(1)
+    IIX = c3.X(2)
+    ZII = c3.Z(0)
+    IZI = c3.Z(1)
+    IIZ = c3.Z(2)
+    SII = c3.S(0)
+    ISI = c3.S(1)
+    IIS = c3.S(2)
+    HII = c3.H(0)
+    IHI = c3.H(1)
+    IIH = c3.H(2)
+    CX01 = c3.CX(0, 1)
+    CX10 = c3.CX(1, 0)
+    CX02 = c3.CX(0, 2)
+    CX20 = c3.CX(2, 0)
+    CX12 = c3.CX(1, 2)
+    CX21 = c3.CX(2, 1)
+    CX12 = c3.CX(1, 2)
+    CZ01 = c3.CZ(0, 1)
+    CZ02 = c3.CZ(0, 2)
+    CZ12 = c3.CZ(1, 2)
+    SWAP01 = c3.SWAP(0, 1)
+    SWAP02 = c3.SWAP(0, 2)
+    SWAP12 = c3.SWAP(1, 2)
 
+    assert HII*HII == III
+    assert HII*XII*HII == ZII
+    assert HII*ZII*HII == XII
+    assert HII*IXI*HII == IXI
+
+    I = Clifford(1).I
+    c2 = Clifford(2)
+    assert CZ01 == c2.CZ(0,1)@I
+    assert SWAP01 == CX01*CX10*CX01
+
+    assert CX01*CX02 == CX02*CX01
+    assert CX12*CX01 == CX02*CX01*CX12
 
 
 def test_bruhat():
@@ -508,8 +553,110 @@ def test_cocycle():
         print("%s=%s"%(lhs%2,rhs%2), end=" ")
 
 
+def test_CCZ():
+
+    I = Clifford(1).I
+
+    c2 = Clifford(2)
+    wI = c2.w()
+    II = c2.I
+    XI = c2.X(0)
+    IX = c2.X(1)
+    ZI = c2.Z(0)
+    IZ = c2.Z(1)
+    SI = c2.S(0)
+    IS = c2.S(1)
+    HI = c2.H(0)
+    IH = c2.H(1)
+    CX01 = c2.CX(0, 1)
+    CX10 = c2.CX(1, 0)
+    CZ01 = c2.CZ(0, 1)
+    CZ10 = c2.CZ(1, 0)
+    SWAP01 = c2.SWAP(0, 1)
+
+    assert HI*HI == II
+    assert HI*XI*HI == ZI
+    assert HI*ZI*HI == XI
+    assert HI*IX*HI == IX
+    assert SWAP01 == CX01*CX10*CX01
+
+    #print( CX01 )
+    #print( CX10 )
+    #print( CZ01 )
+    #print( IH * CZ01 * IH )
+    #print( HI * CZ01 * HI )
+
+    c3 = Clifford(3)
+    wI = c3.w()
+    III = c3.I
+    XII = c3.X(0)
+    IXI = c3.X(1)
+    IIX = c3.X(2)
+    ZII = c3.Z(0)
+    IZI = c3.Z(1)
+    IIZ = c3.Z(2)
+    SII = c3.S(0)
+    ISI = c3.S(1)
+    IIS = c3.S(2)
+    HII = c3.H(0)
+    IHI = c3.H(1)
+    IIH = c3.H(2)
+    CX01 = c3.CX(0, 1)
+    CX10 = c3.CX(1, 0)
+    CX02 = c3.CX(0, 2)
+    CX20 = c3.CX(2, 0)
+    CX12 = c3.CX(1, 2)
+    CX21 = c3.CX(2, 1)
+    CX12 = c3.CX(1, 2)
+    CZ01 = c3.CZ(0, 1)
+    CZ02 = c3.CZ(0, 2)
+    CZ12 = c3.CZ(1, 2)
+    SWAP01 = c3.SWAP(0, 1)
+    SWAP02 = c3.SWAP(0, 2)
+    SWAP12 = c3.SWAP(1, 2)
+
+    assert HII*HII == III
+    assert HII*XII*HII == ZII
+    assert HII*ZII*HII == XII
+    assert HII*IXI*HII == IXI
+
+    assert CZ01 == c2.CZ(0,1)@I
+    assert SWAP01 == CX01*CX10*CX01
+
+    assert CX01*CX02 == CX02*CX01
+    assert CX12*CX01 == CX02*CX01*CX12
+
+    N = 2**c3.n
+    rows = []
+    for i in range(N):
+        row = [0]*N
+        row[i] = -1 if i==N-1 else 1
+        rows.append(row)
+    CCZ = Matrix(c3.K, rows)
+
+    g = CCZ * IXI*IIX * CCZ.inverse()
+    print("g =")
+    print(g)
+    h = IIX * CZ01
+    print(g==h)
+
+    half = c3.K.one() / 2
+    op = half*(IIX + ZII*IIX + IZI*IIX - ZII*IZI*IIX)
+    print(op==g)
+
+    #print(SWAP01*op*SWAP01)
+    print(SWAP01)
+
+    names = "wI SII ISI IIS HII IHI IIH CZ01 CZ02 CZ12".split()
+    ns =locals()
+    gen = [ns[name] for name in names]
+    name = mulclose_find(gen, names, g, verbose=True)
+    print(name)
+
+
 def test():
     test_clifford()
+    test_clifford3()
     test_bruhat()
     test_cocycle()
 
