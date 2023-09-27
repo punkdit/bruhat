@@ -3,6 +3,15 @@
 doctrines for various code families.
 """
 
+if 1:
+    import os
+    os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
+    os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
+    os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
+    os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
+    os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
+
+
 from functools import cache, reduce
 from operator import matmul, mul
 import numpy
@@ -98,12 +107,55 @@ def search(n, m, accept, verbose=False):
     #return count
 
 
-def show(H):
+def show(H1):
+    if not len(H1):
+        return
+    H = H1.view()
     m, n, _ = H.shape
     nn = 2*n
     H.shape = m, nn
     print()
     print(strop(H))
+    #if "X." in strop(H) and '.Z' in strop(H):
+    #    print(has_transversal_CZ(H1))
+
+
+def show_zxcat(H):
+    from bruhat.unwrap import zxcat
+    from qumba.qcode import QCode
+    code = QCode(H)
+    #print(code.longstr())
+    perm = []
+    for i in range(code.n):
+        perm.append(i-1 if i%2 else i+1)
+    dode = zxcat(code, perm)
+    eode = dode.apply_H()
+    if dode.equiv(eode):
+        print("*", end="", flush=True)
+    else:
+        print(".", end="", flush=True)
+    
+
+
+def show_832(H):
+    from bruhat.unwrap import zxcat
+    from qumba.qcode import QCode
+    from qumba import construct
+    right = QCode(H)
+    print(strop(right.H))
+    print("-->")
+    inner = construct.get_832()
+    left = (right.n//3) * inner
+    right = QCode.trivial(left.n - right.n) + right
+    code = left << right
+    print(strop(code.H))
+    print()
+
+
+    
+
+def has_nothing(H1):
+    return True
 
 
 S = array2([[1,1],[0,1]])
@@ -232,7 +284,7 @@ def get_transversal_SH(n):
 def get_transversal_CZ(n):
     assert n%2 == 0
     from qupy.dense import Qu
-    CZ = Qu((2,)*4, 'udud')
+    CZ = Qu((2,)*4, 'uudd')
     CZ[0, 0, 0, 0] = 1.
     CZ[0, 1, 0, 1] = 1.
     CZ[1, 0, 1, 0] = 1.
@@ -240,19 +292,33 @@ def get_transversal_CZ(n):
     L = reduce(matmul, [CZ]*(n//2))
     return L
 
+
+def dump(*args):
+    for P in args:
+        n = len(P.shape)//2
+        v = P.v
+        assert numpy.abs(v.imag).sum() < 1e-6
+        v = v.real
+        v = v.astype(int)
+        v.shape = (2**n, 2**n)
+        print(v)
+
+
 def has_transversal_CZ(H1):
     m, n, _ = H1.shape
     if n%2:
         return False
     P = get_projector(H1)
     L = get_transversal_CZ(n)
+    #dump(P, L, P*L, L*P)
     return P*L == L*P
 
 @cache
 def get_transversal_CCZ(n):
     assert n%3 == 0
     from qupy.dense import Qu
-    CCZ = Qu((2,)*6, 'ud'*3)
+    #CCZ = Qu((2,)*6, 'ud'*3)
+    CCZ = Qu((2,)*6, 'u'*3 + 'd'*3)
     for a in [0,1]:
      for b in [0,1]:
       for c in [0,1]:
