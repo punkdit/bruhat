@@ -416,7 +416,86 @@ def clifford():
 
     G = mulclose([Gate.S, Gate.H])
     print(len(G))
+
+
+def find_clifford():
+    from qumba.qcode import QCode, dot2, eq2
+    from qumba.matrix import SymplecticSpace, mulclose, Matrix
+    n = 4
+    space = SymplecticSpace(n)
+    S = space.get_S()
+    H = space.get_H()
+    c1 = mulclose([S, H])
+    assert len(c1) == 6 # Sp(2,2)
+
+    gen = [space.get_S(i) for i in range(4)]
+    gen += [space.get_H(i) for i in range(4)]
+    G = mulclose(gen)
+    print(len(G))
+
+    CZ = space.get_CZ(2,3)
+    HI = space.get_H(2)
+    IH = space.get_H(3)
+    SI = space.get_S(2)
+    IS = space.get_S(3)
+    II = space.identity()
+    swap = space.get_perm([0,1,3,2])
+    c2 = mulclose([HI, IH, SI, IS, CZ])
+    assert len(c2) == 720 # Sp(4,2)
+    c2.remove(II)
+
+    if 0:
+        code = QCode.fromstr("XXXX ZZZZ", None, "XXII ZIZI XIXI ZZII")
+        print(code.longstr())
+        print()
+        dode = code.apply_H()
+        print(dode.longstr())
+        print()
+        assert code.equiv(dode)
+        L = code.get_logical(dode)
+        #print(L)
+        #print(SymplecticSpace(2).get_perm([1,0]))
+        #return
     
+        E = Matrix(code.get_encoder())
+        print(E)
+    
+        print()
+        print(E*swap*HI*IH)
+        print()
+        print(H*E)
+    
+        return
+
+    tgt = SymplecticSpace(2).get_CNOT(0,1).A # yes
+    tgt = SymplecticSpace(2).get_CZ(0,1).A # no...
+
+    count = 0
+    for H in search(4, 2, has_nothing):
+        code = QCode(H)
+        if code.get_distance() < 2:
+            continue
+        #print(code.longstr())
+        E = Matrix(code.get_encoder())
+        #for g in c1:
+        for g in G:
+            if g==II:
+                continue
+            F = g*E
+            dode = QCode.from_encoder(F.A, m=code.m)
+            #print(dode.longstr())
+            if dode.equiv(code):
+                print("*", end="", flush=True)
+                #print(g)
+                #print(strop(code.H))
+                L = code.get_logical(dode)
+                if eq2(L, tgt):
+                    print()
+                    print(L)
+        count += 1
+    print()
+    print(count)
+
 
 def main():
 
@@ -427,8 +506,10 @@ def main():
     n = argv.get("n")
     m = argv.get("m", 1)
     if n is not None:
-        count = search(n, m, accept, argv.verbose)
-        print(count)
+        count = 0
+        for H in search(n, m, accept):
+            post(H)
+            count += 1
         return
 
     post = argv.get("post", "lambda H:None")
