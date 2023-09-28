@@ -468,7 +468,9 @@ def find_clifford():
         return
 
     tgt = SymplecticSpace(2).get_CNOT(0,1).A # yes
-    tgt = SymplecticSpace(2).get_CZ(0,1).A # no...
+    #tgt = SymplecticSpace(2).get_CZ(0,1).A # no...
+
+    found = []
 
     count = 0
     for H in search(4, 2, has_nothing):
@@ -477,24 +479,31 @@ def find_clifford():
             continue
         #print(code.longstr())
         E = Matrix(code.get_encoder())
+        for g in [S]:
         #for g in c1:
-        for g in G:
+        #for g in G:
             if g==II:
                 continue
             F = g*E
             dode = QCode.from_encoder(F.A, m=code.m)
             #print(dode.longstr())
             if dode.equiv(code):
-                print("*", end="", flush=True)
                 #print(g)
                 #print(strop(code.H))
                 L = code.get_logical(dode)
                 if eq2(L, tgt):
-                    print()
-                    print(L)
+                    #print()
+                    #print(code.longstr())
+                    print("*", end="", flush=True)
+                    found.append(code)
+                else:
+                    print(".", end="", flush=True)
         count += 1
     print()
     print(count)
+    for code in found:
+        print(strop(code.H))
+        print()
 
 
 def main():
