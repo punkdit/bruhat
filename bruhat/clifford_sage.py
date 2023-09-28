@@ -53,6 +53,10 @@ class Matrix(object):
         M = self.M - other.M
         return Matrix(self.ring, M)
 
+    def __neg__(self):
+        M = -self.M
+        return Matrix(self.ring, M)
+
     def __pow__(self, n):
        assert n>=0
        if n==0:

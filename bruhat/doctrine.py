@@ -20,6 +20,7 @@ from bruhat.dev.geometry import all_codes
 from bruhat.sp_pascal import i_grassmannian
 from bruhat.qcode import QCode, strop
 from bruhat.solve import zeros2, enum2, dot2, shortstr, array2
+from bruhat.action import mulclose, mulclose_names
 from bruhat.util import choose
 from bruhat.argv import argv
 
@@ -74,7 +75,7 @@ def test_equal():
     return
 
 
-def search(n, m, accept, verbose=False):
+def search(n, m, accept=lambda H:True, verbose=False):
 
     if m==0:
         H = zeros2(m, 2*n)
@@ -410,19 +411,12 @@ def is_symmetric(H1):
     return True
 
 
-def clifford():
-    from qupy.dense import Gate
-    from qupy.util import mulclose
-
-    G = mulclose([Gate.S, Gate.H])
-    print(len(G))
-
-
 def find_clifford():
     from qumba.qcode import QCode, dot2, eq2
-    from qumba.matrix import SymplecticSpace, mulclose, Matrix
-    n = 4
+    from qumba.matrix import SymplecticSpace, Matrix
+    n, k = 4, 2
     space = SymplecticSpace(n)
+    kspace = SymplecticSpace(k)
     S = space.get_S()
     H = space.get_H()
     c1 = mulclose([S, H])
@@ -442,68 +436,109 @@ def find_clifford():
     swap = space.get_perm([0,1,3,2])
     c2 = mulclose([HI, IH, SI, IS, CZ])
     assert len(c2) == 720 # Sp(4,2)
-    c2.remove(II)
+    #c2.remove(II)
 
-    if 0:
-        code = QCode.fromstr("XXXX ZZZZ", None, "XXII ZIZI XIXI ZZII")
-        print(code.longstr())
-        print()
-        dode = code.apply_H()
-        print(dode.longstr())
-        print()
-        assert code.equiv(dode)
-        L = code.get_logical(dode)
-        #print(L)
-        #print(SymplecticSpace(2).get_perm([1,0]))
-        #return
-    
-        E = Matrix(code.get_encoder())
-        print(E)
-    
-        print()
-        print(E*swap*HI*IH)
-        print()
-        print(H*E)
-    
-        return
-
-    tgt = SymplecticSpace(2).get_CNOT(0,1).A # yes
-    #tgt = SymplecticSpace(2).get_CZ(0,1).A # no...
-
-    found = []
-
-    count = 0
-    for H in search(4, 2, has_nothing):
-        code = QCode(H)
-        if code.get_distance() < 2:
-            continue
-        #print(code.longstr())
-        E = Matrix(code.get_encoder())
-        for g in [S]:
-        #for g in c1:
-        #for g in G:
-            if g==II:
-                continue
-            F = g*E
-            dode = QCode.from_encoder(F.A, m=code.m)
-            #print(dode.longstr())
-            if dode.equiv(code):
-                #print(g)
-                #print(strop(code.H))
-                L = code.get_logical(dode)
-                if eq2(L, tgt):
-                    #print()
-                    #print(code.longstr())
-                    print("*", end="", flush=True)
-                    found.append(code)
-                else:
-                    print(".", end="", flush=True)
-        count += 1
+    code422 = QCode.fromstr("XXXX ZZZZ", None, "XXII ZIZI XIXI ZZII")
+    print(code422.longstr())
     print()
-    print(count)
-    for code in found:
-        print(strop(code.H))
+
+    E = code422.get_isometry()
+    Ei = code422.get_isometry(True)
+    assert Ei*E == kspace.identity()
+
+    def get_equiv(code):
+        E = code.get_encoder()
+        for g in c2:
+            E1 = E*g
+            dode = QCode.from_encoder(E1, code.m)
+            assert code.equiv(dode)
+            yield dode
+
+#    found = set()
+#    for code in get_equiv(code422):
+#        E = code.get_encoder()
+#        found.add(E)
+#    print(len(found)) # 720
+#    return
+
+    CZ = kspace.get_CZ()
+    HI = kspace.get_H(0)
+    IH = kspace.get_H(1)
+    SI = kspace.get_S(0)
+    IS = kspace.get_S(1)
+    cliff2 = mulclose([HI, IH, SI, IS, CZ])
+    assert len(cliff2) == 720 # Sp(4,2)
+    #names = mulclose_names([HI, IH, SI, IS, CZ], "HI IH SI IS CZ".split())
+    HH = HI*IH
+    SS = SI*IS
+    names = mulclose_names(
+        [HI*HI, HI, IH, HH, SI, IS, SS, CZ], 
+        "II HI IH HH SI IS SS CZ".split())
+
+    def get_all_42():
+        for H in search(4, 2):
+            code = QCode(H)
+            if code.get_distance() < 2:
+                continue
+            yield code
+
+    codes = list(get_all_42())
+    print("codes:", len(codes))
+
+    tgt = kspace.get_CNOT(0, 1) # yes
+    tgt = kspace.get_CZ(0, 1) # yes
+    tgt = kspace.get_H(0) # no
+    tgt = kspace.get_H() # no
+
+    total = set()
+    #found = {kspace.identity()}
+    #lookup = {kspace.identity() : code422}
+    #for g in [S]:
+    for g in c1:
+        found = set()
+        lookup = {}
         print()
+        print(g[:2, :2], "=g")
+        #if g==II:
+        #    continue
+        count = 0
+        #for code0 in codes:
+        for code0 in [code422]:
+            code1 = g*code0
+            if not code1.equiv(code0):
+                continue
+            for code1 in get_equiv(code0):
+                code2 = g*code1
+                assert code2.equiv(code1)
+                L = code2.get_logical(code1)
+                total.add(L)
+                if L not in found:
+                    found.add(L)
+                    name = names[L]
+                    name = "*".join(name)
+                    lookup[name] = code1
+                    print("\n[%s]"%name, end="", flush=True)
+            else:
+                print(".", end="", flush=True)
+        print(len(found))
+        print()
+
+    print("total:", len(total))
+
+    code = lookup.get("SS*HH") or lookup.get("HH*SS")
+    print(code.longstr())
+
+    #G = mulclose(found)
+    #print(len(G))
+
+#    for g in found:
+#      for h in found:
+#        #if g*h in found:
+#        if g*h == h*g:
+#            print(".", end="")
+#        else:
+#            print("X", end="")
+#      print()
 
 
 def main():
