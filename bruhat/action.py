@@ -10,7 +10,9 @@ see also: gset.py
 import sys
 import string
 from random import randint, shuffle
-from functools import reduce, cache
+from functools import reduce
+from functools import lru_cache
+cache = lru_cache(maxsize=None)
 from operator import mul
 
 from bruhat.util import factorial, all_subsets, write, uniqtuples, cross

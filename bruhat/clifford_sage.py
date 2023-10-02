@@ -6,7 +6,10 @@ build clifford/pauli groups in sage
 
 from random import choice
 from operator import mul, matmul
-from functools import reduce, cache
+from functools import reduce
+#from functools import cache
+from functools import lru_cache
+cache = lru_cache(maxsize=None)
 
 from bruhat.solve import zeros2, identity2
 from bruhat.action import mulclose, mulclose_find
