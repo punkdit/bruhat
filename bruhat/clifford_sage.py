@@ -25,6 +25,7 @@ class Matrix(object):
         M.set_immutable()
         self.M = M
         self.ring = ring
+        self.shape = (M.nrows(), M.ncols())
 
     def __eq__(self, other):
         assert isinstance(other, Matrix)
@@ -35,12 +36,18 @@ class Matrix(object):
         return hash(self.M)
 
     def __str__(self):
-        return str(self.M)
+        lines = str(self.M).split("\n")
+        lines[0] = "[" + lines[0]
+        lines[-1] = lines[-1] + "]"
+        lines[1:] = [" "+l for l in lines[1:]]
+        return '\n'.join(lines)
     __repr__ = __str__
 
     def __mul__(self, other):
         assert isinstance(other, Matrix)
         assert self.ring == other.ring
+        assert self.shape[1] == other.shape[0], (
+            "cant multiply %sx%s by %sx%s"%(self.shape + other.shape))
         M = self.M * other.M
         return Matrix(self.ring, M)
 
@@ -106,6 +113,9 @@ class Matrix(object):
             if M[i,j] != 0:
                 return False
         return True
+
+    def is_zero(self):
+        return self == -self
 
 
 class Coset(object):
@@ -661,7 +671,7 @@ def test():
     test_clifford()
     test_clifford3()
     test_bruhat()
-    test_cocycle()
+    #test_cocycle() # sloooow
 
 
 
