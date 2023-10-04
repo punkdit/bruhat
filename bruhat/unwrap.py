@@ -275,7 +275,7 @@ def mul(f, g):
 
 
 def test():
-    src = construct.toric(3, 3)
+    src = construct.toric(2, 2)
     print(src)
     #print(src.longstr())
     Ax, Az = src.Ax, src.Az
@@ -294,10 +294,12 @@ def test():
     codes = []
     for auto in autos:
         f = mul(duality, auto)
-        code = zxcat(src, f)
-        print(code.get_params())
         if len(fixed(f)) == 0 and is_identity(mul(f, f)):
-            codes.append(wrap(src, f))
+            code = zxcat(src, f)
+            print(code.get_params())
+            dode = wrap(src, f)
+            print(dode.longstr())
+            codes.append(dode)
             #print(shortstr(code.H))
             #codes.append(zxcat(src, f))
 
