@@ -12,7 +12,7 @@ from bruhat.action import Perm
 
 from qumba.solve import (parse, shortstr, linear_independent, eq2, dot2, identity2,
     rank, rand2, pseudo_inverse, kernel, direct_sum, zeros2, solve2, normal_form, array2)
-from qumba.qcode import QCode, SymplecticSpace
+from qumba.qcode import QCode, SymplecticSpace, Matrix, strop, fromstr
 from qumba import construct
 from qumba.autos import get_isos
 from qumba.csscode import find_zx_duality, find_autos
@@ -30,6 +30,34 @@ def unwrap(code, check=True):
     H[:m, :, 0] = Sxz
     H[m:, :, 1] = Szx
     code = QCode(H, check=check)
+    return code
+
+
+def get_pairs(perm):
+    pairs = []
+    for (i, j) in enumerate(perm):
+        if i==j:
+            assert 0
+        assert i!=j, "perm has fixed point"
+        assert perm[j] == i
+        if i < j:
+            pairs.append((i, j))
+    assert len(pairs)*2 == len(perm), "perm is not an involution?"
+    return pairs
+
+
+def wrap(code, duality):
+    pairs = get_pairs(duality)
+
+    rows = []
+    for a in code.Hx:
+        row = []
+        for (i, j) in pairs:
+            row.append(a[i])
+            row.append(a[j])
+        rows.append(row)
+    H = array2(rows)
+    code = QCode(H)
     return code
 
 
@@ -239,6 +267,95 @@ def get_prism():
     return code
 
 
+def unwrap_encoder(code):
+    E = code.get_encoder()
+    Ei = code.space.invert(E)
+    space = SymplecticSpace(2*code.n)
+
+    n, m, k = code.n, code.m, code.k
+    E2 = zeros2(4*n, 4*n)
+    E2[::2, ::2] = E
+    E2[1::2, 1::2] = Ei.t
+    E2 = Matrix(E2)
+    assert space.is_symplectic(E2)
+    F = space.F
+
+    perm = list(range(4*n))
+    for i in range(m):
+        a, b = perm[4*i+2:4*i+4]
+        perm[4*i+2:4*i+4] = b, a
+    E2 = E2[:, perm]
+    assert space.is_symplectic(E2)
+
+    #HT = E2.t[:4*m, :]
+    #print(strop(HT))
+    #print()
+
+    code2 = QCode.from_encoder(E2, 2*m)
+    #print(code2.longstr(), code2)
+    return code2
+
+
+def test_513():
+
+#    H = """
+#    XZZX.
+#    .XZZX
+#    X.XZZ
+#    ZX.XZ
+#    """
+#    T = """
+#    XZZZX
+#    XXZZZ
+#    ZXXZZ
+#    ZZXXZ
+#    """
+#
+#    H = Matrix(fromstr(H))
+#    T = Matrix(fromstr(T))
+#    #print(QCode(H, T))
+#    space = SymplecticSpace(5)
+#    F = space.F
+#    #print(H * F * T.t)
+#
+#    code = construct.get_513()
+#    print(code.longstr())
+#
+#    n = code.n
+#    perm = [(i+1)%n for i in range(n)]
+#    R = space.get_perm(perm)
+#
+#    T, L = code.T, code.L
+#    TL = T.concatenate(L)
+#    nn = code.nn
+#    bits = [[] for i in range(code.m)]
+#    for t in numpy.ndindex((2,)*nn):
+#        t = array2(t)
+#        t.shape = 1, nn
+#        t = Matrix(t)
+#        u = (t*F*H.t)
+#        if u.sum() == 1:
+#            idx = u.where()[0][1]
+#            bits[idx].append(t)
+#
+#    for bit in bits:
+#      for t in bit:
+#        t1 = t*R
+#        u = (t*F*H.t)
+#        u1 = (t1*F*H.t)
+#        if u1.sum() == 1:
+#            print(strop(t), strop(t1), u, u1)
+#
+#    return
+
+    code = construct.get_513()
+    code2 = unwrap_encoder(code)
+
+    iso = code2.get_isomorphism( unwrap(code) )
+    assert iso is not None
+    print(iso)
+
+
 def test_tetrahedron():
 
     #code = get_jaunty()
@@ -281,27 +398,33 @@ def test():
     Ax, Az = src.Ax, src.Az
     print("Ax =")
     print(shortstr(Ax))
+    print(''.join(str(i) for i in range(src.n)))
     print("Az =")
     print(shortstr(Az))
+    print(''.join(str(i) for i in range(src.n)))
 
     duality = find_zx_duality(Ax, Az)
     autos = find_autos(Ax, Az)
 
-#    Bx = Ax[:, duality]
-#    print("Bx =")
-#    print(shortstr(Bx))
+    #for auto in autos:
+    #    if len(fixed(auto)) == 0 and is_identity(mul(auto, auto)):
+    #        print("auto:", auto, get_pairs(auto))
 
     codes = []
     for auto in autos:
         f = mul(duality, auto)
         if len(fixed(f)) == 0 and is_identity(mul(f, f)):
-            code = zxcat(src, f)
-            print(code.get_params())
+            #code = zxcat(src, f)
+            #print(code.get_params())
+            pairs = get_pairs(f)
+            print(pairs)
             dode = wrap(src, f)
-            print(dode.longstr())
+            print("H =")
+            print(strop(dode.H), dode.get_params())
             codes.append(dode)
             #print(shortstr(code.H))
             #codes.append(zxcat(src, f))
+            print()
 
     print(len(codes))
 
@@ -313,31 +436,6 @@ def test():
             continue
         found.append(v)
         print('\t', len(v))
-
-        
-
-def wrap(code, duality):
-    pairs = []
-    for (i, j) in enumerate(duality):
-        if i==j:
-            assert 0
-        assert i!=j
-        assert duality[j] == i
-        if i < j:
-            pairs.append((i, j))
-    assert len(pairs)*2 == len(duality)
-    #print(pairs)
-
-    rows = []
-    for a in code.Hx:
-        row = []
-        for (i, j) in pairs:
-            row.append(a[i])
-            row.append(a[j])
-        rows.append(row)
-    H = array2(rows)
-    code = QCode(H)
-    return code
 
 
 if __name__ == "__main__":
