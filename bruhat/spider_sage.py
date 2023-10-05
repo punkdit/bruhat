@@ -221,6 +221,19 @@ def test_gen():
                 return
             found.add(C)
             _bdy[C.shape[0]].append(C)
+        for B in bdy[1]+bdy[2]:
+            if B.shape[1] >= 4:
+                continue
+            for C in [B@I, I@B]:
+                if C in found:
+                    continue
+                #if C.shape == (1,1) and C[0,0]==-1:
+                #    print("-1 !")
+                if C in tgt:
+                    print("hit tgt !!!!!!!!!!")
+                    return
+                found.add(C)
+                _bdy[C.shape[0]].append(C)
 
         bdy = _bdy
         print("found:", len(found), [len(b) for b in bdy.values()])
