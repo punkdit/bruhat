@@ -180,6 +180,52 @@ def test_clifford():
         assert stab * E == E, op
 
 
+def test_gen():
+
+    swap = Clifford(2).SWAP()
+
+    gen = []
+    for left in [0, 1, 2]:
+      for right in [0, 1, 2]:
+        for phase in [0, 1, 2, 3]:
+            gen.append(green(left, right, phase))
+            gen.append(red(left, right, phase))
+
+    phase = 1
+    gen.append( green(1, 1, phase) @ I )
+    gen.append( I @ green(1, 1, phase) )
+    gen.append( red(1, 1, phase) @ I )
+    gen.append( I @ red(1, 1, phase) )
+    gen.append( swap )
+
+    gen = set(gen)
+    print("gen:", len(gen))
+
+    tgt = {w4*H, H}
+
+    found = set(gen)
+    bdy = {i:[] for i in [1, 2, 4]}
+    for g in gen:
+        bdy[g.shape[0]].append(g)
+    for _ in range(6):
+        _bdy = {i:[] for i in [1, 2, 4]}
+        for A in gen:
+          for B in bdy[A.shape[1]]:
+            C = A*B
+            if C in found:
+                continue
+            #if C.shape == (1,1) and C[0,0]==-1:
+            #    print("-1 !")
+            if C in tgt:
+                print("hit tgt !!!!!!!!!!")
+                return
+            found.add(C)
+            _bdy[C.shape[0]].append(C)
+
+        bdy = _bdy
+        print("found:", len(found), [len(b) for b in bdy.values()])
+
+
 
 def test():
     test_spider()

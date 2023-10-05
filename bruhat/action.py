@@ -27,7 +27,6 @@ long = int
 def mulclose_fast(gen, verbose=False, maxsize=None):
     els = set(gen)
     bdy = list(els)
-    changed = True 
     while bdy:
         if verbose:
             print(len(els), end=" ", flush=True)
@@ -52,7 +51,6 @@ def mulclose_names(gen, names, verbose=False, maxsize=None):
     bdy = list(set(gen))
     assert len(names) == len(gen)
     names = dict((gen[i], (names[i],)) for i in range(len(gen)))
-    changed = True 
     while bdy:
         _bdy = []
         for A in gen:
@@ -74,7 +72,6 @@ def mulclose_find(gen, names, tgt, verbose=False, maxsize=None):
     names = dict((gen[i], (names[i],)) for i in range(len(gen)))
     if tgt in gen:
         return names[tgt]
-    changed = True 
     while bdy:
         _bdy = []
         for A in gen:
@@ -99,7 +96,6 @@ def mulclose_hom(gen1, gen2, verbose=False, maxsize=None):
     for i in range(len(gen1)):
         hom[gen1[i]] = gen2[i]
     bdy = list(gen1)
-    changed = True 
     while bdy:
         #if verbose:
         #    print "mulclose:", len(hom)

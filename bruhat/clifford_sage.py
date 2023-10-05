@@ -110,6 +110,9 @@ class Matrix(object):
         return Matrix(self.ring, M)
     tensor_product = __matmul__
 
+    def __getitem__(self, idx):
+        return self.M[idx]
+
     def _latex_(self):
         M = self.M
         s = M._latex_()
