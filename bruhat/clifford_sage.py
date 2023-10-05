@@ -15,8 +15,34 @@ from bruhat.solve import zeros2, identity2
 from bruhat.action import mulclose, mulclose_find
 from bruhat.argv import argv
 
-from sage.all_cmdline import FiniteField, CyclotomicField
+from sage.all_cmdline import FiniteField, CyclotomicField, latex
 from sage import all_cmdline 
+
+K = CyclotomicField(8)
+w8 = K.gen()
+w4 = w8**2
+r2 = w8 + w8**7
+assert r2**2 == 2
+
+def simplify_latex(self):
+    M = self.M
+    m, n = self.shape
+    idxs = [(i,j) for i in range(m) for j in range(n)]
+    for idx in idxs:
+        if M[idx] != 0:
+            break
+    else:
+        assert 0
+    scale = M[idx]
+    M = (1/scale) * M
+    s = {
+        r2 : r"\sqrt{2}",
+        1/r2 : r"\frac{1}{\sqrt{2}}",
+        2/r2 : r"\frac{2}{\sqrt{2}}",
+        #r2/2 : r"\sqrt{2}/2",
+    }.get(scale, latex(scale))
+    return "%s %s"%(s, latex(M))
+
 
 
 class Matrix(object):
@@ -83,6 +109,13 @@ class Matrix(object):
         M = self.M.tensor_product(other.M)
         return Matrix(self.ring, M)
     tensor_product = __matmul__
+
+    def _latex_(self):
+        M = self.M
+        s = M._latex_()
+        if "zeta_" not in s:
+            return s
+        return simplify_latex(self)
 
     @classmethod
     def identity(cls, ring, n):

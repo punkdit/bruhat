@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Use sage's CyclotomicField's and Matrix's to
+build spiders with phase a multiples of pi/4.
+"""
 
 from operator import add, mul, matmul
 from functools import reduce
@@ -6,6 +10,7 @@ from functools import reduce
 from bruhat.clifford_sage import Matrix, CyclotomicField, Clifford
 from bruhat.argv import argv
 
+dim = 2 # qubits
 K = CyclotomicField(8)
 w8 = K.gen()
 w4 = w8**2
@@ -29,53 +34,32 @@ def parse(s):
 def tpow(v, n, one=matrix([[1]])):
     return reduce(matmul, [v]*n) if n>0 else one
 
+def ket(i):
+    v = [0]*dim
+    v[i] = 1
+    v = matrix([[w] for w in v])
+    return v
 
-class SMC(object):
-    def __init__(self, dim):
-        self.dim = dim
-        self.zero = 0
-        self.one = 1
-        self.I = Matrix.identity(K, dim)
-    
-    def ket(self, i):
-        v = [self.zero]*self.dim
-        v[i] = self.one
-        v = matrix([[w] for w in v])
-        return v
-    
-    def bra(self, i):
-        v = self.ket(i)
-        v = v.transpose()
-        return v
+def bra(i):
+    v = ket(i)
+    v = v.transpose()
+    return v
 
-    def green(self, m, n, phase=0):
-        # m legs <--- n legs
-        assert phase in [0, 1, 2, 3]
-        r = w4**phase
-        G = reduce(add, [
-            (r**i) * tpow(self.ket(i), m) * tpow(self.bra(i), n)
-            for i in range(self.dim)])
-        return G
-    
-    def red(self, m, n, phase=0):
-        # m legs <--- n legs
-        assert phase in [0, 1, 2, 3]
-        G = self.green(m, n, phase)
-        R = tpow(H, m) * G * tpow(H, n)
-        return R
+def green(m, n, phase=0):
+    # m legs <--- n legs
+    assert phase in [0, 1, 2, 3]
+    r = w4**phase
+    G = reduce(add, [
+        (r**i) * tpow(ket(i), m) * tpow(bra(i), n)
+        for i in range(dim)])
+    return G
 
-c = SMC(2)
-
-ket, bra = c.ket, c.bra
-green, red = c.green, c.red
-
-
-#class Space(object):
-#    def __init__(self, n):
-#        self.n = n
-#
-#    def CZ(self, i, j):
-
+def red(m, n, phase=0):
+    # m legs <--- n legs
+    assert phase in [0, 1, 2, 3]
+    G = green(m, n, phase)
+    R = tpow(H, m) * G * tpow(H, n)
+    return R
 
 
 def test_spider():
