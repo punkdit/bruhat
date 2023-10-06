@@ -153,6 +153,23 @@ def test_spider():
 
 
 def test_clifford():
+
+    for a in range(4):
+      for b in range(4):
+       for c in range(4):
+        lhs = green(1,1,a) * red(1,1,b) * green(1,1,c)
+        if lhs[0,0] == 0:
+            continue
+        r = H[0,0] / lhs[0,0]
+        lhs = r*lhs
+        if lhs == H:
+            print(a, b, c, r)
+
+    Z = green(1,1,2)
+    X = red(1,1,2)
+    assert Z*X*Z*X == -I
+
+
     n = 2
     space = Clifford(n)
     lhs = space.CX()
@@ -218,6 +235,7 @@ def test_gen():
             #    print("-1 !")
             if C in tgt:
                 print("hit tgt !!!!!!!!!!")
+                print(C == w4*H, C==H)
                 return
             found.add(C)
             _bdy[C.shape[0]].append(C)
@@ -231,6 +249,7 @@ def test_gen():
                 #    print("-1 !")
                 if C in tgt:
                     print("hit tgt !!!!!!!!!!")
+                    print(C == w4*H, C==H)
                     return
                 found.add(C)
                 _bdy[C.shape[0]].append(C)
