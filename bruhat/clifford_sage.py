@@ -15,7 +15,7 @@ from bruhat.solve import zeros2, identity2
 from bruhat.action import mulclose, mulclose_find
 from bruhat.argv import argv
 
-from sage.all_cmdline import FiniteField, CyclotomicField, latex
+from sage.all_cmdline import FiniteField, CyclotomicField, latex, block_diagonal_matrix
 from sage import all_cmdline 
 
 K = CyclotomicField(8)
@@ -109,6 +109,13 @@ class Matrix(object):
         M = self.M.tensor_product(other.M)
         return Matrix(self.ring, M)
     tensor_product = __matmul__
+
+    def direct_sum(self, other):
+        assert isinstance(other, Matrix)
+        assert self.ring == other.ring
+        #M = self.M.direct_sum(other.M)
+        M = block_diagonal_matrix(self.M, other.M)
+        return Matrix(self.ring, M)
 
     def __getitem__(self, idx):
         return self.M[idx]

@@ -391,6 +391,54 @@ def mul(f, g):
     return [f[g[i]] for i in range(len(g))]
 
 
+def test_unwrap():
+    from bruhat.doctrine import search
+    from bruhat.sp_pascal import i_grassmannian
+
+    for (h,t) in [
+        #("Z", "X"),
+        #("XZ ZX", "ZI IZ"),
+        #("XX IX", "ZI ZZ"),
+        #("XI IX", "ZX XZ"), 
+        ("YI IY", "ZI IZ"),
+    ]:
+
+        code = QCode.fromstr(h, t)
+        #assert code.get_encoder() == code.space.get_CNOT()
+        print(code.longstr())
+        print(code.get_encoder())
+    
+        code = unwrap_encoder(code)
+        space = code.space
+        n = space.n
+        print(code.longstr())
+        E = code.get_encoder()
+        print(E)
+        #rhs = space.get_CNOT(0, 3)*space.get_CNOT(1, 2)*space.get_H(2)*space.get_H(3)
+        #print(E==rhs)
+
+        print()
+
+    CX = space.get_CNOT
+    H = space.get_H
+
+    E0 = E
+    word = []
+    for i in range(n):
+      for j in range(n):
+        if j==i:
+            continue
+        A = space.get_CNOT(i, j)
+        if str(E).count('1') > str(A*E).count('1'):
+            print("get_CNOT", i, j)
+            E = A*E
+
+    print(E)
+
+    print(CX(3,0)*CX(1,2)*H(1)*H(3) == E0)
+
+
+
 def test():
     src = construct.toric(2, 2)
     print(src)
@@ -420,7 +468,8 @@ def test():
             print(pairs)
             dode = wrap(src, f)
             print("H =")
-            print(strop(dode.H), dode.get_params())
+            #print(strop(dode.H), dode.get_params())
+            print(dode.longstr())
             codes.append(dode)
             #print(shortstr(code.H))
             #codes.append(zxcat(src, f))

@@ -154,21 +154,25 @@ def test_spider():
 
 def test_clifford():
 
-    for a in range(4):
-      for b in range(4):
-       for c in range(4):
-        lhs = green(1,1,a) * red(1,1,b) * green(1,1,c)
-        if lhs[0,0] == 0:
-            continue
-        r = H[0,0] / lhs[0,0]
-        lhs = r*lhs
-        if lhs == H:
-            print(a, b, c, r)
+    A = green(1,1,1) * red(1,1,1) * green(1,1,1)
+    B = green(1,1,3) * red(1,1,3) * green(1,1,3)
+    assert A@B == H@H
+
+    if 0:
+        for a in range(4):
+          for b in range(4):
+           for c in range(4):
+            lhs = green(1,1,a) * red(1,1,b) * green(1,1,c)
+            if lhs[0,0] == 0:
+                continue
+            r = H[0,0] / lhs[0,0]
+            lhs = r*lhs
+            if lhs == H:
+                print(a, b, c, r)
 
     Z = green(1,1,2)
     X = red(1,1,2)
     assert Z*X*Z*X == -I
-
 
     n = 2
     space = Clifford(n)
@@ -179,6 +183,10 @@ def test_clifford():
     lhs = space.CZ()
     rhs = (green(1, 2) @ I) * (I @ H @ I) * (I @ green(2, 1))
     assert lhs == (2/r2)*rhs
+
+    A = space.CZ()
+    B = A.direct_sum(A.transpose())
+    print(B)
 
     n = 5
     space = Clifford(n)
