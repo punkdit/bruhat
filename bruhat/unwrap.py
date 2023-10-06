@@ -399,8 +399,9 @@ def test_unwrap():
         #("Z", "X"),
         #("XZ ZX", "ZI IZ"),
         #("XX IX", "ZI ZZ"),
+        ("XY IY", "ZI ZZ"),
         #("XI IX", "ZX XZ"), 
-        ("YI IY", "ZI IZ"),
+        #("YI IY", "ZI IZ"),
     ]:
 
         code = QCode.fromstr(h, t)
@@ -423,19 +424,30 @@ def test_unwrap():
     H = space.get_H
 
     E0 = E
-    word = []
+    pairs = [(i, j) for i in range(n) for j in range(n) if j!=i]
+    while 1:
+        E1 = E
+        shuffle(pairs)
+        for (i,j) in pairs:
+            A = space.get_CNOT(i, j)
+            if str(E).count('1') > str(A*E).count('1'):
+                print("get_CNOT", i, j)
+                E = A*E
+        if E==E1:
+            break
     for i in range(n):
       for j in range(n):
-        if j==i:
+        if j<=i:
             continue
-        A = space.get_CNOT(i, j)
+        A = space.get_CZ(i, j)
         if str(E).count('1') > str(A*E).count('1'):
-            print("get_CNOT", i, j)
+            print("get_CZ", i, j)
             E = A*E
 
     print(E)
 
-    print(CX(3,0)*CX(1,2)*H(1)*H(3) == E0)
+    print(CX(2,3)*CX(3,1)*CX(0,2)*H(1)*H(3) == E0)
+    print(CX(3,2)*CX(2,3)*CX(2,1)*CX(0,3)*H(1)*H(3) == E0)
 
 
 
