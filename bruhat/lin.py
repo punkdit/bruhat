@@ -666,9 +666,9 @@ class Lin(object):
         return eq(self.A, other.A)
 
     def __eq__(self, other):
-        #assert self.hom == other.hom, "%s != %s" % (self.hom, other.hom) # too strict ?
+        assert self.hom == other.hom, "%s != %s" % (self.hom, other.hom) # too strict ?
         if self.hom != other.hom:
-            return True
+            return False
         return eq(self.A, other.A)
 
     def __ne__(self, other):
