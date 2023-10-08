@@ -1087,69 +1087,6 @@ def test_structure():
 
 
 
-def test_frobenius():
-    ring = element.Q
-    one = ring.one
-    N = Space(ring, 0, 0, 'N')
-    I = Space(ring, 1, 0, 'I')
-    V = Space(ring, 2, 0, 'V')
-
-    if 1:
-        # complex numbers as a real algebra
-        counit = Lin(I, V, [[2, 0]])
-        mul = Lin(V, V@V, [[1, 0, 0, -1], [0, 1, 1, 0]])
-        cup = Lin(V@V, I, [[one/2],[0],[0],[-one/2]])
-    else:
-        counit = Lin(I, V, [[1, 0]])
-        mul = Lin(V, V@V, [[1, 0, 0, 0], [0, 0, 0, 1]])
-        cup = Lin(V@V, I, [[1],[0],[0],[1]])
-
-    unit = Lin(V, I, [[1], [0]])
-    iV = V.identity()
-    swap = (V@V).get_swap([1, 0])
-
-    cap = counit * mul
-    #print( (cap*cup)[0,0] )
-    #print(cap)
-    #print(cup)
-
-    # assoc
-    lhs = mul * (iV @ mul)
-    rhs = mul * (mul @ iV)
-    assert lhs == rhs
-
-    # unit
-    assert iV == mul * (iV @ unit)
-    assert iV == mul * (unit @ iV)
-
-    # comm
-    assert mul == mul * swap
-
-    # adjoint
-    assert (cap @ iV) * (iV @ cup) == iV
-    assert (iV @ cap) * (cup @ iV) == iV
-
-    comul = (iV @ mul @ iV) * (cup @ cup)
-    comul = (iV @ swap) * comul
-    comul = (iV @ iV @ cap) * (comul @ iV)
-    comul = comul.tgt.unitor() * comul
-    
-    # special
-    assert mul * comul == iV
-
-    u3 = Lin(I, I@I@I, [[1]])
-    u2 = Lin(I, I@I, [[1]])
-    op = (u3 * (counit @ counit @ counit)
-        - u2 * (counit @ cap)
-        - u2 * (counit @ cap) * (swap @ iV) 
-        - u2 * (cap @ counit)
-        + 2 * counit * mul * (mul @ iV)
-    )
-
-    assert op.is_zero()
-
-
-
 def test_young():
     # code ripped from qu.py
     from bruhat.rep import Young

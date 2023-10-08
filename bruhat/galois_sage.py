@@ -4,8 +4,6 @@
 abelian galois extensions / cyclotomic number fields 
 """
 
-from time import time
-start_time = time()
 import string
 
 from sage.all_cmdline import *
@@ -211,6 +209,9 @@ def make_dot(items):
 
 
 if __name__ == "__main__":
+
+    from time import time
+    start_time = time()
 
     _seed = argv.get("seed")
     if _seed is not None:
