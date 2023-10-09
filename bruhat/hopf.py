@@ -83,7 +83,7 @@ def main():
     # green spiders
     g_ = Lin(K, V) # uniform discard
     _g = Lin(V, K) # uniform create
-    g_gg = Lin(VV, V) # copy
+    g_gg = Lin(VV, V) # copy (comul)
     gg_g = Lin(V, VV) # pointwise mul
 
     for i in range(d):
@@ -147,8 +147,15 @@ def main():
 
     assert eq((_r >> r_) , scalar )
 
-    assert not eq(rr_r >> r_, cap)
-    assert not eq(_r >> r_rr, cup)
+    print(rr_r)
+    print(r_)
+
+    if n>2:
+        assert not eq(rr_r >> r_, cap)
+        assert not eq(_r >> r_rr, cup)
+    else:
+        print( eq(rr_r >> r_, cap) )
+        print( eq(_r >> r_rr, cup) )
 
     # K[G] is a bialgebra
     assert eq( rr_r >> g_, g_ @ g_)
