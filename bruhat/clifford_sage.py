@@ -34,14 +34,19 @@ def simplify_latex(self):
     else:
         assert 0
     scale = M[idx]
-    M = (1/scale) * M
-    s = {
-        r2 : r"\sqrt{2}",
-        1/r2 : r"\frac{1}{\sqrt{2}}",
-        2/r2 : r"\frac{2}{\sqrt{2}}",
-        #r2/2 : r"\sqrt{2}/2",
-    }.get(scale, latex(scale))
-    return "%s %s"%(s, latex(M))
+    if scale != 1 and scale != -1:
+        M = (1/scale) * M
+        s = {
+            r2 : r"\sqrt{2}",
+            1/r2 : r"\frac{1}{\sqrt{2}}",
+            2/r2 : r"\frac{2}{\sqrt{2}}",
+            #r2/2 : r"\sqrt{2}/2",
+        }.get(scale, latex(scale))
+        s = "%s %s"%(s, latex(M))
+    else:
+        s = latex(M)
+    s = s.replace(r"\zeta_{8}^{2}", "i")
+    return s
 
 
 
