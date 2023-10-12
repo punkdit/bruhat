@@ -12,8 +12,6 @@ see also:
 
 
 import sys, os
-from time import time
-start_time = time()
 import random
 from random import randint, choice
 from functools import reduce
@@ -3305,6 +3303,8 @@ def main():
 
 
 if __name__ == "__main__":
+    from time import time
+    start_time = time()
     fn = argv.next() or "main"
 
     if argv.profile:
