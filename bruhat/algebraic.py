@@ -2152,7 +2152,7 @@ def test_weyl():
     print()
 
 
-def test_building():
+def test_building_0():
 
     B1 = Algebraic.Sp(2).get_weyl()
     B2 = Algebraic.Sp(4).get_weyl()
@@ -2184,6 +2184,7 @@ def test_building():
 
     return
 
+def test_building():
     n = argv.get("n", 3)
     nn = 2*n
     p = argv.get("p", 2)
@@ -2224,6 +2225,7 @@ def test_building():
     lookup = B.lookup
     for trial in range(100):
         g = G.sample()
+        print(g)
         b1, b2 = building.decompose(g)
         w = b1*g*b2
         assert b1 in B
