@@ -39,9 +39,12 @@ def simplify_latex(self):
         s = {
             r2 : r"\sqrt{2}",
             1/r2 : r"\frac{1}{\sqrt{2}}",
-            2/r2 : r"\frac{2}{\sqrt{2}}",
+            #2/r2 : r"\frac{2}{\sqrt{2}}",
+            2/r2 : r"\sqrt{2}",
             #r2/2 : r"\sqrt{2}/2",
         }.get(scale, latex(scale))
+        if "+" in s:
+            s = "("+s+")"
         s = "%s %s"%(s, latex(M))
     else:
         s = latex(M)
