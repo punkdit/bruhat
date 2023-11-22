@@ -109,8 +109,6 @@ def test_frobenius(mul, unit, counit, cup):
     swap = (V@V).get_swap([1, 0])
 
     cap = counit * mul
-    print(cap)
-    print(cup)
 
     # _assoc
     lhs = mul * (iV @ mul)
@@ -133,6 +131,9 @@ def test_frobenius(mul, unit, counit, cup):
     comul = (iV @ swap) * comul
     comul = (iV @ iV @ cap) * (comul @ iV)
     comul = comul.tgt.unitor() * comul * comul.src.unitor(True)
+
+    print("comul")
+    print(comul)
 
     lhs = comul * mul
     rhs = (mul @ iV) * (iV @ comul)

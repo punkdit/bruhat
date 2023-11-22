@@ -88,6 +88,22 @@ class Monoid(object):
 
 
 
+def test_sequence():
+
+    # this is OEIS A081489
+    for n in range(1, 7):
+        items = list(range(1, n+1))
+        tgt = src = items
+    
+        I = Func(tgt, src, dict((i, i) for i in items), "")
+        up = Func(tgt, src, dict((i, min(i+1, n)) for i in items), "u")
+        dn = Func(tgt, src, dict((i, max(i-1, 1)) for i in items), "d")
+    
+        M = Monoid.generate([I, up, dn], maxsize=1200)
+        print(n, len(M))
+
+
+
 def test():
 
     n = argv.get("n", 3)
@@ -160,6 +176,7 @@ def show_table(M, gens):
 
 if __name__ == "__main__":
 
+    test_sequence()
     test()
 
     print("OK\n")

@@ -46,13 +46,13 @@ def test_hom():
         assert action[g*h] == action[g]*action[h] # check it's a group hom
 
 
-def main():
+def main(n=3):
 
     ring = element.Q
     zero = ring.zero
     one = ring.one
 
-    n = argv.get("n", 3)
+    n = argv.get("n", n)
     if argv.cyclic:
         G = Group.cyclic(n)
     else:
@@ -232,12 +232,17 @@ def main():
     assert eq( _r >> r_rr, _r >> r_rr >> swap )
     assert eq( rr_r >> r_, swap >> rr_r >> r_ )
 
-
     #print(r_rr >> gg_g)
     #print(r_ >> _g)
     #print(g_gg >> rr_r)
     #print(rr_r >> r_)
     #print(_r >> r_rr)
+
+    class NS:
+        pass
+    ns = NS()
+    ns.__dict__.update(locals())
+    return ns
 
 
 if __name__ == "__main__":
