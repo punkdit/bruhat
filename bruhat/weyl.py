@@ -1025,13 +1025,14 @@ def test_monoid(G):
 
 def test(n):
 
+    print("test(%d)"%n)
 
     G = Weyl.build_A(n)
 
-#    print "%d roots" % len(G.roots)
-#    print G.roots
-#    for g in G.gen:
-#        print [g(root) for root in G.roots]
+    print("%d roots" % len(G.roots))
+    print(G.roots)
+    for g in G.gen:
+        print([g(root) for root in G.roots])
 
     gen = G.gen
     for i in range(n):
