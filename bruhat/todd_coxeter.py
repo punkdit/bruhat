@@ -17,8 +17,6 @@ https://arxiv.org/pdf/2012.09271.pdf p10.
 
 import sys
 from random import randint, seed, choice
-from time import sleep, time
-start_time = time()
 from functools import reduce
 from operator import mul
 
@@ -860,6 +858,8 @@ def test_F4():
 
 if __name__ == "__main__":
 
+    from time import sleep, time
+    start_time = time()
     profile = argv.profile
     name = argv.next()
     _seed = argv.get("seed")

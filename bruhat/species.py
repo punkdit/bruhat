@@ -839,14 +839,35 @@ def test_functor():
         K = J(K)
     
 
+def test_list():
+    f = List
+    print(f.sequence(7))
+    print((f*f).sequence(7))
+
 
 if __name__ == "__main__":
 
-    if argv.test:
-        test()
+    from time import time
+    start_time = time()
+    profile = argv.profile
+    name = argv.next()
+    _seed = argv.get("seed")
+    if _seed is not None:
+        print("seed(%s)"%(_seed))
+        seed(_seed)
+
+    if profile:
+        import cProfile as profile
+        profile.run("%s()"%name)
+
+    elif name is not None:
+        fn = eval(name)
+        fn()
+
     else:
-        main()
-        #test_functor()
+        test()
+
+    print("OK: finished in %.3f seconds\n"%(time() - start_time))
 
 
 
