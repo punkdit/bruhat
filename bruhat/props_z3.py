@@ -103,6 +103,11 @@ def test_inj():
 
     pop = lambda i,j: lookup[i,j]
 
+    for tgt in range(1, N):
+      for i in range(tgt):
+       for j in range(tgt-1):
+        e = lookup[tgt, i] * lookup[tgt-1, j]
+
     for src in range(2, N):
      for i in range(src):
       for j in range(src-1):
@@ -122,7 +127,8 @@ def test_inj():
     assert pop(4,1)*pop(3,0)*pop(2,0) == pop(4,1)*pop(3,1)*pop(2,0)
 
     assert pop(4,1)*pop(3,0) != pop(4,3)*pop(3,1)
-    assert pop(4,1)*pop(3,0)*pop(2,0) != pop(4,3)*pop(3,1)*pop(2,0)
+    #assert pop(4,1)*pop(3,0)*pop(2,0) == pop(4,3)*pop(3,1)*pop(2,0)
+    assert pop(4,1)*pop(3,0)*pop(2,0) != pop(4,3)*pop(3,1)*pop(2,0) # FAIL
 
         
 
