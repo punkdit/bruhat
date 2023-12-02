@@ -47,7 +47,7 @@ def test_egg():
 
 
 class Morphism(object):
-    def __init__(self, solver, expr, tgt=0, src=0):
+    def __init__(self, solver, expr, tgt=None, src=None):
         self.solver = solver
         self.expr = expr
         self.tgt = tgt
@@ -78,11 +78,13 @@ class Category(object):
         self.rules = [ Rewrite(Mul(Mul(a, b), c), Mul(a, Mul(b, c)), "_assoc") ]
         self.cache = {}
 
-    def gen(self, name, tgt=0, src=0):
+    def gen(self, name, tgt=None, src=None):
         g = self.cache.get(name)
         if g is None:
             g = Morphism(self, name, tgt, src)
             self.cache[name] = g
+        assert g.tgt == tgt
+        assert g.src == src
         return g
 
     def get(self, expr):
@@ -134,11 +136,8 @@ def test_inj():
     for i in range(N):
       row = []
       for j in range(i):
-        #name = "inj(%d,%d)"%(i, j)
-        #name = "inj_%d_%d"%(i, j)
-        name = "i%d%d"%(i, j)
+        name = "pop(%d,%d)"%(i, j)
         op = cat.gen(name, i, i-1)
-        #exec("%s = op"%(name), globals(), locals())
         lookup[i,j] = op
         row.append(op)
       rows.append(row)
