@@ -160,17 +160,33 @@ def test_inj():
      for i in range(src):
       for j in range(src-1):
         lhs = pop(src, i) * pop(src-1, j)
+        model = list(range(src))
+        model.pop(i)
+        model.pop(j)
+        nodel = list(range(src))
         if i<j:
-            rhs = pop(src, j-1) * pop(src-1, i)
+            rhs = pop(src, j+1) * pop(src-1, i)
+            nodel.pop(j+1)
+            nodel.pop(i)
+            assert model == nodel, (src, i, j)
         elif i>j:
             rhs = pop(src, j) * pop(src-1, i-1)
+            nodel.pop(j)
+            nodel.pop(i-1)
+            assert model == nodel, (src, i, j)
         else:
             assert i==j
             rhs = pop(src, j+1) * pop(src-1, i)
+            nodel.pop(j+1)
+            nodel.pop(i)
+            assert model == nodel, (src, i, j)
         #print(lhs, "==", rhs)
-        #lhs.equate(rhs)
+        lhs.equate(rhs)
 
-    for src in range(2, N):
+    #return
+
+    if 0:
+      for src in range(2, N):
         interp = []
         for i in range(src):
          for j in range(src-1):
@@ -189,9 +205,8 @@ def test_inj():
     assert pop(4,1)*pop(3,0)*pop(2,0) == pop(4,1)*pop(3,1)*pop(2,0)
 
     assert pop(4,1)*pop(3,0) != pop(4,3)*pop(3,1)
-    #assert pop(4,1)*pop(3,0)*pop(2,0) == pop(4,3)*pop(3,1)*pop(2,0)
     assert pop(4,1)*pop(3,0) != pop(4,3)*pop(3,1)
-    assert pop(4,1)*pop(3,0)*pop(2,0) != pop(4,3)*pop(3,1)*pop(2,0) # FAIL
+    assert pop(4,1)*pop(3,0)*pop(2,0) != pop(4,3)*pop(3,1)*pop(2,0)
 
 
 
