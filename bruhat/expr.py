@@ -14,6 +14,7 @@ class Expr(object):
         self.ref = ref
 
     def equate(self, other):
+        #print("Expr.equate", self, other)
         self.solver.equate(self.ref, other.ref)
 
     def __eq__(self, other):

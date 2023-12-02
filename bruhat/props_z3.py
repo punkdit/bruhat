@@ -128,12 +128,13 @@ def test_inj():
 
     assert pop(4,1)*pop(3,0) != pop(4,3)*pop(3,1)
     #assert pop(4,1)*pop(3,0)*pop(2,0) == pop(4,3)*pop(3,1)*pop(2,0)
+    assert pop(4,1)*pop(3,0) != pop(4,3)*pop(3,1) # FAIL
     assert pop(4,1)*pop(3,0)*pop(2,0) != pop(4,3)*pop(3,1)*pop(2,0) # FAIL
 
         
 
 def test():
-    test_assoc()
+    #test_assoc()
     test_inj()
 
     
