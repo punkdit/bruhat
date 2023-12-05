@@ -14,10 +14,8 @@ as in lin.py with the Space class etc...
 """
 
 
-from time import time
-start_time = time()
 from functools import reduce
-from operator import add
+from operator import add, mul
 
 import numpy
 from numpy import alltrue
@@ -1647,6 +1645,9 @@ def test():
     
 
 if __name__ == "__main__":
+    from time import time
+    start_time = time()
+
     fn = argv.next() or "main"
 
     if argv.profile:
