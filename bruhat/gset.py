@@ -1636,11 +1636,25 @@ def main():
         print()
 
 
+def test_orbits():
+    for n in range(2, 7):
+        print("n =", n, end=": ")
+        G = Group.symmetric(n)
+        X = G.i
+        for k in range(1, 8):
+            Xs = [X]*k
+            Y = reduce(mul, Xs)
+            print(len(Y.get_orbits()), end=" ", flush=True)
+        print()
+    print("done")
+
+
 def test():
     test_set()
     #test_gset()
     test_subgroups()
     test_homology()
+    test_orbits()
 
     
 
@@ -1648,7 +1662,7 @@ if __name__ == "__main__":
     from time import time
     start_time = time()
 
-    fn = argv.next() or "main"
+    fn = argv.next() or "test"
 
     if argv.profile:
         import cProfile as profile
