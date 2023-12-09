@@ -473,6 +473,8 @@ def main_poincare():
 
     scale = argv.get("scale", 1.)
     for (l, m, n, maxsize) in [(5,2,5,8000), (5,2,4,12000)]:
+    #for (l, m, n, maxsize) in [(5,2,5,800), (5,2,4,1200)]:
+    #for (l, m, n, maxsize) in [(5,2,4,1200)]:
 
         # build the rotation group generators
         a, b = [g.todisc() for g in mktriangle(l, m, n)]
@@ -495,18 +497,36 @@ def main_poincare():
         gens = [g_face, g_edge, g_vert]
         gens = gens + [~g for g in gens]
         G = mulclose(gens, verbose=True, maxsize=maxsize)
-    
+
         faces, edges, verts = [], [], []
         for g in G:
             faces.append(g(z_face))
             edges.append(g(z_edge))
             verts.append(g(z_vert))
     
+        # here we shade a region darkgrey
+        if n==5:
+            pts = [z_face, z_edge, z_vert, g_edge(z_edge)]
+            p = []
+            for i in range(4):
+                geodesic = disc.get_geodesic(pts[i], pts[(i+1)%4])
+                p.append(geodesic.p)
+            cvs.fill(path.path(p), [darkgrey.alpha(0.9)])
+        else:
+            pts = [z_face, z_vert, g_face(z_face), g_vert(z_vert)]
+            g = (g_vert*g_edge)**2
+            pts = [g(pt) for pt in pts] # rotate me
+            N = len(pts)
+            p = []
+            for i in range(N):
+                geodesic = disc.get_geodesic(pts[i], pts[(i+1)%N])
+                p.append(geodesic.p)
+            cvs.fill(path.path(p), [darkgrey.alpha(0.9)])
+
         for g in G:
             disc.show_geodesic(g(z_vert), g(z_edge), attrs=st_round)
             disc.show_geodesic(g(z_face), g(z_edge), attrs=st_round+[grey])
             disc.show_geodesic(g(z_face), g(z_vert), attrs=st_round+[grey])
-    
     
         for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
             for z in zs:
@@ -514,6 +534,7 @@ def main_poincare():
 
         disc.fini()
         disc.save("poincare-disc-%d%d%d"%(l,m,n))
+
     
 
 def main_poincare_1():
