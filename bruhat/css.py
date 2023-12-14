@@ -70,10 +70,11 @@ def find_majorana(n, m):
     Xs, Zs = [], []
     for i in range(n):
         Xs.append(i)
-        Zs.append(n + n-i-1)
+        Zs.append(nn-i-1)
 
     G = Algebraic.Sp(nn)
     F = G.invariant_form
+    #print(shortstr(F))
 
     modes = []
     for i in range(n):
@@ -88,12 +89,20 @@ def find_majorana(n, m):
         #u.shape = 1,nn
         #v.shape = 1,nn
         u, v = Matrix(u), Matrix(v)
+        #print()
+        #print(u)
+        #print(v)
+        #print(F*v.transpose())
         uv = u*F*v.transpose()
+        #print(uv)
         assert uv.A == 1
         modes.append(u)
         modes.append(v)
     modes = numpy.array(modes, dtype=int)
-    #print(modes)
+    #print(n,m)
+    #print(shortstr(modes))
+    #print()
+    #return 0
 
     modes_i = pseudo_inverse(modes)
 
@@ -107,9 +116,9 @@ def find_majorana(n, m):
         if U2.sum() == 0:
             found += 1
 
-        #H = Matrix(H)
-        #HFH = H*F*H.transpose()
-        #assert HFH.sum() == 0
+        H = Matrix(H)
+        HFH = H*F*H.transpose()
+        assert HFH.sum() == 0
 
         count += 1
 
