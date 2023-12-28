@@ -51,9 +51,12 @@ def main():
         fn = eval(fn)
     else:
         fn = sl_pascal
+    oeis = argv.oeis
+    sep = "," if oeis else argv.get("sep", " ")
+    nl = argv.get("nl", "")
 
     value = argv.get("q")
-    for row in range(7):
+    for row in range(8):
       for col in range(row+1):
         p = fn(row, col)
         if value is not None:
@@ -62,8 +65,11 @@ def main():
         else:
             s = p.qstr("q")
             #s = p.flatstr().replace(" + ", "+")
-        print(s, end=" ")
-      print()
+        print(s, end=sep)
+      if not oeis:
+        print(nl)
+
+    print
 
 
 
