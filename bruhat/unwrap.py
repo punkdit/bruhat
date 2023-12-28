@@ -471,23 +471,25 @@ def test():
     #        print("auto:", auto, get_pairs(auto))
 
     codes = []
+    pairss = []
     for auto in autos:
         f = mul(duality, auto)
-        if len(fixed(f)) == 0 and is_identity(mul(f, f)):
-            #code = zxcat(src, f)
-            #print(code.get_params())
-            pairs = get_pairs(f)
-            print(pairs)
-            dode = wrap(src, f)
-            print("H =")
-            #print(strop(dode.H), dode.get_params())
-            print(dode.longstr())
-            codes.append(dode)
-            #print(shortstr(code.H))
-            #codes.append(zxcat(src, f))
-            print()
+        if len(fixed(f)) != 0 or not is_identity(mul(f, f)):
+            continue
+        #code = zxcat(src, f)
+        #print(code.get_params())
+        pairs = get_pairs(f)
+        pairss.append(pairs)
+        print(pairs)
+        dode = wrap(src, f)
+        #print(strop(dode.H), dode.get_params())
+        print(dode.longstr())
+        codes.append(dode)
+        #print(shortstr(code.H))
+        #codes.append(zxcat(src, f))
+        print()
 
-    print(len(codes))
+    print("codes:", len(codes))
 
     from bruhat.equ import quotient
     lookup = quotient(codes, lambda a,b:a.is_isomorphic(b))
@@ -496,7 +498,20 @@ def test():
         if v in found:
             continue
         found.append(v)
-        print('\t', len(v))
+        print('  equivalence class:', len(v))
+    print()
+
+    src = src.to_qcode()
+    print(src.longstr())
+    for pairs in pairss:
+        tgt = src
+        for (i,j) in pairs:
+            tgt = tgt.apply_CZ(i,j)
+        assert tgt.is_equiv(src)
+        print(pairs)
+        #print(tgt.longstr())
+        print(src.get_logical(tgt))
+        print()
 
 
 if __name__ == "__main__":
