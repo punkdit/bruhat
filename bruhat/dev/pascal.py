@@ -56,7 +56,7 @@ def main():
     nl = argv.get("nl", "")
 
     value = argv.get("q")
-    for row in range(8):
+    for row in range(10):
       for col in range(row+1):
         p = fn(row, col)
         if value is not None:

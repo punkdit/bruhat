@@ -152,6 +152,8 @@ def main():
 #        print(G)
     print(len(cells))
 
+    return
+
     GL = algebraic.GL(n, q)
 
     names = ".PLSH"

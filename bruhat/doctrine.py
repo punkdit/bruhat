@@ -17,7 +17,7 @@ from operator import matmul, mul
 import numpy
 
 from bruhat.dev.geometry import all_codes
-from bruhat.sp_pascal import i_grassmannian
+from bruhat.sp_pascal import i_grassmannian, grassmannian
 from bruhat.qcode import QCode, strop
 from bruhat.solve import zeros2, enum2, dot2, shortstr, array2
 from bruhat.action import mulclose, mulclose_names
@@ -93,7 +93,8 @@ def search(n, m, accept=lambda H:True, verbose=False):
 
     count = 0
     #for H in all_codes(m, nn):
-    for piv,H in i_grassmannian(n, m):
+    #for piv,H in i_grassmannian(n, m):
+    for piv,H in grassmannian(n, m): # slightly faster, cached
         #print(H)
         H1 = H[:, cols]
         #print(H1)
@@ -561,6 +562,7 @@ def main():
 
     mod = argv.get("mod", 0)
 
+    step = argv.get("step", 1)
     n0 = argv.get("n0", 1)
     n1 = argv.get("n1", 10)
     #for n in range(6, 7):
@@ -569,7 +571,7 @@ def main():
       if mod!=0 and n%mod:
         continue
       print("n=%2d:"%n, end=" ", flush=True)
-      for m in range(n+1):
+      for m in range(0, n+1, step):
         count = 0
         for H in search(n, m, accept):
             post(H)
