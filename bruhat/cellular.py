@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 """
-cellular complexes
-
+Build some 
+2-dimensional cellular complexes, mostly by mutation.
 """
 
 
 from time import time
-from random import choice, randint
+from random import choice, randint, seed, shuffle
 
 import numpy
 
@@ -50,6 +50,9 @@ class Cell(object):
 
     def __len__(self):
         return len(self.children)
+
+    def intersect(self, other):
+        return [child for child in self if child in other]
 
     @property
     def src(self):
@@ -135,7 +138,9 @@ class Complex(object):
             sgn = -sgn
         return r
 
-    def bdy(self, dim):
+    def bdy(self, dim=None):
+        if dim is None:
+            return [self.bdy(d) for d in range(len(self.grades)-1)]
         tgt, src = self.grades[dim:dim+2]
         lookup = self.lookup
         m, n = len(tgt), len(src)
@@ -384,7 +389,7 @@ def make_cube():
     return cx
 
 
-def main():
+def test():
 
     cx = make_ball()
     H0 = cx.bdy(0)
@@ -456,6 +461,132 @@ def main():
     assert cx.sig == [24, 36, 14]
 
 
+def get_code(cx):
+    H0, H1 = cx.bdy()
+    H0 %= 2
+    H1 %= 2
+    A = numpy.dot(H0, H1) # vert -- face
+    #print(A)
+    vdeg = (cx.bdy(0)%2).sum(1)
+    assert vdeg.min() >= 3
+    assert vdeg.max() <= 4
+
+    n = len(cx.verts)
+    m = len(cx.faces)
+    H = numpy.empty((m, n), dtype=object)
+    H[:] = "."
+    def swap(j0,j1):
+        assert H[j0,i] != H[j1,i]
+        H[j0,i], H[j1,i] = H[j1,i], H[j0,i]
+    for i in range(n):
+        #for j in range(m):
+        #    if A[i, j]:
+        #        H[j, i] = 'x'
+        if vdeg[i] == 3:
+            labels = list('XYZ')
+            shuffle(labels)
+            for j in range(m):
+                if A[i,j]:
+                    H[j,i] = labels.pop()
+        elif vdeg[i] == 4:
+            labels = list('XZXZ')
+            shuffle(labels)
+            jdxs = [j for j in range(m) if A[i,j]]
+            for j in jdxs:
+                H[j,i] = labels.pop()
+            j0, j1, j2, j3 = jdxs
+            f0 = cx.faces[j0]
+            f1 = cx.faces[j1]
+            f2 = cx.faces[j2]
+            f3 = cx.faces[j3]
+            #print(j0, j1, j2, j3, ''.join(H[:,i].transpose()))
+
+            # 0 is next to 1,3 or 2,3 or 1,2:
+            if f0.intersect(f1) and f0.intersect(f3):
+                if H[j0,i] == H[j1,i]: swap(j0,j3)
+                elif H[j0,i] == H[j3,i]: swap(j0,j1)
+            elif f0.intersect(f2) and f0.intersect(f3):
+                if H[j0,i] == H[j2,i]: swap(j0,j3)
+                elif H[j0,i] == H[j3,i]: swap(j0,j2)
+            elif f0.intersect(f1) and f0.intersect(f2):
+                if H[j0,i] == H[j1,i]: swap(j0,j2)
+                elif H[j0,i] == H[j2,i]: swap(j0,j1)
+            else:
+                assert 0
+            #print('       ', ''.join(H[:,i].transpose()))
+        else:
+            assert 0
+    shortstr = lambda H : ('\n'.join(''.join(row) for row in H))
+    print(shortstr(H))
+    print()
+    #H = H[:-1, :]
+
+    from qumba.qcode import QCode, fromstr, linear_independent
+    H = fromstr(H)
+    H = linear_independent(H)
+    code = QCode(H)
+    return code
+
+
+def mutate(cx):
+    ch = cx.euler
+
+    for _ in range(3):
+        i = randint(0, 2)
+        if i==0:
+            v = choice(cx.verts)
+            cx.bevel(v)
+        #elif i==1:
+        #    e = choice(cx.edges)
+        #    #cx.cut_edge(e)
+        elif i==1:
+            f = choice(cx.faces)
+            cx.barycenter(f)
+        elif i==2:
+            f = choice(cx.faces)
+            cx.cut_face(f)
+        assert cx.euler == ch
+        print(cx)
+    H0, H1 = cx.bdy()
+    H0 %= 2
+    H1 %= 2
+    vdeg = H0.sum(1)
+    fdeg = H1.sum(0)
+    print(vdeg)
+    print(fdeg)
+    verts = list(cx.verts)
+    for i,v in enumerate(verts):
+        if vdeg[i] > 4:
+            cx.bevel(v)
+    vdeg = (cx.bdy(0)%2).sum(1)
+    assert vdeg.min() == 3
+    assert vdeg.max() == 4
+    v3 = (vdeg==3).sum()
+    v4 = (vdeg==4).sum()
+    assert len(cx.faces) - v3//2 - v4 == ch
+    return cx
+
+
+def main():
+    cx = make_octahedron()
+    code = get_code(cx)
+    assert code.k == 0
+
+    cx = make_tetrahedron()
+    code = get_code(cx)
+    assert code.get_params() == (4, 1, 2)
+
+    cx = make_cube()
+    code = get_code(cx)
+    assert code.get_params() == (8, 3, 2)
+
+    cx = mutate(cx)
+    code = get_code(cx)
+    print(code.get_params())
+
+    from qumba.distance import distance_z3
+    d = distance_z3(code)
+    print("d =", d)
 
 
 if __name__ == "__main__":
