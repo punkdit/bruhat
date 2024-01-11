@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""
+see also: biset.py
+
+"""
+
 from time import time
 start_time = time()
 
@@ -15,7 +20,7 @@ def induced_action(G, H, X):
     lookup = {gx:Equ(gx) for gx in GX}
     for (g,x) in GX:
       for h in H:
-        lhs = lookup[g*h, x]
+        lhs = lookup[g*h, x] # XXX should this be ~h ???
         rhs = lookup[g, X(h)[x]]
         lhs.merge(rhs)
 

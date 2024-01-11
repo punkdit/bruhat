@@ -648,6 +648,10 @@ class Group(object):
         p = Perm.identity(self.items)
         return p
 
+    def trivial_subgroup(self):
+        p = Perm.identity(self.items)
+        return Group([p], self.items)
+
     @classmethod
     def trivial(cls, items_or_n=1, check=False):
         "the trivial action on items fixes every item"
