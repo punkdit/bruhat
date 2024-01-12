@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-see also: biset.py
+see also: biset.py, combinatorial.py
 
 """
 

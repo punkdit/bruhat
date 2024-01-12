@@ -5,6 +5,8 @@
 Weyl groups (thin geometry) and their Pascal triangles,
 and bijective (combinatorial) correspondences.
 
+See also: adjoint.py, biset.py
+
 """
 
 
