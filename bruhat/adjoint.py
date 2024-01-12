@@ -48,7 +48,7 @@ def induced_action(G, H, X):
 def coinduced_action(G, H, X, check=True):
     src = G.cayley_action(H)
     tgt = X
-    items = [f for f in src.find_homs(tgt)]
+    items = [f for f in src.get_homs(tgt)]
 
     found = set(items)
     assert len(found) == len(items)
@@ -128,7 +128,7 @@ def test_induction():
     action = induced_action(G, H, X)
     assert len(action) == 12
 
-    print(len(list(action.find_homs(G.tautological_action()))))
+    print(len(list(action.get_homs(G.tautological_action()))))
 
     return
 
@@ -167,13 +167,13 @@ def test_hom():
 
     C3 = Group.cyclic(3)
     X = C3.tautological_action()
-    assert len(list(X._find_homs_atomic(X))) == 3
+    assert len(list(X._get_homs_atomic(X))) == 3
 
     G = Group.symmetric(3)
     Xs = [G.action_subgroup(H) for H in G.subgroups()]
     for X in Xs:
       for Y in Xs:
-        homs = list(X._find_homs_atomic(Y))
+        homs = list(X._get_homs_atomic(Y))
         #print("%2d"%len(homs), end=" ")
       #print()
 
@@ -187,8 +187,8 @@ def test_hom():
     G = Group.cyclic(2)
     X = G.tautological_action()
     X = X.coproduct(X)
-    assert len(list(X.find_homs(X))) == 16
-    #for hom in X.find_homs(X):
+    assert len(list(X.get_homs(X))) == 16
+    #for hom in X.get_homs(X):
     #    print(hom)
 
 

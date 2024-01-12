@@ -774,8 +774,14 @@ class Group(object):
         raise TypeError
 
     def __add__(self, other):
+        "same as direct_product but items is smaller in general"
+        G, _, _ = self.universal_product(other)
+        return G
+
+    def universal_product(self, other):
         items = disjoint_union(self.items, other.items)
-        perms = []
+        lgen = []
+        l_proj = {}
         for perm in self:
             _perm = {}
             for item in self.items:
@@ -783,7 +789,10 @@ class Group(object):
             for item in other.items:
                 _perm[1, item] = 1, item # identity
             _perm = Perm(_perm, items)
-            perms.append(_perm)
+            lgen.append(_perm)
+            l_proj[_perm] = perm
+        rgen = []
+        r_proj = {}
         for perm in other:
             _perm = {}
             for item in self.items:
@@ -791,11 +800,21 @@ class Group(object):
             for item in other.items:
                 _perm[1, item] = 1, perm[item]
             _perm = Perm(_perm, items)
-            perms.append(_perm)
-        perms = list(mulclose(perms))
-        return Group(perms, items)
+            rgen.append(_perm)
+            r_proj[_perm] = perm
+        #perms = [l*r for l in lgen for r in rgen]
+        perms = []
+        for l in lgen:
+          for r in rgen:
+            g = l*r
+            l_proj[g] = l_proj[l]
+            r_proj[g] = r_proj[r]
+            perms.append(g)
+        G = Group(perms, items)
+        return G, l_proj, r_proj
 
     def direct_product(self, other):
+        "same as __add__ but items is larger in general"
         items = [(i, j) for i in self.items for j in other.items]
         perms = []
         for g in self:
@@ -1461,7 +1480,7 @@ class Action(object):
             homs.append(hom)
         return homs
 
-    def _find_homs_atomic(X, Y):
+    def _get_homs_atomic(X, Y):
         assert X.G is Y.G
         if not len(X.items):
             yield Hom(X, Y, {})
@@ -1483,16 +1502,16 @@ class Action(object):
                 #print("Hom", send_items)
                 yield Hom(X, Y, send_items)
 
-    def find_homs(X, Y):
+    def get_homs(X, Y):
         assert X.G is Y.G
         Xs = X.get_components()
         Ys = Y.get_components()
-        #print("find_homs")
+        #print("get_homs")
         #print(Xs, Ys)
         for section in cross([Ys]*len(Xs)):
             homss = []
             for (Xi,Yi) in zip(Xs, section):
-                homs = list(Xi._find_homs_atomic(Yi))
+                homs = list(Xi._get_homs_atomic(Yi))
                 homss.append(homs)
             for homs in cross(homss):
               send_items = {}
@@ -1686,7 +1705,7 @@ class Hom(object):
         assert self.tgt == other.src
         a = self.send_items
         b = other.send_items
-        send_items = [b[i] for i in a]
+        send_items = [b[i] for i in a] # wut ???
         return Hom(self.src, other.tgt, send_items)
 
     def __mul__(self, other):
@@ -2722,7 +2741,7 @@ def burnside(G, Hs=None):
         assert len(G) == len(cosets)*len(H)
 
         hom = G.left_action(cosets)
-        assert hom.src is G
+        assert hom.G is G
         hom.name = letters[i]
         H.name = hom.name
         homs.append(hom)
@@ -2802,11 +2821,11 @@ def burnside(G, Hs=None):
         A = homs[i]
         B = homs[j]
         C = A.product(B)
-        assert C.src is G
+        assert C.G is G
         write("%s*%s ="%(A.name, B.name))
         names = []
         for hom in C.components():
-            assert hom.src is G
+            assert hom.G is G
             name = '?'
 
             # We know it must be one of these possibilities:
