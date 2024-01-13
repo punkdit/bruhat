@@ -49,147 +49,6 @@ else:
 debug = argv.get("debug", False)
 
 
-class Set(object):
-
-    hom = None # set below
-
-    def __init__(self, rank):
-        self.rank = rank # our size
-
-    def __str__(self):
-        return "Set(%d)"%(self.rank,)
-    __repr__ = __str__
-
-    def __eq__(self, other):
-        assert isinstance(other, Set)
-        return self.rank == other.rank
-
-    def __ne__(self, other):
-        assert isinstance(other, Set)
-        return self.rank != other.rank
-
-    def get_identity(self):
-        return self.hom(self, self)
-
-    def add(left, right, cone=None):
-        assert left.hom == right.hom
-        lrank = left.rank
-        rrank = right.rank
-        the_set = Set(lrank + rrank)
-        send_items = [i for i in range(lrank)]
-        i_left = left.hom(left, the_set, send_items)
-        send_items = [i+lrank for i in range(rrank)]
-        i_right = left.hom(right, the_set, send_items)
-        limit = Cone(the_set, [i_left, i_right], contra=True) # _cocone
-        if cone is None:
-            return limit
-
-        assert cone.contra
-        assert cone[0].src is left
-        assert cone[1].src is right
-
-        l, r = cone
-        apex = cone.apex
-        send_items = [l.send_items[i] for i in range(l.rank)] + [r.send_items[i] for i in range(r.rank)]
-        univ = left.hom(the_set, apex, send_items)
-        return limit, univ
-
-    def mul(left, right, cone=None):
-        assert left.hom == right.hom
-        lrank = left.rank
-        rrank = right.rank
-        the_set = Set(lrank * rrank)
-        send_items = [i for i in range(lrank) for j in range(rrank)]
-        p_left = left.hom(the_set, left, send_items)
-        send_items = [j for i in range(lrank) for j in range(rrank)]
-        p_right = left.hom(the_set, right, send_items)
-        limit = Cone(the_set, [p_left, p_right])
-        if cone is None:
-            return limit
-
-        assert not cone.contra
-        assert cone[0].tgt is left
-        assert cone[1].tgt is right
-
-        l, r = cone
-        apex = cone.apex
-        send_items = [l.send_items[i]*rrank + r.send_items[i] for i in range(apex.rank)]
-        univ = left.hom(apex, the_set, send_items)
-        return limit, univ
-
-    def __mul__(left, right):
-        cone = left.mul(right)
-        return cone.apex
-
-    def __add__(left, right):
-        cone = left.add(right)
-        return cone.apex
-
-
-class Function(object):
-
-    category = Set
-
-    def __init__(self, src, tgt, send_items=None):
-        assert isinstance(src, self.category)
-        assert isinstance(tgt, self.category)
-        self.src = src
-        self.tgt = tgt
-        if send_items is None:
-            assert src == tgt
-            send_items = list(range(src.rank)) # identity
-        else:
-            send_items = list(send_items)
-        assert len(send_items) == src.rank
-        self.rank = src.rank
-        self.send_items = send_items
-        if debug:
-            self.do_check()
-
-    def do_check(self):
-        src = self.src
-        tgt = self.tgt
-        send_items = self.send_items
-        items = set(send_items)
-        assert items.issubset(set(range(tgt.rank)))
-
-    def __str__(self):
-        return "%s(%s, %s, %s)"%(self.__class__.__name__, self.src, self.tgt, self.send_items)
-    __repr__ = __str__
-
-    def __eq__(self, other):
-        assert self.src == other.src
-        assert self.tgt == other.tgt
-        return self.send_items == other.send_items
-
-    def __ne__(self, other):
-        assert self.src == other.src
-        assert self.tgt == other.tgt
-        return self.send_items != other.send_items
-
-    def compose(self, other):
-        # other o self
-        assert self.tgt == other.src
-        a = self.send_items
-        b = other.send_items
-        send_items = [b[i] for i in a]
-        return self.__class__(self.src, other.tgt, send_items)
-
-    def mul(f, g):
-        assert isinstance(g, f.__class__)
-        category = f.category
-        cone = category.mul(f.src, g.src)
-        src = cone.apex
-        cone = Cone(src, [cone[0].compose(f), cone[1].compose(g)])
-        cone, univ = category.mul(f.tgt, g.tgt, cone)
-        return univ
-    __mul__ = mul # XXX change to __matmul__, right ??? XXX
-    __matmul__ = mul
-
-Set.hom = Function
-
-
-
 class Cone(object):
     def __init__(self, apex, legs, contra=False):
         self.apex = apex
@@ -1650,8 +1509,8 @@ def test_orbits():
 
 
 def test():
-    test_set()
-    #test_gset()
+    #test_set()
+    test_gset()
     test_subgroups()
     test_homology()
     test_orbits()
