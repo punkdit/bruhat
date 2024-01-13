@@ -8,9 +8,11 @@ here we do everything (set maps, permutations, etc.)
 with indexes, which is probably more efficient than action.py.
 
 It's also much more difficult using this than bruhat/action.py,
-there's no typechecking on inexes. Arghhh.
+there's no typechecking on indexes. Arghhh.
 We really should have a class for each set, and to typechecking
 as in lin.py with the Space class etc...
+
+see also: set.py ?
 """
 
 
