@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
 """
+Here we build (very!) finite Category's and Functor's *concretely*,
+as how Group/Action/Hom is done concretely in action.py
 
-build very finite Category's and Functor's 
-concretely, as how Group's are done concretely in action.py
-
-previous work: biset.py, adjoint.py, etc. etc.
+Previous work: biset.py, adjoint.py, combinatorial.py, action.py ...
 
 """
 
@@ -44,9 +43,14 @@ def mulclose(gen, verbose=False, maxsize=None):
     return els
 
 
+invert_send = lambda send: dict((v,k) for (k,v) in send.items())
 
 
 class Set(object):
+    """
+    These are the object's of our Category's and we don't use these for any
+    other purpose (such as the Set of object's of a Category).
+    """
     def __init__(self, items):
         items = list(items)
         #items.sort()
@@ -60,7 +64,7 @@ class Set(object):
         return Set(items)
 
     def __str__(self):
-        return "%s(%s)"%(self.__class__.__name__, self.items,)
+        return "%s%s"%(self.__class__.__name__, self.set_items,)
     __repr__ = __str__
 
     def __contains__(self, item):
@@ -76,23 +80,22 @@ class Set(object):
 
     @property
     def i(self):
-        send_items = {i:i for i in self.items}
-        return Map(self, self, send_items)
+        send = {i:i for i in self.items}
+        return Map(self, self, send)
 
     def include_into(self, other):
         tgt = other
         src = self
-        send_items = {i:i for i in self.items}
-        return Map(tgt, src, send_items)
+        send = {i:i for i in self.items}
+        return Map(tgt, src, send)
 
     def all_maps(tgt, src):
         assert isinstance(src, Set)
-        ms = [Map(tgt, src, m) for m in util.all_functions(src.items, tgt.items)]
-        return Set(ms)
+        return {Map(tgt, src, m) for m in util.all_functions(src.items, tgt.items)}
 
     def all_perms(self):
-        ms = [Map(self, self, enumerate(m)) for m in util.allperms(self.items)]
-        return Set(ms)
+        items = self.items
+        return {Map(self, self, zip(items, m)) for m in util.allperms(items)}
 
     def __add__(self, other):
         return AddSet(self, other)
@@ -143,16 +146,20 @@ class MulSet(Set):
 # we use order (tgt, src) because __mul__ is right-to-left
 
 class Map(object):
-    "A function on sets tgt<--src"
-    def __init__(self, tgt, src, send_items, check=CHECK):
-        assert isinstance(tgt, Set)
-        assert isinstance(src, Set)
-        send_items = dict(send_items)
-        self.key = tuple((i,send_items[i]) for i in src.items)
-        self.data = src, tgt, send_items
+    """
+    A function on sets tgt<--src.
+    These are the morphism's of our Category's and we don't use these for any
+    higher purpose, to save on confusion and level-slips... we hope.
+    """
+    def __init__(self, tgt, src, send, check=CHECK):
+        assert isinstance(tgt, Set), "Map tgt=%s not a Set"%(src,)
+        assert isinstance(src, Set), "Map src=%s not a Set"%(src,)
+        send = dict(send)
+        self.key = tuple((i,send[i]) for i in src.items)
+        self.data = src, tgt, send
         self.src = src
         self.tgt = tgt
-        self.send_items = send_items
+        self.send = send
         if check:
             self.check()
 
@@ -169,18 +176,18 @@ class Map(object):
         return hash((self.src, self.tgt, self.key))
 
     def __getitem__(self, i):
-        return self.send_items[i]
+        return self.send[i]
 
     def check(self):
-        src, tgt, send_items = self.data
+        src, tgt, send = self.data
         for i in src:
-            assert i in send_items
-            assert send_items[i] in tgt
+            assert i in send
+            assert send[i] in tgt
 
     def __mul__(self, other):
         assert self.src == other.tgt
-        send_items = {i:self.send_items[other.send_items[i]] for i in other.src}
-        return Map(self.tgt, other.src, send_items)
+        send = {i:self.send[other.send[i]] for i in other.src}
+        return Map(self.tgt, other.src, send)
 
     def __invert__(self):
         src, tgt, send_items = self.data
@@ -196,10 +203,11 @@ class Category(object):
     and morphisms are Map's of Set's.
     """
     def __init__(self, obs, homs, op=None, check=CHECK):
-        obs = Set.promote(obs)
+        assert type(obs) in [list, set]
+        obs = set(obs)
         homs = dict(homs)
-        self.obs = obs # Set({Set( ),...})
-        self.homs = homs # {(tgt,src) : Set(of Map's)}
+        self.obs = obs # [Set( ),...]
+        self.homs = homs # {(tgt,src) : {Map,...,}}
         self.data = obs, homs
         self._op = op
         if check:
@@ -216,11 +224,21 @@ class Category(object):
             for Y in obs:
                 assert (Y,X) in hom, list(hom.keys())
                 Y_X = hom[Y,X]
-                assert isinstance(Y_X, Set), type(Y_X)
+                assert isinstance(Y_X, set), type(Y_X)
                 for f in Y_X:
                     assert isinstance(f, Map)
                     assert f.src == X
                     assert f.tgt == Y
+        for X in obs:
+            for Y in obs:
+                Y_X = hom[Y,X]
+                for Z in obs:
+                    Z_X = hom[Z,X]
+                    Z_Y = hom[Z,Y]
+                    for f in Y_X:
+                      for g in Z_Y:
+                        gf = g*f
+                        assert gf in Z_X
                     
     def __str__(self):
         obs, homs = self.obs, self.homs
@@ -233,44 +251,46 @@ class Category(object):
     @cache
     def cayley(self):
         "the co-variant Cayley representation"
-        map_obs = {x:[] for x in self.obs}
+        send_obs = {x:[] for x in self.obs}
         for (t,s),hom in self.homs.items():
-            map_obs[t] += list(hom)
-        map_obs = {t:Set(map_obs[t]) for t in self.obs}
-        obs = Set(map_obs.values())
-        map_homs = {}
+            send_obs[t] += list(hom)
+        send_obs = {t:Set(send_obs[t]) for t in self.obs}
+        obs = set(send_obs.values())
+        send_homs = {}
         homs = {}
         for (t,s),hom in self.homs.items():
-            send = {f : Map(map_obs[t], map_obs[s], {g:f*g for g in map_obs[s]})
+            send = {f : Map(send_obs[t], send_obs[s], {g:f*g for g in send_obs[s]})
                 for f in hom}
-            tgt = Set(send.values())
-            homs[map_obs[t],map_obs[s]] = tgt
-            map_homs[t,s] = Map(tgt, hom, send)
+            tgt = set(send.values())
+            homs[send_obs[t],send_obs[s]] = tgt
+            #send_homs[t,s] = Map(tgt, hom, send)
+            send_homs[t,s] = send
         tgt = Category(obs, homs)
-        map_obs = Map(obs, self.obs, map_obs)
-        F = Functor(tgt, self, map_obs, map_homs)
+        #send_obs = Map(obs, self.obs, send_obs)
+        F = Functor(tgt, self, send_obs, send_homs)
         return F
 
     @cache
     def cayley_op(self):
         "the contra-variant Cayley representation"
-        map_obs = {x:[] for x in self.obs}
+        send_obs = {x:[] for x in self.obs}
         for (t,s),hom in self.homs.items():
-            map_obs[s] += list(hom)
-        map_obs = {s:Set(map_obs[s]) for s in self.obs}
-        obs = Set(map_obs.values())
-        map_homs = {}
+            send_obs[s] += list(hom)
+        send_obs = {s:Set(send_obs[s]) for s in self.obs}
+        obs = set(send_obs.values())
+        send_homs = {}
         homs = {}
         for (t,s),hom in self.homs.items():
-            send = {f : Map(map_obs[s], map_obs[t], {g:g*f for g in map_obs[t]})
+            send = {f : Map(send_obs[s], send_obs[t], {g:g*f for g in send_obs[t]})
                 for f in hom}
-            tgt = Set(send.values())
-            homs[map_obs[s],map_obs[t]] = tgt
-            map_homs[t,s] = Map(tgt, hom, send)
+            tgt = set(send.values())
+            homs[send_obs[s],send_obs[t]] = tgt
+            #send_homs[t,s] = Map(tgt, hom, send)
+            send_homs[t,s] = send
         tgt = Category(obs, homs, op=self)
         assert tgt._op is self
-        map_obs = Map(obs, self.obs, map_obs)
-        F = ContraFunctor(tgt, self, map_obs, map_homs)
+        #send_obs = Map(obs, self.obs, send_obs)
+        F = ContraFunctor(tgt, self, send_obs, send_homs)
         return F
 
     @property
@@ -295,24 +315,24 @@ class Category(object):
         for f in fs:
             key = f.tgt, f.src
             homs[key].add(f)
-        homs = {key:Set(value) for (key,value) in homs.items()}
         return Category(obs, homs)
 
     @property
     def i(self):
-        map_obs = self.obs.i
+        send_obs = {x:x for x in self.obs}
         homs = self.homs
-        map_homs = {(t,s):homs[t,s].i for (t,s) in homs.keys()}
-        F = Functor(self, self, map_obs, map_homs)
+        send_homs = {(t,s):{m:m for m in homs[t,s]} for (t,s) in homs.keys()}
+        F = Functor(self, self, send_obs, send_homs)
         return F
 
     def include_into(self, other):
         tgt = other
         src = self
-        map_obs = self.obs.include_into(other.obs)
-        map_homs = {(s,t):self.homs[s,t].include_into(other.homs[s,t]) 
-            for (s,t) in self.homs.keys()}
-        F = Functor(tgt, src, map_obs, map_homs)
+        #send_obs = self.obs.include_into(other.obs)
+        send_obs = {x:x for x in self.obs}
+        #send_homs = {(s,t):self.homs[s,t].include_into(other.homs[s,t]) 
+        send_homs = {(s,t):{m:m for m in self.homs[s,t]} for (s,t) in self.homs.keys()}
+        F = Functor(tgt, src, send_obs, send_homs)
         return F
 
     def __add__(self, other):
@@ -321,6 +341,15 @@ class Category(object):
     def __mul__(self, other):
         return MulCategory(self, other)
 
+    @classmethod
+    def full(cls, obs):
+        return Category(obs, {(t,s):t.all_maps(s) for t in obs for s in obs})
+
+    @classmethod
+    def symmetric(cls, obs):
+        "the symmetric groupoid"
+        return Category(obs, {(t,s):(s.all_perms() if s==t else set())
+            for s in obs for t in obs})
 
 
 class AddCategory(Category):
@@ -330,14 +359,28 @@ class AddCategory(Category):
     def __new__(cls, *args, **kw):
         if args in cls.cache:
             return cls.cache[args]
-        obs = AddSet(*[arg.obs for arg in args])
-        print("AddCategory")
-        print(obs)
+        lookup = {(i,ob):Set((x,i) for x in ob)
+            for (i,arg) in enumerate(args) for ob in arg.obs}
+        obs = set(lookup.values())
+        #print("AddCategory")
+        #print("obs =", obs)
         homs = {}
-        for arg in args:
-            print(arg)
-            for (t,s),m in arg.homs.items():
-                print(m)
+        for i,arg in enumerate(args):
+            #print(arg, "i=", i)
+            for (t,s),hom in arg.homs.items():
+                #print(t, s)
+                _hom = set()
+                for m in hom:
+                    #print("\t", m)
+                    send = {(x,i):(m[x],i) for x in s}
+                    m = Map(lookup[i,t], lookup[i,s], send)
+                    #print("\t", m)
+                    _hom.add(m)
+                homs[lookup[i,t],lookup[i,s]] = _hom
+        for s in obs:
+          for t in obs:
+            if (t,s) not in homs:
+                homs[t,s] = set()
         self = object.__new__(cls)
         Category.__init__(self, obs, homs)
         cls.cache[args] = self
@@ -354,6 +397,29 @@ class MulCategory(Category):
     def __new__(cls, *args, **kw):
         if args in cls.cache:
             return cls.cache[args]
+        #print("MulCategory")
+        lookup = {obs:Set(util.cross([x.items for x in obs])) 
+            for obs in util.cross([arg.obs for arg in args])}
+        #print(len(lookup))
+        obs = set(lookup.values())
+        #print(obs)
+        keys = list(lookup.keys())
+        homs = {}
+        for s in keys:
+          for t in keys:
+            #print(s,t)
+            src = lookup[s]
+            tgt = lookup[t]
+            #print(src, tgt)
+            hom = set()
+            for ms in util.cross([arg.homs[t[i], s[i]] for i,arg in enumerate(args)]):
+                #print('\t', [m.send for m in ms])
+                send = {ks:tuple(m[k] for (m,k) in zip(ms,ks))
+                    for ks in util.cross([m.send.keys() for m in ms])}
+                #print('\t', send)
+                hom.add(Map(tgt, src, send))
+            homs[tgt, src] = hom
+        #exit()
         self = object.__new__(cls)
         Category.__init__(self, obs, homs)
         cls.cache[args] = self
@@ -364,37 +430,37 @@ class MulCategory(Category):
 
 
 class Functor(object):
-    def __init__(self, tgt, src, map_obs, map_homs, op=None, check=CHECK):
+    def __init__(self, tgt, src, send_obs, send_homs, op=None, check=CHECK):
         assert isinstance(tgt, Category)
         assert isinstance(src, Category)
-        assert isinstance(map_obs, Map)
-        assert map_obs.src == src.obs
-        assert map_obs.tgt == tgt.obs
+        assert isinstance(send_obs, dict)
         self.tgt = tgt # Category
         self.src = src # Category
-        self.map_obs = map_obs # Map
-        self.map_homs = map_homs # {(t,s):Map}
+        self.send_obs = send_obs # dict
+        self.send_homs = send_homs # {(t,s):dict}
         self._op = op
-        self.data = (tgt, src, map_obs, map_homs,)
+        self.data = (tgt, src, send_obs, send_homs,)
         if check:
             self.check()
 
     def check(self):
-        (tgt, src, map_obs, map_homs, ) = self.data 
-        assert map_obs.src == src.obs
-        assert map_obs.tgt == tgt.obs
+        (tgt, src, send_obs, send_homs, ) = self.data 
+        assert set(send_obs.keys()) == src.obs
+        assert set(send_obs.values()).issubset(tgt.obs)
         for (t,s) in src.homs.keys():
-            assert (t,s) in map_homs
-            m = map_homs[t,s]
-            assert isinstance(m, Map)
-            assert m.src == src.homs[t,s]
-            assert m.tgt == tgt.homs[map_obs[t], map_obs[s]]
+            assert (t,s) in send_homs
+            send = send_homs[t,s]
+            assert isinstance(send, dict)
+            assert set(send.keys()) == src.homs[t,s]
+            assert set(send.values()).issubset(tgt.homs[send_obs[t],send_obs[s]])
         for x in src.obs:
           for y in src.obs:
             for z in src.obs:
               for f in src.homs[y,x]:
                 for g in src.homs[z,y]:
-                    assert map_homs[z,x][g*f] == map_homs[z,y][g]*map_homs[y,x][f]
+                    #lhs,rhs = send_homs[z,x][g*f], send_homs[z,y][g]*send_homs[y,x][f]
+                    #print(lhs, rhs)
+                    assert send_homs[z,x][g*f] == send_homs[z,y][g]*send_homs[y,x][f]
 
     def __eq__(self, other):
         assert self.__class__ is other.__class__, "incomparable"
@@ -411,23 +477,24 @@ class Functor(object):
     def __mul__(self, other):
         assert self.__class__ is other.__class__
         assert self.src == other.tgt
-        map_obs = Map(self.tgt.obs, other.src.obs,
-            {x:self.map_obs[other.map_obs[x]] for x in other.src.obs})
-        map_homs = {}
-        for (t,s),m in other.map_homs.items():
-            t1, s1 = other.map_obs[t], other.map_obs[s]
-            m1 = self.map_homs[t1, s1]
-            map_homs[t,s] = m1*m
-        return self.__class__(self.tgt, other.src, map_obs, map_homs)
+        send_obs = {x:self.send_obs[other.send_obs[x]] for x in other.src.obs}
+        send_homs = {}
+        for (t,s),send in other.send_homs.items():
+            t1, s1 = other.send_obs[t], other.send_obs[s]
+            send1 = self.send_homs[t1, s1]
+            #send_homs[t,s] = m1*m
+            send_homs[t,s] = {m:send1[send[m]] for m in send}
+        return self.__class__(self.tgt, other.src, send_obs, send_homs)
 
     def __invert__(self):
-        (tgt, src, map_obs, map_homs, ) = self.data 
-        map_homs = {(map_obs[t],map_obs[s]):~m for (t,s),m in map_homs.items()}
-        map_obs = ~map_obs
-        return self.__class__(src, tgt, map_obs, map_homs, )
+        (tgt, src, send_obs, send_homs, ) = self.data 
+        send_homs = {(send_obs[t],send_obs[s]):invert_send(send) 
+            for (t,s),send in send_homs.items()}
+        send_obs = invert_send(send_obs)
+        return self.__class__(src, tgt, send_obs, send_homs, )
 
     def __call__(self, item):
-        return self.map_obs[item]
+        return self.send_obs[item]
 
     @property
     def op(self):
@@ -444,28 +511,35 @@ class Functor(object):
 
 class ContraFunctor(Functor):
     def __invert__(self):
-        (tgt, src, map_obs, map_homs, ) = self.data 
-        map_homs = {(map_obs[t],map_obs[s]):~m for (s,t),m in map_homs.items()} # um.. seems to work
-        map_obs = ~map_obs
-        return self.__class__(src, tgt, map_obs, map_homs, )
+        (tgt, src, send_obs, send_homs, ) = self.data 
+        send_homs = {(send_obs[t],send_obs[s]):invert_send(send)
+            for (s,t),send in send_homs.items()} # um.. seems to work
+        send_obs = invert_send(send_obs)
+        return self.__class__(src, tgt, send_obs, send_homs, )
 
     def check(self):
-        (tgt, src, map_obs, map_homs, ) = self.data 
-        assert map_obs.src == src.obs
-        assert map_obs.tgt == tgt.obs
+        (tgt, src, send_obs, send_homs, ) = self.data 
+        #assert send_obs.src == src.obs
+        #assert send_obs.tgt == tgt.obs
+        assert set(send_obs.keys()) == src.obs
+        assert set(send_obs.values()).issubset(tgt.obs)
         for (t,s) in src.homs.keys():
-            assert (t,s) in map_homs
-            m = map_homs[t,s]
-            assert isinstance(m, Map)
-            assert m.src == src.homs[t,s]
-            assert m.tgt == tgt.homs[map_obs[s], map_obs[t]] # twisted
+            assert (t,s) in send_homs
+            #m = send_homs[t,s]
+            #assert isinstance(m, Map)
+            #assert m.src == src.homs[t,s]
+            #assert m.tgt == tgt.homs[send_obs[s], send_obs[t]] # twisted
+            send = send_homs[t,s]
+            assert isinstance(send, dict)
+            assert set(send.keys()) == src.homs[t,s]
+            assert set(send.values()).issubset(tgt.homs[send_obs[s],send_obs[t]]) # twisted
         for x in src.obs:
           for y in src.obs:
             for z in src.obs:
               for f in src.homs[y,x]:
                 for g in src.homs[z,y]:
                     # twisted
-                    assert map_homs[z,x][g*f] == map_homs[y,x][f]*map_homs[z,y][g]
+                    assert send_homs[z,x][g*f] == send_homs[y,x][f]*send_homs[z,y][g]
 
 
 class Nat(object):
@@ -491,11 +565,11 @@ class Nat(object):
         for x in C.obs:
             assert x in components
             m = components[x]
-            assert m.tgt == G.map_obs[x]
-            assert m.src == F.map_obs[x]
+            assert m.tgt == G.send_obs[x]
+            assert m.src == F.send_obs[x]
         for (y,x),f in C.items():
-            Ff = F.map_homs[y,x][f]
-            Gf = G.map_homs[y,x][f]
+            Ff = F.send_homs[y,x][f]
+            Gf = G.send_homs[y,x][f]
             mx = components[x]
             my = components[y]
             assert Gf*mx == my*Ff
@@ -594,14 +668,23 @@ def test():
     Mc = M.cayley()
     M.cayley_op()
 
-    obs = [A, B]
-    C = Category(obs, {(t,s):t.all_maps(s) for t in obs for s in obs})
+
+    C = Category.full([A, B])
+    print(C)
     C.cayley()
+    print(C)
 
     G = Category([A], {(A,A):A.all_perms()})
     print(G)
     print(G+G)
-    print(G*G)
+    print(G+C)
+
+    C = Category.full([Set('ab'), Set('xy')])
+    D = Category.symmetric([Set('ab'), Set('xyz')])
+    print("C =", C)
+    print("D =", D)
+    print("C*C =", C*C)
+    print("C*D =", C*D)
 
 
 
