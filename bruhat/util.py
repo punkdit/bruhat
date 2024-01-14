@@ -122,6 +122,38 @@ all_ders = allders
 
 
 
+def disjoint_union(items, _items):
+    items = [(0, item) for item in items]
+    _items = [(1, item) for item in _items]
+    return items + _items
+
+
+def all_functions(source, target):
+    m, n = len(source), len(target)
+    source = list(source)
+    target = list(target)
+    assert n**m < 1e8, "%d too big"%(n**m,)
+    if m==0:
+        yield {}
+    elif n==0:
+        return # no functions here
+    elif m==1:
+        for i in range(n):
+            yield {source[0]: target[i]}
+    else:
+        for func in all_functions(source[1:], target):
+            for i in range(n):
+                _func = dict(func)
+                _func[source[0]] = target[i]
+                yield _func
+
+assert len(list(all_functions('ab', 'abc'))) == 3**2
+assert len(list(all_functions('abc', 'a'))) == 1
+assert len(list(all_functions('a', 'abc'))) == 3
+
+
+
+
 def allsignedperms(items):
     items = tuple(items)
     if len(items)<=1:

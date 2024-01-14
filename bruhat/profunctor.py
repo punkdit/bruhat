@@ -13,13 +13,12 @@ previous work: biset.py, adjoint.py, etc. etc.
 from functools import reduce, lru_cache
 cache = lru_cache(maxsize=None)
 from operator import add, mul
+from string import ascii_letters
 
-#from bruhat.equ import Equ
-#from bruhat.util import factorial, cross, is_prime
-from bruhat.action import all_functions
-#from bruhat.gset import Simplicial, Cone
+from bruhat import util
 from bruhat.argv import argv
 
+CHECK = argv.get("check", True)
 
 
 def mulclose(gen, verbose=False, maxsize=None):
@@ -61,7 +60,7 @@ class Set(object):
         return Set(items)
 
     def __str__(self):
-        return "Set(%s)"%(self.items,)
+        return "%s(%s)"%(self.__class__.__name__, self.items,)
     __repr__ = __str__
 
     def __contains__(self, item):
@@ -86,11 +85,66 @@ class Set(object):
         send_items = {i:i for i in self.items}
         return Map(tgt, src, send_items)
 
+    def all_maps(tgt, src):
+        assert isinstance(src, Set)
+        ms = [Map(tgt, src, m) for m in util.all_functions(src.items, tgt.items)]
+        return Set(ms)
+
+    def all_perms(self):
+        ms = [Map(self, self, enumerate(m)) for m in util.allperms(self.items)]
+        return Set(ms)
+
+    def __add__(self, other):
+        return AddSet(self, other)
+
+    def __mul__(self, other):
+        return MulSet(self, other)
+
+
+# see: bruhat.lin for similar setup
+class AddSet(Set):
+    "disjoint union of Set's"
+
+    cache = {} # XXX use https://docs.python.org/3/library/weakref.html
+    def __new__(cls, *args, **kw):
+        if args in cls.cache:
+            return cls.cache[args]
+        items = []
+        for i,arg in enumerate(args):
+            assert isinstance(arg, Set)
+            items += [(x, i) for x in arg]
+        self = object.__new__(cls)
+        Set.__init__(self, items)
+        cls.cache[args] = self
+        return self
+
+    def __init__(self, *args, **kw):
+        pass
+
+
+class MulSet(Set):
+    "product of Set's"
+
+    cache = {} # XXX use https://docs.python.org/3/library/weakref.html
+    #@cache # fails
+    def __new__(cls, *args, **kw):
+        if args in cls.cache:
+            return cls.cache[args]
+        items = list(util.cross([arg.items for arg in args]))
+        self = object.__new__(cls)
+        Set.__init__(self, items)
+        cls.cache[args] = self
+        return self
+
+    def __init__(self, *args, **kw):
+        pass
+
+
 # we use order (tgt, src) because __mul__ is right-to-left
 
 class Map(object):
     "A function on sets tgt<--src"
-    def __init__(self, tgt, src, send_items, check=True):
+    def __init__(self, tgt, src, send_items, check=CHECK):
         assert isinstance(tgt, Set)
         assert isinstance(src, Set)
         send_items = dict(send_items)
@@ -104,6 +158,7 @@ class Map(object):
 
     def __str__(self):
         return "Map(%s<--%s, %s)"%(self.tgt, self.src, self.key,)
+    __repr__ = __str__
 
     def __eq__(self, other):
         assert self.src == other.src, "incomparable"
@@ -140,10 +195,10 @@ class Category(object):
     These are _concrete Category's: objects are (finite!) Set's
     and morphisms are Map's of Set's.
     """
-    def __init__(self, obs, homs, op=None, check=True):
+    def __init__(self, obs, homs, op=None, check=CHECK):
         obs = Set.promote(obs)
         homs = dict(homs)
-        self.obs = obs # Set( )
+        self.obs = obs # Set({Set( ),...})
         self.homs = homs # {(tgt,src) : Set(of Map's)}
         self.data = obs, homs
         self._op = op
@@ -155,18 +210,25 @@ class Category(object):
         #print("Category.check")
         #print("\t", obs)
         for X in obs:
-            assert isinstance(X, Set)
+            assert isinstance(X, Set), "%s is not a Set"%(X,)
             assert (X,X) in hom
             assert X.i in hom[X,X]
             for Y in obs:
                 assert (Y,X) in hom, list(hom.keys())
-                for f in hom[Y,X]:
+                Y_X = hom[Y,X]
+                assert isinstance(Y_X, Set), type(Y_X)
+                for f in Y_X:
                     assert isinstance(f, Map)
                     assert f.src == X
                     assert f.tgt == Y
                     
     def __str__(self):
-        return "Category(%s)"%(len(self.obs),)
+        obs, homs = self.obs, self.homs
+        names = {ob:ascii_letters[i] for (i,ob) in enumerate(obs)}
+        homs = ', '.join(["%s<-%s-%s"%(names[t],len(ms),names[s])
+            for (t,s),ms in homs.items()])
+        obs = ', '.join(names[ob] for ob in obs)
+        return "Category({%s}, {%s})"%(obs, homs)
 
     @cache
     def cayley(self):
@@ -253,9 +315,56 @@ class Category(object):
         F = Functor(tgt, src, map_obs, map_homs)
         return F
 
+    def __add__(self, other):
+        return AddCategory(self, other)
+
+    def __mul__(self, other):
+        return MulCategory(self, other)
+
+
+
+class AddCategory(Category):
+    "coproduct of Category's"
+
+    cache = {}
+    def __new__(cls, *args, **kw):
+        if args in cls.cache:
+            return cls.cache[args]
+        obs = AddSet(*[arg.obs for arg in args])
+        print("AddCategory")
+        print(obs)
+        homs = {}
+        for arg in args:
+            print(arg)
+            for (t,s),m in arg.homs.items():
+                print(m)
+        self = object.__new__(cls)
+        Category.__init__(self, obs, homs)
+        cls.cache[args] = self
+        return self
+
+    def __init__(self, *args, **kw):
+        pass
+
+
+class MulCategory(Category):
+    "product of Category's"
+
+    cache = {}
+    def __new__(cls, *args, **kw):
+        if args in cls.cache:
+            return cls.cache[args]
+        self = object.__new__(cls)
+        Category.__init__(self, obs, homs)
+        cls.cache[args] = self
+        return self
+
+    def __init__(self, *args, **kw):
+        pass
+
 
 class Functor(object):
-    def __init__(self, tgt, src, map_obs, map_homs, op=None, check=True):
+    def __init__(self, tgt, src, map_obs, map_homs, op=None, check=CHECK):
         assert isinstance(tgt, Category)
         assert isinstance(src, Category)
         assert isinstance(map_obs, Map)
@@ -297,7 +406,7 @@ class Functor(object):
         return hash(self.data)
 
     def __str__(self):
-        return "%s(%s<--%s)"%(self.__class__.__name__, self.tgt, self.src)
+        return "%s(\n\t%s\n\t<--\n\t%s)"%(self.__class__.__name__, self.tgt, self.src)
 
     def __mul__(self, other):
         assert self.__class__ is other.__class__
@@ -361,7 +470,7 @@ class ContraFunctor(Functor):
 
 class Nat(object):
     "A natural transform of Functor's"
-    def __init__(self, tgt, src, components, check=True):
+    def __init__(self, tgt, src, components, check=CHECK):
         assert isinstance(tgt, Functor)
         assert isinstance(src, Functor)
         assert (tgt.tgt,tgt.src) == (src.tgt,src.src)
@@ -423,6 +532,11 @@ def test():
     Y = Set([0,1])
     assert Y != Set([0,1]) # once built, it is never the same
 
+    assert len(X+Y) == 4+2
+    assert len(X*Y) == 4*2
+    assert len(Y*Y*Y) == 2**3
+    assert Y*Y*Y is Y*Y*Y
+
     f = Map(Y, X, {0:0, 1:0, 2:1, 3:0})
     g = Map(Y, Y, {0:1, 1:0})
     assert g == Map(Y, Y, {0:1, 1:0})
@@ -471,17 +585,23 @@ def test():
     assert Eop.op is E
 
     ECi = C.include_into(E)
-    print(ECi)
 
-    #F = ECi.op
-    #print(F)
 
     A = Set(list(range(3)))
-    fs = [Map(A, A, f) for f in all_functions(A, A)]
-    M = Category([A], {(A,A):fs})
-    print(M)
+    B = Set('xy')
+    M = Category([A], {(A,A):A.all_maps(A)})
 
-    Mop = M.op
+    Mc = M.cayley()
+    M.cayley_op()
+
+    obs = [A, B]
+    C = Category(obs, {(t,s):t.all_maps(s) for t in obs for s in obs})
+    C.cayley()
+
+    G = Category([A], {(A,A):A.all_perms()})
+    print(G)
+    print(G+G)
+    print(G*G)
 
 
 
