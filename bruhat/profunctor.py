@@ -14,10 +14,10 @@ from functools import reduce, lru_cache
 cache = lru_cache(maxsize=None)
 from operator import add, mul
 
-from bruhat.equ import Equ
-from bruhat.util import factorial, cross, is_prime
-from bruhat.action import mulclose
-from bruhat.gset import Simplicial, Cone
+#from bruhat.equ import Equ
+#from bruhat.util import factorial, cross, is_prime
+from bruhat.action import all_functions
+#from bruhat.gset import Simplicial, Cone
 from bruhat.argv import argv
 
 
@@ -86,9 +86,11 @@ class Set(object):
         send_items = {i:i for i in self.items}
         return Map(tgt, src, send_items)
 
+# we use order (tgt, src) because __mul__ is right-to-left
 
 class Map(object):
-    def __init__(self, tgt, src, send_items, check=True): # because __mul__ is right-to-left
+    "A function on sets tgt<--src"
+    def __init__(self, tgt, src, send_items, check=True):
         assert isinstance(tgt, Set)
         assert isinstance(src, Set)
         send_items = dict(send_items)
@@ -167,7 +169,7 @@ class Category(object):
         return "Category(%s)"%(len(self.obs),)
 
     @cache
-    def cayley(self, op=False):
+    def cayley(self):
         "the co-variant Cayley representation"
         map_obs = {x:[] for x in self.obs}
         for (t,s),hom in self.homs.items():
@@ -203,19 +205,17 @@ class Category(object):
             tgt = Set(send.values())
             homs[map_obs[s],map_obs[t]] = tgt
             map_homs[t,s] = Map(tgt, hom, send)
-        tgt = Category(obs, homs)
+        tgt = Category(obs, homs, op=self)
+        assert tgt._op is self
         map_obs = Map(obs, self.obs, map_obs)
         F = ContraFunctor(tgt, self, map_obs, map_homs)
         return F
 
+    @property
     def op(self):
         if self._op is not None:
             return self._op
-        obs = self.obs
-        homs = {}
-        for (t,s) in self.homs:
-            homs[s,t] = self.homs[t,s]
-        cat = Category(obs, homs, op=self)
+        cat = self.cayley_op().tgt
         self._op = cat
         return cat
 
@@ -255,7 +255,7 @@ class Category(object):
 
 
 class Functor(object):
-    def __init__(self, tgt, src, map_obs, map_homs, check=True):
+    def __init__(self, tgt, src, map_obs, map_homs, op=None, check=True):
         assert isinstance(tgt, Category)
         assert isinstance(src, Category)
         assert isinstance(map_obs, Map)
@@ -265,6 +265,7 @@ class Functor(object):
         self.src = src # Category
         self.map_obs = map_obs # Map
         self.map_homs = map_homs # {(t,s):Map}
+        self._op = op
         self.data = (tgt, src, map_obs, map_homs,)
         if check:
             self.check()
@@ -316,8 +317,29 @@ class Functor(object):
         map_obs = ~map_obs
         return self.__class__(src, tgt, map_obs, map_homs, )
 
+    def __call__(self, item):
+        return self.map_obs[item]
+
+    @property
+    def op(self):
+        if self._op is not None:
+            return self._op
+        D, C = self.tgt, self.src
+        Dop_D = D.cayley_op()
+        Cop_C = C.cayley_op()
+        #F = Dop_D * self * ~Cop_C # FAIL
+        assert 0, "TODO"
+        self._op = F
+        return F
+
 
 class ContraFunctor(Functor):
+    def __invert__(self):
+        (tgt, src, map_obs, map_homs, ) = self.data 
+        map_homs = {(map_obs[t],map_obs[s]):~m for (s,t),m in map_homs.items()} # um.. seems to work
+        map_obs = ~map_obs
+        return self.__class__(src, tgt, map_obs, map_homs, )
+
     def check(self):
         (tgt, src, map_obs, map_homs, ) = self.data 
         assert map_obs.src == src.obs
@@ -335,6 +357,65 @@ class ContraFunctor(Functor):
                 for g in src.homs[z,y]:
                     # twisted
                     assert map_homs[z,x][g*f] == map_homs[y,x][f]*map_homs[z,y][g]
+
+
+class Nat(object):
+    "A natural transform of Functor's"
+    def __init__(self, tgt, src, components, check=True):
+        assert isinstance(tgt, Functor)
+        assert isinstance(src, Functor)
+        assert (tgt.tgt,tgt.src) == (src.tgt,src.src)
+        D, C = (tgt.tgt,tgt.src) 
+        components = dict(components) # {X in src --> Map(tgt(X), src(X)) in D}
+        self.tgt = tgt
+        self.src = src
+        self.components = components
+        self.D = D
+        self.C = C
+        self.data = (tgt, src, components)
+        if check:
+            self.check()
+
+    def check(self):
+        (G, F, components) = self.data
+        D, C = (F.tgt, F.src) 
+        for x in C.obs:
+            assert x in components
+            m = components[x]
+            assert m.tgt == G.map_obs[x]
+            assert m.src == F.map_obs[x]
+        for (y,x),f in C.items():
+            Ff = F.map_homs[y,x][f]
+            Gf = G.map_homs[y,x][f]
+            mx = components[x]
+            my = components[y]
+            assert Gf*mx == my*Ff
+
+    def __eq__(self, other):
+        assert self.tgt == other.tgt, "incomparable"
+        assert self.src == other.src, "incomparable"
+        return self.components == other.components
+
+    @cache
+    def __hash__(self):
+        components = self.components
+        key = tuple((components[x],x) for x in self.src)
+        return hash(key)
+
+    def __mul__(self, other):
+        "vertical _composition"
+        assert isinstance(other, Nat)
+        assert other.tgt == self.src
+        D, C = self.D, self.C
+        components = {x : self.components[x] * other.components[x] for x in C.obs}
+        return Nat(self.tgt, other.src, components)
+
+    def __lshift__(self, other):
+        "horizontal _composition"
+        assert isinstance(other, Nat)
+        assert other.D == self.C
+        # horizontal _composition is strictly associative
+        TODO
 
 
 def test():
@@ -381,8 +462,27 @@ def test():
     assert F*~F == _C.i
 
     Fop = C.cayley_op()
+    assert Fop is C.cayley_op()
+    Cop = Fop.tgt
+    assert Cop.op is C
+    ~Fop
 
-    E.cayley_op()
+    Eop = E.op
+    assert Eop.op is E
+
+    ECi = C.include_into(E)
+    print(ECi)
+
+    #F = ECi.op
+    #print(F)
+
+    A = Set(list(range(3)))
+    fs = [Map(A, A, f) for f in all_functions(A, A)]
+    M = Category([A], {(A,A):fs})
+    print(M)
+
+    Mop = M.op
+
 
 
 if __name__ == "__main__":
