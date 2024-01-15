@@ -64,7 +64,7 @@ class Set(object):
         return Set(items)
 
     def __str__(self):
-        return "%s%s"%(self.__class__.__name__, self.set_items,)
+        return "%s%s"%(self.__class__.__name__, self.set_items or "{}",)
     __repr__ = __str__
 
     def __contains__(self, item):
@@ -78,6 +78,14 @@ class Set(object):
 
     # very important:
     # __eq__ is object identity !
+
+    def __lt__(self, other):
+        assert isinstance(other, Set)
+        return id(self) < id(other)
+
+    def issubset(self, other):
+        assert isinstance(other, Set)
+        return self.set_items.issubset(other.set_items)
 
     @property
     def i(self):
@@ -95,6 +103,12 @@ class Set(object):
     def all_perms(self):
         items = self.items
         return {Map(self, self, zip(items, m)) for m in util.allperms(items)}
+
+    def all_subsets(self):
+        n = len(self.items)
+        for idxs in util.all_subsets(n):
+            items = [self.items[idx] for idx in idxs]
+            yield Set(items)
 
     def __add__(self, other):
         return AddSet(self, other)
@@ -155,7 +169,7 @@ class Map(object):
         assert isinstance(src, Set), "Map src=%s not a Set"%(src,)
         send = dict(send)
         self.key = tuple((i,send[i]) for i in src.items)
-        self.data = src, tgt, send
+        self.data = tgt, src, send
         self.src = src
         self.tgt = tgt
         self.send = send
@@ -174,14 +188,17 @@ class Map(object):
     def __hash__(self):
         return hash((self.src, self.tgt, self.key))
 
+    def __contains__(self, i):
+        return i in self.send
+
     def __getitem__(self, i):
         return self.send[i]
 
     def check(self):
-        src, tgt, send = self.data
+        tgt, src, send = self.data
         for i in src:
             assert i in send
-            assert send[i] in tgt
+            assert send[i] in tgt, (tgt, src, send)
 
     def __mul__(self, other):
         assert self.src == other.tgt
@@ -189,7 +206,7 @@ class Map(object):
         return Map(self.tgt, other.src, send)
 
     def __invert__(self):
-        src, tgt, send_items = self.data
+        tgt, src, send_items = self.data
         assert len(src) == len(tgt)
         send = {k:v for (v,k) in send_items.items()}
         assert len(send) == len(send_items)
@@ -204,9 +221,14 @@ class Category(object):
     def __init__(self, obs, homs, op=None, check=CHECK):
         assert type(obs) in [list, set]
         obs = set(obs)
+        names = {ob:ascii_letters[i] for (i,ob) in enumerate(obs)} # XXX more names...
         homs = dict(homs)
         self.obs = obs # [Set( ),...]
+        #canonical_obs = list(obs)
+        #canonical_obs.sort() # hmmm...
+        #self.canonical_obs = canonical_obs
         self.homs = homs # {(tgt,src) : {Map,...,}}
+        self.names = names
         self.data = obs, homs
         self._op = op
         if check:
@@ -219,6 +241,7 @@ class Category(object):
         for X in obs:
             assert isinstance(X, Set), "%s is not a Set"%(X,)
             assert (X,X) in hom
+            assert type(hom[X,X]) is set, type(hom[X,X])
             assert X.i in hom[X,X]
             for Y in obs:
                 assert (Y,X) in hom, list(hom.keys())
@@ -240,8 +263,7 @@ class Category(object):
                         assert gf in Z_X
                     
     def __str__(self):
-        obs, homs = self.obs, self.homs
-        names = {ob:ascii_letters[i] for (i,ob) in enumerate(obs)}
+        obs, homs, names = self.obs, self.homs, self.names
         homs = ', '.join(["%s<-%s-%s"%(names[t],len(ms),names[s])
             for (t,s),ms in homs.items()])
         obs = ', '.join(names[ob] for ob in obs)
@@ -343,45 +365,12 @@ class Category(object):
         return Category(obs, {(t,s):(s.all_perms() if s==t else set())
             for s in obs for t in obs})
 
-
-def _valid_send(obs, send_obs, send_homs):
-    for (t,s) in send_homs:
-        send_ts = send_homs[t,s]
-        for (t1,s1) in send_homs:
-            if t!=s1:
-                continue
-            # t1 <--g-- s1==t <--f-- s
-            send_t1s1 = send_homs[t1,s1]
-            send_t1s = send_homs[t1,s]
-            for f,f1 in send_ts.items():
-              for g,g1 in send_t1s1.items():
-                if send_t1s[g*f] != send_t1s1[g]*send_ts[f]:
-                    return False
-    return True
-
-
-def all_functors(tgt, src): # warning: slow and stupid
-    assert isinstance(tgt, Category)
-    assert isinstance(src, Category)
-    keys = list(src.homs.keys())
-    for send_obs in util.all_send(tgt.obs, src.obs):
-        #for send_homs in _all_send_homs(tgt, src, send_obs):
-        #m_src = reduce(add, [list(hom) for hom in src.homs.values()])
-        #for m in m_src:
-            #print('\t', m)
-        searchs = []
-        for (t,s) in keys:
-            _t, _s = send_obs[t], send_obs[s]
-            search = util.all_send(tgt.homs[_t, _s], src.homs[t, s])
-            searchs.append(list(search))
-        #print(len(searchs))
-        #for search in searchs:
-            #print(search.__next__())
-        for send_homs in util.cross(searchs):
-            send_homs = {keys[i]:send for (i,send) in enumerate(send_homs)}
-            #print('\t', send_homs)
-            if _valid_send(src.obs, send_obs, send_homs):
-                yield Functor(tgt, src, send_obs, send_homs)
+    @classmethod
+    def poset(cls, ob):
+        ob = Set.promote(ob)
+        obs = list(ob.all_subsets())
+        return Category(obs, {(t,s):({t.include(s)} if s.issubset(t) else set())
+            for s in obs for t in obs})
 
 
 class AddCategory(Category):
@@ -471,7 +460,10 @@ class Functor(object):
         self.send_obs = send_obs # dict
         self.send_homs = send_homs # {(t,s):dict}
         self._op = op
-        self.data = (tgt, src, send_obs, send_homs,)
+        #obs = src.canonical_obs
+        self.data = (tgt, src, send_obs, send_homs)
+            #tuple((send_obs[ob],ob) for ob in obs), 
+            #tuple((send_homs[s,t],s,t) for s in obs for t in obs))
         if check:
             self.check()
 
@@ -494,14 +486,27 @@ class Functor(object):
                     #print(lhs, rhs)
                     assert send_homs[z,x][g*f] == send_homs[z,y][g]*send_homs[y,x][f]
 
+    def dump(self):
+        print(self.__class__.__name__)
+        print(self.tgt)
+        print(self.src)
+        for ob in self.src.obs:
+            print("\t%s<--%s"%(self(ob),ob)) 
+        for t in self.src.obs:
+          for s in self.src.obs:
+            print('  ', t.items, "<---", s.items)
+            for f in self.src.homs[t,s]:
+                lhs, rhs = self(f).send, f.send
+                print('    ', lhs, "<---", rhs)
+
     def __eq__(self, other):
         assert self.__class__ is other.__class__, "incomparable"
         assert self.tgt == other.tgt, "incomparable"
         assert self.src == other.src, "incomparable"
         return self.data == other.data
 
-    def __hash__(self):
-        return hash(self.data)
+#    def __hash__(self):
+#        return hash(self.data)
 
     def __str__(self):
         return "%s(\n\t%s\n\t<--\n\t%s)"%(self.__class__.__name__, self.tgt, self.src)
@@ -582,6 +587,48 @@ class ContraFunctor(Functor):
                 for g in src.homs[z,y]:
                     # twisted
                     assert send_homs[z,x][g*f] == send_homs[y,x][f]*send_homs[z,y][g]
+
+
+def _valid_functor_send(obs, send_obs, send_homs):
+    for (t,s) in send_homs:
+        send_ts = send_homs[t,s]
+        for (t1,s1) in send_homs:
+            if t!=s1:
+                continue
+            # t1 <--g-- s1==t <--f-- s
+            send_t1s1 = send_homs[t1,s1]
+            send_t1s = send_homs[t1,s]
+            for f,f1 in send_ts.items():
+              for g,g1 in send_t1s1.items():
+                if send_t1s[g*f] != send_t1s1[g]*send_ts[f]:
+                    return False
+    return True
+
+
+def all_functors(tgt, src): # warning: slow and stupid
+    assert isinstance(tgt, Category)
+    assert isinstance(src, Category)
+    keys = list(src.homs.keys())
+    for send_obs in util.all_send(tgt.obs, src.obs):
+        #for send_homs in _all_send_homs(tgt, src, send_obs):
+        #m_src = reduce(add, [list(hom) for hom in src.homs.values()])
+        #for m in m_src:
+            #print('\t', m)
+        searchs = []
+        for (t,s) in keys:
+            _t, _s = send_obs[t], send_obs[s]
+            search = util.all_send(tgt.homs[_t, _s], src.homs[t, s])
+            searchs.append(list(search))
+        if [] in searchs:
+            continue
+        #print(len(searchs))
+        #for search in searchs:
+            #print(search.__next__())
+        for send_homs in util.cross(searchs):
+            send_homs = {keys[i]:send for (i,send) in enumerate(send_homs)}
+            #print('\t', send_homs)
+            if _valid_functor_send(src.obs, send_obs, send_homs):
+                yield Functor(tgt, src, send_obs, send_homs)
 
 
 class Nat(object):
@@ -672,6 +719,37 @@ class Nat(object):
         return Nat(tgt, src, components)
 
 
+def _valid_nat(G, F, components):
+    lhs, rhs = (F.tgt, F.src) 
+    for (y,x),hom in rhs.homs.items():
+        for f in hom:
+            Ff = F.send_homs[y,x][f]
+            Gf = G.send_homs[y,x][f]
+            mx = components[x]
+            my = components[y]
+            if Gf*mx != my*Ff:
+                return False
+    return True
+
+def all_nats(G, F):
+    assert isinstance(G, Functor)
+    assert isinstance(F, Functor)
+    assert G.tgt == F.tgt
+    assert G.src == F.src
+    tgt, src = G.tgt, G.src
+    obs = list(G.src.obs)
+    n = len(obs)
+    homs = []
+    for x in obs:
+        hom = tgt.homs[G(x), F(x)]
+        if not hom:
+            return
+        homs.append(list(hom))
+    for send in util.cross(homs):
+        components = {obs[i]:send[i] for i in range(n)}
+        if _valid_nat(G, F, components):
+            yield Nat(G, F, components)
+
 
 def test():
     X = Set([0,1,2,3])
@@ -715,10 +793,6 @@ def test():
     assert len(list(all_functors(C,C))) == 3
     assert len(list(all_functors(C,D))) == 3
     assert len(list(all_functors(D,D))) == 9 # why 9?
-
-    # S3 has 6 automorphisms, 3 morphisms onto S3/A3 and 1 trivial == 10 total
-    S3 = Category.symmetric(['bcd'])
-    assert len(list(all_functors(S3,S3))) == 10 
 
     Ci = C.i
     Di = D.i
@@ -776,6 +850,59 @@ def test():
     print("C*C =", C*C)
     print("C*D =", C*D)
 
+    C = Category.poset('ab')
+    assert len(C.obs) == 2**2
+    sends = []
+    M = []
+    for f in all_functors(C,C):
+        send = f.send_obs
+        assert send not in sends
+        sends.append(send)
+        M.append(f)
+    assert len(sends) == 36
+    found = []
+    for f in M:
+      for g in M:
+        for nat in all_nats(g, f):
+            found.append(nat)
+    assert len(found) == 400, len(found)
+    #test_nats(found) # takes 40s !
+
+    C = Category.poset('abc')
+    assert len(C.obs) == 2**3
+
+    # S3 has 6 automorphisms, 3 morphisms onto S3/A3 and 1 trivial == 10 total
+    S3 = Category.symmetric(['abc'])
+    M = list(all_functors(S3,S3))
+    assert len(M) == 10 
+    for f in M:
+      for g in M:
+        assert f*g in M
+    found = []
+    for f in M:
+      for g in M:
+        for nat in all_nats(g, f):
+            found.append(nat)
+    assert len(found) == 60
+    test_nats(found)
+
+    f = S3.i
+    assert len(list(all_nats(f, f))) == 1
+    f.dump()
+
+def test_nats(found):
+    def search(u):
+        for v in found:
+            if v.tgt == u.tgt and v.src == u.src and u==v:
+                return True
+        return False
+    for u in found:
+      for v in found:
+        if u.tgt is v.src:
+            vu = v*u
+            assert search(vu)
+        vu = v<<u
+        assert search(vu)
 
 
 if __name__ == "__main__":
