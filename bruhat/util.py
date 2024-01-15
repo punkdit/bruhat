@@ -151,6 +151,7 @@ assert len(list(all_functions('ab', 'abc'))) == 3**2
 assert len(list(all_functions('abc', 'a'))) == 1
 assert len(list(all_functions('a', 'abc'))) == 3
 
+all_send = lambda tgt, src : all_functions(src, tgt)
 
 
 

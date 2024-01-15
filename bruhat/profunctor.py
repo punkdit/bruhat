@@ -76,22 +76,21 @@ class Set(object):
     def __len__(self):
         return len(self.items)
 
-    # __eq__ is '=='
+    # very important:
+    # __eq__ is object identity !
 
     @property
     def i(self):
         send = {i:i for i in self.items}
         return Map(self, self, send)
 
-    def include_into(self, other):
-        tgt = other
-        src = self
-        send = {i:i for i in self.items}
+    def include(tgt, src):
+        send = {i:i for i in src.items}
         return Map(tgt, src, send)
 
     def all_maps(tgt, src):
         assert isinstance(src, Set)
-        return {Map(tgt, src, m) for m in util.all_functions(src.items, tgt.items)}
+        return {Map(tgt, src, m) for m in util.all_send(tgt.items, src.items)}
 
     def all_perms(self):
         items = self.items
@@ -317,23 +316,15 @@ class Category(object):
             homs[key].add(f)
         return Category(obs, homs)
 
-    @property
-    def i(self):
-        send_obs = {x:x for x in self.obs}
-        homs = self.homs
-        send_homs = {(t,s):{m:m for m in homs[t,s]} for (t,s) in homs.keys()}
-        F = Functor(self, self, send_obs, send_homs)
-        return F
-
-    def include_into(self, other):
-        tgt = other
-        src = self
-        #send_obs = self.obs.include_into(other.obs)
-        send_obs = {x:x for x in self.obs}
-        #send_homs = {(s,t):self.homs[s,t].include_into(other.homs[s,t]) 
-        send_homs = {(s,t):{m:m for m in self.homs[s,t]} for (s,t) in self.homs.keys()}
+    def include(tgt, src):
+        send_obs = {x:x for x in src.obs}
+        send_homs = {(s,t):{m:m for m in src.homs[s,t]} for (s,t) in src.homs.keys()}
         F = Functor(tgt, src, send_obs, send_homs)
         return F
+
+    @property
+    def i(self):
+        return self.include(self)
 
     def __add__(self, other):
         return AddCategory(self, other)
@@ -348,8 +339,49 @@ class Category(object):
     @classmethod
     def symmetric(cls, obs):
         "the symmetric groupoid"
+        obs = [Set.promote(ob) for ob in obs]
         return Category(obs, {(t,s):(s.all_perms() if s==t else set())
             for s in obs for t in obs})
+
+
+def _valid_send(obs, send_obs, send_homs):
+    for (t,s) in send_homs:
+        send_ts = send_homs[t,s]
+        for (t1,s1) in send_homs:
+            if t!=s1:
+                continue
+            # t1 <--g-- s1==t <--f-- s
+            send_t1s1 = send_homs[t1,s1]
+            send_t1s = send_homs[t1,s]
+            for f,f1 in send_ts.items():
+              for g,g1 in send_t1s1.items():
+                if send_t1s[g*f] != send_t1s1[g]*send_ts[f]:
+                    return False
+    return True
+
+
+def all_functors(tgt, src): # warning: slow and stupid
+    assert isinstance(tgt, Category)
+    assert isinstance(src, Category)
+    keys = list(src.homs.keys())
+    for send_obs in util.all_send(tgt.obs, src.obs):
+        #for send_homs in _all_send_homs(tgt, src, send_obs):
+        #m_src = reduce(add, [list(hom) for hom in src.homs.values()])
+        #for m in m_src:
+            #print('\t', m)
+        searchs = []
+        for (t,s) in keys:
+            _t, _s = send_obs[t], send_obs[s]
+            search = util.all_send(tgt.homs[_t, _s], src.homs[t, s])
+            searchs.append(list(search))
+        #print(len(searchs))
+        #for search in searchs:
+            #print(search.__next__())
+        for send_homs in util.cross(searchs):
+            send_homs = {keys[i]:send for (i,send) in enumerate(send_homs)}
+            #print('\t', send_homs)
+            if _valid_send(src.obs, send_obs, send_homs):
+                yield Functor(tgt, src, send_obs, send_homs)
 
 
 class AddCategory(Category):
@@ -673,10 +705,20 @@ def test():
     C = Category.generate([f])
     assert len(C.obs) == 2
     D = Category.generate([f, g])
-    DCi = C.include_into(D)
+    DCi = D.include(C)
     E = Category.generate([f, g, h])
-    EDi = D.include_into(E)
-    ECi = C.include_into(E)
+    EDi = E.include(D)
+    ECi = E.include(C)
+
+    #print("C =", C)
+    #print("D =", D)
+    assert len(list(all_functors(C,C))) == 3
+    assert len(list(all_functors(C,D))) == 3
+    assert len(list(all_functors(D,D))) == 9 # why 9?
+
+    # S3 has 6 automorphisms, 3 morphisms onto S3/A3 and 1 trivial == 10 total
+    S3 = Category.symmetric(['bcd'])
+    assert len(list(all_functors(S3,S3))) == 10 
 
     Ci = C.i
     Di = D.i
@@ -698,7 +740,7 @@ def test():
     Eop = E.op
     assert Eop.op is E
 
-    ECi = C.include_into(E)
+    ECi = E.include(C)
 
     F = E.i
     print(F)
@@ -707,7 +749,7 @@ def test():
     assert Fi*Fi == Fi
     assert Fi<<Fi == Fi
 
-    return
+    #return
 
     A = Set(list(range(3)))
     B = Set('xy')

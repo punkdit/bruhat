@@ -6,6 +6,8 @@ A (G,H)-biset X has a left G action and a right H action
 that commute w each other.
 
 see also: adjoint.py, combinatorial.py for previous attempts
+
+see: profunctor.py 
 """
 
 from functools import lru_cache
