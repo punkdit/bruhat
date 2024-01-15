@@ -485,6 +485,7 @@ class Functor(object):
             #send_homs[t,s] = m1*m
             send_homs[t,s] = {m:send1[send[m]] for m in send}
         return self.__class__(self.tgt, other.src, send_obs, send_homs)
+    __lshift__ = __mul__
 
     def __invert__(self):
         (tgt, src, send_obs, send_homs, ) = self.data 
@@ -494,7 +495,11 @@ class Functor(object):
         return self.__class__(src, tgt, send_obs, send_homs, )
 
     def __call__(self, item):
-        return self.send_obs[item]
+        if isinstance(item, Set):
+            return self.send_obs[item]
+        elif isinstance(item, Map):
+            return self.send_homs[item.tgt, item.src][item]
+        assert 0, item
 
     @property
     def op(self):
@@ -507,6 +512,11 @@ class Functor(object):
         assert 0, "TODO"
         self._op = F
         return F
+
+    @property
+    def i(self):
+        components = {x:self(x).i for x in self.src.obs}
+        return Nat(self, self, components)
 
 
 class ContraFunctor(Functor):
@@ -543,36 +553,48 @@ class ContraFunctor(Functor):
 
 
 class Nat(object):
-    "A natural transform of Functor's"
+    """
+    A natural transform of Functor's: tgt<===src is
+
+    lhs <---- rhs
+         tgt
+          ^
+          ||
+          ||
+          ||
+         src
+    lhs <---- rhs
+    """
     def __init__(self, tgt, src, components, check=CHECK):
         assert isinstance(tgt, Functor)
         assert isinstance(src, Functor)
         assert (tgt.tgt,tgt.src) == (src.tgt,src.src)
-        D, C = (tgt.tgt,tgt.src) 
-        components = dict(components) # {X in src --> Map(tgt(X), src(X)) in D}
+        lhs, rhs = (tgt.tgt,tgt.src) 
+        components = dict(components) # {X in src --> Map(tgt(X), src(X)) in lhs}
         self.tgt = tgt
         self.src = src
         self.components = components
-        self.D = D
-        self.C = C
+        self.lhs = lhs
+        self.rhs = rhs
         self.data = (tgt, src, components)
         if check:
             self.check()
 
     def check(self):
         (G, F, components) = self.data
-        D, C = (F.tgt, F.src) 
-        for x in C.obs:
+        lhs, rhs = (F.tgt, F.src) 
+        for x in rhs.obs:
             assert x in components
             m = components[x]
             assert m.tgt == G.send_obs[x]
             assert m.src == F.send_obs[x]
-        for (y,x),f in C.items():
-            Ff = F.send_homs[y,x][f]
-            Gf = G.send_homs[y,x][f]
-            mx = components[x]
-            my = components[y]
-            assert Gf*mx == my*Ff
+        for (y,x),hom in rhs.homs.items():
+            for f in hom:
+                Ff = F.send_homs[y,x][f]
+                Gf = G.send_homs[y,x][f]
+                mx = components[x]
+                my = components[y]
+                assert Gf*mx == my*Ff
 
     def __eq__(self, other):
         assert self.tgt == other.tgt, "incomparable"
@@ -585,20 +607,38 @@ class Nat(object):
         key = tuple((components[x],x) for x in self.src)
         return hash(key)
 
+    def __str__(self):
+        return "Nat(%s<--%s)"%(self.tgt, self.src)
+
+    def __getitem__(self, x):
+        return self.components[x]
+
     def __mul__(self, other):
         "vertical _composition"
         assert isinstance(other, Nat)
         assert other.tgt == self.src
-        D, C = self.D, self.C
-        components = {x : self.components[x] * other.components[x] for x in C.obs}
+        lhs, rhs = self.lhs, self.rhs
+        components = {x : self.components[x] * other.components[x] for x in rhs.obs}
         return Nat(self.tgt, other.src, components)
 
     def __lshift__(self, other):
         "horizontal _composition"
         assert isinstance(other, Nat)
-        assert other.D == self.C
+        assert other.lhs == self.rhs
         # horizontal _composition is strictly associative
-        TODO
+        components = {}
+        for x in other.src.src.obs:
+            a = self[other.src(x)]
+            b = self.tgt(other[x])
+            m = b*a
+            c = self.src(other[x])
+            d = self[other.tgt(x)]
+            assert m == d*c # check interchange law
+            components[x] = m
+        tgt = self.tgt << other.tgt
+        src = self.src << other.src
+        return Nat(tgt, src, components)
+
 
 
 def test():
@@ -660,6 +700,14 @@ def test():
 
     ECi = C.include_into(E)
 
+    F = E.i
+    print(F)
+    Fi = F.i
+    print(Fi)
+    assert Fi*Fi == Fi
+    assert Fi<<Fi == Fi
+
+    return
 
     A = Set(list(range(3)))
     B = Set('xy')
