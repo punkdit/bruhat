@@ -351,8 +351,9 @@ class Category(object):
     def __add__(self, other):
         return AddCategory(self, other)
 
-    def __mul__(self, other):
+    def __mul__(self, other): # the cartesian product
         return MulCategory(self, other)
+    __matmul__ = __mul__ # the monoidal (tensor) product is the cartesian product
 
     @classmethod
     def full(cls, obs):
@@ -512,6 +513,7 @@ class Functor(object):
         return "%s(\n\t%s\n\t<--\n\t%s)"%(self.__class__.__name__, self.tgt, self.src)
 
     def __mul__(self, other):
+        "horizontal _composition of Functor's"
         assert self.__class__ is other.__class__
         assert self.src == other.tgt
         send_obs = {x:self.send_obs[other.send_obs[x]] for x in other.src.obs}
@@ -523,6 +525,16 @@ class Functor(object):
             send_homs[t,s] = {m:send1[send[m]] for m in send}
         return self.__class__(self.tgt, other.src, send_obs, send_homs)
     __lshift__ = __mul__
+
+    def __matmul__(self, other):
+        "monoidal (cartesian) product of Functor's"
+        if isinstance(other, Category):
+            other = other.i
+        assert isinstance(other, Functor)
+        tgt = self.tgt @ other.tgt
+        src = self.src @ other.src
+        # TODO
+        return Functor(tgt, src, send_obs, send_homs)
 
     def __invert__(self):
         (tgt, src, send_obs, send_homs, ) = self.data 
@@ -731,7 +743,7 @@ def _valid_nat(G, F, components):
                 return False
     return True
 
-def all_nats(G, F):
+def all_nats(G, F): # warning: slow and stupid
     assert isinstance(G, Functor)
     assert isinstance(F, Functor)
     assert G.tgt == F.tgt
@@ -751,7 +763,22 @@ def all_nats(G, F):
             yield Nat(G, F, components)
 
 
-def test():
+def test_nats(found):
+    def search(u):
+        for v in found:
+            if v.tgt == u.tgt and v.src == u.src and u==v:
+                return True
+        return False
+    for u in found:
+      for v in found:
+        if u.tgt is v.src:
+            vu = v*u
+            assert search(vu)
+        vu = v<<u
+        assert search(vu)
+
+
+def test_category():
     X = Set([0,1,2,3])
     Y = Set([0,1])
     assert Y != Set([0,1]) # once built, it is never the same
@@ -890,19 +917,43 @@ def test():
     assert len(list(all_nats(f, f))) == 1
     f.dump()
 
-def test_nats(found):
-    def search(u):
-        for v in found:
-            if v.tgt == u.tgt and v.src == u.src and u==v:
-                return True
-        return False
-    for u in found:
-      for v in found:
-        if u.tgt is v.src:
-            vu = v*u
-            assert search(vu)
-        vu = v<<u
-        assert search(vu)
+
+
+def test_group():
+    from bruhat.action import Group, Action, Hom
+    n = 3
+    G = Group.symmetric(n)
+    X = Set(G.items)
+    CG = Category([X], {(X,X):{Map(X,X,g.perm) for g in G}})
+    acts = []
+    Hs = list(G.subgroups())
+    Hs.sort(key = len)
+    print([len(H) for H in Hs])
+    lookup = {}
+    for H in Hs:
+        act = G.action_subgroup(H)
+        acts.append(act)
+        CH = Category([X], {(X,X):{Map(X,X,g.perm) for g in H}})
+        lookup[H] = CH
+
+    pairs = {}
+    for H in Hs:
+      for K in Hs:
+        if H.is_subgroup(K):
+            i = lookup[H].include(lookup[K])
+        #i = CG.include(CH)
+
+    return
+    for a in acts:
+      for b in acts:
+        homs = list(a.get_homs(b))
+        print("%2s"%(len(homs) or '.'), end=' ')
+      print()
+
+
+def test():
+    #test_category()
+    test_group()
 
 
 if __name__ == "__main__":
