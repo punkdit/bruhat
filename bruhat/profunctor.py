@@ -264,8 +264,9 @@ class Category(object):
                     
     def __str__(self):
         obs, homs, names = self.obs, self.homs, self.names
-        homs = ', '.join(["%s<-%s-%s"%(names[t],len(ms),names[s])
-            for (t,s),ms in homs.items()])
+        homs = ', '.join([
+            "%s<-%s-%s"%(names[t],len(ms),names[s])
+            for (t,s),ms in homs.items() if len(ms)])
         obs = ', '.join(names[ob] for ob in obs)
         return "Category({%s}, {%s})"%(obs, homs)
 
@@ -918,6 +919,47 @@ def test_category():
     f.dump()
 
 
+def homotopy_pullback(G, H, K):
+    from bruhat.action import Group, Action, Hom
+    assert isinstance(G, Group)
+    assert isinstance(H, Group)
+    assert isinstance(K, Group)
+    assert G.is_subgroup(H)
+    assert G.is_subgroup(K)
+    #lookup = {g:Set(G.items) for g in G}
+    #obs = list(lookup.values())
+    fans = {g:[] for g in G}
+    _homs = {} # abstract homs
+    for g1 in G:
+      for g0 in G:
+        # g0 ---> g1
+        hom = []
+        for h in H:
+          for k in K:
+            if k*g0 == g1*h:
+                hom.append((h,k))
+                fans[g1].append((h,k))
+        _homs[g1,g0] = hom
+        #print(len(hom), end=" ")
+      #print()
+    #print()
+    # now we build the Cayley-Yoneda representation
+    fans = {g:Set(fan) for (g,fan) in fans.items()}
+    obs = list(fans.values())
+    homs = {}
+    for t in G:
+      for s in G:
+        tgt = fans[t]
+        src = fans[s]
+        hom = set()
+        for (h,k) in _homs[t,s]:
+            send = {(h0,k0):(h*h0,k*k0) for (h0,k0) in src}
+            m = Map(tgt, src, send)
+            hom.add(m)
+        homs[fans[t],fans[s]] = hom
+    cat = Category(obs, homs)
+    return cat
+
 
 def test_group():
     from bruhat.action import Group, Action, Hom
@@ -942,8 +984,8 @@ def test_group():
         if H.is_subgroup(K):
             i = lookup[H].include(lookup[K])
         #i = CG.include(CH)
+        P = homotopy_pullback(G, H, K)
 
-    return
     for a in acts:
       for b in acts:
         homs = list(a.get_homs(b))
@@ -951,9 +993,25 @@ def test_group():
       print()
 
 
+def test_homotopy_pullback():
+    from bruhat.action import Group, Action, Hom
+    n = 4
+    G = Group.symmetric(n)
+    H = Group([g for g in G if g[0]==0], G.items) # S_3
+    assert len(H) == 6
+    assert G.is_subgroup(H)
+    K = Group([g for g in G if g[0] in [0,1] and g[1] in [0,1]], G.items) # S_2xS_2
+    assert len(K) == 4
+    assert G.is_subgroup(K)
+
+    C = homotopy_pullback(G, H, K)
+    print(C)
+
+
 def test():
     #test_category()
-    test_group()
+    #test_group()
+    test_homotopy_pullback()
 
 
 if __name__ == "__main__":
