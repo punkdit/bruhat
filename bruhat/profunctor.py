@@ -1004,13 +1004,14 @@ def test_homotopy_pullback():
     assert len(K) == 4
     assert G.is_subgroup(K)
 
+    C = homotopy_pullback(G, H, H)
     C = homotopy_pullback(G, H, K)
-    print(C)
+    C = homotopy_pullback(G, K, K)
 
 
 def test():
-    #test_category()
-    #test_group()
+    test_category()
+    test_group()
     test_homotopy_pullback()
 
 
