@@ -675,6 +675,7 @@ class Geometry(object):
         ngens = len(orders)+1
         a, b, c, d, e = [(i,) for i in range(5)]
         orders = tuple(orders)
+        assert orders in lins_db.db, (list(lins_db.db.keys()))
         #print("oeqc.Geometry.__init__:", len(lins_db.db[orders]))
         rels = lins_db.db[orders][lins_idx]
         rels = lins_db.parse(rels, **locals())
@@ -833,9 +834,9 @@ def build_code(geometry):
         A = get_adj(faces, edges)
         B = get_adj(edges, verts)
         print("A =")
-        print(shortstr(A))
+        print(shortstr(A), A.shape)
         print("B =")
-        print(shortstr(B))
+        print(shortstr(B), B.shape)
 
     elif argv.partial_flags and dim==3:
         flags = geometry.get_cosets([0]*(dim+1))
