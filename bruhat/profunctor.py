@@ -993,6 +993,38 @@ def test_group():
       print()
 
 
+def double_cosets(G, H, K):
+    items = list(G)
+    gen = [G.identity] + G.gen
+    items.sort(key = str)
+    lookup = {g:ascii_letters[i] for (i,g) in enumerate(items)}
+    #lookup[G.identity] = '*'+lookup[G.identity]
+    colours = "black red blue darkgreen".split()
+    edges = []
+    for src in items:
+      for h in H:
+        for k in K:
+            tgt = h*src*~k
+            if h not in gen or k not in gen:
+                continue
+            hi, ki = gen.index(h), gen.index(k)
+            if hi*ki==0 and hi+ki!=0:
+                edge = lookup[src], (hi, ki), lookup[tgt]
+                edges.append(edge)
+                print("  %2s --%s--> %2s"%edge)
+
+    f = open("double_cosets.dot", 'w')
+    print("graph {", file=f)
+    for (src, (hi,ki), tgt) in edges:
+        cl = colours[hi] if hi else colours[ki]
+        if src < tgt:
+            print("%s -- %s [color=%s, penwidth=2.0];" %(src, tgt, cl), file=f)
+    print("}", file=f)
+    f.close()
+    import os
+    #os.command("
+
+
 def test_homotopy_pullback():
     from bruhat.action import Group, Action, Hom
 
@@ -1004,9 +1036,10 @@ def test_homotopy_pullback():
     K = Group([g for g in G if g[2]==2], G.items) # 1xS_2
     assert len(K) == 2
     assert G.is_subgroup(K)
-    C = homotopy_pullback(G, H, H)
-    print(C)
-    return
+    #C = homotopy_pullback(G, H, H)
+    #print(C)
+    #double_cosets(G, H, K)
+    #return
 
     n = 4
     G = Group.symmetric(n)
@@ -1017,9 +1050,11 @@ def test_homotopy_pullback():
     assert len(K) == 4
     assert G.is_subgroup(K)
 
-    C = homotopy_pullback(G, H, H)
-    C = homotopy_pullback(G, H, K)
-    C = homotopy_pullback(G, K, K)
+    #C = homotopy_pullback(G, H, H)
+    #C = homotopy_pullback(G, H, K)
+    #C = homotopy_pullback(G, K, K)
+
+    double_cosets(G, H, K)
 
 
 def test():
