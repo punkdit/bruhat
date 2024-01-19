@@ -995,6 +995,19 @@ def test_group():
 
 def test_homotopy_pullback():
     from bruhat.action import Group, Action, Hom
+
+    n = 3
+    G = Group.symmetric(n)
+    H = Group([g for g in G if g[0]==0], G.items) # S_2x1
+    assert len(H) == 2
+    assert G.is_subgroup(H)
+    K = Group([g for g in G if g[2]==2], G.items) # 1xS_2
+    assert len(K) == 2
+    assert G.is_subgroup(K)
+    C = homotopy_pullback(G, H, H)
+    print(C)
+    return
+
     n = 4
     G = Group.symmetric(n)
     H = Group([g for g in G if g[0]==0], G.items) # S_3
