@@ -72,6 +72,10 @@ def get_genus(n):
         #print(shortstr(send_green(A)))
         #print()
 
+    # blue  : z -> -1/z
+    # green : z -> z+1
+    # red   : z -> 1/(1-z)
+
     items = [shortstr(A) for A in ops]
     b = blue = Perm({shortstr(A) : shortstr(send_blue(A)) for A in ops}, items)
     g = green = Perm({shortstr(A) : shortstr(send_green(A)) for A in ops}, items)
