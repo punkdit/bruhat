@@ -226,6 +226,17 @@ def has_transversal_SSdag(H1):
     return P*L == L*P
 
 
+def has_transversal_HHSwap(H1):
+    from qupy.dense import Gate
+    m, n, _ = H1.shape
+    if n%2:
+        return False
+    P = get_projector(H1)
+    #L = reduce(matmul, [[Gate.H, ~Gate.S][i%2] for i in range(n)])
+    L = get_transversal_H(n) * get_transversal_SWAP(n)
+    return P*L == L*P
+
+
 def has_transversal_TTdag(H1):
     if not has_transversal_S_upto_sign(H1):
         return False
@@ -235,6 +246,13 @@ def has_transversal_TTdag(H1):
     L = reduce(matmul, [[Gate.T, ~Gate.T][i%2] for i in range(n)])
     return P*L == L*P
 
+
+@cache 
+def get_transversal_SWAP(n):
+    assert n%2 == 0
+    from qupy.dense import Gate
+    L = reduce(matmul, [Gate.SWAP]*(n//2))
+    return L
 
 @cache 
 def get_transversal_H(n):
@@ -313,7 +331,10 @@ def has_transversal_CZ(H1):
     P = get_projector(H1)
     L = get_transversal_CZ(n)
     #dump(P, L, P*L, L*P)
-    return P*L == L*P
+    result = P*L == L*P
+    #if result:
+    #    assert has_transversal_HHSwap(H1) # nope..
+    return result
 
 @cache
 def get_transversal_CCZ(n):

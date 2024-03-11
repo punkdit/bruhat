@@ -4,10 +4,14 @@ build modular curves X_0(N)
 and find their genus.
 """
 
+import os
+
 from bruhat.argv import argv
 from bruhat.action import Group, Perm
 from bruhat.smap import SMap
 from bruhat.solve import shortstr, zeros2
+from bruhat import elim, element
+
 
 def hstr(n, H):
     s = SMap()
@@ -47,22 +51,64 @@ def send_green(A):
     return B
 
 
-def get_genus(n):
-    G = Group.cyclic(n)
-    GG = G.direct_product(G)
-    assert len(GG) == n**2
+BODY = """
+digraph {
 
+    node [
+        shape = circle
+        color = "black"
+        width = 0.2
+        height = 0.2
+        label = ""
+    ]
+    edge [ penwidth = 2.0 ]
+
+%s
+
+}
+"""
+
+def todot(N, red, green, blue, items):
+    print("blue:", len(blue.orbits()))
+    print("green:", len(green.orbits()))
+    print("red:", len(red.orbits()))
+    print("lozenges:", len(items))
+    lines = []
+    lookup = dict((v,k) for (k,v) in enumerate(items))
+    n = len(items)
+    for i,item in enumerate(items):
+        j = lookup[blue[item]]
+        lines.append('  %d -> %d [color="#0000b2"];'%(i,j))
+        j = lookup[green[item]]
+        lines.append('  %d -> %d [color="#009200"];'%(i,j))
+        j = lookup[red[item]]
+        lines.append('  %d -> %d [color="#d20000"];'%(i,j))
+    stem = "X0_%d"%N
+    body = BODY % ('\n'.join(lines))
+    f = open("%s.dot"%stem, "w")
+    print(body, file=f)
+    f.close()
+    rval = os.system("dot %s.dot -Tpdf > %s.pdf"%(stem, stem))
+    assert rval == 0, rval
+    print("wrote %s.pdf"%stem)
+
+
+def get_genus(N, render=False):
+    G = Group.cyclic(N)
+    GG = G.direct_product(G)
+    assert len(GG) == N**2
+
+    # order N cyclic subgroups of GG
     found = []
     for g in GG:
         H = Group.generate([g])
-        if len(H) == n and H not in found:
+        if len(H) == N and H not in found:
             found.append(H)
 
-    #print(len(found))
     lookup = {}
     ops = []
     for H in found:
-        A = mkop(n, H)
+        A = mkop(N, H)
         ops.append(A)
         lookup[shortstr(A)] = A
         #print(shortstr(A))
@@ -81,10 +127,8 @@ def get_genus(n):
     g = green = Perm({shortstr(A) : shortstr(send_green(A)) for A in ops}, items)
     r = red = g*b*g*b
 
-    #print("blue:", len(blue.orbits()))
-    #print("green:", len(green.orbits()))
-    #print("red:", len(red.orbits()))
-    #print("lozenges:", len(ops))
+    if render:
+        todot(N, red, green, blue, items)
 
     nblue = len(blue.orbits())
     ngreen = len(green.orbits())
@@ -99,14 +143,57 @@ def get_genus(n):
 
     return (2-chi)//2
 
+def render():
+    N = argv.get("N", 11)
+    get_genus(N, True)
 
-    
+
+def test_atkin_lehner():
+    from elim import eq, pseudo_inverse, shortstr, dot, array, identity
+    # See: Harada 2010, p13
+    # https://www.lmfdb.org/knowledge/show/cmf.atkin-lehner
+    # generators of gamma_0(11):
+    # https://swc-math.github.io/notes/files/01Weston1.pdf
+    ring = element.Q
+
+    N = 11
+
+    p = ring.promote
+    promote = lambda A : array([[p(A[0][0]), p(A[0][1])], [p(A[1][0]), p(A[1][1])]])
+    def find():
+        n = 5
+        for x in range(-n, n+1):
+         for y in range(-n, n+1):
+          for z in range(-n, n+1):
+            #W = [[N*x, y], [N*z, N]]
+            d = N*x - y*z
+            if d == 1:
+                W = array([[p(N*x), p(y)], [p(N*z), p(N)]])
+                yield W
+                #print(x, y, z)
+
+    I = identity(ring, 2)
+    T = promote([[1,1],[0,1]])
+    U = promote([[7,-2],[11,-3]])
+    V = promote([[8,-3],[11,-4]])
+    for W in find():
+        #print(W)
+        Wi = pseudo_inverse(ring, W)
+        print(eq(I, dot(ring, Wi,W)))
+        print(shortstr(Wi))
+
+        conj = lambda A : dot(ring, Wi, dot(ring, A, W))
+        assert conj(T)[1,0] % N == 0
+        #print(shortstr(conj(U)))
+        assert conj(U)[1,0] % N == 0
+        assert conj(V)[1,0] % N == 0
+
 
 def main():
     print(" N=   genus=")
-    for n in range(1,33):
-        genus = get_genus(n)
-        print("%4s       "%n, genus)
+    for N in range(1,50):
+        genus = get_genus(N)
+        print("%4s       "%N, genus)
 
 
 if __name__ == "__main__":

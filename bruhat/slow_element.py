@@ -1174,9 +1174,9 @@ class FieldOfFractions(Ring):
         assert b > 0, "%s %% %s"%(a, b)
         while a < 0:
             a += b # i'm so lazy
-        while a > b:
+        while a >= b:
             a -= b # i'm so lazy
-        assert a < b
+        assert a < b, "%s<%s"%(a,b)
         return a
     
 
