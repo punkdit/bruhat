@@ -161,32 +161,47 @@ def test_atkin_lehner():
     p = ring.promote
     promote = lambda A : array([[p(A[0][0]), p(A[0][1])], [p(A[1][0]), p(A[1][1])]])
     def find():
-        n = 5
+        n = 7
         for x in range(-n, n+1):
          for y in range(-n, n+1):
           for z in range(-n, n+1):
             #W = [[N*x, y], [N*z, N]]
             d = N*x - y*z
             if d == 1:
-                W = array([[p(N*x), p(y)], [p(N*z), p(N)]])
+                W = promote([[N*x, y], [N*z, N]])
                 yield W
                 #print(x, y, z)
 
     I = identity(ring, 2)
+
+    # T,U,V generate gamma_0(11)
     T = promote([[1,1],[0,1]])
     U = promote([[7,-2],[11,-3]])
     V = promote([[8,-3],[11,-4]])
     for W in find():
         #print(W)
         Wi = pseudo_inverse(ring, W)
-        print(eq(I, dot(ring, Wi,W)))
-        print(shortstr(Wi))
+        W2 = dot(ring, W, W)
+        assert eq(I, dot(ring, Wi, W))
+        assert W2[1,0]%N == 0
+        assert W2[0,0]%N == 0
+        assert W2[1,1]%N == 0
+        W2i = pseudo_inverse(ring, W2)
+        assert eq(W2i, dot(ring, Wi, Wi))
 
         conj = lambda A : dot(ring, Wi, dot(ring, A, W))
         assert conj(T)[1,0] % N == 0
         #print(shortstr(conj(U)))
         assert conj(U)[1,0] % N == 0
         assert conj(V)[1,0] % N == 0
+
+        conj2 = lambda A : dot(ring, W2i, dot(ring, A, W2))
+        print("W:")
+        print(shortstr(W))
+        print("W2:")
+        print(shortstr(W2))
+        #print(shortstr(conj2(U)))
+        print()
 
 
 def main():
