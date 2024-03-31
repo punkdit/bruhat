@@ -1083,6 +1083,7 @@ def make_surface_54(G_0):
     #print("here")
     #while 1:
     #    sleep(1)
+    #print(act_edges_0)
 
     from bruhat.solve import shortstr, zeros2, dot2, array2, solve
     from numpy import alltrue, zeros, dot
@@ -1112,7 +1113,7 @@ def make_surface_54(G_0):
     idx = 0
     for i, g in enumerate(G_0):
         assert g in G_0
-        h_edge_0 = act_edges_0[g]
+        h_edge_0 = act_edges_0(g)
         n_edge = len(h_edge_0.fixed())
 
 #        h_fold_faces = act_fold_faces[g]

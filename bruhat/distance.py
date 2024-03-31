@@ -269,14 +269,10 @@ def tree_distance(H, L, d, homogeneous=False):
     # this works for codes where we never violate more checks
     # than the first bit, ie. codes with string-like logical operators,
     # eg. 2d topological codes.
-    print("tree_distance: d=%d"%d)
+    #print("tree_distance: d=%d"%d)
     m, n = H.shape
     k, n1 = L.shape
     assert n==n1
-
-    #print(shortstr(H))
-    #print(H.sum(0))
-    #print(H.sum(1))
 
     check = lambda v : dot(H, v).sum() == 0
 
@@ -287,20 +283,20 @@ def tree_distance(H, L, d, homogeneous=False):
     max_check = dot2(H, v).sum()
     if argv.slow:
         max_check += 1 # hmmm... adding 1 here, see test()
-    print("max_check:", max_check)
+    #print("max_check:", max_check)
 
     if _tree_distance(H, L, d-1, v, remain, max_check):
-        print("found!")
-        print(v, v.sum())
-        print(dot2(H, v))
+        #print("found!")
+        #print(v, v.sum())
+        #print(dot2(H, v))
         assert dot2(H, v).sum() == 0
     
-        print(dot2(L, v))
+        #print(dot2(L, v))
         assert sum(v) == d
 
         return True
 
-    print("not found")
+    #print("not found")
 
 
 def dynamic_distance(H, L):
@@ -453,6 +449,49 @@ def update():
                 break
             d += 2
 
+
+def main_css():
+    key = (5,4)
+    idx = 10
+    for idx in range(10, 30):
+        css_geometry(key, idx)
+
+def css_geometry(key, idx):
+    from bruhat.qcode import Geometry, get_adj
+    geometry = Geometry(key, idx)
+
+    G = geometry.G
+    print("|G| = %4d, idx = %d" % (len(G), idx), end=" ", flush=True)
+
+    faces = geometry.get_cosets([0,1,1])
+    edges = geometry.get_cosets([1,0,1])
+    verts = geometry.get_cosets([1,1,0])
+    print("faces=%d, edges=%d, verts=%d"%(len(faces), len(edges), len(verts)), end=" ", flush=True)
+
+    Hz = get_adj(faces, edges)
+    Hx = get_adj(verts, edges)
+
+    #print(shortstr(Hz))
+    #print()
+    #print(shortstr(Hx))
+
+    from qumba.csscode import CSSCode
+    code = CSSCode(Hx=Hx, Hz=Hz)
+    print(code, end=" ", flush=True)
+
+    dist = []
+    for (H, L) in [(code.Hx, code.Lz), (code.Hz, code.Lx)]:
+        d = 1
+        while 1:
+            result = tree_distance(H, L, d, homogeneous=True)
+            if result:
+                break
+            if d == 20:
+                break
+    
+            d += 1
+        dist.append(d)
+    print("dist =", dist)
 
 
 def main():

@@ -189,12 +189,12 @@ class QCode(object):
             self.check()
 
     @classmethod
-    def build_css(cls, Hx, Hz, Lx=None, Lz=None, Jx=None, Jz=None):
+    def build_css(cls, Hx, Hz, Lx=None, Lz=None, Jx=None, Jz=None, check=True):
         H = css_to_isotropic(Hx, Hz)
         L = css_to_symplectic(Lx, Lz) if Lx is not None else None
         J = css_to_symplectic(Jx, Jz) if Jx is not None else None
         T = None
-        return QCode(H, T, L, J)
+        return QCode(H, T, L, J, check=check)
 
     @classmethod
     def build_gauge(cls, J):
@@ -889,7 +889,7 @@ def build_code(geometry):
         print("Hx weights:", Hxs.min(), "to", Hxs.max())
         print("Hz weights:", Hzs.min(), "to", Hzs.max())
     
-        code = QCode.build_css(Hx, Hz)
+        code = QCode.build_css(Hx, Hz, check=argv.check)
         print("rank(Hx) =", rank(Hx))
         print("rank(Hz) =", rank(Hz))
 
@@ -904,7 +904,7 @@ def build_code(geometry):
         return
 
     n, k, d = code.get_params(max_mk=15)
-    if d is None:
+    if d is None and 0:
         #L = code.get_logops()
         #print(list(L.sum(1)))
         #print(shortstr(L))
@@ -918,12 +918,38 @@ def build_code(geometry):
         print(code)
     print()
 
-    code.build()
-
     if not argv.autos:
-        return
+        return code
+
+    #code.build()
 
     test_zx(Ax, Az)
+
+    return code
+
+
+def build_geometry():
+
+    key = argv.get("key", (4,3,4))
+    print("key:", key)
+
+    idx = argv.get("idx")
+    idxs = [idx] if idx else list(range(1000))
+
+    for idx in idxs:
+        try:
+            geometry = Geometry(key, idx)
+        except IndexError:
+            break
+
+        G = geometry.G
+        print("|G| = %d, idx = %d" % (len(G), idx))
+        if len(G)<10:
+            continue
+
+        code = build_code(geometry)
+
+    #print("build_geometry: idx =", idx)
 
 
 def test_zx(Ax, Az):
@@ -1560,30 +1586,6 @@ def main_symplectic_unwrap_13():
     # 162 2-qubit gates... too many 
 
 
-
-
-def build_geometry():
-
-    key = argv.get("key", (4,3,4))
-    print("key:", key)
-
-    idx = argv.get("idx")
-    idxs = [idx] if idx else list(range(1000))
-
-    for idx in idxs:
-        try:
-            geometry = Geometry(key, idx)
-        except IndexError:
-            break
-
-        G = geometry.G
-        print("|G| = %d, idx = %d" % (len(G), idx))
-        if len(G)<10:
-            continue
-
-        code = build_code(geometry)
-
-    #print("build_geometry: idx =", idx)
 
 
 def monte_carlo_css(H, v, p=0.5, trials=10000):
