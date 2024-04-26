@@ -299,8 +299,9 @@ def tree_distance(H, L, d, homogeneous=False):
     #print("not found")
 
 
-def dynamic_distance(H, L):
-    print("dynamic_distance")
+def dynamic_distance(H, L, verbose=False):
+    if verbose:
+        print("dynamic_distance")
 
     m, n = H.shape
     k, n1 = L.shape
@@ -325,7 +326,8 @@ def dynamic_distance(H, L):
     assert max_check == check(v)
     if argv.slow:
         max_check += 1 # hmmm... adding 1 here, see test()
-    print("max_check:", max_check)
+    if verbose:
+        print("max_check:", max_check)
 
     found = {(0,)}
     bdy = list(found)
@@ -333,8 +335,9 @@ def dynamic_distance(H, L):
     while bdy:
         #print()
         #print("="*79)
-        print("[d = %d]"%d, end="", flush=True)
-        print("[bdy: %d]"%len(bdy), end="", flush=True)
+        if verbose:
+            print("[d = %d]"%d, end="", flush=True)
+            print("[bdy: %d]"%len(bdy), end="", flush=True)
         _bdy = []
         for path in bdy:
             #print("path:", path)
@@ -355,7 +358,8 @@ def dynamic_distance(H, L):
                 if w == 0:
                     k = dot2(L, v).sum()
                     if k:
-                        print()
+                        if verbose:
+                            print()
                         return v.sum() # <------- return
                 elif w <= max_check:
                     p = list(path)
@@ -451,10 +455,12 @@ def update():
 
 
 def main_css():
-    key = (5,4)
-    idx = 10
-    for idx in range(10, 30):
+    key = argv.get("key", (5,4))
+    idx = 4
+    while 1:
         css_geometry(key, idx)
+        idx += 1
+
 
 def css_geometry(key, idx):
     from bruhat.qcode import Geometry, get_adj
@@ -468,12 +474,21 @@ def css_geometry(key, idx):
     verts = geometry.get_cosets([1,1,0])
     print("faces=%d, edges=%d, verts=%d"%(len(faces), len(edges), len(verts)), end=" ", flush=True)
 
-    Hz = get_adj(faces, edges)
-    Hx = get_adj(verts, edges)
+    if argv.homology:
+        Hz = get_adj(faces, edges)
+        Hx = get_adj(verts, edges)
+    elif argv.bicolour:
+        assert 0
+    else:
+        assert 0
 
-    #print(shortstr(Hz))
+    _, n = Hz.shape
+    if n < 10:
+        print()
+        return
+    #print(shortstr(Hz), Hz.shape)
     #print()
-    #print(shortstr(Hx))
+    #print(shortstr(Hx), Hx.shape)
 
     from qumba.csscode import CSSCode
     code = CSSCode(Hx=Hx, Hz=Hz)
@@ -481,15 +496,16 @@ def css_geometry(key, idx):
 
     dist = []
     for (H, L) in [(code.Hx, code.Lz), (code.Hz, code.Lx)]:
-        d = 1
-        while 1:
-            result = tree_distance(H, L, d, homogeneous=True)
-            if result:
-                break
-            if d == 20:
-                break
-    
-            d += 1
+        d = dynamic_distance(H, L)
+#        d = 1
+#        while 1:
+#            result = tree_distance(H, L, d, homogeneous=True)
+#            if result:
+#                break
+#            if d == 20:
+#                break
+#    
+#            d += 1
         dist.append(d)
     print("dist =", dist)
 
