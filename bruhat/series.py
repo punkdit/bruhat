@@ -300,10 +300,10 @@ def eisenstein():
     #M = G4
     #M = Eisenstein(ring, 4, 1) * D
 
-    if 0:
-        M = G4*D
-        print(M)
-        for i,j in [(2,3), (2,5)]:
+    if 1:
+        M = Eisenstein(ring, 4, ring.one)*D
+        print("M =", M)
+        for i,j in [(2,3), (2,5), (3, 5)]:
             lhs = M[i]*M[j]
             rhs = M[i*j]
             print(lhs, rhs, rhs/lhs)

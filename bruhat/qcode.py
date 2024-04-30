@@ -904,7 +904,7 @@ def build_code(geometry):
         return
 
     n, k, d = code.get_params(max_mk=15)
-    if d is None and 0:
+    if d is None:
         #L = code.get_logops()
         #print(list(L.sum(1)))
         #print(shortstr(L))
