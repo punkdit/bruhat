@@ -295,12 +295,22 @@ def eisenstein():
     print("D =", D)
 
     #return
+    G8 = Eisenstein(ring, 8)
+    print("G8 =", G8)
+
+    G10 = Eisenstein(ring, 10)
 
     # hmm... fail...
     #M = G4
     #M = Eisenstein(ring, 4, 1) * D
 
-    if 1:
+    DG4 = 240 * D * G4
+    assert DG4.is_multiplicative()
+
+    DG6 = -504 * D * G6
+    assert DG6.is_multiplicative()
+
+    if 0:
         M = Eisenstein(ring, 4, ring.one)*D
         print("M =", M)
         for i,j in [(2,3), (2,5), (3, 5)]:
@@ -314,9 +324,9 @@ def eisenstein():
     G6 = Eisenstein(ring, 6)
     assert G4.is_multiplicative()
     assert G6.is_multiplicative()
+    assert G8.is_multiplicative()
+    assert G10.is_multiplicative()
     assert D.is_multiplicative()
-
-    #return
 
     G4_2 = EulerFactor(G4, 2)
     #print(G4_2)
@@ -362,8 +372,45 @@ def eisenstein():
         #print(p, a, b)
         assert (a, b) == (-p**5, F[1]) # X_0(5) ?
 
+#    print(EulerFactor(G4, 2))
+#    return
+#
+#    print("G4 =", G4)
+#    a = G4
+#    b = (ring.one // (240*ring.one)) * a
+#    print(b)
+#    print(2*a[2])
+#    print(2*a[4] + a[1])
+#    print(2*a[6])
+#    print(2*a[8] + a[2])
+#    print(2*a[10])
+#    print(2*a[12] + a[3])
+#
+#    print()
+#    print(2*b[2], 18*b[1])
+#    print(2*b[4] + b[1], 18*b[2])
+#    print(2*b[6], 18*b[3])
+#    print(2*b[8] + b[2], 18*b[4])
+#    print(2*b[10], 18*b[5])
+#    print(2*b[12] + b[3], 18*b[6])
+#
+#    return
+
+    #print( EulerFactor(D, 2) )
+    print("D =", D)
     assert find_coeffs(D2) == (-(2**11), D2[1]) # X_0(11) ?
     assert find_coeffs(D3) == (-(3**11), D3[1])
+
+    print( find_coeffs( EulerFactor(DG4, 2) ) )
+    return
+    assert find_coeffs( EulerFactor(DG4, 2) ) == (-2**15, DG4[2])
+    assert find_coeffs( EulerFactor(DG4, 3) ) == (-3**15, DG4[3])
+
+    print(DG6)
+    assert find_coeffs( EulerFactor(DG6, 2) ) == (-2**17, DG6[2])
+    assert find_coeffs( EulerFactor(DG6, 3) ) == (-3**17, DG6[3])
+
+    print( find_coeffs( EulerFactor(G10, 2) ) )
 
 
 def main():
