@@ -328,6 +328,33 @@ def eisenstein():
     assert G10.is_multiplicative()
     assert D.is_multiplicative()
 
+    print("D =", D)
+
+    def get_eigval(M, m=2, k=12):
+        # See: https://people.math.wisc.edu/~nboston/869.pdf page lxv
+        # T_m Hecke operator
+        # k is weight of M
+        eigval = None
+        for n in range(1, 5):
+            b_n = 0
+            for d in range(1, min(m, n)+1):
+                if m%d == 0 and n%d == 0:
+                    assert (m*n) % (d**2) == 0
+                    idx = (m*n) // (d**2)
+                    b_n += (d**(k-1)) * M[idx]
+            if eigval is None:
+                eigval = b_n / M[n]
+            else:
+                assert eigval == b_n / M[n]
+            #print("b_%d = %s"%(n, b_n), M[n]*24)
+        return eigval
+
+    for m in [2, 3, 5]:
+        print(get_eigval(D, m, 12))
+        print(get_eigval(DG4, m, 12 + 4))
+        print(get_eigval(DG6, m, 12 + 6))
+
+
     G4_2 = EulerFactor(G4, 2)
     #print(G4_2)
 
