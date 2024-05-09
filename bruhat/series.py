@@ -349,10 +349,13 @@ def eisenstein():
             #print("b_%d = %s"%(n, b_n), M[n]*24)
         return eigval
 
+
     for m in [2, 3, 5]:
-        print(get_eigval(D, m, 12))
-        print(get_eigval(DG4, m, 12 + 4))
-        print(get_eigval(DG6, m, 12 + 6))
+        print(get_eigval(G4, m, 4))
+        #print(get_eigval(G6, m, 6))
+        #print(get_eigval(D, m, 12))
+        #print(get_eigval(DG4, m, 12 + 4))
+        #print(get_eigval(DG6, m, 12 + 6))
 
 
     G4_2 = EulerFactor(G4, 2)
@@ -389,7 +392,7 @@ def eisenstein():
         F = EulerFactor(G4, p)
         #print(F)
         a, b = find_coeffs(F)
-        #print(p, a, b)
+        print(p, a, b)
         assert (a, b) == (-p**3, F[1]) # X_0(3) ?
 
     for p in [2, 3, 5]:
