@@ -121,6 +121,18 @@ def test():
         print(n, n-(p**l+1))
 
 
+def find_coeffs(F):
+    from bruhat.gelim import array, solve
+    f = [int(str(F[i])) for i in range(4)]
+    A = array([[f[0], f[1]], [f[1], f[2]]])
+    rhs = [f[2], f[3]]
+    v = solve(A, rhs)
+    assert v is not None
+    a, b = v
+    a, b = str(a), str(b)
+    a, b = int(a), int(b)
+    return a, b
+
 
 def main():
 
@@ -165,21 +177,35 @@ def main():
     l = argv.get("l", 1)
     if argv.all_primes:
         ps = list(all_primes(100))
-        ls = [1,2,3]
+        ls = [1,2,3,4]
     elif p is None:
         ps = [2, 3, 5]
         ls = list(range(1,9))
     else:
         ps = [p]
-        ls = [1, 2, 3, 4]
+        if p < 10:
+            ls = [1, 2, 3, 4, 5, 6]
+        elif p < 50:
+            ls = [1, 2, 3, 4]
+        else:
+            ls = [1, 2, 3]
 
     for p in ps:
-      print(p%d) 
-      for l in ls:
-        print(p, l, p**l, end=" ", flush=True)
-        n = count_points(p, l, lhs, rhs)
-        print(n, n-(p**l+1))
-      print()
+        if argv.mod is not None and p%d != argv.mod:
+            continue
+        print(p%d) 
+        sols = []
+        for l in ls:
+            print(p, l, p**l, end=" ", flush=True)
+            n = count_points(p, l, lhs, rhs)
+            diff=n-(p**l+1)
+            sols.append(diff)
+            print(n, diff)
+        if len(sols)>3:
+            a, b = find_coeffs(sols)
+            #print("a=%s, b=%s" % (a, b))
+            print("1 + %dx + %dx^2"%(-b, -a))
+        print()
 
 
 def test_number():
