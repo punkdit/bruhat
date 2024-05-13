@@ -16,8 +16,8 @@ def mulclose(els, verbose=False, maxsize=None):
         _els = list(els)
         for A in _els:
             for B in _els:
-                C = A*B
-                if C not in els:
+                for C in [A*B, B*A]:
+                  if C not in els:
                     els.add(C)
                     if maxsize and len(els)>=maxsize:
                         return list(els)
@@ -85,6 +85,50 @@ class Monoid(object):
     def generate(cls, funcs, *args, **kw):
         funcs = list(mulclose(funcs, *args, **kw))
         return cls(funcs)
+
+    def find(self, f):
+        for x in self.funcs:
+            if x==f:
+                return x
+
+
+def test_cayley():
+
+    n = 3
+
+    items = list(range(1, n+1))
+    tgt = src = items
+
+    I = Func(tgt, src, dict((i, i) for i in items), "I")
+    a = Func(tgt, src, dict((i, min(i+1, n)) for i in items), "a")
+    b = Func(tgt, src, dict((i, max(i-1, 1)) for i in items), "b")
+
+    M = Monoid.generate([I, a, b])
+    print(n, len(M))
+
+    # left cayley
+    f = open("left_monoid.dot", "w")
+    print("digraph {", file=f)
+    for x in M:
+        ax = M.find(a*x)
+        bx = M.find(b*x)
+        print("%s -> %s [label=a];" % (x, ax), file=f)
+        print("%s -> %s [label=b];" % (x, bx), file=f)
+    print("}", file=f)
+    f.close()
+
+    # right cayley
+    f = open("right_monoid.dot", "w")
+    print("digraph {", file=f)
+    for x in M:
+        xa = M.find(x*a)
+        xb = M.find(x*b)
+        print("%s -> %s [label=a];" % (x, xa), file=f)
+        print("%s -> %s [label=b];" % (x, xb), file=f)
+    print("}", file=f)
+    f.close()
+
+
 
 
 
@@ -176,8 +220,9 @@ def show_table(M, gens):
 
 if __name__ == "__main__":
 
-    test_sequence()
-    test()
+    #test_sequence()
+    #test()
+    test_cayley()
 
     print("OK\n")
 
