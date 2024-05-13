@@ -9,6 +9,7 @@ import string
 from sage.all_cmdline import GF, NumberField
 from sage import all_cmdline 
 
+from bruhat.util import all_primes
 from bruhat.argv import argv
 from bruhat.smap import SMap
 
@@ -52,7 +53,7 @@ def slow_count_points(p, l):
     return n+1 # add projective point
 
 
-def count_points(p, l):
+def count_points(p, l, lhs, rhs):
     q = p**l
 
     F = GF(q)
@@ -71,19 +72,17 @@ def count_points(p, l):
     #f = lambda x,y : y**2 == (x-1)*x*(x+1)
     #sols = [f(x,y) for x in items for y in items]
     #n = sols.count(True)
-    print('_', end='', flush=True)
-
-    lhs = lambda y : y**2
-    rhs = lambda x : (x-1)*x*(x+1)
+    print('.', end='', flush=True)
 
     lsend = {a : 0 for a in items}
     rsend = {a : 0 for a in items}
     for a in items:
         lsend[lhs(a)] += 1
         rsend[rhs(a)] += 1
+        # does not help much:
         #lsend[a**2] += 1
         #rsend[(a-1)*a*(a+1)] += 1
-    print('_', end='', flush=True)
+    print('. ', end='', flush=True)
 
     count = 0
     for a in items:
@@ -93,28 +92,97 @@ def count_points(p, l):
     return count+1 # add projective point
 
 
-def spec():
+def test():
 
-    #F = GF(5)
-    #print(F, F.gen())
-    #return
+    # good reduction at p=2
+    lhs = lambda y : y**2 + y
+    rhs = lambda x : x**3 + x
+    p = 2
+
+    # additive reduction at p=2
+    lhs = lambda y : y**2
+    rhs = lambda x : x**3
+    p = 2
+
+    # split multiplicative reduction at p=5
+    lhs = lambda y : y**2
+    rhs = lambda x : x**3 - x**2 + 5
+    p = 5
+    
+    # nonsplit multiplicative reduction at p=3
+    lhs = lambda y : y**2
+    rhs = lambda x : x**3 - x**2
+    p = 3
+    
+    ls = list(range(1, 9))
+    for l in ls:
+        print(p, l, p**l, end=" ", flush=True)
+        n = count_points(p, l, lhs, rhs)
+        print(n, n-(p**l+1))
+
+
+
+def main():
+
+    # Ref.
+    # Advanced Topics in the Arithmetic of Elliptic Curves
+    # Joseph H. Silverman
+    # Appendix A
+    d = argv.get("d", 4)
+
+    lhs = lambda y : y**2
+    if d == 3:
+        # eisenstein
+        rhs = lambda x : x**3+1
+    elif d == 4:
+        # gauss
+        rhs = lambda x : (x-1)*x*(x+1)
+        #rhs = lambda x : x**3 + x
+    elif d == 7:
+        # y**2 + x*y == x**3 - x**2 - 2*x - 1 # conductor == 1
+        rhs = lambda x : x**3 - 595*x + 5586 # conductor == 2 (??)
+    elif d == 8:
+        rhs = lambda x : x**3 + 4*x**2 + 2*x
+    elif d == 11:
+        lhs = lambda y : y**2 + y
+        rhs = lambda x : x**3 - x**2 -7*x + 10
+    elif d == 19:
+        lhs = lambda y : y**2 + y
+        rhs = lambda x : x**3 - 38*x + 90
+    elif d == 43:
+        lhs = lambda y : y**2 + y
+        rhs = lambda x : x**3 - 860*x + 9707
+    elif d == 67:
+        lhs = lambda y : y**2 + y
+        rhs = lambda x : x**3 - 7370*x + 243528
+    elif d == 163:
+        lhs = lambda y : y**2 + y
+        rhs = lambda x : x**3 - 2174420*x + 1234136692
+    else:
+        return
 
     p = argv.get("p")
     l = argv.get("l", 1)
-    if p is None:
+    if argv.all_primes:
+        ps = list(all_primes(100))
+        ls = [1,2,3]
+    elif p is None:
         ps = [2, 3, 5]
         ls = list(range(1,9))
     else:
         ps = [p]
-        ls = [l]
+        ls = [1, 2, 3, 4]
+
     for p in ps:
+      print(p%d) 
       for l in ls:
         print(p, l, p**l, end=" ", flush=True)
-        n = count_points(p, l)
+        n = count_points(p, l, lhs, rhs)
         print(n, n-(p**l+1))
+      print()
 
 
-def main():
+def test_number():
     n = argv.get("n")
 
     K0 = NumberField(x**2 + 1, "x")
