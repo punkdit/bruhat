@@ -825,7 +825,7 @@ def make_colour():
         m, n = H.shape
         k = n-2*m
 
-        name = "codes/code_%d_%d_%d.txt"%(n, k, idx)
+        #name = "codes/code_%d_%d_%d.txt"%(n, k, idx)
 
         if name:
             f = open(name, 'w')

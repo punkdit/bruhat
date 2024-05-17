@@ -1684,6 +1684,8 @@ def make_colour():
         A = get_adj(faces, verts)
         #from bruhat.hecke import colour
         #colour(A)
+        print(shortstr(A))
+        print()
     
         G = geometry.G
         gens = G.gens
