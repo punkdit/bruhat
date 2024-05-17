@@ -120,6 +120,18 @@ def test():
         n = count_points(p, l, lhs, rhs)
         print(n, n-(p**l+1))
 
+def test_bolza():
+
+    lhs = lambda y : y**2
+    rhs = lambda x : x**5 - x
+    p = argv.get("p", 3)
+    
+    ls = list(range(1, 11))
+    for l in ls:
+        print(p, l, p**l, end=" ", flush=True)
+        n = count_points(p, l, lhs, rhs)
+        print(n, n-(p**l+1))
+
 
 def find_coeffs(F):
     from bruhat.gelim import array, solve
@@ -183,7 +195,9 @@ def main():
         ls = list(range(1,9))
     else:
         ps = [p]
-        if p < 10:
+        if p < 5:
+            ls = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        elif p < 10:
             ls = [1, 2, 3, 4, 5, 6]
         elif p < 50:
             ls = [1, 2, 3, 4]
