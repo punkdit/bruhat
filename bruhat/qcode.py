@@ -24,6 +24,7 @@ from bruhat.todd_coxeter import Schreier
 from bruhat.argv import argv
 from bruhat.smap import SMap
 from bruhat import lins_db
+from bruhat.geometry import Geometry
 
 infty = "\u221E"
 
@@ -668,65 +669,6 @@ def make_dot(graph, cmd="neato"):
     #open("schreier.pdf", "w").write(data)
 
 
-
-class Geometry(object):
-    "A geometry specified by a Coxeter reflection group"
-    def __init__(self, orders, lins_idx=0, build=True):
-        ngens = len(orders)+1
-        a, b, c, d, e = [(i,) for i in range(5)]
-        orders = tuple(orders)
-        assert orders in lins_db.db, (list(lins_db.db.keys()))
-        #print("oeqc.Geometry.__init__:", len(lins_db.db[orders]))
-        rels = lins_db.db[orders][lins_idx]
-        rels = lins_db.parse(rels, **locals())
-        self.orders = orders
-        self.ngens = ngens
-        self.rels = rels
-        self.dim = len(orders)
-        if build:
-            self.G = self.build_group()
-
-    def build_graph(self, figure=None, hgens=None):
-        gens = [(i,) for i in range(5)]
-        ngens = self.ngens
-        rels = [gens[i]*2 for i in range(ngens)]
-        orders = self.orders
-        for i in range(ngens-1):
-            order = orders[i]
-            if order is not None:
-                rels.append( (gens[i]+gens[i+1])*order )
-            for j in range(i+2, ngens):
-                rels.append( (gens[i]+gens[j])*2 )
-        rels = rels + self.rels
-        #print(rels)
-        graph = Schreier(ngens, rels)
-        if figure is not None:
-            assert len(figure) == len(gens)
-            gens = [gens[i] for i, fig in enumerate(figure) if fig] or [G.identity]
-            graph.build(gens)
-        elif hgens is not None:
-            graph.build(hgens)
-        else:
-            graph.build()
-        return graph
-
-    def build_group(self):
-        graph = self.build_graph()
-        G = graph.get_group()
-        return G
-
-    def get_cosets(self, figure):
-        G = self.G
-        gens = G.gens
-        assert len(figure) == len(gens)
-        gens = [gens[i] for i, fig in enumerate(figure) if fig] or [G.identity]
-        #print("gens:", gens)
-        H = Group.generate(gens)
-        #pairs = G.left_cosets(H)
-        cosets = G.left_cosets(H)
-        return cosets
-
-
 def get_adj(left, right):
     A = zeros2((len(left), len(right)))
     for i, l in enumerate(left):
@@ -773,6 +715,8 @@ def build_code(geometry):
     if argv.homology == 1:
         Hz = get_adj(faces, edges)
         Hx = get_adj(verts, edges)
+        print("Hx:")
+        print(shortstr(Hx), Hx.shape)
 
     elif argv.homology == 2:
         Hz = get_adj(bodis, faces)

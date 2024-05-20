@@ -6,6 +6,8 @@
 
 import string
 
+import numpy
+
 from sage.all_cmdline import GF, NumberField
 from sage import all_cmdline 
 
@@ -233,6 +235,20 @@ def test_number():
 
     print(K1.absolute_field("a").galois_group())
 
+
+def count_frobenius():
+    def order(A, n):
+        i = 1
+        B = A%n
+        while not numpy.alltrue(B==I):
+            i += 1
+            B = (B@A)%n
+        return i
+    I = numpy.array([[1,0],[0,1]])
+
+    A = numpy.array([[2,-1],[1,2]])
+    for j in range(1,13):
+        print("j=%d"%j, "3^j=%d"%(3**j), "order =",order(A, 3**j))
 
 
 if __name__ == "__main__":

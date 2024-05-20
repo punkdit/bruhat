@@ -59,7 +59,7 @@ class Schreier(object):
         self.rels = list(rels)
         self.labels = [] if labels is None else labels
         self.neighbors = [] if neighbors is None else neighbors
-        self.idx = 0 # length of neighbors == index of any new entry
+        self.idx = len(self.neighbors) # length of neighbors == index of any new entry
 
         for rel in rels:
             for gen in rel:

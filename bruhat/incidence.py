@@ -2,6 +2,7 @@
 
 """
 Working with abstract incidence geometries.
+previous filename: geometry.py
 """
 
 import os, sys

@@ -6,6 +6,8 @@ attempted implementation of:
 http://math.ucr.edu/home/baez/week188.html
 
 Schubert cell decomposition of Grassmanians...
+
+previous filename: incidence.py
 """
 
 import numpy
