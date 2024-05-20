@@ -763,6 +763,8 @@ def build_code(geometry):
             geometry.get_cosets([0,0,1,0]),
             geometry.get_cosets([0,0,0,1]),
         ]
+        print("bodis=%d, faces=%d, edges=%d, verts=%d"%(
+            len(bodis), len(faces), len(edges), len(verts)))
 
     Hx = Hz = None
     Jx = Jz = None
@@ -775,6 +777,36 @@ def build_code(geometry):
     elif argv.homology == 2:
         Hz = get_adj(bodis, faces)
         Hx = get_adj(edges, faces)
+
+    elif argv.colour_faces:
+        if len(faces) <= len(verts):
+            H = get_adj(faces, verts)
+        else:
+            H = get_adj(verts, faces)
+        print("H =")
+        print(shortstr(H))
+        Hx = H.copy()
+        Hz = H.copy()
+
+
+    elif argv.colour:
+        if len(bodis) > 1:
+            Hx = get_adj(faces, verts)
+            Hz = get_adj(bodis, verts)
+            print(shortstr(Hx))
+            print()
+            print(shortstr(Hz))
+            print()
+        elif len(faces) < len(verts):
+            H = get_adj(faces, verts)
+            print(shortstr(H))
+            Hx = H.copy()
+            Hz = H.copy()
+        else:
+            H = get_adj(verts, faces)
+            print(shortstr(H))
+            Hx = H.copy()
+            Hz = H.copy()
 
     elif argv.flag and dim==2:
         flags = geometry.get_cosets([0]*(dim+1))
@@ -933,8 +965,10 @@ def build_geometry():
     key = argv.get("key", (4,3,4))
     print("key:", key)
 
+    start_idx = argv.get("start_idx", 0)
+    step_idx = argv.get("step_idx", 1)
     idx = argv.get("idx")
-    idxs = [idx] if idx else list(range(1000))
+    idxs = [idx] if idx else list(range(start_idx, 10000, step_idx))
 
     for idx in idxs:
         try:
