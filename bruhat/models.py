@@ -786,7 +786,7 @@ def build_gcolor2():
 
 def build_projective(n, dim=2):
 
-    import geometry
+    from bruhat import incidence as geometry
     g = geometry.projective(n, dim)
 
     P = g.types[0]

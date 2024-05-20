@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 
+"""
+Build the clifford group on two qubits
+from generators and relations ( https://arxiv.org/pdf/1310.6813.pdf ).
+It has order 92160.
+previous version: clifford_gen.py
+
+Generators & relations for
+Clifford group, affine symplectic group,
+metaplectic group, symplectic group.
+"""
+
 from bruhat.argv import argv
 from bruhat.todd_coxeter import Schreier
 

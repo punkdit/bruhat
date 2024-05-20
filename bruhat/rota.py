@@ -9,7 +9,7 @@ from argv import argv
 
 def count_orbits():
     from action import Group, Perm
-    import geometry
+    from bruhat import incidence as geometry
 
     X = geometry.projective(3)
     graph = X.get_bag()

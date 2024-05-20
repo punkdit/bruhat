@@ -1908,7 +1908,7 @@ def main():
         G = Group(perms, items)
 
     elif argv.projective:
-        from bruhat import geometry
+        from bruhat import incidence as geometry
         g = geometry.projective(3)
         items = range(14)
         perms = [f for f in g.get_symmetry()]
@@ -1916,7 +1916,7 @@ def main():
         G = Group(perms, items)
 
     elif argv.fano:
-        from bruhat import geometry
+        from bruhat import incidence as geometry
         g = geometry.fano()
         keys = list(g.items)
         keys.sort(key = str)
