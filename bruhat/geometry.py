@@ -177,7 +177,27 @@ def test():
     #code = QCode.build_css(Hx, Hz, check=True)
     code = CSSCode(Hx=Hx, Hz=Hz, check=True)
     print(code)
-    print(distance_z3_css(code, True))
+
+    if argv.show:
+        print("Hx:")
+        print(shortstr(Hx))
+        print("Hz:")
+        print(shortstr(Hz))
+        print(distance_z3_css(code, True))
+
+    dump_transverse(code.Hx, code.Lx)
+
+
+def dump_transverse(Hx, Lx):
+    import CSSLO
+    SX,LX,SZ,LZ = CSSLO.CSSCode(Hx, Lx)
+    t = 3
+    N = 1<<t
+    zList,qList, V, K_M = CSSLO.comm_method(SX, LX, SZ, t, compact=True, debug=False)
+    for z,q in zip(zList,qList):
+        print("#", CSSLO.CP2Str(2*q,V,N),"=>",CSSLO.z2Str(z,N))
+    print()
+
     
     
 if __name__ == "__main__":
