@@ -123,10 +123,10 @@ def shortstr(A, deco=False, zero='.'):
     A = array2(A)
     A = A.view()
     assert len(A.shape)<=2
-    if 1 in A.shape:
-        A.shape = (1, A.shape[0]*A.shape[1])
     if len(A.shape)==1:
         A.shape = (1, A.shape[0])
+    if 1 in A.shape:
+        A.shape = (1, A.shape[0]*A.shape[1])
     m, n = A.shape
     rows = []
     for row in range(m):

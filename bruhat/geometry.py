@@ -85,15 +85,30 @@ class Geometry(object):
 
 
 def test():
-    N = 4
-    idx = argv.get("idx", 30)
+    start_idx = argv.get("start_idx", 1)
+    stop_idx = argv.get("stop_idx", None)
     key = argv.get("key", (4,3,4))
+    index = argv.get("index", 1000)
+    if key not in lins_db.db:
+        print("lins_db.build_db...", end='', flush=True)
+        lins_db.build_db(key, index)
+        print(" done")
+    n = len(lins_db.db[key])
+    idx = start_idx
+    while idx < n and (stop_idx is None or idx < stop_idx):
+        main(key, idx)
+        idx += 1
+
+
+def main(key, idx):
+    print("idx =", idx)
+    N = len(key)+1
     geometry = Geometry(key, idx, False)
     total = geometry.build_graph()
     #total = total.compress()
     words = total.get_words()
     n = len(total)
-    print(n)
+    #print("|G| =", n)
 
     a, b, c, d = [(i,) for i in range(N)]
 
@@ -125,15 +140,12 @@ def test():
     for i in range(k):
       g = graphs[i]
       for j in range(k):
-        if i==j:
-            continue
         h = graphs[j]
-
         A = zeros2(len(g), len(h))
         for w in words:
-            i = g.follow_path(0,w)
-            j = h.follow_path(0,w)
-            A[i,j] = 1
+            idx = g.follow_path(0,w)
+            jdx = h.follow_path(0,w)
+            A[idx,jdx] = 1
         key = (g.name, h.name)
         #print("%s.%s(%d,%d)"%(g.name, h.name, A.sum(0)[0], A.sum(1)[0]), end=" ")
         As[g.fig, h.fig] = A
@@ -168,35 +180,63 @@ def test():
         As["1010", "0000"],
         As["1100", "0000"],
     ))
-    print("bodis:", Hx.shape)
-    print("faces:", Hz.shape)
+    #print("bodis:", Hx.shape)
+    #print("faces:", Hz.shape)
     Hx = linear_independent(Hx)
     Hz = linear_independent(Hz)
-    print("bodis:", Hx.shape)
-    print("faces:", Hz.shape)
+    #print("bodis:", Hx.shape)
+    #print("faces:", Hz.shape)
     #code = QCode.build_css(Hx, Hz, check=True)
-    code = CSSCode(Hx=Hx, Hz=Hz, check=True)
-    print(code)
 
+    C = dot2(Hx, Hz.transpose())
+    if C.sum():
+        #print("non-commutative")
+        return
+
+    code = CSSCode(Hx=Hx, Hz=Hz, check=True)
+    if code.k == 0:
+        return
+
+    if argv.distance:
+        d_x, d_z = distance_z3_css(code, code.n>40)
+        if d_x <= 2 or d_z <= 2:
+            return
+        print("distance:", d_x, d_z)
+    print(code)
     if argv.show:
         print("Hx:")
         print(shortstr(Hx))
         print("Hz:")
         print(shortstr(Hz))
-        print(distance_z3_css(code, True))
 
-    dump_transverse(code.Hx, code.Lx)
+    ops = dump_transverse(code.Hx, code.Lx, 2)
+
+    for op in ops:
+        if '1' not in str(op):
+            continue
+        #print()
+        #print(op)
+        op = op%2
+        #for (i,x) in enumerate(op):
+        #    if x>1:
+        #        op[i] = 1
+        #print(op)
+        for (key,A) in As.items():
+            if key[1] != "0000" or key[0] == "0000":
+                continue
+            print(key[0], shortstr(dot2(A, op)))
 
 
-def dump_transverse(Hx, Lx):
+def dump_transverse(Hx, Lx, t=3):
     import CSSLO
     SX,LX,SZ,LZ = CSSLO.CSSCode(Hx, Lx)
-    t = 3
     N = 1<<t
-    zList,qList, V, K_M = CSSLO.comm_method(SX, LX, SZ, t, compact=True, debug=False)
+    zList, qList, V, K_M = CSSLO.comm_method(SX, LX, SZ, t, compact=True, debug=False)
     for z,q in zip(zList,qList):
-        print("#", CSSLO.CP2Str(2*q,V,N),"=>",CSSLO.z2Str(z,N))
+        #print(z, q)
+        print(CSSLO.CP2Str(2*q,V,N),"=>",CSSLO.z2Str(z,N))
     print()
+    return zList
 
     
     
