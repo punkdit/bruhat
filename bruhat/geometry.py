@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """
 Use group theory to build surface codes, color codes, etc.
+
+https://en.wikipedia.org/wiki/Bitruncated_cubic_honeycomb
+
 """
 
 import string, os
@@ -18,7 +21,7 @@ from bruhat.util import cross
 from bruhat import solve 
 from bruhat.solve import (
     array2, zeros2, shortstr, dot2, solve2, linear_independent, row_reduce, find_kernel,
-    span, intersect, rank, enum2, shortstrx, identity2, eq2, pseudo_inverse)
+    span, intersect, rank, enum2, shortstrx, identity2, eq2, pseudo_inverse, parse)
 from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
 from bruhat.todd_coxeter import Schreier
 from bruhat.argv import argv
@@ -238,8 +241,57 @@ def dump_transverse(Hx, Lx, t=3):
     print()
     return zList
 
+
+def test_colour():
+    # https://arxiv.org/pdf/1304.3709
+
+    s = """
+    IIIIIIIXXXXXXXX
+    IIIXXXXIIIIXXXX
+    IXXIIXXIIXXIIXX
+    XIXIXIXIXIXIXIX
+    """
+    Hx = parse(s.replace("I","0").replace("X","1"))
+    print(Hx)
+
+    s = """
+    .......ZZZZZZZZ
+    ...ZZZZ....ZZZZ
+    .ZZ..ZZ..ZZ..ZZ
+    Z.Z.Z.Z.Z.Z.Z.Z
+    """
+    Hz = parse(s.replace(".","0").replace("Z","1"))
+    print(Hz)
+    ops = list(Hz)
+    for h in Hz:
+      for j in Hz:
+        if (h*j).sum() == 4:
+            ops.append(h*j)
+    ops = array2(ops)
+    print(shortstr(ops), ops.shape)
+    Hz = ops
+    Hz = linear_independent(Hz)
     
-    
+    from qumba.csscode import CSSCode, distance_z3_css
+    code = CSSCode(Hx=Hx, Hz=Hz, check=True)
+    print(code)
+    #assert distance_z3_css(code) == (3,3)
+    print( distance_z3_css(code) )
+
+    dump_transverse(code.Hx, code.Lx, 3)
+    ops = dump_transverse(code.Hx, code.Lx, 2)
+    print(ops)
+
+    op = ops[0]
+    print(dot2(Hz, op))
+
+    for i,x in enumerate(op):
+        if x!=2:
+            op[i] = 0
+    print(op)
+    print(dot2(Hx, op))
+
+
 if __name__ == "__main__":
 
     from time import time
