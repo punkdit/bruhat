@@ -271,6 +271,7 @@ def test_colour():
     print(shortstr(ops), ops.shape)
     Hz = ops
     Hz = linear_independent(Hz)
+    print("Hz:", len(Hz))
     
     from qumba.csscode import CSSCode, distance_z3_css
     code = CSSCode(Hx=Hx, Hz=Hz, check=True)
