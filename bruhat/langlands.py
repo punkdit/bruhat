@@ -162,7 +162,9 @@ def main():
         rhs = lambda x : x**3+1
     elif d == 4:
         # gauss
-        rhs = lambda x : (x-1)*x*(x+1)
+        assert 0
+        #rhs = lambda x : (x-1)*x*(x+1)
+        rhs = lambda x : x**3 - 11*x + 14
         #rhs = lambda x : x**3 + x
     elif d == 7:
         # y**2 + x*y == x**3 - x**2 - 2*x - 1 # conductor == 1

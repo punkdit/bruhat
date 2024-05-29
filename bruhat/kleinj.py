@@ -34,18 +34,24 @@ for i in range(N):
     if z.imag < EPSILON:
         continue
     z0 = kleinj(z/r)
-    z1 = kleinj(z*r)
-    x0 = min(abs(z0.imag), tol)
-    x1 = min(abs(z1.imag), tol)
+    #z1 = kleinj(z*r)
+    #x0 = min(abs(z0.imag), tol)
+    #x1 = min(abs(z1.imag), tol)
     #print(".", end="", flush=True)
-    cl0 = int(floor(255 * (1. - x0/tol)))
-    cl1 = int(floor(255 * (1. - x1/tol)))
+#    cl0 = int(floor(255 * (1. - x0/tol)))
+#    cl1 = int(floor(255 * (1. - x1/tol)))
     #if z.real < 0:
     #    cl = (cl, 0, 0)
     #else:
     #    cl = (0, cl, 0)
-    cl = (cl0, cl1, 0)
-    A[i, j] = cl
+    #cl = (cl0, cl1, 0)
+    #A[i, j] = cl
+    a = z0.real
+    b = z0.imag
+    if abs(a) < 1e6 and abs(b) < 1e6:
+        A[i, j, 0] = a
+        A[i, j, 1] = b
+        A[i, j, 2] = 0.2*(a+b)
 
 
     
@@ -54,7 +60,7 @@ print()
 #print(A)
 
 im = Image.fromarray(A)
-im.save("image.png")
+im.save("kleinj.png")
 
 
 
