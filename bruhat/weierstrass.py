@@ -15,7 +15,7 @@ EPSILON = 1e-6
 
 
 def povray_sphere(png_name, xcam=-5, ycam=3, zcam=2, radius=1.0,
-        light_source = "light_source { <-300, 300, 0> White }",
+        light_source = "light_source { <-30, 0, 30> White }",
         background = "background { color red 0.97 green 0.96 blue 0.98}",
     ):
     src = """
@@ -141,6 +141,7 @@ def main():
     im = stereographic(N)
     name = "stereographic"
     im.save(name+".png")
+
     s = povray_sphere(name+".png", background=" ")
     f = open(name+".pov", "w")
     print(s, file=f)
@@ -150,6 +151,18 @@ def main():
     cmd = "povray stereographic.pov -D +W1000 +H800, +Oriemann_sphere.png"
     print(cmd)
     os.system(cmd)
+
+
+    name = "worldmap"
+    s = povray_sphere(name+".png", background=" ")
+    f = open(name+".pov", "w")
+    print(s, file=f)
+    f.close()
+
+    cmd = "povray worldmap.pov -D +W1000 +H800, +Oworldmap_sphere.png"
+    print(cmd)
+    os.system(cmd)
+
 
 
 
