@@ -194,8 +194,8 @@ def main():
         ps = list(all_primes(100))
         ls = [1,2,3,4]
     elif p is None:
-        ps = [2, 3, 5]
-        ls = list(range(1,9))
+        ps = [2, 3, 5, 7, 11]
+        ls = list(range(1,5))
     else:
         ps = [p]
         if p < 5:
@@ -210,18 +210,23 @@ def main():
     for p in ps:
         if argv.mod is not None and p%d != argv.mod:
             continue
-        print(p%d) 
+        print("p=%d, p mod %d=%d"%(p, d, p%d) )
         sols = []
         for l in ls:
-            print(p, l, p**l, end=" ", flush=True)
+            #print(p, l, p**l, end=" ", flush=True)
             n = count_points(p, l, lhs, rhs)
             diff=n-(p**l+1)
             sols.append(diff)
-            print(n, diff)
+            #print(n, diff)
         if len(sols)>3:
             a, b = find_coeffs(sols)
-            #print("a=%s, b=%s" % (a, b))
-            print("1 + %dx + %dx^2"%(-b, -a))
+            a = -a
+            b = -b
+            c = 1
+            disc = b**2 - 4*a*c
+            print("1 + %dx + %dx^2, disc=%s"%(b, a, disc), disc%d==0)
+
+
         print()
 
 
