@@ -74,7 +74,7 @@ def count_points(p, l, lhs, rhs):
     #f = lambda x,y : y**2 == (x-1)*x*(x+1)
     #sols = [f(x,y) for x in items for y in items]
     #n = sols.count(True)
-    print('.', end='', flush=True)
+    #print('.', end='', flush=True)
 
     lsend = {a : 0 for a in items}
     rsend = {a : 0 for a in items}
@@ -84,7 +84,7 @@ def count_points(p, l, lhs, rhs):
         # does not help much:
         #lsend[a**2] += 1
         #rsend[(a-1)*a*(a+1)] += 1
-    print('. ', end='', flush=True)
+    #print('. ', end='', flush=True)
 
     count = 0
     for a in items:
@@ -128,24 +128,25 @@ def test_bolza():
     rhs = lambda x : x**5 - x
     p = argv.get("p", 3)
     
-    ls = list(range(1, 11))
+    ls = list(range(1, 7))
     for l in ls:
         print(p, l, p**l, end=" ", flush=True)
         n = count_points(p, l, lhs, rhs)
         print(n, n-(p**l+1))
 
 
-def find_coeffs(F):
+def find_coeffs(F, degree=2):
     from bruhat.gelim import array, solve
-    f = [int(str(F[i])) for i in range(4)]
-    A = array([[f[0], f[1]], [f[1], f[2]]])
-    rhs = [f[2], f[3]]
+    f = [int(str(F[i])) for i in range(2*degree)]
+    A = [[f[i+j] for i in range(degree)] for j in range(degree)]
+    #A = array([[f[0], f[1]], [f[1], f[2]]])
+    A = array(A)
+    #rhs = [f[2], f[3]]
+    rhs = [f[i] for i in range(degree, 2*degree)]
     v = solve(A, rhs)
     assert v is not None
-    a, b = v
-    a, b = str(a), str(b)
-    a, b = int(a), int(b)
-    return a, b
+    coeffs = [int(str(x)) for x in v]
+    return coeffs
 
 
 def main():
@@ -186,12 +187,13 @@ def main():
         lhs = lambda y : y**2 + y
         rhs = lambda x : x**3 - 2174420*x + 1234136692
     else:
+        print("d not found")
         return
 
     p = argv.get("p")
     l = argv.get("l", 1)
     if argv.all_primes:
-        ps = list(all_primes(100))
+        ps = list(all_primes(60))
         ls = [1,2,3,4]
     elif p is None:
         ps = [2, 3, 5, 7, 11]
@@ -206,6 +208,8 @@ def main():
             ls = [1, 2, 3, 4]
         else:
             ls = [1, 2, 3]
+
+    print(ps)
 
     for p in ps:
         if argv.mod is not None and p%d != argv.mod:
