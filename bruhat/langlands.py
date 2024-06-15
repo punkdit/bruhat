@@ -149,6 +149,24 @@ def find_coeffs(F, degree=2):
     return coeffs
 
 
+def test_jacobian_bolza():
+
+    lhs = lambda y : y**2
+    rhs = lambda x : x**3 +x**2 -3*x + 1
+    p = argv.get("p", 3)
+    
+    ls = list(range(1, 7))
+    diffs = []
+    for l in ls:
+        print(p, l, p**l, end=" ", flush=True)
+        n = count_points(p, l, lhs, rhs)
+        diff = n-(p**l+1)
+        print(n, diff)
+        diffs.append(diff)
+    a, b = find_coeffs(diffs)
+    print(a, b)
+
+
 def main():
 
     # Ref.
