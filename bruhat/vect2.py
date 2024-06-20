@@ -1703,6 +1703,70 @@ def test_teleport():
     print(UtU[0,0])
 
 
+def test_cobit():
+
+    #Cell2.strict = True
+    
+    ring = element.Z
+    rig = Rig(ring)
+    
+    zero = Cell0(rig, 0, "z")
+    one = Cell0(rig, 1, "i")
+    two = Cell0(rig, 2, "i+i")
+    four = Cell0(rig, 4, "i+i+i+i")
+    
+    #A, B, C, D, E, F, G, H = [Space(ring, 2, 0, c) for c in "ABCDEFGH"]
+    #I = Space(ring, 1, 0, "I")
+    #O = Space(ring, 0, 0, "O")
+    
+    # Space's
+    I = rig.one
+    O = rig.zero
+
+    O_I = Lin.zero(O, I)
+    I_O = Lin.zero(I, O)
+    I_I = I.identity()
+    I_II = Lin(I, I+I, [[1,1]])
+    II_I = Lin(I+I, I, [[1],[1]])
+
+    # left and right adjoint Cell1's
+    L = Cell1(two, one, [[I],[I]])
+    R = Cell1(one, two, [[I,I]])
+
+    i = Cell1.identity(one)
+    ii = Cell1.identity(two)
+
+    # the cobit
+    X = Cell1(two, two, [[I,I],[I,I]])
+    assert X == (L<<R).normalized
+
+    # the bit
+    Y = Cell1(one, one, [[I+I]])
+
+    cap = Cell2(i, Y, [[I_II]])
+    cup = Cell2(Y, i, [[II_I]])
+    assert cap*cup == Cell2(i, i, [[2*I_I]])
+
+    cap2 = Cell2(ii, X, [[I_I, O_I], [O_I, I_I]])
+    cup2 = Cell2(X, ii, [[I_I, I_O], [I_O, I_I]])
+
+    comul = L << cup << R
+    comul = comul.normalized
+    print(comul)
+
+    mul = (L << cap << R).normalized
+    print(mul)
+    assert mul.tgt == X
+    assert comul.src == X
+
+    # not special
+    s = (comul*mul).normalized
+    #print(repr(s))
+
+    c = (cap2 << X).normalized * comul
+    assert c == X
+
+
 def test_all():
     test_monoidal()
     test_frobenius()
