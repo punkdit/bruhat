@@ -128,7 +128,8 @@ def test_bolza():
     rhs = lambda x : x**5 - x
     p = argv.get("p", 3)
     
-    ls = list(range(1, 7))
+    l = argv.get("l", 7)
+    ls = list(range(1, l))
     for l in ls:
         print(p, l, p**l, end=" ", flush=True)
         n = count_points(p, l, lhs, rhs)
