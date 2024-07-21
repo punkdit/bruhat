@@ -303,7 +303,7 @@ class Set(object):
     "immutable, hashable set, needs comparable elements"
     def __init__(self, items):
         items = list(items)
-        items.sort() # canonicalize
+        items.sort() # canonical
         self.set_items = set(items)
         self.items = tuple(items) # canonical form
         assert len(self.items) == len(self.set_items)
@@ -357,6 +357,7 @@ class Function(object):
             action[k] = v
         assert len(_action) == len(src)
         self.action = action
+        self.canonical = [action[i] for i in src]
         self.key = (src, tgt, action)
 
     def __str__(self):
@@ -373,6 +374,9 @@ class Function(object):
             action[k] = v
         return Function(f.src, g.tgt, action)
 
+    def __call__(self, i):
+        return self.action[i]
+
     @classmethod
     def ident(cls, src):
         action = dict((k, k) for k in src)
@@ -384,8 +388,11 @@ class Function(object):
     def __eq__(self, other):
         return self.key == other.key
 
+    def __lt__(self, other):
+        return self.canonical < other.canonical
+
     def __hash__(self):
-        assert 0, "not implemented"
+        return hash(str(self.key))
 
 
         

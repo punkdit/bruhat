@@ -154,6 +154,21 @@ assert len(list(all_functions('a', 'abc'))) == 3
 all_send = lambda tgt, src : all_functions(src, tgt)
 
 
+def all_bijections(source, target):
+    m, n = len(source), len(target)
+    if m!=n:
+        return
+    source = list(source)
+    target = list(target)
+    assert n**m < 1e8, "%d too big"%(n**m,)
+    for tgt in all_perms(target):
+        f = {source[i]:tgt[i] for i in range(n)}
+        yield f
+
+assert len(list(all_bijections('abc', [1,2,3]))) == 6
+assert len(list(all_bijections('abc', [1,2]))) == 0
+
+
 
 def allsignedperms(items):
     items = tuple(items)
