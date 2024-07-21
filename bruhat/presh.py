@@ -358,7 +358,7 @@ class Function(object):
         assert len(_action) == len(src)
         self.action = action
         self.canonical = [action[i] for i in src]
-        self.key = (src, tgt, action)
+        self.key = (src, tgt, self.canonical)
 
     def __str__(self):
         return "Function(%s)"%(self.action,)
@@ -381,6 +381,10 @@ class Function(object):
     def ident(cls, src):
         action = dict((k, k) for k in src)
         return cls(src, src, action)
+
+    def __invert__(self):
+        action = dict((j,i) for (i,j) in self.action.items())
+        return Function(self.tgt, self.src, action)
 
     def __ne__(self, other):
         return self.key != other.key

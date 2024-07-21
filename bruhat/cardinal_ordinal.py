@@ -70,21 +70,36 @@ class Cardinal(Species):
 
     def get_func(self, f):
         X = f.src
+        Y = f.tgt
         FX = self(X) # Function's
+        FY = self(Y) # Function's
+        #print(FY)
         action = {}
+        fi = ~f
         for x in FX:
-            action[x] = f*x
-        return Function(FX, FX, action)
+            fx = f*x*fi
+            #print(fx)
+            assert fx.src == fi.src
+            assert fx in FY, "%s not in %s"%(fx, FY)
+            action[x] = fx
+        return Function(FX, FY, action)
 
 
 class OpCardinal(Cardinal):
     def get_func(self, f):
         X = f.src
+        Y = f.tgt
         FX = self(X) # Function's
+        FY = self(Y) # Function's
+        #print(FY)
         action = {}
-        for x in FX:
-            action[x] = x*f
-        return Function(FX, FX, action)
+        fi = ~f
+        for y in FY:
+            fy = fi*y*f
+            assert fy in FY
+            action[y] = fy
+        return Function(FY, FX, action)
+
 
 
 
@@ -96,13 +111,15 @@ class Ordinal(Species):
 
     def get_func(self, f):
         X = f.src
+        Y = f.tgt
         GX = self(X) # Set of tuples
+        GY = self(Y) # Set of tuples
         action = {}
         for x in GX:
             y = tuple(f(i) for i in x)
-            assert y in GX
+            assert y in GY
             action[x] = y
-        return Function(GX, GX, action)
+        return Function(GX, GY, action)
 
 
 class OpOrdinal(Ordinal):
@@ -134,6 +151,7 @@ def find_nats(F, G, X):
     return found
 
 
+
     
 
 def main():
@@ -142,16 +160,24 @@ def main():
     G = Ordinal()
 
     X = Set("abc")
+    Y = Set([1,2,3])
 
     FX = F(X)
     assert len(FX) == 6
 
+    f = Function(X, Y, {"a":1, "b":2, "c":3})
+    assert f*~f == Function.ident(Y)
+    assert ~f*f == Function.ident(X)
+
+    Ff = F(f)
+    assert Ff.src == F(f.src)
+    assert Ff.tgt == F(f.tgt)
+
+    assert F.is_covar(X)
+
     GX = G(X)
     assert len(GX) == 6
 
-    #return
-
-    assert F.is_covar(X)
     assert G.is_covar(X)
 
     assert not F.is_contravar(X)
@@ -163,21 +189,18 @@ def main():
     assert not OpOrdinal().is_covar(X)
     assert OpOrdinal().is_contravar(X)
 
-    nats = find_nats(OpCardinal(), OpOrdinal(), X)
-    assert len(nats) == 6
-
-    nats = find_nats(F, G, X)
-    assert len(nats) == 6
+    natXs = find_nats(F, G, X)
+    assert not natXs
 
     nats = find_nats(F, F, X)
-    assert len(nats) == 6
+    assert len(nats) == 2, len(nats)
 
     nats = find_nats(G, G, X)
     assert len(nats) == 6
 
-    X = Set("ab")
-    nats = find_nats(F, G, X)
-    assert len(nats) == 2
+    #X = Set("ab")
+    #nats = find_nats(F, G, X)
+    #assert len(nats) == 2
 
 
 if __name__ == "__main__":
