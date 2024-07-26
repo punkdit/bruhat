@@ -159,6 +159,11 @@ def main():
     F = Cardinal()
     G = Ordinal()
 
+    X = Set("ab")
+    natXs = find_nats(F, G, X)
+    assert not natXs
+
+
     X = Set("abc")
     Y = Set([1,2,3])
 

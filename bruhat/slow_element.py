@@ -2009,9 +2009,70 @@ def test():
     # See: number_ring.py
 
 
+def test_GL():
+
+    ring = PolynomialRing(Z)
+    x = ring.x
+    R = ring / (x**2 + 2)
+
+    one = R.one
+    i = R.x
+
+    assert i*i == -2
+
+    GL = Linear(2, R)
+    get = GL.get
+    I = get([[1, 0], [0, 1]])
+
+    def order(g, top=100):
+        count = 1
+        h = g
+        while h!=I and count < top:
+            h = g*h
+            count += 1
+        return count
+
+    assert order(I) == 1
+
+    g = get([[-1,0],[0,1]])
+    assert order(g) == 2
+
+    xs = []
+    for a in [1,0,-1]:
+      for b in [1,0,-1]:
+        xs.append(a + b*i)
+    print("xs:", len(xs))
+
+    items = []
+    for x0 in xs:
+     for x1 in xs:
+      for x2 in xs:
+       for x3 in xs:
+        g = get([[x0,x1],[x2,x3]])
+        if x0*x3-x1*x2 == 0:
+            continue
+        #print(g)
+        if order(g, 40) < 40:
+            items.append(g)
+            print('.',flush=True,end='')
+    print()
+    print("found:", len(items))
+
+    for a in items:
+      for b in items:
+        G = mulclose([a,b], verbose=False, maxsize=1000)
+        if len(G) < 1000:
+            print("|G| =", len(G))
+            print(a)
+            print(b)
+            print()
+
+
+
 if __name__ == "__main__":
 
-    test()
+    #test()
+    test_GL()
 
     print("OK")
 

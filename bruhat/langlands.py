@@ -126,7 +126,7 @@ def test_bolza():
 
     lhs = lambda y : y**2
     rhs = lambda x : x**5 - x
-    p = argv.get("p", 3)
+    p = argv.get("p", 5)
     
     l = argv.get("l", 7)
     ls = list(range(1, l))
