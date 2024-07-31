@@ -2052,20 +2052,30 @@ def test_GL():
         if x0*x3-x1*x2 == 0:
             continue
         #print(g)
-        if order(g, 40) < 40:
+        if order(g, 40) < 5: # ?
+        #if order(g, 40) == 2:
+        #if g != I and g*g==I:
             items.append(g)
             print('.',flush=True,end='')
     print()
-    print("found:", len(items))
+    print("items:", len(items))
 
+    found = set()
     for a in items:
-      for b in items:
-        G = mulclose([a,b], verbose=False, maxsize=1000)
-        if len(G) < 1000:
+     for b in items:
+        G = mulclose([a,b], verbose=False, maxsize=100)
+        if len(G)>=100:
+            continue
+        G = list(G)
+        G.sort(key=str)
+        key = str(G)
+        if len(G) == 48 and key not in found:
+            found.add(key)
             print("|G| =", len(G))
             print(a)
             print(b)
             print()
+    print("found:", len(found))
 
 
 
