@@ -66,6 +66,8 @@ class Schreier(object):
                 assert type(gen) is int, repr(gen)
                 assert 0 <= gen < ngens, repr(rel)
 
+        self.start = self.add_vertex()
+    
         #The labels variable is a list of _numbers, with the property
         #that labels[i] <= i. This is a union-find data structure
         #for keeping track of the vertex quotients for the Schreier
@@ -277,7 +279,7 @@ class Schreier(object):
         return len([k for k in enumerate(self.labels) if k[0]==k[1]])
     
     #    Finally, there is the core algorithm: 
-    def build(self, hgens=[], maxsize=None):
+    def build(self, hgens=[], maxsize=None, pre=[]):
         labels = self.labels
         neighbors = self.neighbors
         rels = self.rels
@@ -287,11 +289,10 @@ class Schreier(object):
             for gen in rel:
                 assert 0 <= gen < self.ngens, repr(rel)
 
-        start = self.add_vertex()
-    
         if self.DEBUG:
             self.dump()
         
+        start = self.start
         for hgen in hgens:
             self.unify(self.follow_path(start, hgen), start)
         
@@ -372,6 +373,8 @@ class Schreier(object):
             bdy = _bdy
         return words
 
+    #def get_inverse(self, word):
+
     def get_poincare(self, ring, q):
         "the poincare polynomial"
         dists = [len(w) for w in self.get_words()]
@@ -414,6 +417,29 @@ class Schreier(object):
             bdy = _bdy
         return words
     
+    def inverse(self, word):
+        idx = self.follow_path(0, word)
+        bdy = [idx]
+        words = {idx:()} # start here
+        if idx==0:
+            return ()
+        while bdy:
+            _bdy = []
+            for idx in bdy:
+                word = words[idx]
+                nbd = self.neighbors[idx]
+                for j, jdx in enumerate(nbd):
+                    if jdx is SENTINEL:
+                        continue
+                    jdx = self.labels[jdx]
+                    if jdx not in words:
+                        _bdy.append(jdx)
+                        w = (j,)+word
+                        words[jdx] = w
+                        if jdx==0:
+                            return w
+            bdy = _bdy
+
     def show(self):
         #    After this, the data structures contain the Schreier
         #    graph for G/H .  This can be interpreted as a permutation

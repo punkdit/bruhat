@@ -199,9 +199,11 @@ class Disc(object):
         if stroke_attrs is not None:
             self.cvs.stroke(p, stroke_attrs + [normal*r])
 
-    def get_geodesic(self, z0, z1):
-        z0, z1 = self.g_center(z0), self.g_center(z1)
-        #print("show_short_geodesic", z0, z1)
+    def get_geodesic(self, w0, w1):
+        z0, z1 = self.g_center(w0), self.g_center(w1)
+        if z0 is None or z1 is None:
+            print("Geodesic.construct", w0, w1, z0, z1)
+            assert 0
         gamma = Geodesic.construct(z0, z1)
         return gamma
 
