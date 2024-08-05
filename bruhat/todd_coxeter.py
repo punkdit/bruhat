@@ -351,7 +351,7 @@ class Schreier(object):
         G = Group.generate(gens)
         return G
 
-    def get_words(self):
+    def get_words(self, maxsize=None):
         #cosets = set([c for i, c in enumerate(self.labels) if i == c])
         ngens = self.ngens
         words = [()]
@@ -367,6 +367,8 @@ class Schreier(object):
                     found.add(idx)
                     _bdy.append(w)
                     words.append(w)
+                    if maxsize and len(words)>=maxsize:
+                        return words # <----- return
             bdy = _bdy
         return words
 
