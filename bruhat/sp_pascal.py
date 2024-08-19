@@ -150,12 +150,28 @@ def i_grassmannian(n, k):
         B[:, 1:nn-1] = A
         idxs = [(i,nn-1) for i in range(k)]
         for C in fill(B, idxs):
-            if dot2(C, F, C.transpose()).sum() == 0:
-                item = row_reduced(pivs, C)
-                #items.append(item)
-                yield item
+            #assert dot2(C, F, C.transpose()).sum() == 0 # yes, always
+            item = row_reduced(pivs, C)
+            #items.append(item)
+            yield item
 
     #return items
+
+
+def find_sy():
+    from qumba.transversal import Solver, UMatrix
+
+    n = 2
+    F4 = omega(n)
+    F6 = omega(n+1)
+
+    solve = Solver()
+    E = UMatrix.unknown(2*n, 2*(n+1))
+    print(E)
+
+    u = UMatrix.unknown(1, 2*n)
+    print(u * E)
+    
 
 
 
