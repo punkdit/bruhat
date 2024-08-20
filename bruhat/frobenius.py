@@ -156,6 +156,9 @@ def test_frobenius(mul, unit, counit, cup):
         assert op.is_zero()
 
 
+def main():
+    test()
+    test_cyclotomic()
 
 
 
