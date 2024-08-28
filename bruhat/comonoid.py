@@ -4,6 +4,7 @@ Symbolically find a cocommutative comonoid
 on a 2d vector space.
 """
 
+from random import random
 from time import time
 start_time = time()
 from functools import reduce
@@ -1743,6 +1744,85 @@ def main_hopf(dim=2):
     print(lhs)
     print(allclose(lhs, rhs, atol=1e-4))
     print()
+
+
+def main_carboni():
+    # See Carboni 1991, lemma 2
+
+    dim = argv.get("dim", 2)
+
+    I = empty((dim, dim), dtype=float)
+    I[:] = 0
+    for i in range(dim):
+        I[i, i] = 1
+    #print(I)
+
+    SWAP = get_swap(dim)
+
+    system = System(dim)
+    add = system.add
+
+    M = system.array(dim, dim**2, "M") # mul
+    N = system.array(dim, dim**2, "N") # another mul
+    CM = system.array(dim**2, dim, "CM") # co-mul
+
+    # (co-)commutative
+    add(dot(M, SWAP), M)
+    add(dot(N, SWAP), N)
+    add(dot(SWAP, CM), CM)
+
+    # frobenius
+    CMM = dot(CM, M)
+    add( dot(tensor(M, I), tensor(I, CM)), CMM )
+    add( dot(tensor(I, M), tensor(CM, I)), CMM )
+
+    CMN = dot(CM, N)
+    add( dot(tensor(N, I), tensor(I, CM)), CMN )
+    add( dot(tensor(I, N), tensor(CM, I)), CMN )
+
+    # special
+    add(dot(M, CM), I)
+    add(dot(N, CM), I)
+
+    eqs = system.eqs
+    eqs.append(None)
+
+    n = 1000
+    for i in range(n):
+        z = eq = 0.1 + (10./n)*i
+        print("%.2f"%z, end=' ')
+        for idx in numpy.ndindex(M.shape):
+            eq += M[idx]-N[idx]
+        eqs[-1] = eq
+    
+        #print("frobenius structure:", end=' ', flush=True)
+        values = system.root(trials=20, maxiter=400, tol=1e-2)
+        #print("done")
+        #if values is None:
+        #    print("no solution")
+        #    return
+        if values is not None:
+            print("z =", z)
+            break
+    else:
+        print("no solution")
+        return
+
+    print(eq)
+
+    # ------------------------------------------------
+
+    M, N, CM = values
+
+    if not allclose(M, N):
+        print(M)
+        print(N)
+        print("M != N")
+
+    #print(M)
+    assert allclose( dot(M, SWAP), M )
+
+
 
 
 # -----------------------------------------------------------------------------
