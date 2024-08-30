@@ -1789,7 +1789,7 @@ def main_carboni():
 
     n = 1000
     for i in range(n):
-        z = eq = 0.1 + (10./n)*i
+        z = eq = 10.1 + (100./n)*i
         print("%.2f"%z, end=' ')
         for idx in numpy.ndindex(M.shape):
             eq += M[idx]-N[idx]
