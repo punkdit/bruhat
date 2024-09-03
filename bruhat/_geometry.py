@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """
 Use group theory to build surface codes, color codes, etc.
-
-https://en.wikipedia.org/wiki/Bitruncated_cubic_honeycomb
-
 """
 
 import string, os
@@ -21,7 +18,7 @@ from bruhat.util import cross
 from bruhat import solve 
 from bruhat.solve import (
     array2, zeros2, shortstr, dot2, solve2, linear_independent, row_reduce, find_kernel,
-    span, intersect, rank, enum2, shortstrx, identity2, eq2, pseudo_inverse, parse)
+    span, intersect, rank, enum2, shortstrx, identity2, eq2, pseudo_inverse)
 from bruhat.action import Perm, Group, Coset, mulclose, close_hom, is_hom
 from bruhat.todd_coxeter import Schreier
 from bruhat.argv import argv
@@ -88,31 +85,15 @@ class Geometry(object):
 
 
 def test():
-    start_idx = argv.get("start_idx", 1)
-    stop_idx = argv.get("stop_idx", None)
+    N = 4
+    idx = argv.get("idx", 30)
     key = argv.get("key", (4,3,4))
-    index = argv.get("index", 1000)
-    if key not in lins_db.db:
-        print("lins_db.build_db...", end='', flush=True)
-        lins_db.build_db(key, index)
-        print(" done")
-    n = len(lins_db.db[key])
-    idx = start_idx
-    while idx < n and (stop_idx is None or idx < stop_idx):
-        main(key, idx)
-        idx += 1
-
-
-def main(key, idx):
-    print("key =", key)
-    print("idx =", idx)
-    N = len(key)+1
     geometry = Geometry(key, idx, False)
     total = geometry.build_graph()
     #total = total.compress()
     words = total.get_words()
     n = len(total)
-    #print("|G| =", n)
+    print(n)
 
     a, b, c, d = [(i,) for i in range(N)]
 
@@ -144,12 +125,15 @@ def main(key, idx):
     for i in range(k):
       g = graphs[i]
       for j in range(k):
+        if i==j:
+            continue
         h = graphs[j]
+
         A = zeros2(len(g), len(h))
         for w in words:
-            idx = g.follow_path(0,w)
-            jdx = h.follow_path(0,w)
-            A[idx,jdx] = 1
+            i = g.follow_path(0,w)
+            j = h.follow_path(0,w)
+            A[i,j] = 1
         key = (g.name, h.name)
         #print("%s.%s(%d,%d)"%(g.name, h.name, A.sum(0)[0], A.sum(1)[0]), end=" ")
         As[g.fig, h.fig] = A
@@ -184,130 +168,18 @@ def main(key, idx):
         As["1010", "0000"],
         As["1100", "0000"],
     ))
-    #print("bodis:", Hx.shape)
-    #print("faces:", Hz.shape)
+    print("bodis:", Hx.shape)
+    print("faces:", Hz.shape)
     Hx = linear_independent(Hx)
     Hz = linear_independent(Hz)
-    #print("bodis:", Hx.shape)
-    #print("faces:", Hz.shape)
+    print("bodis:", Hx.shape)
+    print("faces:", Hz.shape)
     #code = QCode.build_css(Hx, Hz, check=True)
-
-    if 0:
-        assert Hx[:, n-1].sum() == 0
-        assert Hz[:, n-1].sum() == 0
-    
-        Hx = Hx[:, :n-1]
-        Hz = Hz[:, :n-1]
-
-    C = dot2(Hx, Hz.transpose())
-    if C.sum():
-        print("non-commutative")
-        return
-
     code = CSSCode(Hx=Hx, Hz=Hz, check=True)
     print(code)
-    #print(code.longstr())
-    #print(shortstr(code.Lx))
-    #print("-"*code.n)
-    #print(shortstr(code.Lz))
-    #print()
-    if code.k == 0:
-        return
-
-    if argv.distance:
-        d_x, d_z = distance_z3_css(code, code.n>40)
-        print("distance:", d_x, d_z)
-        if d_x <= 2 or d_z <= 2:
-            return
-
-    if argv.show:
-        print("Hx:")
-        print(shortstr(Hx))
-        print("Hz:")
-        print(shortstr(Hz))
-
-    ops = dump_transverse(code.Hx, code.Lx, 3)
-    return
-
-    for op in ops:
-        if '1' not in str(op):
-            continue
-        #print()
-        #print(op)
-        op = op%2
-        #for (i,x) in enumerate(op):
-        #    if x>1:
-        #        op[i] = 1
-        #print(op)
-        for (key,A) in As.items():
-            if key[1] != "0000" or key[0] == "0000":
-                continue
-            print(key[0], shortstr(dot2(A, op)))
-
-
-def dump_transverse(Hx, Lx, t=3):
-    import CSSLO
-    SX,LX,SZ,LZ = CSSLO.CSSCode(Hx, Lx)
-    N = 1<<t
-    zList, qList, V, K_M = CSSLO.comm_method(SX, LX, SZ, t, compact=True, debug=False)
-    for z,q in zip(zList,qList):
-        #print(z, q)
-        print(CSSLO.CP2Str(2*q,V,N),"=>",CSSLO.z2Str(z,N))
-    print()
-    return zList
-
-
-def test_colour():
-    # https://arxiv.org/pdf/1304.3709
-
-    s = """
-    IIIIIIIXXXXXXXX
-    IIIXXXXIIIIXXXX
-    IXXIIXXIIXXIIXX
-    XIXIXIXIXIXIXIX
-    """
-    Hx = parse(s.replace("I","0").replace("X","1"))
-    print(Hx)
-
-    s = """
-    .......ZZZZZZZZ
-    ...ZZZZ....ZZZZ
-    .ZZ..ZZ..ZZ..ZZ
-    Z.Z.Z.Z.Z.Z.Z.Z
-    """
-    Hz = parse(s.replace(".","0").replace("Z","1"))
-    print(Hz)
-    ops = list(Hz)
-    for h in Hz:
-      for j in Hz:
-        if (h*j).sum() == 4:
-            ops.append(h*j)
-    ops = array2(ops)
-    print(shortstr(ops), ops.shape)
-    Hz = ops
-    Hz = linear_independent(Hz)
-    print("Hz:", len(Hz))
+    print(distance_z3_css(code, True))
     
-    from qumba.csscode import CSSCode, distance_z3_css
-    code = CSSCode(Hx=Hx, Hz=Hz, check=True)
-    print(code)
-    #assert distance_z3_css(code) == (3,3)
-    print( distance_z3_css(code) )
-
-    dump_transverse(code.Hx, code.Lx, 3)
-    ops = dump_transverse(code.Hx, code.Lx, 2)
-    print(ops)
-
-    op = ops[0]
-    print(dot2(Hz, op))
-
-    for i,x in enumerate(op):
-        if x!=2:
-            op[i] = 0
-    print(op)
-    print(dot2(Hx, op))
-
-
+    
 if __name__ == "__main__":
 
     from time import time
@@ -337,5 +209,7 @@ if __name__ == "__main__":
     t = time() - start_time
     print("finished in %.3f seconds"%t)
     print("OK!\n")
+
+
 
 
