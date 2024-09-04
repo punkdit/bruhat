@@ -66,7 +66,10 @@ class Schreier(object):
                 assert type(gen) is int, repr(gen)
                 assert 0 <= gen < ngens, repr(rel)
 
-        self.start = self.add_vertex()
+        if not self.neighbors:
+            self.start = self.add_vertex()
+        else:
+            self.start = 0 # yes ?
     
         #The labels variable is a list of _numbers, with the property
         #that labels[i] <= i. This is a union-find data structure

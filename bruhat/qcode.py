@@ -732,6 +732,9 @@ def build_code(geometry):
         Hx = H.copy()
         Hz = H.copy()
 
+    #elif argv.colour and dim==3: # XX flags... ???
+    #    Hx = get_adj(bodis, verts)
+    #    Hz = get_adj(faces, verts)
 
     elif argv.colour:
         if len(bodis) > 1:

@@ -96,6 +96,10 @@ def test():
         print("lins_db.build_db...", end='', flush=True)
         lins_db.build_db(key, index)
         print(" done")
+    if argv.idx:
+        main(key, argv.idx)
+        return
+    print("key =", key)
     n = len(lins_db.db[key])
     idx = start_idx
     while idx < n and (stop_idx is None or idx < stop_idx):
@@ -103,16 +107,14 @@ def test():
         idx += 1
 
 
-def main(key, idx):
-    print("key =", key)
-    print("idx =", idx)
+def main(key, index):
     N = len(key)+1
-    geometry = Geometry(key, idx, False)
+    geometry = Geometry(key, index, False)
     total = geometry.build_graph()
     #total = total.compress()
     words = total.get_words()
     n = len(total)
-    #print("|G| =", n)
+    print("idx = %d, |G| = %d"%(index, n))
 
     a, b, c, d = [(i,) for i in range(N)]
 
@@ -130,9 +132,12 @@ def main(key, idx):
     for fig in figs:
         hgens = [gens[i] for i in range(N) if fig[i]=='1']
         graph = geometry.build_graph(hgens=hgens).compress()
+        #graph.dump()
+        assert n % len(graph) == 0, len(graph)
         graph.fig = fig
         #if len(graph) > 1:
         graphs.append(graph)
+
     graphs.sort(key = len)
     k = len(graphs)
     names = ascii_lowercase[:k]
@@ -152,6 +157,8 @@ def main(key, idx):
             A[idx,jdx] = 1
         key = (g.name, h.name)
         #print("%s.%s(%d,%d)"%(g.name, h.name, A.sum(0)[0], A.sum(1)[0]), end=" ")
+        #print(g.fig, h.fig)
+        #print(shortstr(A), A.shape)
         As[g.fig, h.fig] = A
       #print()
 
@@ -162,8 +169,25 @@ def main(key, idx):
         bodis = geometry.build_graph(hgens = [a, b, c])
         print(len(verts), len(edges), len(faces), len(bodis))
 
+    keys = list(As.keys())
+    keys.sort()
+
+
+    if argv.show_incidence:
+        for fig in figs:
+          for gig in figs:
+            B = dot2(As[fig, "0000"], As[gig, "0000"].transpose())
+            print(fig, gig, end=" ")
+            if B.sum() == 0: # very interesting !
+                print(".", end="")
+            else:
+                print("X", end="")
+            print()
+        print()
+        #return
+
     #from bruhat.qcode import QCode
-    from qumba.csscode import CSSCode, distance_z3_css
+    from qumba.csscode import CSSCode, distance_z3_css, distance_lower_bound_z3
 
     Hx = numpy.concatenate((
         As["0111", "0000"],
@@ -201,11 +225,10 @@ def main(key, idx):
 
     C = dot2(Hx, Hz.transpose())
     if C.sum():
-        print("non-commutative")
+        print("/", end="", flush=True)
         return
 
     code = CSSCode(Hx=Hx, Hz=Hz, check=True)
-    print(code)
     #print(code.longstr())
     #print(shortstr(code.Lx))
     #print("-"*code.n)
@@ -214,11 +237,20 @@ def main(key, idx):
     if code.k == 0:
         return
 
+    if distance_lower_bound_z3(code.Hz, code.Lz, 2) is not None:
+        return
+    if distance_lower_bound_z3(code.Hx, code.Lx, 2) is not None:
+        return
+
+    #print()
+    #print("idx =", index)
+    print("[[%d, %d, >2]]"%(code.n, code.k))
     if argv.distance:
-        d_x, d_z = distance_z3_css(code, code.n>40)
-        print("distance:", d_x, d_z)
-        if d_x <= 2 or d_z <= 2:
-            return
+        if argv.dual:
+            d_z, d_x = distance_z3_css(code.get_dual(), True)
+        else:
+            d_x, d_z = distance_z3_css(code, True)
+        print("[[%d, %d, (%d,%d)]]"%(code.n, code.k, d_x, d_z))
 
     if argv.show:
         print("Hx:")
@@ -226,7 +258,12 @@ def main(key, idx):
         print("Hz:")
         print(shortstr(Hz))
 
-    ops = dump_transverse(code.Hx, code.Lx, 3)
+    #print("Hx", Hx.sum(0), Hx.sum(1))
+    #print("Hz", Hz.sum(0), Hz.sum(1))
+
+    dump_transverse(code.Hx, code.Lx, 3, argv.show_all)
+    #print("dual:")
+    #dump_transverse(code.Hz, code.Lz, 3)
     return
 
     for op in ops:
@@ -245,14 +282,16 @@ def main(key, idx):
             print(key[0], shortstr(dot2(A, op)))
 
 
-def dump_transverse(Hx, Lx, t=3):
+def dump_transverse(Hx, Lx, t=3, show_all=False):
     import CSSLO
     SX,LX,SZ,LZ = CSSLO.CSSCode(Hx, Lx)
     N = 1<<t
     zList, qList, V, K_M = CSSLO.comm_method(SX, LX, SZ, t, compact=True, debug=False)
     for z,q in zip(zList,qList):
         #print(z, q)
-        print(CSSLO.CP2Str(2*q,V,N),"=>",CSSLO.z2Str(z,N))
+        lhs, rhs = CSSLO.CP2Str(2*q,V,N), CSSLO.z2Str(z,N)
+        if "CCZ" in lhs or "T" in lhs or show_all:
+            print(lhs, "=>", rhs)
     print()
     return zList
 
