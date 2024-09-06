@@ -1792,12 +1792,13 @@ def main_carboni():
 
     eqs = system.eqs
 
-    #eq = rval[0,0]
-    #for idx in numpy.ndindex(M.shape):
-    #    eq += M[idx]-N[idx]
-    #eqs.append( eq )
+    eq = rval[0,0]
+    for idx in numpy.ndindex(M.shape):
+        rhs = M[idx]-N[idx]
+        eq += rhs * rhs
+    eqs.append( eq )
 
-    eqs.append( M[0,2] - N[0,2] - rval[0,0] )
+    #eqs.append( M[0,2] - N[0,2] - rval[0,0] )
 
     #print("frobenius structure:", end=' ', flush=True)
     values = system.root(trials=200, maxiter=400, tol=1e-1)
