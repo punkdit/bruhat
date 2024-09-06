@@ -87,6 +87,7 @@ class Geometry(object):
         return cosets
 
 
+
 def test():
     start_idx = argv.get("start_idx", 1)
     stop_idx = argv.get("stop_idx", None)
@@ -242,15 +243,18 @@ def main(key, index):
     if distance_lower_bound_z3(code.Hx, code.Lx, 2) is not None:
         return
 
+    d_x, d_z = bz_distance(code)
+
     #print()
     #print("idx =", index)
-    print("[[%d, %d, >2]]"%(code.n, code.k))
-    if argv.distance:
-        if argv.dual:
-            d_z, d_x = distance_z3_css(code.get_dual(), True)
-        else:
-            d_x, d_z = distance_z3_css(code, True)
-        print("[[%d, %d, (%d,%d)]]"%(code.n, code.k, d_x, d_z))
+#    print("[[%d, %d, >2]]"%(code.n, code.k))
+#    if argv.distance:
+#        if argv.dual:
+#            d_z, d_x = distance_z3_css(code.get_dual(), True)
+#        else:
+#            d_x, d_z = distance_z3_css(code, True)
+
+    print("[[%d, %d, (%d,%d)]]"%(code.n, code.k, d_x, d_z))
 
     if argv.show:
         print("Hx:")
@@ -261,7 +265,7 @@ def main(key, index):
     #print("Hx", Hx.sum(0), Hx.sum(1))
     #print("Hz", Hz.sum(0), Hz.sum(1))
 
-    dump_transverse(code.Hx, code.Lx, 3, argv.show_all)
+    #dump_transverse(code.Hx, code.Lx, 3, argv.show_all)
     #print("dual:")
     #dump_transverse(code.Hz, code.Lz, 3)
     return
@@ -294,6 +298,30 @@ def dump_transverse(Hx, Lx, t=3, show_all=False):
             print(lhs, "=>", rhs)
     print()
     return zList
+
+
+def bz_distance(code):
+    t0 = time()
+    Hx = shortstr(code.Hx).replace("1", "X").replace('.', "I")
+    Hz = shortstr(code.Hz).replace("1", "Z").replace('.', "I")
+
+    from subprocess import Popen, PIPE
+    child = Popen("distance", stdin=PIPE, stdout=PIPE)
+
+    s = "%s\n%s\n"%(Hx, Hz)
+    child.stdin.write(s.encode())
+    child.stdin.close()
+    result = child.stdout.read().decode()
+    rval = child.wait()
+    assert rval == 0, "child return %s"%rval
+    d_x, d_z = str(result).split()
+
+    print("bz_distance took %.3f seconds" % (time() - t0))
+    return int(d_x), int(d_z)
+
+    
+
+
 
 
 def test_colour():

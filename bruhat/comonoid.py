@@ -1766,6 +1766,12 @@ def main_carboni():
     N = system.array(dim, dim**2, "N") # another mul
     CM = system.array(dim**2, dim, "CM") # co-mul
 
+    rval = system.array(1, 1, "rval")
+    ival = system.array(1, 1, "ival")
+
+    # force rval non-zero
+    add(rval*ival, numpy.array([[1.]]))
+
     # (co-)commutative
     add(dot(M, SWAP), M)
     add(dot(N, SWAP), N)
@@ -1785,42 +1791,57 @@ def main_carboni():
     add(dot(N, CM), I)
 
     eqs = system.eqs
-    eqs.append(None)
 
-    n = 1000
-    for i in range(n):
-        z = eq = 10.1 + (100./n)*i
-        print("%.2f"%z, end=' ')
-        for idx in numpy.ndindex(M.shape):
-            eq += M[idx]-N[idx]
-        eqs[-1] = eq
-    
-        #print("frobenius structure:", end=' ', flush=True)
-        values = system.root(trials=20, maxiter=400, tol=1e-2)
-        #print("done")
-        #if values is None:
-        #    print("no solution")
-        #    return
-        if values is not None:
-            print("z =", z)
-            break
-    else:
+    #eq = rval[0,0]
+    #for idx in numpy.ndindex(M.shape):
+    #    eq += M[idx]-N[idx]
+    #eqs.append( eq )
+
+    eqs.append( M[0,2] - N[0,2] - rval[0,0] )
+
+    #print("frobenius structure:", end=' ', flush=True)
+    values = system.root(trials=200, maxiter=400, tol=1e-1)
+    print("done")
+    if values is None:
         print("no solution")
         return
 
-    print(eq)
+
+#    n = 100
+#    for i in range(n):
+#        z = eq = 1.0 + 0.1 * i
+#        print("%.2f"%z, end=' ')
+#        for idx in numpy.ndindex(M.shape):
+#            eq += M[idx]-N[idx]
+#        eqs[-1] = eq
+#    
+#        #print("frobenius structure:", end=' ', flush=True)
+#        values = system.root(trials=20, maxiter=400, tol=1e-1)
+#        #print("done")
+#        #if values is None:
+#        #    print("no solution")
+#        #    return
+#        if values is not None:
+#            print("z =", z)
+#            break
+#    else:
+#        print("no solution")
+#        return
+#    print(eq)
 
     # ------------------------------------------------
 
-    M, N, CM = values
+    #M, N, CM = values
+    M, N, CM, rval, ival = values
 
     if not allclose(M, N):
         print(M)
         print(N)
-        print("M != N")
+        print(M - N)
+        #print("M != N")
 
     #print(M)
-    assert allclose( dot(M, SWAP), M )
+    #assert allclose( dot(M, SWAP), M )
 
 
 
