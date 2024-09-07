@@ -183,7 +183,8 @@ def main():
     elif d == 4:
         # gauss
         rhs = lambda x : (x-1)*x*(x+1)
-        #rhs = lambda x : x**3 - 11*x + 14
+        #rhs = lambda x : x**3 - 11*x + 14 # 2-Hecke jump away from gauss elliptic curve
+        # see also: https://oeis.org/A002171 and  Wolfdieter Lang comment
         #rhs = lambda x : x**3 + x
     elif d == 7:
         # y**2 + x*y == x**3 - x**2 - 2*x - 1 # conductor == 1
@@ -214,6 +215,9 @@ def main():
     if argv.all_primes:
         ps = list(all_primes(60))
         ls = [1,2,3,4]
+    elif argv.ps:
+        ps = list(argv.ps)
+        ls = [1, 2, 3, 4]
     elif p is None:
         ps = [2, 3, 5, 7, 11]
         ls = list(range(1,5))
