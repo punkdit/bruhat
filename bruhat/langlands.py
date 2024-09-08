@@ -174,7 +174,7 @@ def main():
     # Advanced Topics in the Arithmetic of Elliptic Curves
     # Joseph H. Silverman
     # Appendix A
-    d = argv.get("d", 4)
+    d = argv.get("d")
 
     lhs = lambda y : y**2
     if d == 3:
@@ -206,6 +206,10 @@ def main():
     elif d == 163:
         lhs = lambda y : y**2 + y
         rhs = lambda x : x**3 - 2174420*x + 1234136692
+    elif argv.bolza:
+        d = 8 # ??
+        lhs = lambda y : y**2
+        rhs = lambda x : x**3 +x**2 -3*x + 1
     else:
         print("d not found")
         return
@@ -213,7 +217,7 @@ def main():
     p = argv.get("p")
     l = argv.get("l", 1)
     if argv.all_primes:
-        ps = list(all_primes(60))
+        ps = list(all_primes(100))
         ls = [1,2,3,4]
     elif argv.ps:
         ps = list(argv.ps)
@@ -251,7 +255,10 @@ def main():
             b = -b
             c = 1
             disc = b**2 - 4*a*c
-            print("1 + %dx + %dx^2, disc=%s"%(b, a, disc), disc%d==0)
+            if d is not None:
+                print("1 + %dx + %dx^2, disc=%s"%(b, a, disc), "*" if disc%d==0 else " ")
+            else:
+                print("1 + %dx + %dx^2, disc=%s"%(b, a, disc))
 
 
         print()
