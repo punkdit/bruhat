@@ -153,7 +153,9 @@ def test_frobenius(mul, unit, counit, cup):
             + 2 * counit * mul * (mul @ iV)
         )
     
+        print(op.shape)
         assert op.is_zero()
+        print("yes")
 
 
 def main():

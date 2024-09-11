@@ -340,7 +340,7 @@ class System(object):
         add(dot(tensor(CU, I), CM), I)
         add(dot(tensor(I, CU), CM), I)
     
-        # co-assoc
+        # co_assoc
         add(compose(CM, tensor(CM, I)), compose(CM, tensor(I, CM)))
         
         # one equation is enough for the Frobenius structure
@@ -701,7 +701,7 @@ def find_copyable(CM):
         trials += 1
         values = system.root(scale=10)
         if values is None:
-            print("\tminimize")
+            #print("find_copyable: minimize")
             values = system.minimize(scale=10, method="TNC", exclude=exclude, sigma=3000)
         #else:
         #    print(system.solution.message)
@@ -1291,6 +1291,8 @@ def main_extra():
 
     return locals()
 
+
+
 def main_frobenius():
     dim = argv.get("dim", 2)
     
@@ -1305,7 +1307,9 @@ def main_frobenius():
     
     # -----------------------------------------------------------
     # Frobenius structure
-    # see: https://arxiv.org/abs/2306.08826
+    # see:
+    # "Unoriented 2-dimensional TQFTs and the category Rep(St≀ℤ2)"
+    # https://arxiv.org/abs/2306.08826
 
     system = System(dim)
     add = system.add
@@ -1352,8 +1356,146 @@ def main_frobenius():
     if argv.copyable:
         add( compose(B, CM), tensor(B, B) )
 
-    cup = compose(U, CM)
-    cap = compose(M, CU)
+    if argv.groebner:
+        system.groebner()
+        return
+
+    print("frobenius structure", end=' ', flush=True)
+    values = system.root(trials=100, maxiter=400)
+    print("done")
+
+    # ------------------------------------------------
+
+    M, U, CM, CU = values
+
+    def check(lhs, rhs):
+        err = (lhs - rhs) ** 2
+        if err.sum() < 1e-6:
+            return
+        print("check ==========")
+        print(lhs)
+        print(rhs)
+        print("FAIL\n")
+        assert 0
+
+    IM = tensor(I, M)
+    MI = tensor(M, I)
+    
+    IU = tensor(I, U)
+    UI = tensor(U, I)
+    
+
+    # unit
+    check(compose(IU, M), I)
+    check(compose(UI, M), I)
+    
+    # _assoc
+    check(compose(MI, M), compose(IM, M))
+    
+    # commutative
+    check(M, compose(SWAP, M))
+
+    # co-unit
+    check(dot(tensor(CU, I), CM), I)
+    check(dot(tensor(I, CU), CM), I)
+
+    # co-assoc
+    check(compose(CM, tensor(CM, I)), compose(CM, tensor(I, CM)))
+    
+    # one equation is enough for the Frobenius structure
+    check(
+        compose(tensor(I, CM), tensor(M, I)), 
+        compose(tensor(CM, I), tensor(I, M)))
+
+    # special Frobenius
+    check( compose(CM, M), I )
+
+    print("find_copyable")
+
+    basis = find_copyable(CM)
+
+    for v in basis:
+        for u in basis:
+            r = compose(tensor(u, v), M, CU)[0]
+            print("%.3f"%r, end=" ")
+        print()
+        
+
+def main_frobenius_mobius():
+    dim = argv.get("dim", 2)
+    
+    I = empty((dim, dim), dtype=float)
+    I[:] = 0
+    for i in range(dim):
+        I[i, i] = 1
+    #print(I)
+    
+    SWAP = get_swap(dim)
+    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    
+    # -----------------------------------------------------------
+    # Frobenius structure
+
+    system = System(dim)
+    add = system.add
+    
+    M = system.array(dim, dim**2, "M") # mul
+    U = system.array(dim, 1, "U") # unit
+    CM = system.array(dim**2, dim, "CM") # co-mul
+    CU = system.array(1, dim, "CU") # co-unit
+
+    if argv.copyable:
+        B = system.array(dim, 1, "B")
+
+    IM = tensor(I, M)
+    MI = tensor(M, I)
+    
+    IU = tensor(I, U)
+    UI = tensor(U, I)
+    
+    # unit
+    add(compose(IU, M), I)
+    add(compose(UI, M), I)
+    
+    # _assoc
+    add(compose(MI, M), compose(IM, M))
+    
+    # commutative
+    add(M, compose(SWAP, M))
+
+    # co-unit
+    add(dot(tensor(CU, I), CM), I)
+    add(dot(tensor(I, CU), CM), I)
+
+    # co-assoc
+    add(compose(CM, tensor(CM, I)), compose(CM, tensor(I, CM)))
+    
+    # one equation is enough for the Frobenius structure
+    add(
+        compose(tensor(I, CM), tensor(M, I)), 
+        compose(tensor(CM, I), tensor(I, M)))
+
+    # special Frobenius
+    add( compose(CM, M), I )
+
+    if argv.copyable:
+        add( compose(B, CM), tensor(B, B) )
+
+    v_ = U
+    vv_ = dot(CM, U) # cup
+
+    _v = CU
+    _vv = dot(CU, M) # cap
+    _vvv = compose(tensor(I, M), _vv)
+
+    # mobius inversion on powerset of 3 element set:
+    op = (2*_vvv
+        - tensor(_vv, _v) - dot(_vv, tensor(I, _v, I)) - tensor(_v, _vv)
+        + tensor(_v, _v, _v))
+
+    # does this op always give zero?
+    eqs = system.eqs
+    eqs.append( op[0, 0] - 1. )
 
     if argv.groebner:
         system.groebner()
@@ -1366,6 +1508,68 @@ def main_frobenius():
     # ------------------------------------------------
 
     M, U, CM, CU = values
+
+    d = dot(CU, U)
+    print(d, "==", dim)
+
+    v_ = U
+    _v = CU
+    _vv = dot(CU, M) # cap
+    _vvv = compose(tensor(I, M), _vv)
+
+    op = (2*_vvv
+        - tensor(_vv, _v) - dot(_vv, tensor(I, _v, I)) - tensor(_v, _vv)
+        + tensor(_v, _v, _v))
+
+    print(op)
+    print(dot(op, tensor(v_, v_, v_)), "==", 0)
+
+    print("U =")
+    print(U)
+
+    def check(lhs, rhs):
+        err = (lhs - rhs) ** 2
+        if err.sum() < 1e-6:
+            return
+        print("check ==========")
+        print(lhs)
+        print(rhs)
+        print("FAIL\n")
+        assert 0
+
+    IM = tensor(I, M)
+    MI = tensor(M, I)
+    
+    IU = tensor(I, U)
+    UI = tensor(U, I)
+    
+
+    # unit
+    check(compose(IU, M), I)
+    check(compose(UI, M), I)
+    
+    # _assoc
+    check(compose(MI, M), compose(IM, M))
+    
+    # commutative
+    check(M, compose(SWAP, M))
+
+    # co-unit
+    check(dot(tensor(CU, I), CM), I)
+    check(dot(tensor(I, CU), CM), I)
+
+    # co-assoc
+    check(compose(CM, tensor(CM, I)), compose(CM, tensor(I, CM)))
+    
+    # one equation is enough for the Frobenius structure
+    check(
+        compose(tensor(I, CM), tensor(M, I)), 
+        compose(tensor(CM, I), tensor(I, M)))
+
+    # special Frobenius
+    check( compose(CM, M), I )
+
+    print("find_copyable")
 
     basis = find_copyable(CM)
 
@@ -1748,6 +1952,7 @@ def main_hopf(dim=2):
 
 def main_carboni():
     # See Carboni 1991, lemma 2
+    # Look for counter-examples & fail, because the lemma is true!
 
     dim = argv.get("dim", 2)
 
