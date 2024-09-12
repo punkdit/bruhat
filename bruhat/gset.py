@@ -1498,11 +1498,13 @@ def main():
 
 
 def test_orbits():
-    for n in range(2, 7):
-        print("n =", n, end=": ")
-        G = Group.symmetric(n)
+    meth = argv.get("meth", "symmetric")
+    fn = getattr(Group, meth)
+    for n in range(2, 8):
+        G = fn(n)
+        print("n=%s, |G|=%d"%(n, len(G)), end=":\t")
         X = G.i
-        for k in range(1, 8):
+        for k in range(1, n+1):
             Xs = [X]*k
             Y = reduce(mul, Xs)
             print(len(Y.get_orbits()), end=" ", flush=True)
