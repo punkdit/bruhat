@@ -190,7 +190,9 @@ def main():
         # y**2 + x*y == x**3 - x**2 - 2*x - 1 # conductor == 1
         rhs = lambda x : x**3 - 595*x + 5586 # conductor == 2 (??)
         #rhs = lambda x : 7*x**3 + 5*x + 1 # check complex multiplication ?
+    elif d == "7a":
         rhs = lambda x : 28*x**3 - 5*x + 1
+        d = 7
     elif d == "7b":
         rhs = lambda x : 28*x**3 - 5*x - 1
         d = 7
