@@ -201,6 +201,10 @@ def main():
     elif d == 11:
         lhs = lambda y : y**2 + y
         rhs = lambda x : x**3 - x**2 -7*x + 10
+    elif d == "11a":
+        lhs = lambda y : y**2 
+        rhs = lambda x : 1188*x**3-24*x+7
+        d = 11
     elif d == 19:
         lhs = lambda y : y**2 + y
         rhs = lambda x : x**3 - 38*x + 90
