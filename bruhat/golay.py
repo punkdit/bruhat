@@ -6,17 +6,18 @@ See book by Curtis (2024):
 
 """
 
-#from pynauty import Graph, autgrp
+import numpy
+
 import pynauty
 
 from bruhat.argv import argv
-from bruhat.solve import parse, dot2, enum2, array2, solve
+from bruhat.solve import parse, dot2, enum2, array2, solve, zeros2
 from bruhat.gset import Perm, Group, mulclose
 from bruhat.smap import SMap
 
 from huygens.namespace import *
 
-
+N = 24
 
 def render(vecs):
     print("render", len(vecs))
@@ -41,13 +42,49 @@ def render(vecs):
     cvs.writePDFfile("golay.pdf")
 
 
+class Vec(object):
+    def __init__(self, *idxs):
+        idxs = list(idxs)
+        idxs.sort()
+        v = zeros2(N)
+        v[idxs] = 1
+        self.v = v
+        self.idxs = tuple(idxs)
+        self.key = str(v)
+    def __str__(self):
+        return "Vec%s"%(self.idxs,)
+    __repr__ = __str__
+    def __eq__(self, other):
+        return self.key == other.key
+    def __hash__(self):
+        return hash(self.key)
+    def __add__(self, other):
+        v = (self.v + other.v)%2
+        return Vec(*[i for i in range(N) if v[i]])
+    def __mul__(self, other):
+        v = self.v * other.v
+        return Vec(*[i for i in range(N) if v[i]])
+    def __rmul__(self, g):
+        idxs = [g[i] for i in self.idxs]
+        return Vec(*idxs)
+    def __lt__(self, other):
+        return self.idxs < other.idxs
+    #def __getitem__(self, i):
+    #    return self.v[i]
+    def __getitem__(self, i):
+        return self.keys[i]
+    def __contains__(self, idx):
+        return idx in self.idxs
+
+
 def main():
-    n = 24
 
     inf = 23
     g = Perm([(i+1)%inf for i in range(23)] + [inf])
-    swaps = [(inf, 0), (11,1), (3, 19), (4, 20), (6, 15), (16, 14), (9, 5), (13, 21),]
-    idxs = list(range(n))
+    swaps = [
+        (inf, 0), (11,1), (3, 19), (4, 20), 
+        (6, 15), (16, 14), (9, 5), (13, 21)]
+    idxs = list(range(N))
     for (i,j) in swaps:
         idxs[i], idxs[j] = idxs[j], idxs[i]
     h = Perm(idxs)
@@ -55,32 +92,14 @@ def main():
 
     #M24 = mulclose([g,h], verbose=True) # nah
 
-#    for v in H:
-#        print(v)
-#        for g in gen:
-#            u = array2([v[i] for i in g])
-#            print(u)
-#            w = solve(H.transpose(), u)
-#            print(w)
-#
-#    return
-
-    def act(g, octad):
-        o = [g[i] for i in octad]
-        o.sort()
-        return tuple(o)
-
-    octad = [inf,19,15,5,11,1,22,2]
-    octad.sort()
-    octad = tuple(octad)
-
+    octad = Vec(inf,19,15,5,11,1,22,2)
     octads = {octad}
     bdy = list(octads)
     while bdy:
         _bdy = []
         for g in gen:
             for octad in bdy:
-                o = act(g, octad)
+                o = g * octad
                 if o not in octads:
                     octads.add(o)
                     _bdy.append(o)
@@ -102,26 +121,78 @@ def main():
                 o = octad
         return o
 
-    the_octad = (1, 2, 3, 4, 5, 8, 11, 13)
+    the_octad = Vec(1, 2, 3, 4, 5, 8, 11, 13)
     assert find(1,2,3,4,5) == the_octad
 
-    coords = [
+    table = [
         inf, 0, 11, 1, 22, 2,
         3, 19, 4, 20, 18, 10,
         6, 15, 16, 14, 8, 17,
         9, 5, 13, 21, 12, 7]
-    assert len(set(coords)) == 24
+    assert len(set(table)) == N
+
+    bricks = [
+        Vec(*(table[col + j + 6*row] for row in range(4) for j in [0,1]))
+        for col in [0,2,4]
+    ]
+    print(bricks)
+        
     # idx:(row,col)
-    coords = {idx:(i//6, i%6) for (i,idx) in enumerate(coords)}
-    print(coords)
+    coords = {idx:(i//6, i%6) for (i,idx) in enumerate(table)}
+    def vstr(vec):
+        smap = SMap()
+        for i in range(N):
+            smap[coords[i]] = '*' if i in vec.idxs else '.'
+        return smap
+
+    print(vstr(bricks[0]))
+
+    def pstr(pair):
+        smap = SMap()
+        smap[0,0] = vstr(pair[0])
+        smap[0,8] = vstr(pair[1])
+        return smap
+
+    pairs = [(a,b) for a in octads for b in octads]
+    print("pairs:", len(pairs))
+    orbits = []
+    remain = set(pairs)
+    found = set()
+    while remain:
+        pair = iter(remain).__next__()
+        remain.remove(pair)
+        found.add(pair)
+        #print(pstr(pair), "OK\n")
+        a, b = pair
+        print(a*b, '\n')
+        orbit = bdy = [pair]
+        while bdy:
+            _bdy = []
+            for pair in bdy:
+              for g in gen:
+                other = (g*pair[0], g*pair[1])
+                if other not in found:
+                    _bdy.append(other)
+                    found.add(other)
+                    remain.remove(other)
+            orbit += _bdy
+            bdy = _bdy
+        orbits.append(orbit)
+        if len(orbit)==1:
+            pair = orbit[0]
+            print(pstr(pair), '\n')
+            for g in gen:
+                other = (g*pair[0], g*pair[1])
+                print(pstr(other), '\n')
+            return
+        print(len(orbit), len(orbit)//len(octads))
     print()
 
-    for o in [the_octad]:
-        smap = SMap()
-        for i in range(n):
-            smap[coords[i]] = '*' if i in o else '.'
-        print(smap)
-        print()
+    print([len(orbit) for orbit in orbits])
+
+    # 
+
+    return
 
     cvs = Canvas()
     dx = dy = 0.3

@@ -125,7 +125,7 @@ class Perm(object):
         elif isinstance(other, (int, scalar)):
             result = self.perm[other]
         else:
-            raise TypeError
+            result = NotImplemented
         return result
 
     def cross(left, right):
