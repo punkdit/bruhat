@@ -226,6 +226,9 @@ def main_m24():
     ...........11...111.1.11
     """)
 
+    octads = get_words(H0, 8)
+    assert len(octads) == 759
+
     # RM [[16,6,4]]
     H1 = parse("""
     11111111........
@@ -238,6 +241,13 @@ def main_m24():
     m, n = H0.shape
     words = get_words(H0, 16)
     N = len(words)
+    print("hexads:", N)
+
+    wenum = get_wenum(H0)
+    print(wenum)
+
+    return
+
     #print(words[0])
     codes = []
     for word in words:

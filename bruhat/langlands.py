@@ -221,6 +221,13 @@ def main():
         d = 8 # ??
         lhs = lambda y : y**2
         rhs = lambda x : x**3 +x**2 -3*x + 1
+    elif argv.koblitz:
+        print("koblitz")
+        d = 4
+        n = argv.get("n", 1)
+        print("n =", n)
+        lhs = lambda y : y**2
+        rhs = lambda x : (x-n)*x*(x+n)
     else:
         print("d not found")
         return
@@ -248,6 +255,9 @@ def main():
             ls = [1, 2, 3]
 
     print(ps)
+    print(ls)
+
+    #ps = [p**l for l in range(1, 5)]
 
     for p in ps:
         if argv.mod is not None and p%d != argv.mod:
