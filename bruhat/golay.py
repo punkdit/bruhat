@@ -18,6 +18,14 @@ from bruhat.smap import SMap
 from huygens.namespace import *
 
 N = 24
+infty = 23
+table = [
+    infty, 0, 11, 1, 22, 2,
+    3, 19, 4, 20, 18, 10,
+    6, 15, 16, 14, 8, 17,
+    9, 5, 13, 21, 12, 7]
+assert len(set(table)) == N
+
 
 def render(vecs):
     print("render", len(vecs))
@@ -75,14 +83,15 @@ class Vec(object):
         return self.keys[i]
     def __contains__(self, idx):
         return idx in self.idxs
+    def sum(self):
+        return self.v.sum()
 
 
 def main():
 
-    inf = 23
-    g = Perm([(i+1)%inf for i in range(23)] + [inf])
+    g = Perm([(i+1)%infty for i in range(23)] + [infty])
     swaps = [
-        (inf, 0), (11,1), (3, 19), (4, 20), 
+        (infty, 0), (11,1), (3, 19), (4, 20), 
         (6, 15), (16, 14), (9, 5), (13, 21)]
     idxs = list(range(N))
     for (i,j) in swaps:
@@ -92,7 +101,7 @@ def main():
 
     #M24 = mulclose([g,h], verbose=True) # nah
 
-    octad = Vec(inf,19,15,5,11,1,22,2)
+    octad = Vec(infty,19,15,5,11,1,22,2)
     octads = {octad}
     bdy = list(octads)
     while bdy:
@@ -124,13 +133,6 @@ def main():
     the_octad = Vec(1, 2, 3, 4, 5, 8, 11, 13)
     assert find(1,2,3,4,5) == the_octad
 
-    table = [
-        inf, 0, 11, 1, 22, 2,
-        3, 19, 4, 20, 18, 10,
-        6, 15, 16, 14, 8, 17,
-        9, 5, 13, 21, 12, 7]
-    assert len(set(table)) == N
-
     bricks = [
         Vec(*(table[col + j + 6*row] for row in range(4) for j in [0,1]))
         for col in [0,2,4]
@@ -146,6 +148,46 @@ def main():
         return smap
 
     print(vstr(bricks[0]))
+
+    def o_key(v):
+        vs = [brick*v for brick in bricks]
+        ss = [v.sum() for v in vs]
+        return tuple(ss + vs)
+
+    octads.sort(key = o_key, reverse=True)
+
+    mk_plot(octads)
+
+
+def mk_plot(octads):
+    coords = {idx:(i//6, i%6) for (i,idx) in enumerate(table)}
+    print(coords)
+
+    cvs = Canvas()
+    dx = dy = 0.3
+    for i,o in enumerate(octads):
+        row = i//23
+        col = i%23
+        x0 = col * 8 * dx
+        y0 = -row * 6 * dy
+        st = [black]
+        #if o == the_octad:
+        #    print(o)
+        #    st = [orange]
+        for j, (r,c) in coords.items():
+            if c > 1:
+                c += 0.3
+            if c > 4:
+                c += 0.3
+            p = path.rect(x0+c*dx, y0-r*dy, dx, dy)
+            cvs.stroke(p)
+            if j in o:
+                cvs.fill(p, st)
+
+    cvs.writePDFfile("octads.pdf")
+    
+
+def get_hecke():
 
     def pstr(pair):
         smap = SMap()
@@ -191,28 +233,6 @@ def main():
     print([len(orbit) for orbit in orbits])
 
     # 
-
-    return
-
-    cvs = Canvas()
-    dx = dy = 0.3
-    for i,o in enumerate(octads):
-        row = i//23
-        col = i%23
-        x0 = col * 8 * dx
-        y0 = -row * 6 * dy
-        st = [black]
-        #if o == the_octad:
-        #    print(o)
-        #    st = [orange]
-        for j, (r,c) in coords.items():
-            p = path.rect(x0+c*dx, y0-r*dy, dx, dy)
-            cvs.stroke(p)
-            if j in o:
-                cvs.fill(p, st)
-
-    cvs.writePDFfile("octads.pdf")
-    
 
 def main_golay():
     H = parse("""
