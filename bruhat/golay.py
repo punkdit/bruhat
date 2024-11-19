@@ -86,6 +86,11 @@ class Vec(object):
     def sum(self):
         return self.v.sum()
 
+bricks = [
+    Vec(*(table[col + j + 6*row] for row in range(4) for j in [0,1]))
+    for col in [0,2,4]
+]
+        
 
 def main():
 
@@ -133,12 +138,6 @@ def main():
     the_octad = Vec(1, 2, 3, 4, 5, 8, 11, 13)
     assert find(1,2,3,4,5) == the_octad
 
-    bricks = [
-        Vec(*(table[col + j + 6*row] for row in range(4) for j in [0,1]))
-        for col in [0,2,4]
-    ]
-    print(bricks)
-        
     # idx:(row,col)
     coords = {idx:(i//6, i%6) for (i,idx) in enumerate(table)}
     def vstr(vec):
@@ -152,7 +151,7 @@ def main():
     def o_key(v):
         vs = [brick*v for brick in bricks]
         ss = [v.sum() for v in vs]
-        return tuple(ss + vs)
+        return tuple(zip(ss, vs))
 
     octads.sort(key = o_key, reverse=True)
 
@@ -163,26 +162,43 @@ def mk_plot(octads):
     coords = {idx:(i//6, i%6) for (i,idx) in enumerate(table)}
     print(coords)
 
+    COLS = 16
     cvs = Canvas()
     dx = dy = 0.3
+    sep = 0.1
+    w = 6.*dx + 2*sep
+    h = 4*dy
+    m = 0.2
+    row = col = 0
+    count = 0
     for i,o in enumerate(octads):
-        row = i//23
-        col = i%23
-        x0 = col * 8 * dx
+        x0 = col * 9 * dx
         y0 = -row * 6 * dy
+        p = path.rect(x0-m, y0-h-m, w + 2*m, h + 2*m)
+        left = (o*bricks[0]).sum()
+        cl = {8:grey, 2:green.alpha(0.4), 4:blue.alpha(0.4), 0:red.alpha(0.4)}[left]
+        cvs.fill(p, [cl])
         st = [black]
-        #if o == the_octad:
-        #    print(o)
-        #    st = [orange]
         for j, (r,c) in coords.items():
             if c > 1:
-                c += 0.3
+                c += sep/dx
             if c > 4:
-                c += 0.3
-            p = path.rect(x0+c*dx, y0-r*dy, dx, dy)
-            cvs.stroke(p)
+                c += sep/dx
+            p = path.rect(x0+c*dx, y0-(r+1)*dy, dx, dy)
             if j in o:
                 cvs.fill(p, st)
+            else:
+                cvs.fill(p, [white])
+            cvs.stroke(p, [grey])
+        if count in [0, 280, 759-31]:
+            row += 1
+            col = 0
+        else:
+            col += 1
+            if col == COLS:
+                col = 0
+                row += 1
+        count += 1
 
     cvs.writePDFfile("octads.pdf")
     
