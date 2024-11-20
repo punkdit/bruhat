@@ -26,6 +26,9 @@ table = [
     9, 5, 13, 21, 12, 7]
 assert len(set(table)) == N
 
+coords = {idx:(i//6, i%6) for (i,idx) in enumerate(table)}
+
+
 
 def render(vecs):
     print("render", len(vecs))
@@ -85,12 +88,109 @@ class Vec(object):
         return idx in self.idxs
     def sum(self):
         return self.v.sum()
+    def render(self, w, h, sep=0.1, m=0.2):
+        dx = (w-2*sep)/6
+        dy = h/4
+        x0 = y0 = 0. # top left point is (0,0)
+        cvs = Canvas()
+        p = path.rect(x0-m, y0-h-m, w + 2*m, h + 2*m)
+        left = (self*bricks[0]).sum()
+        cl = {8:grey, 2:green.alpha(0.4), 4:blue.alpha(0.4), 0:red.alpha(0.4)}[left]
+        cvs.fill(p, [cl])
+        st = [black]
+        for j, (r,c) in coords.items():
+            if c > 1:
+                c += sep/dx
+            if c > 4:
+                c += sep/dx
+            p = path.rect(x0+c*dx, y0-(r+1)*dy, dx, dy)
+            if j in self:
+                cvs.fill(p, st)
+            else:
+                cvs.fill(p, [white])
+            cvs.stroke(p, [grey])
+        return cvs
+
 
 bricks = [
     Vec(*(table[col + j + 6*row] for row in range(4) for j in [0,1]))
     for col in [0,2,4]
 ]
+
+
+def mk_plot(octads):
+    left = bricks[0]
+    lookup = {o*left:[] for o in octads}
+    for o in octads:
+        lookup[o*left].append(o)
+    print(len(lookup))
+    keys = list(lookup.keys())
+    keys.sort(key = lambda v:-v.sum())
+    print(set(v.sum() for v in keys))
+
+    for v in keys:
+        lookup[v].sort()
+
+    assert left in octads
+    rows = [[left]] # weight 8
+
+    items = [v for v in keys if v.sum() == 4] # weight 4
+    idx = 0
+    while idx < len(items):
+        v = items[idx]
+        w = left + v
+        assert w in items
+        rows.append(lookup[v] + lookup[w])
+        items.remove(w)
+        idx += 1
+
+    items = [v for v in keys if v.sum() == 2] # weight 2
+    for v in items:
+        rows.append(lookup[v])
+
+    items = [v for v in keys if v.sum() == 0] # weight 0
+    for v in items:
+        rows.append(lookup[v])
+
+    w = 2.0
+    h = 1.2
+    cvs = Canvas()
+    for i,row in enumerate(rows):
+        y = -i * 1.7 * h
+        for j,octad in enumerate(row):
+            x = j*1.45*w
+            cvs.insert(x, y, octad.render(w, h))
+
+    cvs.writePDFfile("octads.pdf")
+
         
+def mk_plot_1(octads):
+
+    COLS = 16
+    w = 2.0
+    h = 1.2
+    row = col = 0
+    count = 0
+    cvs = Canvas()
+    for i, octad in enumerate(octads):
+        x0 = col * 1.4 * w
+        y0 = -row * 1.7 * h
+        fg = octad.render(w, h)
+        cvs.insert(x0, y0, fg)
+
+        if count in [0, 280, 759-31]:
+            row += 1
+            col = 0
+        else:
+            col += 1
+            if col == COLS:
+                col = 0
+                row += 1
+        count += 1
+
+    cvs.writePDFfile("octads.pdf")
+    
+
 
 def main():
 
@@ -157,51 +257,6 @@ def main():
 
     mk_plot(octads)
 
-
-def mk_plot(octads):
-    coords = {idx:(i//6, i%6) for (i,idx) in enumerate(table)}
-    print(coords)
-
-    COLS = 16
-    cvs = Canvas()
-    dx = dy = 0.3
-    sep = 0.1
-    w = 6.*dx + 2*sep
-    h = 4*dy
-    m = 0.2
-    row = col = 0
-    count = 0
-    for i,o in enumerate(octads):
-        x0 = col * 9 * dx
-        y0 = -row * 6 * dy
-        p = path.rect(x0-m, y0-h-m, w + 2*m, h + 2*m)
-        left = (o*bricks[0]).sum()
-        cl = {8:grey, 2:green.alpha(0.4), 4:blue.alpha(0.4), 0:red.alpha(0.4)}[left]
-        cvs.fill(p, [cl])
-        st = [black]
-        for j, (r,c) in coords.items():
-            if c > 1:
-                c += sep/dx
-            if c > 4:
-                c += sep/dx
-            p = path.rect(x0+c*dx, y0-(r+1)*dy, dx, dy)
-            if j in o:
-                cvs.fill(p, st)
-            else:
-                cvs.fill(p, [white])
-            cvs.stroke(p, [grey])
-        if count in [0, 280, 759-31]:
-            row += 1
-            col = 0
-        else:
-            col += 1
-            if col == COLS:
-                col = 0
-                row += 1
-        count += 1
-
-    cvs.writePDFfile("octads.pdf")
-    
 
 def get_hecke():
 
