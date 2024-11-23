@@ -205,10 +205,16 @@ def test_atkin_lehner():
 
 
 def main():
-    print(" N=   genus=")
-    for N in range(1,50):
+    # https://oeis.org/A001617
+    if not argv.oeis:
+        print(" N=   genus=")
+    for N in range(1,30):
         genus = get_genus(N)
-        print("%4s       "%N, genus)
+        if argv.oeis:
+            print(genus, end=",", flush=True)
+        else:
+            print("%4s       "%N, genus)
+    print()
 
 
 if __name__ == "__main__":

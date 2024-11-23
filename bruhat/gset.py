@@ -20,7 +20,7 @@ from functools import reduce
 from operator import add, mul
 
 import numpy
-from numpy import alltrue
+from numpy import all as alltrue
 scalar = numpy.int64
 
 from bruhat.algebraic import Algebraic, Matrix
@@ -1328,6 +1328,32 @@ def test_gset():
     #print()
 
     print("OK")
+
+
+def test_fano():
+    G = GL(3, 2)
+    assert len(G) == 168
+
+    #Hs = list(G.subgroups(verbose=True))
+    #print(len(Hs))
+
+    for g in G:
+        if g.order() == 7:
+            break
+    print(g)
+
+    H = Group.generate([g])
+    assert len(H) == 7
+
+    X = G.action_subgroup(H)
+    print(X)
+
+    XX = X*X
+    print(XX)
+
+    orbits = XX.get_orbits()
+    print([len(o) for o in orbits])
+
 
 
 def test_subgroups_only():

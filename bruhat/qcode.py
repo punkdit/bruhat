@@ -12,7 +12,7 @@ from operator import matmul
 import json
 
 import numpy
-from numpy import alltrue, zeros, dot
+from numpy import zeros, dot
 
 from bruhat.util import cross
 from bruhat import solve 
@@ -715,8 +715,8 @@ def build_code(geometry):
     if argv.homology == 1:
         Hz = get_adj(faces, edges)
         Hx = get_adj(verts, edges)
-        print("Hx:")
-        print(shortstr(Hx), Hx.shape)
+        #print("Hx:")
+        #print(shortstr(Hx), Hx.shape)
 
     elif argv.homology == 2:
         Hz = get_adj(bodis, faces)

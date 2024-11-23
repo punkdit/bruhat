@@ -15,7 +15,7 @@ from operator import matmul
 from string import ascii_lowercase
 
 import numpy
-from numpy import alltrue, zeros, dot
+from numpy import zeros, dot
 
 from bruhat.util import cross
 from bruhat import solve 

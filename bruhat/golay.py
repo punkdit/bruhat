@@ -6,54 +6,109 @@ See book by Curtis (2024):
 
 """
 
+from functools import reduce
+from operator import add, mul
+
 import numpy
 
 import pynauty
 
 from bruhat.argv import argv
 from bruhat.solve import parse, dot2, enum2, array2, solve, zeros2
-from bruhat.gset import Perm, Group, mulclose
+from bruhat.gset import Perm, Group, mulclose, GL
 from bruhat.smap import SMap
 
 from huygens.namespace import *
 
-N = 24
-infty = 23
-table = [
-    infty, 0, 11, 1, 22, 2,
-    3, 19, 4, 20, 18, 10,
-    6, 15, 16, 14, 8, 17,
-    9, 5, 13, 21, 12, 7]
-assert len(set(table)) == N
+class Set: # copied from species.py
+    def __init__(self, items=[]):
+        if type(items) is int:
+            assert items <= len(letters)
+            items = letters[:items]
+        #if items:
+        #    tp = type(items[0])
+        #    for item in items:
+        #        assert type(item) is tp
 
-coords = {idx:(i//6, i%6) for (i,idx) in enumerate(table)}
+        items = list(items)
+        try:
+            items.sort() 
+        except TypeError:
+            items.sort(key = str) 
+        except AssertionError:
+            items.sort(key = str) # wup
+
+        self.items = tuple(items)
+        self.set_items = set(items)
+        assert len(self.set_items) == len(self.items), self.items
+
+    def __str__(self):
+        return "{%s}" % (', '.join(str(x) for x in self))
+
+    def __repr__(self):
+        return "Set(%s)"%(str(list(self.items)))
+
+    @classmethod
+    def promote(cls, items):
+        if isinstance(items, Set):
+            return items
+        #if type(items) is GeneratorType:
+        return Set(items)
+
+    def __iter__(self):
+        return iter(self.items)
+
+    def __len__(self):
+        return len(self.items)
+
+    def __contains__(self, item):
+        return item in self.set_items
+
+    def __eq__(a, b):
+        assert isinstance(b, Set), repr(b)
+        return a.items == b.items
+
+    def __ne__(a, b):
+        assert isinstance(b, Set), repr(b)
+        return a.items != b.items
+
+    def __lt__(a, b):
+        assert isinstance(b, Set), repr(b)
+        return a.items < b.items
+
+    def __le__(a, b):
+        assert isinstance(b, Set), repr(b)
+        return a.items < b.items
+
+    def __hash__(self):
+        return hash(self.items)
+
+    def __add__(a, b):
+        # categorical coproduct
+        items = [(0, ai) for ai in a] + [(1, bi) for bi in b]
+        return Set(items)
+
+    def union(a, b):
+        items = a.set_items.union(b.set_items)
+        return Set(items)
+
+    def __mul__(a, b):
+        # categorical product
+        items = [(ai, bi) for ai in a for bi in b]
+        return Set(items)
 
 
+class Struct:
+    def __init__(self, n, partss):
+        self.n = n
+        self.partss
+        
 
-def render(vecs):
-    print("render", len(vecs))
-
-    # 759 == 3*11*23
-    assert len(vecs) == 759
-
-    cvs = Canvas()
-    
-    dx = dy = 0.5
-    for i, v in enumerate(vecs):
-        x = 0
-        y = -i*2*dy
-        for j, vj in enumerate(v):
-            x = j*dx
-            p = path.rect(x, y, dx, dy)
-            if vj:
-                cvs.fill(p)
-            else:
-                cvs.stroke(p)
-
-    cvs.writePDFfile("golay.pdf")
+empty = Set()
+star = Set(["*"])
 
 
-class Vec(object):
+class Vec:
     def __init__(self, *idxs):
         idxs = list(idxs)
         idxs.sort()
@@ -110,6 +165,57 @@ class Vec(object):
                 cvs.fill(p, [white])
             cvs.stroke(p, [grey])
         return cvs
+
+
+
+N = 24
+infty = 23
+table = [
+    infty,  0, 11,  1, 22,  2,
+        3, 19,  4, 20, 18, 10,
+        6, 15, 16, 14,  8, 17,
+        9,  5, 13, 21, 12,  7]
+assert len(set(table)) == N
+
+coords = {idx:(i//6, i%6) for (i,idx) in enumerate(table)}
+
+terns = [
+    [infty, 11, 22],
+    [0, 20, 8],
+    [15, 16, 18],
+    [5, 4, 2],
+    [9, 1, 17],
+    [19, 14, 7],
+    [6, 21, 12],
+    [3, 13, 10]
+]
+
+items = reduce(add, terns)
+assert len(set(items)) == 24
+
+
+def render(vecs):
+    print("render", len(vecs))
+
+    # 759 == 3*11*23
+    assert len(vecs) == 759
+
+    cvs = Canvas()
+    
+    dx = dy = 0.5
+    for i, v in enumerate(vecs):
+        x = 0
+        y = -i*2*dy
+        for j, vj in enumerate(v):
+            x = j*dx
+            p = path.rect(x, y, dx, dy)
+            if vj:
+                cvs.fill(p)
+            else:
+                cvs.stroke(p)
+
+    cvs.writePDFfile("golay.pdf")
+
 
 
 bricks = [
@@ -255,7 +361,7 @@ def main():
 
     octads.sort(key = o_key, reverse=True)
 
-    mk_plot(octads)
+    #mk_plot(octads)
 
 
 def get_hecke():
@@ -304,6 +410,37 @@ def get_hecke():
     print([len(orbit) for orbit in orbits])
 
     # 
+
+
+def test_fano():
+    G = GL(3, 2)
+    assert len(G) == 168
+
+    #Hs = list(G.subgroups(verbose=True))
+    #print(len(Hs))
+
+    found = []
+    for g in G:
+        if g.order() == 7:
+            found.append(g)
+            print(g)
+    print(len(found))
+    return
+
+    H = Group.generate([g])
+    assert len(H) == 7
+
+    X = G.action_subgroup(H)
+    print(X)
+
+    XX = X*X
+    print(XX)
+
+    orbits = XX.get_orbits()
+    print([len(o) for o in orbits])
+
+
+
 
 def main_golay():
     H = parse("""
@@ -427,7 +564,6 @@ if __name__ == "__main__":
 
     print("OK: finished in %.3f seconds"%(time() - start_time))
     print()
-
 
 
 
