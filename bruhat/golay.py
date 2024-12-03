@@ -2,7 +2,7 @@
 
 """
 See book by Curtis (2024):
-"The art of working with the mathieu group M_24"
+"The art of working with the Mathieu group M_24"
 
 """
 
@@ -14,10 +14,15 @@ import numpy
 import pynauty
 
 from bruhat.argv import argv
-from bruhat.solve import parse, dot2, enum2, array2, solve, zeros2
+from bruhat.solve import parse, dot2, enum2, array2, solve, zeros2, shortstr
 from bruhat.gset import Perm, Group, mulclose, GL
 from bruhat.smap import SMap
 
+from huygens import config
+config(text="pdflatex", latex_header=r"""
+\usepackage{amsmath}
+\usepackage{amssymb}
+""")
 from huygens.namespace import *
 
 class Set: # copied from species.py
@@ -117,48 +122,68 @@ class Vec:
         self.v = v
         self.idxs = tuple(idxs)
         self.key = str(v)
+
     def __str__(self):
         return "Vec%s"%(self.idxs,)
     __repr__ = __str__
+
     def __eq__(self, other):
         return self.key == other.key
+
     def __hash__(self):
         return hash(self.key)
+
     def __add__(self, other):
         v = (self.v + other.v)%2
         return Vec(*[i for i in range(N) if v[i]])
+
     def __mul__(self, other):
         v = self.v * other.v
         return Vec(*[i for i in range(N) if v[i]])
+
     def __rmul__(self, g):
         idxs = [g[i] for i in self.idxs]
         return Vec(*idxs)
+
     def __lt__(self, other):
         return self.idxs < other.idxs
+
     #def __getitem__(self, i):
     #    return self.v[i]
+
     def __getitem__(self, i):
-        return self.keys[i]
+        return self.idxs[i]
+
     def __contains__(self, idx):
         return idx in self.idxs
+
     def sum(self):
         return self.v.sum()
-    def render(self, w, h, sep=0.1, m=0.2):
+
+    @classmethod
+    def get_rect(self, idx, w, h, sep=0.1):
         dx = (w-2*sep)/6
         dy = h/4
-        x0 = y0 = 0. # top left point is (0,0)
+        r, c = coords[idx]
+        if c > 1:
+            c += sep/dx
+        if c > 4:
+            c += sep/dx
+        rect = (c*dx, -(r+1)*dy, dx, dy)
+        return rect
+
+    def render(self, w, h, sep=0.1, m=0.15, bg_fill=None):
         cvs = Canvas()
-        p = path.rect(x0-m, y0-h-m, w + 2*m, h + 2*m)
+        p = path.rect(-m, -h-m, w + 2*m, h + 2*m)
         left = (self*bricks[0]).sum()
-        cl = {8:grey, 2:green.alpha(0.4), 4:blue.alpha(0.4), 0:red.alpha(0.4)}[left]
+        if bg_fill is None:
+            cl = {8:grey, 2:green.alpha(0.4), 4:blue.alpha(0.4), 0:red.alpha(0.4)}[left]
+        else:
+            cl = bg_fill
         cvs.fill(p, [cl])
         st = [black]
         for j, (r,c) in coords.items():
-            if c > 1:
-                c += sep/dx
-            if c > 4:
-                c += sep/dx
-            p = path.rect(x0+c*dx, y0-(r+1)*dy, dx, dy)
+            p = path.rect(*self.get_rect(j, w, h, sep))
             if j in self:
                 cvs.fill(p, st)
             else:
@@ -352,7 +377,7 @@ def main():
             smap[coords[i]] = '*' if i in vec.idxs else '.'
         return smap
 
-    print(vstr(bricks[0]))
+    the_octad = bricks[0]
 
     def o_key(v):
         vs = [brick*v for brick in bricks]
@@ -362,6 +387,128 @@ def main():
     octads.sort(key = o_key, reverse=True)
 
     #mk_plot(octads)
+
+    # the miracle octad generator
+    str_mog = """
+    11...1.1 11..1.1. 1.1.1.1. 1.1..1.1 1..1..11 1..111.. 
+             11.1.1.. 111.1... 1..11..1 1.11.1.. 1....111 
+    1..1.1.1 111...1. 11.1...1 1..1.11. 1...11.1 1.11...1
+    1..11.1. 1.1.11.. .1.111.. 1111.... 11...11. 11..1..1
+    1.1..11. 1...1.11 1.111... 11..11.. 111....1 11.1..1.
+    1.1.1..1 1.11..1. 1...111. 11....11 11.11... 111..1..
+    """.strip().split()
+    assert len(str_mog) == 35
+
+    mog = [parse(v) for v in str_mog]
+    items = set()
+    for v in list(mog):
+        assert v.shape == (1,8)
+        u = 1 - v
+        items.add(shortstr(v))
+        items.add(shortstr(u))
+    assert len(items) == 70
+    items = list(items)
+    items.sort()
+    from bruhat.util import choose
+    idxs = list(range(8))
+    for sub in choose(idxs, 4):
+        v = ['.']*8
+        for i in sub:
+            v[i] = '1'
+        assert ''.join(v) in items
+
+    idxs = [infty, 0, 3, 19, 6, 15, 9, 5]
+    idx_mog = [Vec(*[idxs[i] for i in range(8) if v[i]=='1']) for v in str_mog]
+    mog = {Vec(*[idxs[i] for i in range(8) if v[i]=='1']):[] for v in str_mog}
+
+    #lookup = {u : [] for u in mog}
+    for octad in octads:
+        #if octad == the_octad:
+        #    continue
+        u = octad * the_octad
+        if u.sum() != 4:
+            continue
+        v = the_octad + u
+        if u in mog:
+            mog[u].append(octad)
+        elif v in mog:
+            #mog[v].append(octad)
+            pass # don't need these
+        else:
+            assert 0
+
+    for items in mog.values():
+        assert len(items) == 4
+
+    w, h = 3.2, 1.8
+    bg_fill = (0.5*blue + 0.6*white) + 0.1*green
+    print(bg_fill)
+    cvs = Canvas()
+    #for idx,v in enumerate(idx_mog):
+    pos = {}
+    for count in range(36):
+        row = count // 6
+        col = count % 6
+        x,y = 1.5*w*col, -1.7*h*row
+        if count < 6:
+            idx = count
+        elif count == 6:
+            the_pos = x, y
+            continue # see below
+        else:
+            idx = count - 1
+        pos[idx] = x, y
+        v = idx_mog[idx]
+        cvs.insert(x, y, v.render(w, h, bg_fill=bg_fill))
+
+    dx = w/6
+    dy = h/4
+
+    bg_fill = 0.2*red + 0.8*white
+    print(bg_fill)
+    x, y = the_pos
+    cvs.insert(x, y, Vec().render(w, h, bg_fill=bg_fill))
+    #cvs.stroke(path.rect(x, y-h, w, h))
+    #cvs.text(x, y-h, r"$\infty$")
+    for idx,val in coords.items():
+        r, c = val
+        s = str(idx) if idx != 23 else r"$\infty$"
+        x1, y1 = (x + c*dx + 0.08, y - dy*(r+1) + 0.1)
+        if len(s) == 1:
+            x1 += 0.15
+        #rect = Vec.get_rect(idx, w, h)
+        #x1, y1 = rect[:2]
+        cvs.text(x1, y1, s)
+
+    sep = 0.1
+    dx = (w-2*sep)/6
+    dy = h/4
+
+    mask = bricks[1] + bricks[2]
+    cls = [black, white, blue, green]
+    for (u,items) in mog.items():
+        idx = idx_mog.index(u)
+        #print(idx, pos[idx])
+        x, y = pos[idx]
+        assert len(items) == 4
+        items.sort(key = lambda v:11 not in v)
+        for i,v in enumerate(items):
+            v = v*mask
+            #print("\t", v.idxs)
+            for idx in v.idxs:
+                r = Vec.get_rect(idx, w, h)
+                x1, y1 = r[:2]
+                #cvs.text(x+x1, y+y1, str(idx))
+                mx, my = x+x1+0.5*dx, y+y1+0.5*dy
+                if i==0:
+                    cvs.fill(path.rect(x+x1, y+y1, 0.96*dx, 0.96*dy))
+                elif i==2:
+                    cvs.fill(path.circle(mx, my, 0.25*dx))
+                elif i==3:
+                    cvs.stroke(path.circle(mx, my, 0.25*dx))
+
+
+    cvs.writePDFfile("mog.pdf")
 
 
 def get_hecke():
