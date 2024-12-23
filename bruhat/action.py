@@ -1066,7 +1066,7 @@ class Group(object):
         perms = list(set(H.perms+J.perms))
         return cls.generate(perms)
     
-    def conjugacy_subgroups(G, Hs=None):
+    def conjugacy_subgroups(G, Hs=None, sort=False):
     
         # Find all conjugacy classes of subgroups
     
@@ -1101,7 +1101,8 @@ class Group(object):
                 H.conjugates = list(equ.items)
         #print "total:", len(equs)
         Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
-        #Hs.sort(key = lambda H : (-len(H), H.str()))
+        if sort:
+            Hs.sort(key = lambda H : (-len(H), H.str()))
         return Hs
 
     # | | | | | |                                       | | | | 
