@@ -16,8 +16,9 @@ see also: set.py ?
 """
 
 
-from functools import reduce
+from functools import reduce, cache
 from operator import add, mul
+from string import ascii_letters
 
 import numpy
 from numpy import all as alltrue
@@ -26,6 +27,7 @@ scalar = numpy.int64
 from bruhat.algebraic import Algebraic, Matrix
 from bruhat.util import factorial, cross, is_prime
 from bruhat.action import mulclose
+from bruhat.equ import Equ
 from bruhat.argv import argv
 
 
@@ -567,6 +569,44 @@ class Group(object):
         self._subgroups = items
         #return list(items)
 
+    @cache
+    def conjugacy_subgroups(G, Hs=None, sort=False, verbose=False):
+
+        # Find all conjugacy classes of subgroups
+
+        if Hs is None:
+            Hs = list(G.subgroups(verbose=verbose))
+
+        #print("conjugacy_subgroups: subgroups", len(Hs))
+
+        equs = dict((H1, Equ(H1)) for H1 in Hs)
+        for H1 in Hs:
+            for g in G:
+                if g in H1:
+                    continue
+                H2 = H1.conjugate(g)
+                #print("%s == %s ? %s" % (H2, H1, H2==H1))
+                if H2 == H1:
+                    continue
+                else:
+                    #print len(H1), "~", len(H2)
+                    if H2 not in equs:
+                        equs[H2] = Equ(H2)
+                    equs[H1].merge(equs[H2])
+
+        # get equivalance classes
+        equs = list(set(equ.top for equ in equs.values()))
+        equs.sort(key = lambda equ : (-len(equ.items[0]), equ.items[0]._str))
+        for equ in equs:
+            #print "equ:", [len(H) for H in equ.items]
+            for H in equ.items:
+                H.conjugates = list(equ.items)
+        #print "total:", len(equs)
+        Hs = [equ.items[0] for equ in equs] # pick unique (up to conjugation)
+        if sort:
+            Hs.sort(key = lambda H : (-len(H), H._str))
+        return Hs
+
     def conjugate(G, g):
         gi = ~g
         perms = [g*h*gi for h in G]
@@ -718,6 +758,7 @@ class GSet(object):
         return Group(stab)
 
     def get_orbits(self):
+        #print("get_orbits", self)
         src = self.src
         tgt = self.tgt
         send_perms = self.send_perms
@@ -826,8 +867,10 @@ class GSet(object):
         send_left = left.send_perms
         send_right = right.send_perms
         perms = []
+        lookup = {}
         lrank = left.rank
         rrank = right.rank
+        send_perms = []
         for idx, p in enumerate(G):
             l = left.tgt[send_left[idx]]
             r = right.tgt[send_right[idx]]
@@ -838,9 +881,12 @@ class GSet(object):
             perm = perm.copy()
             perm.shape = lrank*rrank
             perm = Perm(perm)
-            perms.append(perm)
+            if perm not in lookup:
+                lookup[perm] = len(perms)
+                perms.append(perm)
+            send_perms.append(lookup[perm])
         tgt = Group(perms)
-        gset = GSet(G, tgt)
+        gset = GSet(G, tgt, send_perms)
         send_items = [i for i in range(lrank) for j in range(rrank)]
         p_left = Hom(gset, left, send_items)
         send_items = [j for i in range(lrank) for j in range(rrank)]
@@ -1153,8 +1199,8 @@ def GL(n=3, p=2):
     for g in G:
         X.add(g*v)
     X = list(X)
-    for x in X:
-        print(x)
+    #for x in X:
+    #    print(x)
     G = Group.from_action(G, X)
     return G
 
@@ -1334,8 +1380,19 @@ def test_fano():
     G = GL(3, 2)
     assert len(G) == 168
 
-    #Hs = list(G.subgroups(verbose=True))
-    #print(len(Hs))
+    #G = Group.symmetric(3)
+
+    Hs = list(G.subgroups(verbose=True))
+    assert len(Hs) == 179
+
+    Hs = G.conjugacy_subgroups(verbose=True)
+    assert len(Hs) == 15
+
+    print("Hs:", len(Hs))
+    for H in Hs:
+        print(H)
+
+    return
 
     for g in G:
         if g.order() == 7:
@@ -1353,7 +1410,6 @@ def test_fano():
 
     orbits = XX.get_orbits()
     print([len(o) for o in orbits])
-
 
 
 def test_subgroups_only():
@@ -1536,6 +1592,72 @@ def test_orbits():
             print(len(Y.get_orbits()), end=" ", flush=True)
         print()
     print("done")
+
+
+def test_hecke():
+    G = Group.alternating(4)
+    #G = GL(3,2)
+    Hs = G.conjugacy_subgroups(verbose=True)
+    print("conjugacy_subgroups:", len(Hs))
+
+    Xs = []
+    for i,H in enumerate(Hs):
+        print(H, end=" ")
+        X = G.action_subgroup(H)
+        print(X)
+        X.name = ascii_letters[i]
+        Xs.append(X)
+
+    def get_name(XY):
+        names = []
+        for nat in XY.get_atoms():
+            Z = nat.src
+            name = None
+            for X in Xs:
+                if nat.src.isomorphic(X):
+                    assert name is None
+                    name = X.name
+            assert name is not None
+            names.append(name)
+        unique = list(set(names))
+        unique.sort()
+        name = '+'.join("%d*%s"%(names.count(name),name) for name in unique)
+        #return "+".join(names)
+        name = name.replace("+1*", "+")
+        if name.startswith("1*"):
+            name = name[2:]
+        return name
+
+    def get_hecke(cone):
+        left, right = cone.legs
+        XY = cone.apex
+        m = left.tgt.rank
+        n = right.tgt.rank
+        print(left)
+        print(right)
+        for nat in XY.get_atoms():
+            Z = nat.src
+            M = numpy.zeros((m,n), dtype=int)
+            print(Z.rank)
+            for u in range(Z.rank):
+                v = nat.send_items[u]
+                i = left.send_items[v]
+                j = right.send_items[v]
+                M[i,j] = 1
+            print(shortstr(M))
+            print()
+        print()
+
+    N = len(Xs)
+    for i in range(N):
+      for j in range(i, N):
+        X, Y = Xs[i], Xs[j]
+        cone = X.mul(Y)
+        XY = cone.apex
+        #print("%s*%s=%s"%(X.name, Y.name, get_name(XY)), end="  ")
+        #print()
+
+        M = get_hecke(cone)
 
 
 def test():

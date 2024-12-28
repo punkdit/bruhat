@@ -1,0 +1,383 @@
+#!/usr/bin/env python
+
+
+"""
+copied & modified from quantale.py 
+
+"""
+
+
+import sys, os
+import random
+from functools import reduce, lru_cache
+cache = lru_cache(maxsize=None)
+
+from operator import add, mul
+from string import ascii_letters
+
+import numpy
+
+from bruhat.gset import Group, Perm, GL
+from bruhat.solve import shortstr
+from bruhat.smap import SMap
+from bruhat.argv import argv
+
+
+class Space:
+    "just a finite set of points"
+    def __init__(self, n, name="?"):
+        assert n >= 0
+        self.n = n
+        self.name = name
+
+    def __str__(self):
+        return self.name
+    __repr__ = __str__
+
+    def __len__(self):
+        return self.n
+
+    def __getitem__(self, i):
+        assert 0<=i
+        if i < self.n:
+            return i
+        raise IndexError
+
+    def get_identity(self):
+        A = numpy.identity(self.n, dtype=int)
+        return Relation(A, self, self)
+
+assert list(Space(3)) == [0,1,2]
+
+
+class Relation:
+    "a matrix relation between left and right sets"
+    def __init__(self, A, left, right):
+        assert isinstance(left, Space)
+        assert isinstance(right, Space)
+        m = len(left)
+        n = len(right)
+        assert A.shape == (m, n), "%s != %s"%(A.shape, (m,n))
+        assert 0 <= A.min()
+        assert A.max() <= 1
+
+        #assert A.dtype == numpy.int64
+        #A = A.astype(numpy.int16) # faster but take care with overflow !!!
+        self.A = A
+        self.left = left
+        self.right = right
+        self.hom = (left, right)
+        self.shape = A.shape
+        self.homstr = "%s<--%s"%(left, right)
+
+    @cache
+    def get_llookup(self):
+        llookup = {fig:i for (i, fig) in enumerate(self.left)}
+        return llookup
+
+    @cache
+    def get_rlookup(self):
+        rlookup = {fig:i for (i, fig) in enumerate(self.right)}
+        return rlookup
+
+    @classmethod
+    def top(cls, left, right):
+        m = len(left)
+        n = len(right)
+        A = numpy.zeros((m, n), dtype=int)
+        A[:] = 1
+        return cls(A, left, right)
+
+    @classmethod
+    def bot(cls, left, right):
+        m = len(left)
+        n = len(right)
+        A = numpy.zeros((m, n), dtype=int)
+        return cls(A, left, right)
+
+    @classmethod
+    def identity(cls, items):
+        m = len(items)
+        A = numpy.identity(m, dtype=int)
+        return cls(A, items, items)
+
+    def __str__(self):
+        return shortstr(self.A, keepshape=True)+(" (%s <-- %s)"%(self.left, self.right))
+
+    def __eq__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        return numpy.all(self.A==other.A)
+
+    def __hash__(self):
+        key = (
+            id(self.left),
+            id(self.right),
+            hash(self.A.tobytes()))
+        return hash(key)
+
+    def __lt__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        return numpy.all(self.A<=other.A) and not numpy.all(self.A==other.A)
+
+    def __le__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        return numpy.all(self.A<=other.A)
+
+    def __add__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        A = self.A + other.A
+        A = numpy.clip(A, 0, 1)
+        return Relation(A, self.left, self.right)
+    __or__ = __add__
+
+    def __xor__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        A = (self.A + other.A) % 2
+        return Relation(A, self.left, self.right)
+
+    def __sub__(self, other):
+        assert self.left is other.left
+        assert self.right is other.right
+        A = self.A - other.A
+        A = numpy.clip(A, 0, 1)
+        return Relation(A, self.left, self.right)
+
+    def __neg__(self):
+        A = 1 - self.A
+        A = numpy.clip(A, 0, 1)
+        return Relation(A, self.left, self.right)
+
+    def __and__(self, other): # ??
+        assert self.left is other.left
+        assert self.right is other.right
+        A = self.A * other.A
+        return Relation(A, self.left, self.right)
+
+    def __mul__(self, other):
+        if isinstance(other, Relation):
+            assert self.right is other.left
+            A = numpy.dot(self.A, other.A)
+            A = numpy.clip(A, 0, 1)
+            return Relation(A, self.left, other.right)
+        else:
+            return self.get_left(other)
+
+    def __rmul__(self, left):
+        return self.get_right(left)
+
+    @cache
+    def transpose(self):
+        A = self.A.transpose()
+        A = A.copy() # clean up tobytes
+        op = Relation(A, self.right, self.left)
+        return op
+    __invert__ = transpose
+
+    @property
+    def op(self):
+        return self.transpose()
+
+    # because we use object identity for __eq__, __hash__
+    #the_star = ["*"]
+    the_star = Space(1)
+
+    def get_right(self, left):
+        llookup = self.get_llookup()
+        lidx = llookup[left]
+        row = self.A[lidx, :]
+        #print(row)
+        ridxs = numpy.where(row)[0]
+        #print(ridxs)
+        right = self.right
+        A = numpy.zeros((1, len(right)), dtype=int)
+        A[0, ridxs] = 1
+        return Relation(A, Relation.the_star, self.right)
+        #figs = [right[ridx] for ridx in ridxs]
+        #return figs
+
+    def get_left(self, fig):
+        op = self.transpose()
+        return op.get_right(fig).transpose()
+
+    def nnz(self):
+        return self.A.sum()
+
+    def items(self):
+        A = self.A
+        for idx in zip(*numpy.where(A)):
+            i, j = idx
+            yield self.left[i], self.right[j]
+
+
+
+
+class Geometry:
+    def __init__(self, G):
+        Hs = G.conjugacy_subgroups(verbose=True)
+        print("Geometry.__init__: conjugacy_subgroups:", len(Hs))
+    
+        Xs = []
+        for i,H in enumerate(Hs):
+            #print(H, end=" ")
+            X = G.action_subgroup(H)
+            X.name = ascii_letters[i]
+            X.space = Space(X.rank, X.name)
+            Xs.append(X)
+        self.G = G
+        self.Hs = Hs
+        self.Xs = Xs
+        self.spaces = [X.space for X in Xs]
+        #self.build_homs()
+
+    def get_X(self, Y):
+        for X in self.Xs:
+            if X.isomorphic(Y):
+                return X
+        assert 0
+
+    def get_name(self, XY):
+        Xs = self.Xs
+        names = []
+        for nat in XY.get_atoms():
+            Z = nat.src
+            name = None
+            for X in Xs:
+                if nat.src.isomorphic(X):
+                    assert name is None
+                    name = X.name
+            assert name is not None
+            names.append(name)
+        unique = list(set(names))
+        unique.sort()
+        name = '+'.join("%d*%s"%(names.count(name),name) for name in unique)
+        #return "+".join(names)
+        name = name.replace("+1*", "+")
+        if name.startswith("1*"):
+            name = name[2:]
+        return name
+
+    def get_hecke(self, cone):
+        left, right = cone.legs
+        XY = cone.apex
+        m = left.tgt.rank
+        n = right.tgt.rank
+        l = self.get_X(left.tgt)
+        r = self.get_X(right.tgt)
+        rels = []
+        for nat in XY.get_atoms():
+            Z = nat.src
+            M = numpy.zeros((m,n), dtype=int)
+            for u in range(Z.rank):
+                v = nat.send_items[u]
+                i = left.send_items[v]
+                j = right.send_items[v]
+                M[i,j] = 1
+            rel = Relation(M, l.space, r.space)
+            rels.append(rel)
+        return rels
+
+    @property
+    @cache
+    def homs(self):
+        homs = {}
+        Xs = self.Xs
+        N = len(Xs)
+        for i in range(N):
+          for j in range(N):
+            X, Y = Xs[i], Xs[j]
+            cone = X.mul(Y)
+            rels = self.get_hecke(cone)
+            homs[X.space, Y.space] = rels
+        #self.homs = homs
+        return homs
+
+
+
+
+def check_geometry(geometry):
+    homs = geometry.homs
+    pairs = lambda hom : [(r,s) for r in hom for s in hom]
+    for a in geometry.spaces:
+        ai = a.get_identity()
+        a_a = homs[a,a]
+        for r in a_a:
+            assert r*ai == r
+            assert ~ ~r == r
+        for r,s in pairs(a_a):
+            assert ~(r*s) == (~s)*(~r)
+            assert (~r)*(-(r*s)) + -s == -s
+            for t in a_a:
+                assert r+(s+t) == (r+s)+t
+                assert r*(s*t) == (r*s)*t
+                assert (r+s)*t == r*t + s*t
+
+    for a in geometry.spaces:
+      for b in geometry.spaces:
+        a_b = homs[a,b]
+        for r,s in pairs(a_b):
+            assert r+s == s+r
+            assert -(-r + s) + -(-r+ -s) == r
+            assert ~(r+s) == (~r)+(~s)
+            assert r & s == -(-r + -s)
+            assert r - s == r & (-s)
+            assert r ^ s == (r-s) + (s-r)
+
+    for a in geometry.spaces:
+      for b in geometry.spaces:
+        for c in geometry.spaces:
+            b_a = homs[b,a]
+            c_b = homs[c,b]
+            for r in c_b:
+              for s in b_a:
+                assert ~(r*s) == ~s * ~r
+                assert (~r)*(-(r*s)) + -s == -s
+                for t in b_a:
+                    assert r*(s+t) == r*s + r*t
+            for d in geometry.spaces:
+                d_c = homs[d,c]
+                for t in d_c:
+                    assert t*(r*s) == (t*r)*s
+
+    print("OK", geometry.G)
+
+            
+def test_hecke():
+    G = Group.alternating(4)
+    geometry = Geometry(G)
+    check_geometry(geometry)
+
+    return
+
+    G = Group.alternating(5)
+    #G = GL(3,2)
+
+    geometry = Geometry(G)
+    geometry.homs
+
+
+
+
+
+if __name__ == "__main__":
+    from time import time
+    start_time = time()
+
+    fn = argv.next() or "main"
+
+    if argv.profile:
+        import cProfile as profile
+        profile.run("%s()"%fn)
+    else:
+        fn = eval(fn)
+        fn()
+
+    print("finished in %.3f seconds.\n"%(time() - start_time))
+
+    
+
+    

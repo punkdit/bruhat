@@ -119,13 +119,13 @@ def parse(s):
     return a
 
 
-def shortstr(A, deco=False, zero='.'):
+def shortstr(A, deco=False, zero='.', keepshape=False):
     A = array2(A)
     A = A.view()
     assert len(A.shape)<=2
     if len(A.shape)==1:
         A.shape = (1, A.shape[0])
-    if 1 in A.shape:
+    if 1 in A.shape and not keepshape:
         A.shape = (1, A.shape[0]*A.shape[1])
     m, n = A.shape
     rows = []

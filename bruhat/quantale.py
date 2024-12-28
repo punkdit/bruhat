@@ -909,8 +909,8 @@ def test_hecke_Sp():
     for op in ops:
         #print(shortstr(op.A))
         #print(op.A.sum())
-        for other in op.get_right(fig):
-            print(other)
+        other = op.get_right(fig)
+        print(other)
         print()
 
 
