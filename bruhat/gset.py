@@ -13,6 +13,8 @@ We really should have a class for each set, and to typechecking
 as in lin.py with the Space class etc...
 
 see also: set.py ?
+
+see also: relation.py
 """
 
 
@@ -1592,72 +1594,6 @@ def test_orbits():
             print(len(Y.get_orbits()), end=" ", flush=True)
         print()
     print("done")
-
-
-def test_hecke():
-    G = Group.alternating(4)
-    #G = GL(3,2)
-    Hs = G.conjugacy_subgroups(verbose=True)
-    print("conjugacy_subgroups:", len(Hs))
-
-    Xs = []
-    for i,H in enumerate(Hs):
-        print(H, end=" ")
-        X = G.action_subgroup(H)
-        print(X)
-        X.name = ascii_letters[i]
-        Xs.append(X)
-
-    def get_name(XY):
-        names = []
-        for nat in XY.get_atoms():
-            Z = nat.src
-            name = None
-            for X in Xs:
-                if nat.src.isomorphic(X):
-                    assert name is None
-                    name = X.name
-            assert name is not None
-            names.append(name)
-        unique = list(set(names))
-        unique.sort()
-        name = '+'.join("%d*%s"%(names.count(name),name) for name in unique)
-        #return "+".join(names)
-        name = name.replace("+1*", "+")
-        if name.startswith("1*"):
-            name = name[2:]
-        return name
-
-    def get_hecke(cone):
-        left, right = cone.legs
-        XY = cone.apex
-        m = left.tgt.rank
-        n = right.tgt.rank
-        print(left)
-        print(right)
-        for nat in XY.get_atoms():
-            Z = nat.src
-            M = numpy.zeros((m,n), dtype=int)
-            print(Z.rank)
-            for u in range(Z.rank):
-                v = nat.send_items[u]
-                i = left.send_items[v]
-                j = right.send_items[v]
-                M[i,j] = 1
-            print(shortstr(M))
-            print()
-        print()
-
-    N = len(Xs)
-    for i in range(N):
-      for j in range(i, N):
-        X, Y = Xs[i], Xs[j]
-        cone = X.mul(Y)
-        XY = cone.apex
-        #print("%s*%s=%s"%(X.name, Y.name, get_name(XY)), end="  ")
-        #print()
-
-        M = get_hecke(cone)
 
 
 def test():
