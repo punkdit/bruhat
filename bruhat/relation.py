@@ -105,8 +105,8 @@ class Relation:
         return shortstr(self.A, keepshape=True)+(" (%s <-- %s)"%(self.left, self.right))
 
     def __eq__(self, other):
-        assert self.left is other.left
-        assert self.right is other.right
+        assert self.left is other.left, (self.left, other.left)
+        assert self.right is other.right, (self.right, other.right)
         return numpy.all(self.A==other.A)
 
     def __hash__(self):
@@ -217,9 +217,14 @@ class Relation:
 
 
 class Geometry:
-    def __init__(self, G):
-        Hs = G.conjugacy_subgroups(verbose=True)
-        print("Geometry.__init__: conjugacy_subgroups:", len(Hs))
+    def __init__(self, G, cgy=True, verbose=False):
+        if cgy:
+            Hs = G.conjugacy_subgroups(verbose=verbose)
+        else:
+            Hs = list(G.subgroups(verbose=verbose))
+            Hs.sort(key = lambda H:-len(H))
+        if verbose:
+            print("Geometry.__init__:", len(Hs))
     
         Xs = []
         for i,H in enumerate(Hs):
@@ -266,8 +271,12 @@ class Geometry:
         XY = cone.apex
         m = left.tgt.rank
         n = right.tgt.rank
-        l = self.get_X(left.tgt)
-        r = self.get_X(right.tgt)
+        lspace = left.tgt.space
+        rspace = right.tgt.space
+        #if lspace is None:
+        #    lspace = self.get_X(left.tgt).space
+        #if rspace is None:
+        #    rspace = self.get_X(right.tgt).space
         rels = []
         for nat in XY.get_atoms():
             Z = nat.src
@@ -277,7 +286,7 @@ class Geometry:
                 i = left.send_items[v]
                 j = right.send_items[v]
                 M[i,j] = 1
-            rel = Relation(M, l.space, r.space)
+            rel = Relation(M, lspace, rspace)
             rels.append(rel)
         return rels
 
@@ -343,21 +352,91 @@ def check_geometry(geometry):
                 for t in d_c:
                     assert t*(r*s) == (t*r)*s
 
-    print("OK", geometry.G)
+    print("check_geometry:", geometry.G, "OK")
 
             
 def test_hecke():
-    G = Group.alternating(4)
+    G = Group.alternating(4) # 5 spaces
     geometry = Geometry(G)
     check_geometry(geometry)
 
-    return
+    #return
 
-    G = Group.alternating(5)
+    G = Group.alternating(5) # 9 spaces
+    G = Group.symmetric(4)   # 11 spaces
+    #G = Group.symmetric(3)   # 4 spaces
     #G = GL(3,2)
 
-    geometry = Geometry(G)
-    geometry.homs
+    geometry = Geometry(G, True)
+    homs = geometry.homs
+    spaces = geometry.spaces
+    Hs = geometry.Hs
+    lookup = {(X.name, Y.name):homs[X,Y] for X in spaces for Y in spaces}
+    print(geometry.spaces, len(geometry.spaces))
+    print()
+
+    M = []
+
+    tom = SMap()
+    hecke = SMap()
+    nu = SMap()
+    for j,space in enumerate(spaces):
+        tom[0, 3*j] = "%2s"%space.name
+        tom[1+j, 3*len(spaces)+1] = space.name
+    hecke = tom.copy()
+    nu = tom.copy()
+    table = tom.copy()
+    for i,u in enumerate(spaces):
+      for j,v in enumerate(spaces):
+        hecke[1+i, 3*j] = "%2s"%(len(homs[u,v]))
+        count = len([f for f in homs[u,v] if f.op*f==v.get_identity()])
+        table[1+j, 3*i] = "%2s"%(count if count else ".")
+    #for j,H in enumerate(Hs):
+    #    conjs = {H.conjugate(g) for g in G}
+    #    for i,K in enumerate(Hs):
+    #        count = len([h for h in conjs if K.is_subgroup(h)])
+    #        nu[1+i, 3*j] = "%2s"%(count if count else ".")
+    for i,X in enumerate(geometry.Xs):
+        sig = X.signature(Hs)
+        #print("".join([" %2s"%(i if i else ".") for i in sig]))
+        for j,u in enumerate(sig):
+            tom[1+i, 3*j] = "%2s"%(u if u else ".")
+        M.append(list(sig))
+    
+    print(tom)
+    print()
+    print(hecke)
+    print()
+    #print(nu)
+    #print()
+    print(table)
+    print()
+
+    assert tom == table
+
+    from sage.all_cmdline import matrix
+    M = matrix(M)
+    #U = M.inverse()
+    #print(len(G)*U)
+    #print(M*M)
+
+    return
+
+    if len(spaces) == 5:
+        a, b, c, d, e = spaces
+        for f in homs[d,c]:
+            print(f)
+            print()
+            print(f.op * f)
+            print()
+    if len(spaces) == 9:
+        a, b, c, d, e, f, g, h, i = spaces
+        for f in homs[h,d]:
+            #print(f)
+            #print()
+            print(f.op * f == d.get_identity())
+            #print()
+
 
 
 

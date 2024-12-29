@@ -5,10 +5,16 @@ import fcntl, termios, struct, os
 
 
 class SMap(object):
-    def __init__(self):
-        self.data = {}
-        self.rows = 0
-        self.cols = 0
+    def __init__(self, data={}, rows=0, cols=0):
+        self.data = dict(data)
+        self.rows = rows
+        self.cols = cols
+
+    def copy(self):
+        return SMap(self.data, self.rows, self.cols)
+
+    def __eq__(self, other):
+        return self.data == other.data
 
     def __setitem__(self, key, s):
         i, j = key
