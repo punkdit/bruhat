@@ -1,8 +1,177 @@
 #!/usr/bin/env python
 
 
-"""
-copied & modified from quantale.py 
+#  copied & modified from quantale.py 
+
+discussion = """
+
+I was calling this bicategory a "relational algebroid"
+because Tarski's axioms easily generalize to the
+many-object setting. There's also this Hoffnung
+paper, https://arxiv.org/abs/1007.1931 where he
+calls it the Hecke bicategory. 
+
+The objects are the finite G-sets, and the morphisms
+are the Hecke relations. (This could be generalized
+to groupoids and spans, which is what we talked about
+back in January of 2024.)
+
+Anyway, back to our old friend the categorified Gram-Schmidt process
+https://ncatlab.org/nlab/show/Gram-Schmidt+process#CategorifiedGramSchmidtProcess
+
+the matrix of hom's there is:
+
+1 1 1  1  1
+1 2 2  3  4
+1 2 3  4  6
+1 3 4  7 12
+1 4 6 12 24
+
+these numbers count the primitive (atomic) Hecke relations between S_4-sets
+corresponding to the parabolic subgroups of S_4. 
+
+Let's name the objects A,D,E,I,K :
+
+ A  D  E  I  K   
+ 1  1  1  1  1  A
+ 1  2  2  3  4  D
+ 1  2  3  4  6  E
+ 1  3  4  7 12  I
+ 1  4  6 12 24  K
+
+For example, hom(D,I) has 3 atomic Hecke relations,
+and so the entire hom(D,I) is then a boolean algebra with 2^3=8 elements.
+
+Of particular interest are the Hecke injections.
+These are the f in hom(D,I) such that f^t.f = 1_D.
+It turns out that 2 of the 3 Hecke relations are injections.
+Here is a table showing just the Hecke injections:
+
+ A  D  E  I  K   
+ 1  1  1  1  1  A
+ .  1  .  2  4  D
+ .  .  2  2  6  E
+ .  .  .  2 12  I
+ .  .  .  . 24  K
+
+When you do this for all the subgroups of S_4, not just the
+parabolics, you get 11 objects (up to isomorphism), and the
+corresponding table is called the table of marks.
+Here it is:
+
+ A  B  C  D  E  F  G  H  I  J  K   
+ 1  1  1  1  1  1  1  1  1  1  1  A *
+ .  2  .  .  .  2  .  2  .  2  2  B
+ .  .  1  .  1  3  1  .  1  3  3  C
+ .  .  .  1  .  .  .  1  2  .  4  D *
+ .  .  .  .  2  .  .  .  2  2  6  E *
+ .  .  .  .  .  6  .  .  .  6  6  F
+ .  .  .  .  .  .  2  .  .  2  6  G
+ .  .  .  .  .  .  .  2  .  .  8  H
+ .  .  .  .  .  .  .  .  2  . 12  I *
+ .  .  .  .  .  .  .  .  .  4 12  J
+ .  .  .  .  .  .  .  .  .  . 24  K *
+
+Or rather, this is a conjecture that I don't know how to prove.
+(The usual definition of this table is different, but it's
+probably just a three line proof to show equivalence..)
+
+I haven't yet explained why the table of marks is so important...
+
+One question I might ask: do these Hecke injections form a sub-bicategory
+of the Hecke bicategory somehow? 
+
+from zelim.py:
+    D_8:
+      | A B  C  D  E    F    G  H
+    --+----------------------------
+    A | A B  C  D  E    F    G  H
+    B | B 2B G  G  2E   H    2G 2H
+    C | C G  2C G  H    2F   2G 2H
+    D | D G  G  2D H    H    2G 2H
+    E | E 2E H  H  2E+H 2H   2H 4H
+    F | F H  2F H  2H   2F+H 2H 4H
+    G | G 2G 2G 2G 2H   2H   4G 4H
+    H | H 2H 2H 2H 4H   4H   4H 8H
+
+    not the same letters as follows >>>
+    swap G<->F
+
+    
+[Space(1, 'A'), Space(2, 'B'), Space(2, 'C'), Space(2, 'D'),
+Space(4, 'E'), Space(4, 'F'), Space(4, 'G'), Space(8, 'H')] 8
+
+ A  B  C  D  E  F  G  H
+ 1  1  1  1  1  1  1  1  A
+ 1  2  1  1  2  2  1  2  B
+ 1  1  2  1  1  2  2  2  C
+ 1  1  1  2  1  2  1  2  D
+ 1  2  1  1  3  2  2  4  E
+ 1  2  2  2  2  4  2  4  F
+ 1  1  2  1  2  2  3  4  G
+ 1  2  2  2  4  4  4  8  H
+
+the table of marks (tom):
+ A  B  C  D  E  F  G  H
+ 1  1  1  1  1  1  1  1  A
+ .  2  .  .  2  2  .  2  B
+ .  .  2  .  .  2  2  2  C
+ .  .  .  2  .  2  .  2  D
+ .  .  .  .  2  .  .  4  E
+ .  .  .  .  .  4  .  4  F
+ .  .  .  .  .  .  2  4  G
+ .  .  .  .  .  .  .  8  H
+
+Multiplication in the burnside ring *is* 
+just pointwise multiplying the rows in the tom
+
+So:
+E*F = 
+ .  .  .  .  2  .  .  4  E
+ .  .  .  .  .  4  .  4  F
+=
+ .  .  .  .  .  .  . 16  
+= 2*H
+
+C*D =
+ .  .  2  .  .  2  2  2  C
+ .  .  .  2  .  2  .  2  D
+=
+ .  .  .  .  .  4  .  4  F
+
+E*E =
+ .  .  .  .  2  .  .  4  E
+ .  .  .  .  2  .  .  4  E
+=
+ .  .  .  .  4  .  . 16
+= 2*E + H
+
+
+Back to the parabolic subgroups of S_4:
+
+ A  D  E  I  K   
+ 1  1  1  1  1  A
+ .  1  .  2  4  D
+ .  .  2  2  6  E
+ .  .  .  2 12  I
+ .  .  .  . 24  K
+
+we can read off products:
+D*D = 
+ .  1  .  4 16 = D+I
+D*E = 2*I
+D*I = 2*I+K
+etc.
+
+somehow we get a sub-burnside ring from just ADEIK:
+ *        *  *           *     * 
+ A  B  C  D  E  F  G  H  I  J  K   
+ 1  1  1  1  1  1  1  1  1  1  1  A *
+ .  .  .  1  .  .  .  1  2  .  4  D *
+ .  .  .  .  2  .  .  .  2  2  6  E *
+ .  .  .  .  .  .  .  .  2  . 12  I *
+ .  .  .  .  .  .  .  .  .  . 24  K *
+the missing columns (BCFGHJ) become redundant...
 
 """
 
@@ -13,7 +182,8 @@ from functools import reduce, lru_cache
 cache = lru_cache(maxsize=None)
 
 from operator import add, mul
-from string import ascii_letters
+from string import ascii_uppercase, ascii_lowercase
+ascii_letters = ascii_uppercase + ascii_lowercase
 
 import numpy
 
@@ -25,14 +195,18 @@ from bruhat.argv import argv
 
 class Space:
     "just a finite set of points"
-    def __init__(self, n, name="?"):
+    def __init__(self, n, name="?", **kw):
         assert n >= 0
         self.n = n
         self.name = name
+        self.__dict__.update(kw)
 
     def __str__(self):
         return self.name
-    __repr__ = __str__
+    #__repr__ = __str__
+
+    def __repr__(self):
+        return "Space(%s, %r)"%(self.n, self.name)
 
     def __len__(self):
         return self.n
@@ -51,7 +225,7 @@ assert list(Space(3)) == [0,1,2]
 
 
 class Relation:
-    "a matrix relation between left and right sets"
+    "a (matrix) boolean relation between left and right spaces"
     def __init__(self, A, left, right):
         assert isinstance(left, Space)
         assert isinstance(right, Space)
@@ -61,8 +235,6 @@ class Relation:
         assert 0 <= A.min()
         assert A.max() <= 1
 
-        #assert A.dtype == numpy.int64
-        #A = A.astype(numpy.int16) # faster but take care with overflow !!!
         self.A = A
         self.left = left
         self.right = right
@@ -217,9 +389,14 @@ class Relation:
 
 
 class Geometry:
+    """
+    The Hecke algebroid for a finite group G.
+    This is a category with objects the transitive G-sets G/H,
+    and morphisms the Hecke operators G/K <-- G/H.
+    """
     def __init__(self, G, cgy=True, verbose=False):
         if cgy:
-            Hs = G.conjugacy_subgroups(verbose=verbose)
+            Hs = G.conjugacy_subgroups(verbose=verbose, sort=True)
         else:
             Hs = list(G.subgroups(verbose=verbose))
             Hs.sort(key = lambda H:-len(H))
@@ -231,7 +408,7 @@ class Geometry:
             #print(H, end=" ")
             X = G.action_subgroup(H)
             X.name = ascii_letters[i]
-            X.space = Space(X.rank, X.name)
+            X.space = Space(X.rank, X.name, X=X, H=H)
             Xs.append(X)
         self.G = G
         self.Hs = Hs
@@ -352,7 +529,7 @@ def check_geometry(geometry):
                 for t in d_c:
                     assert t*(r*s) == (t*r)*s
 
-    print("check_geometry:", geometry.G, "OK")
+    #print("check_geometry:", geometry.G, "OK")
 
             
 def test_hecke():
@@ -362,17 +539,21 @@ def test_hecke():
 
     #return
 
-    G = Group.alternating(5) # 9 spaces
-    G = Group.symmetric(4)   # 11 spaces
+    #G = Group.alternating(5) # 9 spaces
+    #G = Group.symmetric(4)   # 11 spaces
     #G = Group.symmetric(3)   # 4 spaces
     #G = GL(3,2)
+    G = Group.dihedral(4)
 
     geometry = Geometry(G, True)
     homs = geometry.homs
     spaces = geometry.spaces
-    Hs = geometry.Hs
+    #spaces = [s for s in spaces if s.name in "ADEIK"]
+    #Hs = geometry.Hs
+    Hs = [space.H for space in spaces]
+    Xs = [space.X for space in spaces]
     lookup = {(X.name, Y.name):homs[X,Y] for X in spaces for Y in spaces}
-    print(geometry.spaces, len(geometry.spaces))
+    print(spaces, len(spaces))
     print()
 
     M = []
@@ -396,7 +577,7 @@ def test_hecke():
     #    for i,K in enumerate(Hs):
     #        count = len([h for h in conjs if K.is_subgroup(h)])
     #        nu[1+i, 3*j] = "%2s"%(count if count else ".")
-    for i,X in enumerate(geometry.Xs):
+    for i,X in enumerate(Xs):
         sig = X.signature(Hs)
         #print("".join([" %2s"%(i if i else ".") for i in sig]))
         for j,u in enumerate(sig):
@@ -422,20 +603,12 @@ def test_hecke():
 
     return
 
-    if len(spaces) == 5:
-        a, b, c, d, e = spaces
-        for f in homs[d,c]:
-            print(f)
-            print()
-            print(f.op * f)
-            print()
-    if len(spaces) == 9:
-        a, b, c, d, e, f, g, h, i = spaces
-        for f in homs[h,d]:
-            #print(f)
-            #print()
-            print(f.op * f == d.get_identity())
-            #print()
+    #A, B, C, D, E, F, G, H, I = spaces
+    A,D,E,I,K = spaces
+    for f in homs[I,D]:
+        print(f)
+        print(f.op * f == D.get_identity())
+        print()
 
 
 
