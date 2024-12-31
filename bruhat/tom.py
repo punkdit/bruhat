@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+"""
+Extract table of marks from gap & do computations in the Burnside ring.
+
+See also: relation.py where we explicitly build TOM's.
+"""
+
 import sys
 from os import popen
 from string import ascii_lowercase, ascii_uppercase
@@ -95,14 +101,24 @@ all_names = [
     "S12", "A13", "HS.2", "He.2", "S13", "Sz(8).3", "2F4(2)" ]
 
 
-def load_tom(name="M11"):
-    assert name in all_names
-    cmd = """
-    SizeScreen([1000000,1000000]);
-    tom := TableOfMarks("%s");
-    Display(tom);
-    quit;
-    """%name
+def load_tom(name="M11", gapstr=None):
+    assert name in all_names or gapstr
+
+    if gapstr is None:
+        cmd = """
+        SizeScreen([1000,1000]);
+        tom := TableOfMarks("%s");
+        Display(tom);
+        quit;
+        """%name
+    else:
+        cmd = """
+        SizeScreen([1000,1000]);
+        G := %s;
+        tom := TableOfMarks(G);
+        Display(tom);
+        quit;
+        """%gapstr
     
     f = open("/tmp/tmp.gap", "w")
     print(cmd, file=f)
@@ -110,12 +126,13 @@ def load_tom(name="M11"):
     
     #lines = popen("gap --norepl /tmp/tmp.gap").readlines()
     data = popen("gap --norepl /tmp/tmp.gap").read()
+    #print(data)
     open("gapdump.out", "w").write(data)
     lines = data.split("\n")
     #print(data)
     #print(lines)
     
-    tom = []
+    rows = []
     start = False
     end = False
     for line in lines:
@@ -127,26 +144,32 @@ def load_tom(name="M11"):
         if not line:
             end = True
             continue
-        assert not end, "fix fix fix: see gapdump.out to parse"
-        flds = line.split(":")[1]
-        flds = flds.replace(".", "0")
-        flds = flds.split()
-        flds = [int(i) for i in flds]
-        tom.append(flds)
+        #assert not end, "fix fix fix: see gapdump.out to parse"
+        idx, data = line.split(":")
+        idx = int(idx)-1
+        assert 0 <= idx <= len(rows)
+        data = data.replace(".", "0")
+        data = data.split()
+        flds = [int(i) for i in data]
+        #print(idx, flds)
+        if idx == len(rows):
+            rows.append(flds)
+        else:
+            rows[idx] += flds
     
-    debug = [len(item) for item in tom], len(tom)
-    #print(tom)
-    assert len(tom[-1]) == len(tom), debug
+    debug = [len(item) for item in rows], len(rows)
+    #print(rows)
+    assert len(rows[-1]) == len(rows), debug
     
-    N = len(tom)
-    for item in tom:
+    N = len(rows)
+    for item in rows:
         item += [0]*(N-len(item))
     
     lrev = lambda items:list(reversed(items))
     
-    tom = [lrev(item) for item in reversed(tom)]
-    tom = numpy.array(tom)
-    return Tom(tom)
+    rows = [lrev(item) for item in reversed(rows)]
+    rows = numpy.array(rows)
+    return Tom(rows)
     
 
 def get_letter(i, post=0):
@@ -279,21 +302,12 @@ def test():
     N = len(tom)
 
     rows = tom.rows
-    print(rows[:, N-1])
+    #print(rows[:, N-1])
     tom.dump_maximal()
 
 
 
-def main():
-
-    tom = load_tom("L2(7)")
-    print(tom)
-
-    tom = load_tom("Co3") # fail... too big ??
-    #tom = load_tom("He") # fail... too big ??
-    print(len(tom))
-    return
-
+def test_M24():
     tom = load_tom("M24")
     N = len(tom)
 
@@ -315,6 +329,26 @@ def main():
     desc = tom.get_desc(octern*octern)
     print(desc)
     tom.dump_desc(octern, desc)
+
+    tom = load_tom(gapstr="GL(3,2)")
+    print("tom:", len(tom))
+    tom.dump_maximal()
+
+
+def main():
+
+    #test()
+
+    #tom = load_tom("L2(7)")
+    tom = load_tom("M12")
+
+    #tom = load_tom("Co3")
+    #print(len(tom))
+    #tom.dump_maximal()
+    #return
+    #tom = load_tom("He")
+    #print(len(tom))
+    #return
 
 
 
