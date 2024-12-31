@@ -56,9 +56,22 @@ def load_tom(name="M11"):
     return Tom(tom)
     
 
+def get_letter(i, post=0):
+    if i >= len(letters):
+        i -= len(letters)
+        post += 1
+        return get_letter(i, post)
+    else:
+        return letters[i]+("_"+str(post) if post else "")
+
+
 class Tom:
-    def __init__(self, rows):
+    def __init__(self, rows, names=None):
         self.rows = rows
+        N = len(rows)
+        if names is None:
+            names = [get_letter(i) for i in range(N)]
+        self.names = list(names)
 
     def str(self):
         lines = []
@@ -68,7 +81,7 @@ class Tom:
         return '\n'.join(lines)
 
     def __getitem__(self, key):
-        i = letters.index(key)
+        i = self.names.index(key)
         return self.rows[i]
 
     def __len__(self):
@@ -76,11 +89,12 @@ class Tom:
 
     def __str__(self):
         rows = self.rows
+        names = self.names
         N = len(rows)
         smap = SMap()
         for j in range(N):
-            smap[0,3*j] = "%3s"%letters[j]
-            smap[j+1,3*N+2] = letters[j]
+            smap[0,3*j] = "%3s"%names[j]
+            smap[j+1,3*N+2] = names[j]
         for i,row in enumerate(rows):
             for j,c in enumerate(row):
                 if j<i:
@@ -88,12 +102,13 @@ class Tom:
                 smap[i+1,3*j] = "%3s"%(c if c else ".")
         return str(smap)
 
-    def get_name(self, items):
+    def get_desc(self, items):
         rows = self.rows
+        names = self.names
         N = len(rows)
         assert len(items) == N
         items = items.copy()
-        name = []
+        desc = []
         for i in range(N):
             assert items.min() >= 0
             if items[i] == 0:
@@ -104,9 +119,24 @@ class Tom:
             assert n % row[i] == 0
             j = n//row[i]
             items -= j*row
-            s = "%d*%s"%(j, letters[i]) if j>1 else letters[i]
-            name.append(s)
-        return "+".join(name)
+            s = "%d*%s"%(j, names[i]) if j>1 else names[i]
+            desc.append(s)
+        return "+".join(desc)
+
+
+    def dump_burnside(self):
+        N = len(self)
+        names = self.names
+        for a in names:
+          for b in names:
+            A = self[a]
+            B = self[b]
+            AB = A*B
+            #print(a,"*", b)
+            #print(AB)
+            name = self.get_desc(AB)
+            print("%6s"%name, end=" ")
+          print()
 
 
 def test():
@@ -116,29 +146,67 @@ def test():
     C = tom["C"]
 
     BC = B*C
-    #assert tom.get_name(BC) == "H"
+    #assert tom.get_desc(BC) == "H"
 
     BG = tom["B"]*tom["G"]
-    assert tom.get_name(BG) == "2*G+I"
+    assert tom.get_desc(BG) == "2*G+I"
 
+    tom.dump_burnside()
     #return
+
 
 def main():
 
-    tom = load_tom("M11")
+    #test()
+    #tom = load_tom("A5")
+    #tom.dump_burnside()
 
+    tom = load_tom("M24")
     N = len(tom)
-    names = letters[:N]
-    for a in names:
-      for b in names:
-        A = tom[a]
-        B = tom[b]
-        AB = A*B
-        #print(a,"*", b)
-        #print(AB)
-        name = tom.get_name(AB)
-        print("%6s"%name, end=" ")
-      print()
+
+    rows = tom.rows
+
+    print("maximal subgroups / minimal structures:")
+    for i,row in enumerate(rows):
+        col = rows[:,i]
+        found = [j for j in col if j]
+        if len(found)==2:
+            print(tom.names[i], row[N-1])
+    
+    octad = tom.rows[4]
+    desc = tom.get_desc(octad*octad)
+    print("octad*octad =", desc)
+
+    names = desc.split("+")
+    div = octad[N-1]
+    for name in names:
+        row = tom[name]
+        count = row[N-1]
+        print(name, count//div)
+        assert count%div == 0
+    print()
+
+    octern = tom["s_8"]
+
+    desc = tom.get_desc(octern*octern)
+    print(desc)
+
+    names = desc.split("+")
+    div = octern[N-1]
+    total = 0
+    for name in names:
+        mul = 1
+        if "*" in name:
+            mul, name = name.split("*")
+            mul = int(mul)
+        row = tom[name]
+        count = mul*row[N-1]
+        print(name, count//div)
+        total += count // div
+        assert count%div == 0
+    print()
+    print(total)
+
 
 
 
