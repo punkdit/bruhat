@@ -33,6 +33,7 @@ from bruhat.solve import zeros2, identity2
 from bruhat.dev import geometry
 from bruhat.util import cross, allperms, choose
 from bruhat.smap import SMap
+from bruhat.equ import Equ
 
 EPSILON = 1e-8
 
@@ -3279,6 +3280,42 @@ def test_ASp6():
     print(vals) # these need to be even... fail
 
     return orbit
+
+
+def jordan_form():
+    p = argv.get("p", 2)
+    n = argv.get("n", 4)
+
+    G = Algebraic.GL(n,p)
+
+    print("|G| =", len(G))
+
+    equs = {}
+    for g in G:
+        #print(g)
+        equs[g] = Equ(g)
+    inv = {g:g.inverse() for g in G}
+    for g in G:
+        for h in G:
+            k = inv[h]*g*h
+            equs[g] = equs[g].merge(equs[k])
+    equs = list(set(equ.top for equ in equs.values()))
+    itemss = [equ.items for equ in equs]
+    itemss.sort(key = len)
+    print([len(items) for items in itemss], len(itemss))
+    return
+    for items in itemss:
+        smap = SMap()
+        row = 0
+        for i, item in enumerate(items):
+            smap[0,(n+1)*i] = item.shortstr()
+        print(smap)
+        print()
+    
+
+            
+
+    
 
 
 
