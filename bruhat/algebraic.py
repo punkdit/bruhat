@@ -281,6 +281,12 @@ class Matrix(object):
     def shortstr(self):
         return shortstr(self.A)
 
+    def latex(self, zero="."):
+        rows = ["&".join((str(i) if i else zero) for i in row) for row in self.A]
+        rows = r"\\".join(rows)
+        rows = r"\begin{bmatrix}%s\end{bmatrix}"%rows
+        return rows
+
     def __hash__(self):
         return self._hash
 
@@ -341,6 +347,12 @@ class Matrix(object):
 
     def mask(self, A):
         return Matrix(self.A * A, self.p) # pointwise multiply !
+
+    def min(self, *arg, **kw):
+        return self.A.min(*arg, **kw)
+
+    def max(self, *arg, **kw):
+        return self.A.max(*arg, **kw)
 
     def normal_form(self, cols=None):
         A = self.A
@@ -403,6 +415,14 @@ class Matrix(object):
             g = self*g
             count += 1
         return count
+
+    def direct_sum(self, other):
+        A, B = self.A, other.A
+        AB = numpy.zeros((A.shape[0]+B.shape[0], A.shape[1]+B.shape[1]), scalar)
+        m,n = A.shape
+        AB[:m,:n] = A
+        AB[m:,n:] = B
+        return Matrix(AB, self.p)
 
 
 def test_matrix():
@@ -563,9 +583,21 @@ class Algebraic(object):
     
         H = cls.SL(n, p)
         gen = list(H.gen)
-        for i in range(2, p):
-            A = Matrix(i*numpy.identity(n, scalar), p)
-            gen.append(A)
+        if p>2:
+            # find generator of GL(1,F_p)
+            for a in range(1,p):
+                items = set((a**i)%p for i in range(p))
+                #print(items, len(items))
+                if len(items) == p-1:
+                    break
+            else:
+                assert 0
+            for i in range(n):
+                A = numpy.identity(n, scalar)
+                A[i,i] = a # generator of GL(1,F_p)
+                A = Matrix(A, p)
+                gen.append(A)
+
         order = order_gl(n, p)
         return GL(gen, order, p=p, **kw)
 
@@ -3281,41 +3313,6 @@ def test_ASp6():
 
     return orbit
 
-
-def jordan_form():
-    p = argv.get("p", 2)
-    n = argv.get("n", 4)
-
-    G = Algebraic.GL(n,p)
-
-    print("|G| =", len(G))
-
-    equs = {}
-    for g in G:
-        #print(g)
-        equs[g] = Equ(g)
-    inv = {g:g.inverse() for g in G}
-    for g in G:
-        for h in G:
-            k = inv[h]*g*h
-            equs[g] = equs[g].merge(equs[k])
-    equs = list(set(equ.top for equ in equs.values()))
-    itemss = [equ.items for equ in equs]
-    itemss.sort(key = len)
-    print([len(items) for items in itemss], len(itemss))
-    return
-    for items in itemss:
-        smap = SMap()
-        row = 0
-        for i, item in enumerate(items):
-            smap[0,(n+1)*i] = item.shortstr()
-        print(smap)
-        print()
-    
-
-            
-
-    
 
 
 
