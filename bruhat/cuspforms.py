@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from os import popen
+
 #from sage.all_cmdline import GL, SL, matrix, Matrix, GF
 from sage import all_cmdline as sage
 
@@ -167,6 +169,45 @@ def main_sp():
         cgy.sort(key = lambda A:A.sum())
         #display([g for g in cgy if g.is_upper_triangular()])
         display(cgy)
+
+
+def main_gap():
+
+    n = argv.get("n", 3)
+    p = argv.get("p", 2)
+    
+    cmd = r"""
+    cgys := ConjugacyClasses(GL(%s,%s));
+    for cgy in cgys do m:=Representative(cgy); p:=CharacteristicPolynomial(m); Print(p,"\n"); od;
+    quit;
+    """ % (n, p)
+
+    print("running gap...")
+    print(cmd)
+    f = open("/tmp/tmp.gap", "w")
+    print(cmd, file=f)
+    f.close()
+
+    #lines = popen("gap --norepl /tmp/tmp.gap").readlines()
+    data = popen("gap --norepl /tmp/tmp.gap").read()
+    lines = data.split("\n")
+    lines = [l for l in lines if l.startswith("x_1")]
+    lines = [l.replace("x_1", "x").replace("Z(2)^0", "1") for l in lines]
+    print(len(lines))
+    #print(" ".join(lines))
+
+
+
+    polys = "x^3+x^2+x+1 x^4+1 x^5+x^4+x+1 x^6+x^4+x^2+1 x^7+x^6+x^5+x^4+x^3+x^2+x+1".split()
+    for p in polys:
+        print(lines.count(p))
+    return
+    print(lines.count("x^10+x^8+x^2+1"))
+    print(lines.count("x^12+x^8+x^4+1"))
+    print(lines.count("x^14+x^12+x^10+x^8+x^6+x^4+x^2+1"))
+
+
+
 
 
 def main():
