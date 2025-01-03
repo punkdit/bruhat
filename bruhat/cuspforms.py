@@ -87,13 +87,98 @@ def get_conjugacy_classes(G):
 
 
 
+def display(items):
+    if not items:
+        return
+    n = len(items[0])
+    smap = SMap()
+    col = 0
+    for A in items:
+        smap[0,col] = A.shortstr()
+        col += n+1
+        if col > 100:
+            print(smap, "\n")
+            smap = SMap()
+            col = 0
+    print(smap, "\n")
+
+
+#%See also:
+#%``Classification of the Subgroups of the Two-Qubit Clifford Group''
+#%    Eric Kubischta, Ian Teixeira
+#% https://arxiv.org/abs/2409.14624
+
+# https://www.maths.usyd.edu.au/u/don/code/Magma/SpConjugacy.pdf
+# Conjugacy Classes in Finite Symplectic Groups, 2021
+# D. E. Taylor
+
+def main_sp():
+    
+    n = argv.get("n", 6)
+    p = argv.get("p", 2)
+
+    G = Algebraic.Sp(n, p)
+    print("G = Sp(%d,%d)"%(n,p))
+    #print("form:")
+    #print(G.invariant_form)
+
+    assert len(mulclose(G.gen)) == len(G)
+    print("|G| =", len(G))
+
+    if p==2:
+        cgys = get_conjugacy_classes(G)
+    else:
+        cgys = slow_get_conjugacy_classes(G)
+
+    print("char classes:", len(cgys))
+
+    cgys.sort(key = len)
+    cgys = [[G.to_ziporder(g) for g in cgy] for cgy in cgys] # <----- to_ziporder <---
+
+    I = G.I
+    F = sage.GF(p)
+    chars = []
+    for cgy in cgys:
+        g = cgy[0]
+        A = sage.matrix(F, n, n, g.A)
+        char = A.characteristic_polynomial()
+        #print(len(cgy), "-->", char, "\t", char.factor())
+        chars.append(char)
+        w = g.sum()
+        best = g
+        for g in cgy:
+            if g.sum() < w:
+                best = g
+                w = g.sum()
+
+        s = str(char.factor())
+        s = s.replace(" ", "").replace("*", "")
+        print(len(cgy), " & %s"%g.latex(), " & $%s$"%s, " & ? & ? ", r"\\")
+        found = {char}
+        for h in cgy[1:]:
+            B = sage.matrix(F, n, n, h.A)
+            dhar = B.characteristic_polynomial()
+            assert char == dhar
+
+    return
+
+    for cgy in cgys:
+        print(len(cgy))
+        cgy.sort(key = lambda A:A.sum())
+        #display([g for g in cgy if g.is_upper_triangular()])
+        display(cgy)
+
 
 def main():
     n = argv.get("n", 4)
     p = argv.get("p", 2)
-    GL = True
+    GL = argv.get("GL", True)
+    Sp = argv.get("Sp", False)
 
-    if GL:
+    if Sp:
+        G = Algebraic.Sp(n, p)
+        print("G = Sp(%d,%d)"%(n,p))
+    elif GL:
         G = Algebraic.GL(n, p)
         print("G = GL(%d,%d)"%(n,p))
     else:

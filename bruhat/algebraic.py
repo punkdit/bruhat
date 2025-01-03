@@ -281,10 +281,11 @@ class Matrix(object):
     def shortstr(self):
         return shortstr(self.A)
 
-    def latex(self, zero="."):
+    def latex(self, zero=".", delim="$"):
         rows = ["&".join((str(i) if i else zero) for i in row) for row in self.A]
         rows = r"\\".join(rows)
         rows = r"\begin{bmatrix}%s\end{bmatrix}"%rows
+        rows = delim+rows+delim
         return rows
 
     def __hash__(self):
@@ -292,6 +293,15 @@ class Matrix(object):
 
     def is_zero(self):
         return self.A.sum() == 0
+
+    def is_upper_triangular(self):
+        m, n = self.shape
+        A = self.A
+        for i in range(1,m):
+          for j in range(i):
+            if A[i,j]:
+                return False
+        return True
 
     def __len__(self):
         return len(self.A)
@@ -1737,6 +1747,37 @@ class Sp(Algebraic):
         B = Algebraic(gen, p=self.p)
         B.lookup = lookup
         return B
+
+
+    U = None # cache
+    def get_zip_uturn(self):
+        if self.U is not None:
+            return self.U
+        nn = self.n
+        n = nn//2
+        U = numpy.zeros((nn,nn), dtype=scalar)
+        cols = [2*i for i in range(n)] + list(reversed([2*i+1 for i in range(n)]))
+        for i in range(nn):
+            U[i, cols[i]] = 1
+        U = Matrix(U, name="U")
+        self.U = U
+        return U
+
+    def from_ziporder(self, M):
+        nn = self.n
+        assert M.shape == (nn, nn)
+        U = self.get_zip_uturn()
+        M1 = U*M*U.transpose()
+        return M1
+
+    def to_ziporder(self, M):
+        nn = self.n
+        assert M.shape == (nn, nn)
+        U = self.get_zip_uturn()
+        M1 = U.transpose()*M*U
+        return M1
+
+
 
 
 class Symplectic(Sp):
