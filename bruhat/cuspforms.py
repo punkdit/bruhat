@@ -173,11 +173,11 @@ def main_sp():
 
 def main_gap():
 
-    n = argv.get("n", 3)
+    n = argv.get("n", 10)
     p = argv.get("p", 2)
     
     cmd = r"""
-    cgys := ConjugacyClasses(GL(%s,%s));
+    cgys := ConjugacyClasses(Sp(%s,%s));
     for cgy in cgys do m:=Representative(cgy); p:=CharacteristicPolynomial(m); Print(p,"\n"); od;
     quit;
     """ % (n, p)
@@ -193,16 +193,17 @@ def main_gap():
     lines = data.split("\n")
     lines = [l for l in lines if l.startswith("x_1")]
     lines = [l.replace("x_1", "x").replace("Z(2)^0", "1") for l in lines]
-    print(len(lines))
+    print("cgys:", len(lines))
     #print(" ".join(lines))
 
     polys = "x^3+x^2+x+1 x^4+1 x^5+x^4+x+1 x^6+x^4+x^2+1 x^7+x^6+x^5+x^4+x^3+x^2+x+1".split()
+    polys += ["x^10+x^8+x^2+1", "x^12+x^8+x^4+1", "x^14+x^12+x^10+x^8+x^6+x^4+x^2+1"]
     for p in polys:
-        print(lines.count(p))
+        print(lines.count(p), p)
     #return
-    print(lines.count("x^10+x^8+x^2+1"))
-    print(lines.count("x^12+x^8+x^4+1"))
-    print(lines.count("x^14+x^12+x^10+x^8+x^6+x^4+x^2+1"))
+    #print(lines.count("x^10+x^8+x^2+1"))
+    #print(lines.count("x^12+x^8+x^4+1"))
+    #print(lines.count("x^14+x^12+x^10+x^8+x^6+x^4+x^2+1"))
 
 
 
