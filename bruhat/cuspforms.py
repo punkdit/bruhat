@@ -196,12 +196,10 @@ def main_gap():
     print(len(lines))
     #print(" ".join(lines))
 
-
-
     polys = "x^3+x^2+x+1 x^4+1 x^5+x^4+x+1 x^6+x^4+x^2+1 x^7+x^6+x^5+x^4+x^3+x^2+x+1".split()
     for p in polys:
         print(lines.count(p))
-    return
+    #return
     print(lines.count("x^10+x^8+x^2+1"))
     print(lines.count("x^12+x^8+x^4+1"))
     print(lines.count("x^14+x^12+x^10+x^8+x^6+x^4+x^2+1"))
@@ -269,6 +267,8 @@ def main():
             #if dhar not in found:
             #    print("\t", dhar, "\t", dhar.factor())
             #    found.add(dhar)
+
+    return
 
     for i,items in enumerate(itemss):
         print(len(items), chars[i].factor())
