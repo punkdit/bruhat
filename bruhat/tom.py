@@ -340,7 +340,16 @@ def main():
     #test()
 
     #tom = load_tom("L2(7)")
-    tom = load_tom("M12")
+    #tom = load_tom("M12")
+    tom = load_tom("U3(3)");
+    print(tom)
+
+    E = tom["E"]
+    F = tom["F"]
+    print("E*E", tom.get_desc(E*E))
+    print("F*F", tom.get_desc(F*F))
+
+    tom.dump_maximal()
 
     #tom = load_tom("Co3")
     #print(len(tom))

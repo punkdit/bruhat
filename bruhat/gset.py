@@ -307,6 +307,7 @@ class Group(object):
 
     def __getitem__(self, idx):
         return self.perms[idx]
+        #return self.canonical[idx] # breaks test...
 
     def __contains__(self, g):
         return g in self.lookup
