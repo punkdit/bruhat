@@ -180,6 +180,7 @@ def main_gap():
     x, = R.gens()
 
     cmd = r"""
+    SizeScreen([1000,1000]);
     cgys := ConjugacyClasses(Sp(%s,%s));
     for cgy in cgys do m:=Representative(cgy); p:=CharacteristicPolynomial(m); Print(p,"\n"); od;
     quit;
@@ -198,6 +199,9 @@ def main_gap():
     lines = [l.replace("x_1", "x").replace("Z(2)^0", "1") for l in lines]
     print("cgys:", len(lines))
     #print(" ".join(lines))
+    for line in lines:
+        print(line)
+    print()
 
     counts = {l:0 for l in lines}
     for l in lines:
@@ -212,17 +216,6 @@ def main_gap():
         l = str(p.factor()).replace(" ", "")
         print(l.rjust(24))
     
-
-    return
-
-    polys = "x^3+x^2+x+1 x^4+1 x^5+x^4+x+1 x^6+x^4+x^2+1 x^7+x^6+x^5+x^4+x^3+x^2+x+1".split()
-    polys += ["x^10+x^8+x^2+1", "x^12+x^8+x^4+1", "x^14+x^12+x^10+x^8+x^6+x^4+x^2+1"]
-    for p in polys:
-        print(lines.count(p), p)
-    #return
-    #print(lines.count("x^10+x^8+x^2+1"))
-    #print(lines.count("x^12+x^8+x^4+1"))
-    #print(lines.count("x^14+x^12+x^10+x^8+x^6+x^4+x^2+1"))
 
 
 
