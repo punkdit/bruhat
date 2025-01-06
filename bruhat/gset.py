@@ -98,7 +98,7 @@ class Perm(object):
         return True
 
     def __str__(self):
-        return "Perm(%s)"%(self.perm,)
+        return "Perm(%s)"%(list(self.perm),)
     __repr__ = __str__
 
     def __hash__(self):
@@ -1585,7 +1585,7 @@ def main():
 def test_orbits():
     meth = argv.get("meth", "symmetric")
     fn = getattr(Group, meth)
-    for n in range(2, 8):
+    for n in range(2, 7):
         G = fn(n)
         print("n=%s, |G|=%d"%(n, len(G)), end=":\t")
         X = G.i

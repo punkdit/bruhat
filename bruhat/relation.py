@@ -542,8 +542,8 @@ def test_hecke():
     #G = Group.alternating(5) # 9 spaces
     #G = Group.symmetric(4)   # 11 spaces
     #G = Group.symmetric(3)   # 4 spaces
-    G = GL(3,2)
-    #G = Group.dihedral(4)
+    #G = GL(3,2)
+    G = Group.dihedral(4)
 
     geometry = Geometry(G, True)
     homs = geometry.homs

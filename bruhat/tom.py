@@ -330,9 +330,19 @@ def test_M24():
     print(desc)
     tom.dump_desc(octern, desc)
 
+    u = tom["M_24"] # coincidentally named...
+    u = [x for x in u if x]
+    print(u)
+    
+    u = tom["B"]
+    u = [x for x in u if x]
+    print(u)
+    
+
     tom = load_tom(gapstr="GL(3,2)")
     print("tom:", len(tom))
-    tom.dump_maximal()
+    #tom.dump_maximal()
+    print(tom)
 
 
 def main():

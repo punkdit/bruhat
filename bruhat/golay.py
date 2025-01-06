@@ -650,8 +650,30 @@ def small_index_find_orbit(H, gen):
     return found
 
 
+def find_orbit(H, gen, verbose=False):
+    H = Coset(H)
+    found = {H[0]}
+    bdy = list(found)
+    while bdy:
+        _bdy = []
+        for g in gen:
+            for h in bdy:
+                gh = g*h
+                ghH = H.left_mul(gh)
+                j = ghH[0]
+                if j not in found:
+                    found.add(j)
+                    _bdy.append(j)
+        bdy = _bdy
+        if verbose:
+            print(len(found), end=" ", flush=True)
+    if verbose:
+        print()
+    return found
 
-def main_maximal():
+
+
+def get_maximal():
 
     desc = """
     (1,13)(4,8)(6,17)(7,10)(12,19)(14,22)(15,16)(21,23), (1,24,22,10)(2,5,6,4)(3,14,9,12)(7,23,17,11)(8,15)(13,20)
@@ -674,33 +696,34 @@ def main_maximal():
         #G = Group(gen)
         #G = mulclose(gen, verbose=True) 
         gens[names[idx]] = gen
+    return gens
 
-    octern = Group.generate(gens["l7"])
+
+def main_maximal():
+    maximal = get_maximal()
+
+    octern = Group.generate(maximal["l7"])
     assert len(octern) == 168
 
     H = octern
-    #H = Group.generate(gens["n21"])
+    #H = Group.generate(maximal["n21"])
     print(len(H))
 
     gen = m24_gen()
 
-    H = Coset(H)
-    found = {H[0]}
-    bdy = list(found)
-    while bdy:
-        _bdy = []
-        for g in gen:
-            for h in bdy:
-                gh = g*h
-                ghH = H.left_mul(gh)
-                j = ghH[0]
-                if j not in found:
-                    found.add(j)
-                    _bdy.append(j)
-        bdy = _bdy
-        print(len(found))
+    #found = find_orbit(H, gen, verbose=True)
 
-    return
+    found = set()
+    for a in octern.canonical:
+      for b in octern.canonical:
+        K = Group.generate([a,b])
+        if len(K) == 24 and K not in found:
+            found.add(K)
+            print(a)
+            print(b)
+            print()
+
+    print(len(found))
 
 
 
