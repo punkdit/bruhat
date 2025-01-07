@@ -172,19 +172,21 @@ def main_sp():
 
 
 def main_gap():
-    n = argv.get("n", 12)
+    n = argv.get("n", 4)
     p = argv.get("p", 2)
     
     F = sage.GF(p)
     R = sage.PolynomialRing(F, "x")
     x, = R.gens()
 
+    G = argv.get("G", "GL")
+
     cmd = r"""
     SizeScreen([1000,1000]);
-    cgys := ConjugacyClasses(Sp(%s,%s));
+    cgys := ConjugacyClasses(%s(%s,%s));
     for cgy in cgys do m:=Representative(cgy); p:=CharacteristicPolynomial(m); Print(p,"\n"); od;
     quit;
-    """ % (n, p)
+    """ % (G, n, p)
 
     print("running gap...")
     print(cmd)
