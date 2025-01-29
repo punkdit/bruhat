@@ -90,7 +90,9 @@ class Biset(object):
               for g2 in G.perms:
                 h2 = send_perms[g2]
                 rhs = h2*h1 if op else h1*h2
-                assert send_perms[g1*g2] == rhs
+                lhs = send_perms[g1*g2] 
+                assert lhs == rhs
+                #assert lhs == h1*h2 #or lhs == h2*h1
 
         for l in lG:
           for r in rG:
@@ -124,7 +126,7 @@ class Biset(object):
         assert isinstance(rG, Group), type(rG)
         assert lG.items == rG.items == G.items
         l_send = {l:Perm({g : l*g for g in items}, items) for l in lG}
-        r_send = {r:Perm({g : g*(~r) for g in items}, items) for r in rG}
+        r_send = {r:Perm({g : g*r for g in items}, items) for r in rG}
         biset = Biset(lG, rG, l_send, r_send, items)
         return biset
 
@@ -146,6 +148,20 @@ class Biset(object):
         l_send = {g:g for g in G}
         return Biset(G, rG, l_send, r_send, items)
 
+    @classmethod
+    def double_coset(cls, G, H, K):
+        left = G.action_subgroup(H)
+        left = Biset.from_action(left)
+        right = G.action_subgroup(K)
+        right = Biset.from_action(right)
+        #print("double_coset")
+        #print("\t%r" % left.rG)
+        #print("\t%r" % right.rG)
+        right = right.op()
+        #print("\t%r" % right.lG)
+        X = left << right
+        return X
+
     #@cache
     def op(self):
         lG, rG, l_send, r_send = self.data
@@ -157,18 +173,23 @@ class Biset(object):
     def __lshift__(X, Y):
         "horizontal composition"
         assert isinstance(Y, Biset)
-        assert X.rG is Y.lG
-        #print("__matmul__")
-        G = X.rG
+        iso = [(g,g) for g in X.rG]
+        if len(X.rG) == len(Y.lG) == 1:
+            iso = [(X.rG[0], Y.lG[0])]
+        elif X.rG != Y.lG:
+            print("Cannot compose Biset's, need equality on-the-nose")
+            print('\t%r' % X.rG)
+            print('\t%r' % Y.lG)
+            assert 0, "find iso ?"
         XY = [(x, y) for x in X.items for y in Y.items]
         #print("X*Y =")
         #for xy in XY:
         #    print("\t", xy)
         lookup = {xy:Equ(xy) for xy in XY}
         for (x,y) in XY:
-          for g in G:
+          for (g,h) in iso:
             lhs = lookup[X.r_send[g][x], y]
-            rhs = lookup[x, Y.l_send[g][y]]
+            rhs = lookup[x, Y.l_send[h][y]]
             lhs.merge(rhs)
     
         equs = set(equ.top for equ in lookup.values())
@@ -202,7 +223,7 @@ class Biset(object):
             perm = {}
             for src in items:
                 x, y = src[0]
-                ry = r*y
+                ry = (~r)*y # yes ?
                 for tgt in items:
                     if (x, ry) in tgt:
                         break
@@ -373,6 +394,17 @@ def test():
     Y = Biset.left_tautological(H)
     XY = X<<Y
     assert len(XY) == 6
+
+    n = len(G)
+    for H in Hs:
+      for J in Hs:
+        X = Biset.cayley(G, H, J)
+        assert X.lG is H
+        assert X.rG is J
+        X = Biset.double_coset(G, H, J)
+        assert X.lG is G
+        assert X.rG is G
+        assert n*n // len(H) // len(J) == len(X.items)
 
     f = Hom.identity(X)
     assert f*f == f
