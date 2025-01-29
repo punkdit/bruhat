@@ -21,13 +21,19 @@ class Word(object):
         self.items = items
     def __str__(self):
         return '*'.join(self.items) or "1"
+    __repr__ = __str__
     def __eq__(self, other): # tricky, take care!
         return Relation(self, other)
 #    def __eq__(self, other):
 #        return self.items == other.items
 #    def __hash__(self):
 #        return hash(self.items)
-    #def __pow__(self, n):
+    def __pow__(self, n):
+        if n==1:
+            return self
+        if n>1:
+            return Word(self.items*n)
+        assert 0
     def __mul__(self, other):
         assert isinstance(other, Word)
         return Word(self.items + other.items)
@@ -41,6 +47,17 @@ class Gen(Word):
     def __init__(self, name):
         Word.__init__(self, (name,))
         self.name = name
+    def __pow__(self, n):
+        if n==1:
+            return self
+        if n>1:
+            return Word(self.items*n)
+        if n==0:
+            return Word(())
+        if n<0:
+            name = "~"+self.name
+            return Gen(name)**(-n)
+        assert 0, n
 
 
 class Relation(object):
@@ -74,14 +91,21 @@ def build(gens, rels, hrels=[]):
         assert isinstance(rel, Relation)
     n = len(gens)
     ngens = 2*n
-    get = {gen.name : i for i, gen in enumerate(gens)}
-    geti = {gen.name : i+n for i, gen in enumerate(gens)} # inverse
+    get, geti = {}, {}
+    for i,gen in enumerate(gens):
+        assert gen.name[:1] != "~"
+        get[gen.name] = i
+        get["~"+gen.name] = i+n
+        geti[gen.name] = i+n # inverse
+        geti["~"+gen.name] = i # inverse
+    #get = {gen.name : i for i, gen in enumerate(gens)}
+    #geti = {gen.name : i+n for i, gen in enumerate(gens)} # inverse
     relis = []
     for gen in gens:
         relis.append( (get[gen.name], geti[gen.name]) )
     relis += [rel.get_idxs(get, geti) for rel in rels]
     hrelis = [rel.get_idxs(get, geti) for rel in hrels]
-    print(relis)
+    #print(relis)
     graph = Schreier(ngens, relis)
     #graph.build(maxsize=4000000)
     graph.build(hrelis)
@@ -128,10 +152,10 @@ def test():
         ww, ZI, IZ, HI*ZI*HI, IH*IZ*IH,
     ]
 
-    graph = build(gens, rels) # Cliff(2)
+    #graph = build(gens, rels) # Cliff(2)
     #graph = build(gens, rels+[w]) # ASp(4)
     #graph = build(gens, rels+hrels) # Mp(4)
-    #graph = build(gens, rels+hrels+[w]) # Sp(4)
+    graph = build(gens, rels+hrels+[w]) # Sp(4)
     print(len(graph))
 
     perms = graph.get_gens()
