@@ -993,7 +993,24 @@ class Group(object):
                 cosets.add(coset)
         return list(cosets)
 
-    def left_action(self, items, basepoint=None):
+    def right_action(self, items, basepoint=None, check=False):
+        send_perms = {}
+        perms = []
+        lookup = dict((item, item) for item in items)
+        for g in self:
+            perm = {}
+            for item in items:
+                perm[item] = lookup[item*(~g)]
+            perm = Perm(perm, items)
+            perms.append(perm)
+            send_perms[g] = perm
+        f = quotient_rep(perms)
+        send_perms = dict((k, f[v]) for (k, v) in send_perms.items())
+        perms = list(f.values())
+        hom = Action(self, send_perms, items, basepoint, check)
+        return hom
+
+    def left_action(self, items, basepoint=None, check=False):
         send_perms = {}
         perms = []
         lookup = dict((item, item) for item in items)
@@ -1007,7 +1024,7 @@ class Group(object):
         f = quotient_rep(perms)
         send_perms = dict((k, f[v]) for (k, v) in send_perms.items())
         perms = list(f.values())
-        hom = Action(self, send_perms, items, basepoint)
+        hom = Action(self, send_perms, items, basepoint, check)
         return hom
 
     def action_subgroup(self, H):
