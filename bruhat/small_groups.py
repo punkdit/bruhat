@@ -337,6 +337,8 @@ for line in small_groups.split("\n"):
     assert len(graph) == n
     G = graph.get_group()
     assert len(G) == n
+
+    s_desc = s_desc.replace(" ", "")
     G.desc = s_desc
 
     #print()
