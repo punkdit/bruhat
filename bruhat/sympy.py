@@ -8,6 +8,8 @@ start_time = time()
 from functools import reduce
 from operator import mul, add
 
+import numpy
+
 from bruhat.argv import argv
 
 
@@ -16,11 +18,11 @@ class Expr(object):
     def promote(cls, item):
         if isinstance(item, Expr):
             return item
-        if isinstance(item, (float, int)):
+        if isinstance(item, (float, int, numpy.number)):
             return Const(item)
         if isinstance(item, str):
             return Symbol(item)
-        raise ValueError
+        raise ValueError("whats this %r"%type(item))
     def diff(self, v):
         assert isinstance(v, str), repr(v)
         print("diff:", self, v)
