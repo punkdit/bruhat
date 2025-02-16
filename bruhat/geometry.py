@@ -243,7 +243,7 @@ def main(key, index):
     if distance_lower_bound_z3(code.Hx, code.Lx, 2) is not None:
         return
 
-    d_x, d_z = bz_distance(code)
+    #d_x, d_z = bz_distance(code)
 
     #print()
     #print("idx =", index)
@@ -254,7 +254,10 @@ def main(key, index):
 #        else:
 #            d_x, d_z = distance_z3_css(code, True)
 
-    print("[[%d, %d, (%d,%d)]]"%(code.n, code.k, d_x, d_z))
+    #print("[[%d, %d, (%d,%d)]]"%(code.n, code.k, d_x, d_z))
+
+    code.bz_distance()
+    print(code)
 
     if argv.show:
         print("Hx:")
@@ -265,7 +268,7 @@ def main(key, index):
     #print("Hx", Hx.sum(0), Hx.sum(1))
     #print("Hz", Hz.sum(0), Hz.sum(1))
 
-    #dump_transverse(code.Hx, code.Lx, 3, argv.show_all)
+    dump_transverse(code.Hx, code.Lx, 3, argv.show_all)
     #print("dual:")
     #dump_transverse(code.Hz, code.Lz, 3)
     return
@@ -300,25 +303,26 @@ def dump_transverse(Hx, Lx, t=3, show_all=False):
     return zList
 
 
-def bz_distance(code):
-    t0 = time()
-    Hx = shortstr(code.Hx).replace("1", "X").replace('.', "I")
-    Hz = shortstr(code.Hz).replace("1", "Z").replace('.', "I")
-
-    from subprocess import Popen, PIPE
-    child = Popen("distance", stdin=PIPE, stdout=PIPE)
-
-    s = "%s\n%s\n"%(Hx, Hz)
-    child.stdin.write(s.encode())
-    child.stdin.close()
-    result = child.stdout.read().decode()
-    rval = child.wait()
-    assert rval == 0, "child return %s"%rval
-    d_x, d_z = str(result).split()
-
-    print("bz_distance took %.3f seconds" % (time() - t0))
-    return int(d_x), int(d_z)
-
+#def bz_distance(code):
+#    t0 = time()
+#    Hx = shortstr(code.Hx).replace("1", "X").replace('.', "I")
+#    Hz = shortstr(code.Hz).replace("1", "Z").replace('.', "I")
+#
+#    from subprocess import Popen, PIPE
+#    child = Popen("distance", stdin=PIPE, stdout=PIPE)
+#
+#    s = "%s\n%s\n"%(Hx, Hz)
+#    child.stdin.write(s.encode())
+#    child.stdin.close()
+#    result = child.stdout.read().decode()
+#    rval = child.wait()
+#    assert rval == 0, "child return %s"%rval
+#    print(repr(result))
+#    d_x, d_z = str(result).split()
+#
+#    print("bz_distance took %.3f seconds" % (time() - t0))
+#    return int(d_x), int(d_z)
+#
     
 
 
