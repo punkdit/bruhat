@@ -70,11 +70,9 @@ class System(object):
     def add(self, lhs, rhs):
         #print("add:")
         eqs = self.eqs
-        m, n = lhs.shape
-        assert rhs.shape == (m, n), rhs.shape
-        for i in range(m):
-          for j in range(n):
-            eq = lhs[i,j] - rhs[i,j]
+        assert rhs.shape == lhs.shape
+        for idx in numpy.ndindex(lhs.shape):
+            eq = lhs[idx] - rhs[idx]
             #print(eq)
             if eq != 0:
                 #print("\tadd:", eq)
@@ -187,7 +185,7 @@ class System(object):
         return True
 
     def root(self, trials=1, scale=1., method="lm",  # only lm works...
-            tol=1e-6, maxiter=1000, jac=True, debug=False, guess=1):
+            tol=1e-6, maxiter=1000, jac=True, debug=False, guess=1, verbose=0):
         from scipy.optimize import root
         n = len(self.vs)
         f = self.py_func()
@@ -209,8 +207,10 @@ class System(object):
             if guess>1:
                 print()
             x0 = best
+            #if verbose:
+            #    print("root: ", end="", flush=True); eol='\n'
             solution = root(f, x0, method=method, jac=jac, tol=tol, options={"maxiter":maxiter})
-            if not solution.success:
+            if not solution.success and verbose:
                 print(".", end='', flush=True)
                 eol = '\n'
 
@@ -221,8 +221,9 @@ class System(object):
                     break
             else:
                 break
-            print("X", end='', flush=True)
-            eol = '\n'
+            if verbose:
+                print("X", end='', flush=True)
+                eol = '\n'
         else:
             print()
             return None
