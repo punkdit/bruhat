@@ -11,7 +11,7 @@ from functools import reduce
 from operator import mul, add
 
 import numpy
-from numpy import array, empty, alltrue, allclose, exp, zeros, kron
+from numpy import array, empty, allclose, exp, zeros, kron
 from numpy.linalg import norm
 
 from bruhat.sympy import Symbol
@@ -745,9 +745,9 @@ def main():
             [0, 1, 0, 0],
             [0, 0, 0, 1],
         ], dtype=object)
-        assert alltrue(lhs==SWAP)
+        assert numpy.all(lhs==SWAP)
     
-    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    assert numpy.all(dot(SWAP, SWAP)==tensor(I, I))
     
     # -----------------------------------------------------------
     # Build some Frobenius algebra's ... find the copyable states
@@ -900,7 +900,7 @@ def main_structure():
     #print(I)
     
     SWAP = get_swap(dim)
-    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    assert numpy.all(dot(SWAP, SWAP)==tensor(I, I))
     
     # -----------------------------------------------------------
     # 
@@ -1082,7 +1082,7 @@ def main_extra():
     #print(I)
     
     SWAP = get_swap(dim)
-    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    assert numpy.all(dot(SWAP, SWAP)==tensor(I, I))
     
     # -----------------------------------------------------------
     # Frobenius structure
@@ -1304,7 +1304,7 @@ def main_frobenius():
     #print(I)
     
     SWAP = get_swap(dim)
-    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    assert numpy.all(dot(SWAP, SWAP)==tensor(I, I))
     
     # -----------------------------------------------------------
     # Frobenius structure
@@ -1432,7 +1432,7 @@ def main_frobenius_mobius():
     #print(I)
     
     SWAP = get_swap(dim)
-    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    assert numpy.all(dot(SWAP, SWAP)==tensor(I, I))
     
     # -----------------------------------------------------------
     # Frobenius structure
@@ -2112,7 +2112,7 @@ def ffield():
     SWAP.shape = dim2, dim2
     #print(SWAP)
     
-    assert alltrue(dot(SWAP, SWAP)==tensor(I, I))
+    assert numpy.all(dot(SWAP, SWAP)==tensor(I, I))
     
     # -----------------------------------------------------------
     # Build some Frobenius algebra's ... find the copyable states
