@@ -16,16 +16,19 @@ ir2 := 1/r2;;
 
 i := [[1, 0], [0, 1]];;
 w := [[E(4), 0], [0, E(4)]];;
+w8 := [[E(8), 0], [0, E(8)]];;
 x := [[0, 1], [1, 0]];;
 z := [[1, 0], [0, -1]];;
 s := [[1, 0], [0, E(4)]];;
 h := [[ir2, ir2], [ir2, -ir2]];;
 
+Phase  := Group(w8);;
 Cliff1 := Group(w, s, h);; # Order 192
 Pauli1 := Group(w, x, z);; # Order 16
 
-A := FactorGroup(Cliff1, Pauli1);
-A0 := SemidirectProduct(Sp(2,2), GF(2)^2);
+#A := FactorGroup(Cliff1, Phase);
+#A0 := SemidirectProduct(Sp(2,2), GF(2)^2);
+#Print(Order(A), " ", Order(A0), "\n");
 #Print(StructureDescription(A), " <-> ", StructureDescription(A0), "\n");
 #quit;
 
