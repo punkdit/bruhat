@@ -147,10 +147,20 @@ class Matrix(object):
         return Matrix(self.ring, self.M.augment(other.M))
 
     def __getitem__(self, idx):
-        if type(idx) is int:
-            return self.M[idx]
+        #if type(idx) is int:
+        #    return self.M[idx]
         M = self.M[idx]
         return Matrix(self.ring, M)
+
+    def reshape(self, m, n):
+        shape = self.shape
+        assert m*n == shape[0]*shape[1]
+        M = self.M
+        els = [M[i,j] for i in range(shape[0]) for j in range(shape[1])]
+        rows = [[els[n*i+j] for j in range(n)] for i in range(m)]
+        M = Matrix(self.ring, rows)
+        assert M.shape == (m,n)
+        return M
 
     def _latex_(self):
         M = self.M
@@ -232,6 +242,12 @@ class Matrix(object):
     def solve(self, other):
         A = self.M.solve_right(other.M)
         return Matrix(self.ring, A)
+
+    def kernel(self):
+        K = all_cmdline.kernel(self.M)
+        B = K.basis()
+        #print(K, type(K))
+        return Matrix(self.ring, B)
 
 
 def test():

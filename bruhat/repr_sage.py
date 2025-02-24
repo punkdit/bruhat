@@ -254,6 +254,25 @@ def hom(v, w):
     assert isinstance(w, Rep)
     assert v.G is w.G
 
+    #print("hom", v.dim, w.dim)
+    G = v.G
+    Iv = Matrix.identity(ring, v.dim)
+    Iw = Matrix.identity(ring, w.dim)
+    blocks = []
+    for g in G:
+        lhs = v(~g) @ Iw
+        rhs = Iv @ w(g)
+        f = lhs-rhs
+        blocks.append(f)
+    M = rowcat(blocks)
+    #print(M.shape)
+    K = M.kernel()
+    homs = []
+    for f in K:
+        f = f.reshape(v.dim, w.dim).t
+        homs.append(f)
+    return homs
+
 
 
 
@@ -377,7 +396,16 @@ def test():
       for j in range(N):
         v = reps[i]
         w = reps[j]
-        hom(v,w)
+        homs = hom(v,w)
+        if v.dim*w.dim > 100:
+            continue
+        print(len(homs), end=" ", flush=True)
+        for f in homs:
+            for g in G:
+                lhs, rhs = f*v(g), w(g)*f
+                assert lhs == rhs, (lhs-rhs)
+            
+      print()
 
     return
 
