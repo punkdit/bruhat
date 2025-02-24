@@ -51,6 +51,12 @@ class Rep:
             rep_gh = self(g*h)
             assert rep_g*rep_h == rep_gh
 
+    def __eq__(self, other):
+        assert self.G is other.G
+        if self.dim != other.dim:
+            return False
+        return self.rep == other.rep
+
     @classmethod
     def regular(cls, ring, G):
         n = len(G)
@@ -78,20 +84,41 @@ class Rep:
 
     def __add__(self, other):
         assert self.G is other.G
-        assert self.ring is other.ring
+        assert self.ring == other.ring
         rep = {g : self(g).direct_sum(other(g)) for g in self.G}
         return Rep(self.ring, self.G, rep, self.dim+other.dim)
 
     def __matmul__(self, other):
         assert self.G is other.G
-        assert self.ring is other.ring
+        assert self.ring == other.ring
         rep = {g : self(g)@other(g) for g in self.G}
         return Rep(self.ring, self.G, rep, self.dim*other.dim)
 
     def restrict(self, H):
         rep = {h:self.rep[h] for h in H}
         return Rep(self.ring, H, rep, self.dim)
-    
+
+    @classmethod
+    def fourier(cls, A, i=0):
+        assert A.is_abelian() # XX check cyclic
+        for a in A:
+            # find a generator
+            if len(mulclose([a])) == len(A):
+                break
+        else:
+            assert 0, "not implemented"
+        n = len(A)
+        K = CyclotomicField()
+        u = CyclotomicField(n).gen()
+        u = K(u)
+        print(u)
+
+        rep = {}
+        for j in range(n):
+            M = Matrix(K, [[u**j]])
+            rep[a**j] = M
+        return Rep(K, A, rep, 1)
+
 
 def test_repr():
     print("test()")
@@ -111,11 +138,13 @@ def test_repr():
 def test():
     print("test()")
 
-    ring = ZZ
+    ring = CyclotomicField()
 
-    G = GL(3,2)
+    #G = GL(3,2)
+    G = Group.symmetric(3)
+
     n = len(G)
-    rep = Rep.regular(ZZ, G)
+    rep = Rep.regular(ring, G)
     print(rep)
 
     I = G.identity
@@ -126,8 +155,6 @@ def test():
     print(len(H))
 
     res = rep.restrict(H)
-    print(res)
-
     res.check()
 
     v = Rep.trivial(ring, G)
@@ -138,6 +165,15 @@ def test():
     
     vv = v+v
     vv.check()
+
+    r = Rep.fourier(H)
+    r.check()
+    assert r==r
+
+    print( r@r == r )
+
+    v = Rep.trivial(ring, H)
+    r@v
 
     
 

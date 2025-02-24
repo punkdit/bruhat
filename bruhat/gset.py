@@ -132,6 +132,16 @@ class Perm(object):
             result = NotImplemented
         return result
 
+    def __pow__(self, n):
+        assert n>=0, "NotImplemented"
+        if n==0:
+            return self.identity
+        g = self
+        while n>1:
+            g = self*g
+            n -= 1
+        return g
+
     def cross(left, right):
         assert isinstance(right, Perm)
         m, n = left.rank, right.rank
@@ -626,6 +636,13 @@ class Group(object):
             if len(H)==1 or len(H)==len(G):
                 continue
             if G.is_normal(H):
+                return False
+        return True
+
+    def is_abelian(G):
+        for g in G:
+          for h in G:
+            if g*h != h*g:
                 return False
         return True
 
