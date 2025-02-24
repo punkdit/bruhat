@@ -98,7 +98,7 @@ class Perm(object):
         return True
 
     def __str__(self):
-        return "Perm(%s)"%(list(self.perm),)
+        return "Perm(%s)"%([int(i) for i in self.perm])
     __repr__ = __str__
 
     def __hash__(self):

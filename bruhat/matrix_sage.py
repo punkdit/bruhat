@@ -138,6 +138,14 @@ class Matrix(object):
         M = block_diagonal_matrix(self.M, other.M)
         return Matrix(self.ring, M)
 
+    def stack(self, other):
+        assert self.ring == other.ring
+        return Matrix(self.ring, self.M.stack(other.M))
+
+    def augment(self, other):
+        assert self.ring == other.ring
+        return Matrix(self.ring, self.M.augment(other.M))
+
     def __getitem__(self, idx):
         if type(idx) is int:
             return self.M[idx]
@@ -158,6 +166,11 @@ class Matrix(object):
             row = [0]*n
             row[i] = 1
             rows.append(row)
+        return Matrix(ring, rows)
+
+    @classmethod
+    def zero(cls, ring, m, n):
+        rows = [[0]*n for i in range(n)]
         return Matrix(ring, rows)
 
     def order(self):
@@ -215,6 +228,10 @@ class Matrix(object):
             vecs.append((val, vec, dim))
         #print(type(self.M))
         return vecs
+
+    def solve(self, other):
+        A = self.M.solve_right(other.M)
+        return Matrix(self.ring, A)
 
 
 def test():
