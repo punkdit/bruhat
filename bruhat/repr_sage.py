@@ -17,22 +17,15 @@ cache = lru_cache(maxsize=None)
 
 import numpy
 
-from sage.all_cmdline import (FiniteField, CyclotomicField, latex, block_diagonal_matrix,
-    PolynomialRing, ZZ)
+from sage.all_cmdline import (
+    FiniteField, CyclotomicField, latex, block_diagonal_matrix,
+    PolynomialRing, ZZ, QQ)
 from sage import all_cmdline 
 
 from bruhat.argv import argv
 from bruhat.matrix_sage import Matrix
 from bruhat.action import mulclose, mulclose_hom
 from bruhat.gset import Perm, Group, Coset
-
-ring = CyclotomicField()
-
-def GL(n,p):
-    from bruhat.algebraic import Algebraic, get_permrep
-    G = Algebraic.GL(n,p)
-    G = get_permrep(G)
-    return G
 
 
 def colcat(col):
@@ -81,9 +74,10 @@ class Char:
         chi = [self.chi[i]*other.chi[i] for i in range(self.n)]
         return Char(self.G, chi)
 
-    def hom(self, other):
+    def hom(other, self): # other <---- self
         assert self.G is other.G
-        u = ring.zero()
+        #u = ring.zero()
+        u = 0
         for i in range(self.n):
             u += self.chi[i].conjugate() * other.chi[i]
         u /= self.n
@@ -91,6 +85,8 @@ class Char:
 
 
 class Rep:
+    ring = CyclotomicField()
+
     def __init__(self, G, rep, dim):
         assert isinstance(G, Group)
         self.G = G
@@ -136,7 +132,7 @@ class Rep:
                 row = [0]*n
                 row[k] = 1
                 rows.append(row)
-            M = Matrix(ring, rows)
+            M = Matrix(cls.ring, rows)
             rep[g] = M.t
         return Rep(G, rep, n)
 
@@ -152,14 +148,14 @@ class Rep:
             M = [[0]*dim for _ in range(dim)]
             for (src,tgt) in enumerate(h):
                 M[src][tgt] = 1
-            M = Matrix(ring, M)
+            M = Matrix(cls.ring, M)
             M = M.t
             rep[g] = M
         return Rep(G, rep, dim)
 
     @classmethod
     def trivial(cls, G):
-        M = Matrix(ring, [[1]])
+        M = Matrix(cls.ring, [[1]])
         rep = {g:M for g in G}
         return Rep(G, rep, 1)
 
@@ -183,10 +179,10 @@ class Rep:
             assert 0, "not implemented" # XXX
         n = len(A)
         u = CyclotomicField(n).gen()
-        u = ring(u)
+        u = cls.ring(u)
         rep = {}
         for j in range(n):
-            M = Matrix(ring, [[u**(j*i)]])
+            M = Matrix(cls.ring, [[u**(j*i)]])
             rep[a**j] = M
         return Rep(A, rep, 1)
 
@@ -212,6 +208,7 @@ class Rep:
         return Rep(H, rep, self.dim)
 
     def induce(self, G):
+        ring = self.ring
         H = self.G
         dim = self.dim
         cosets = G.left_cosets(H)
@@ -248,51 +245,111 @@ class Rep:
             rep[g] = M
         return Rep(G, rep, dim*n)
 
+    def hom(w, v): 
+        """
+            find basis for space of intertwiners
+            w <--- v
+        """
+        assert isinstance(v, Rep)
+        assert isinstance(w, Rep)
+        assert v.G is w.G
+    
+        G = v.G
+        Iv = Matrix.identity(v.ring, v.dim)
+        Iw = Matrix.identity(w.ring, w.dim)
+        blocks = []
+        for g in G:
+            lhs = v(~g) @ Iw
+            rhs = Iv @ w(g)
+            f = lhs-rhs
+            blocks.append(f)
+        M = rowcat(blocks)
+        K = M.cokernel()
+        homs = []
+        for f in K:
+            f = f.reshape(v.dim, w.dim).t
+            hom = Hom(w, v, f)
+            homs.append(hom)
+        return homs
+    
 
-def hom(v, w):
-    assert isinstance(v, Rep)
-    assert isinstance(w, Rep)
-    assert v.G is w.G
+class Hom:
+    "intertwiner of Rep's"
+    def __init__(self, tgt, src, M):
+        assert isinstance(tgt, Rep)
+        assert isinstance(src, Rep)
+        assert isinstance(M, Matrix)
+        assert tgt.G is src.G
+        self.tgt = tgt
+        self.src = src
+        self.G = tgt.G
+        assert M.shape == (tgt.dim, src.dim)
+        self.M = M
 
-    #print("hom", v.dim, w.dim)
-    G = v.G
-    Iv = Matrix.identity(ring, v.dim)
-    Iw = Matrix.identity(ring, w.dim)
-    blocks = []
-    for g in G:
-        lhs = v(~g) @ Iw
-        rhs = Iv @ w(g)
-        f = lhs-rhs
-        blocks.append(f)
-    M = rowcat(blocks)
-    #print(M.shape)
-    K = M.kernel()
-    homs = []
-    for f in K:
-        f = f.reshape(v.dim, w.dim).t
-        homs.append(f)
-    return homs
+    def __str__(self):
+        return "(%s<---%s)"%(self.tgt, self.src)
+
+    def check(self):
+        tgt = self.tgt
+        src = self.src
+        M = self.M
+        for g in self.G:
+            assert M*src(g) == tgt(g)*M
+
+    def __mul__(lhs, rhs):
+        assert isinstance(rhs, Hom)
+        assert lhs.src == rhs.tgt
+        M = lhs.M * rhs.M
+        return Hom(lhs.tgt, rhs.src, M)
+
+    def cokernel(self):
+        tgt = self.tgt
+        M = self.M
+        G = self.G
+        K = M.cokernel()
+        Ki = K.pseudoinverse()
+        rep = {}
+        for g in G:
+            rep[g] = K * tgt(g) * Ki
+        dim = K.shape[0]
+        r = Rep(G, rep, dim)
+        return Hom(r, tgt, K)
 
 
 
+# https://ncatlab.org/nlab/show/Gram-Schmidt+process#CategorifiedGramSchmidtProcess
+class GramSchmidt:
+    def __init__(self, reps):
+        self.reps = reps
 
-def test_repr():
-    print("test()")
+    def showtable(self):
+        reps = self.reps
+        N = len(reps)
+        print("   ", "===="*N)
+        chis = [r.chi for r in reps]
+        for i in range(N):
+          print("%3d:"%i, end="")
+          for j in range(N):
+            u = chis[j].hom(chis[i])
+            print("%3s "%u, end="", flush=True)
+          print()
+        print("   ", "===="*N)
+        print()
 
-    G = GL(3,2)
-    n = len(G)
-    rep = Rep.regular(G)
-    print(rep)
+    def subtract(self, i, j):
+        reps = self.reps
+        print("subtract", i, j)
+        fs = reps[i].hom(reps[j])
+        assert len(fs)
+        f = fs[0]
+        reps[i] = f.cokernel().tgt
 
-    rep.check()
 
 
+def test_rep():
+    print("test_rep()")
 
-
-def test():
-    print("test()")
-
-    A = Matrix(ring, [[1,1,1],[1,0,1],[0,0,1]])
+    A = Matrix(Rep.ring, [[1,1,1],[1,0,1],[0,0,1]])
     B = A.t
     C = A.solve(B)
     assert C is not None
@@ -344,8 +401,6 @@ def test():
         r.check()
         if len(H) == 1:
             assert r.chi == reg.chi
-        #    r.dump()
-            print(r.chi)
 
     G = Group.symmetric(4)
     H = Group([g for g in G if g[3] == 3]) # S3 in G
@@ -356,8 +411,8 @@ def test():
     assert b in H
 
     # 2d rep of S3
-    A = Matrix(ring, [[0,1],[1,0]])
-    B = Matrix(ring, [[0,-1],[1,-1]])
+    A = Matrix(Rep.ring, [[0,1],[1,0]])
+    B = Matrix(Rep.ring, [[0,-1],[1,-1]])
     rep = Rep.generate(H, [a,b], [A,B])
     rep.check()
     #rep.dump()
@@ -366,15 +421,12 @@ def test():
     assert r.dim == 8
     r.check()
 
-#    for g in G:
-#        print(g.order())
 
-    # -------------------------------
+def test_gram_schmidt():
+    #Rep.ring = QQ # slower than CyclotomicField() !
 
-    # https://ncatlab.org/nlab/show/Gram-Schmidt+process#CategorifiedGramSchmidtProcess
-
+    G = Group.symmetric(4)
     reps = []
-    #for H in G.subgroups():
     U4 = G
     U31 = Group([g for g in G if g[3]==3])
     U22 = Group([g for g in G if g[0] in [0,1] and g[1] in [0,1]])
@@ -391,41 +443,137 @@ def test():
         assert v.chi == r.chi
         #v.dump()
     N = len(reps)
+    #for i in range(N):
+    #  for j in range(N):
+    #    v = reps[i]
+    #    w = reps[j]
+    #    homs = w.hom(v)
+    #    if v.dim*w.dim > 100:
+    #        continue
+    #    print(len(homs), end=" ", flush=True)
+    #    for f in homs:
+    #        f.check()
+    #  print()
 
-    for i in range(N):
-      for j in range(N):
-        v = reps[i]
-        w = reps[j]
-        homs = hom(v,w)
-        if v.dim*w.dim > 100:
-            continue
-        print(len(homs), end=" ", flush=True)
-        for f in homs:
-            for g in G:
-                lhs, rhs = f*v(g), w(g)*f
-                assert lhs == rhs, (lhs-rhs)
-            
-      print()
+    fs = reps[2].hom(reps[1])
+    for f in fs:
+        f.check()
+    f = fs[0]
+    k = f.cokernel()
+    k.tgt.check()
+    k.check()
 
-    return
+    gs = GramSchmidt(reps)
+    showtable = gs.showtable
+    subtract = gs.subtract
+    showtable()
 
-    chis = [r.chi for r in reps]
+    subtract(1, 0)
+    subtract(2, 0)
+    subtract(3, 0)
+    subtract(4, 0)
+    showtable()
 
-    for i in range(N):
-      for j in range(N):
-        u = chis[i].hom(chis[j])
-        #dim = (reps[i].dual() @ reps[j]).dim
-        #print("%s:%s"%(u,dim), end=" ", flush=True)
-        print(u, end=" ", flush=True)
-      print()
+    subtract(2, 1)
+    subtract(3, 1)
+    subtract(3, 1)
+    subtract(4, 1)
+    subtract(4, 1)
+    subtract(4, 1)
+    showtable()
 
-#    print()
-#    for i in range(N):
-#      for j in range(N):
-#        dim = (reps[i].dual() @ reps[j]).dim
-#        print(dim, end=" ", flush=True)
-#      print()
+    subtract(3, 2)
+    subtract(4, 2)
+    subtract(4, 2)
+    showtable()
 
+    subtract(4, 3)
+    subtract(4, 3)
+    subtract(4, 3)
+    showtable()
+
+    for r in gs.reps:
+        print(r)
+
+
+from bruhat.algebraic import Algebraic, get_permrep, get_subgroup, parse
+
+def GL(n,p):
+    G = Algebraic.GL(n,p)
+    for g in G.gen:
+        print(g)
+
+    subgroups = []
+    assert n==3
+    #POINT = "1111 .111 .111 .111"
+    POINT = "111 .11 .11"
+    POINT = parse(POINT).reshape(n,n)
+    H = get_subgroup(G, POINT)
+    print("*--. =", len(H), len(G)//len(H))
+    subgroups.append(H)
+
+    #LINE = "1111 1111 ..11 ..11"
+    LINE = "111 111 ..1"
+    LINE = parse(LINE).reshape(n,n)
+    H = get_subgroup(G, LINE)
+    print(".--* =", len(H), len(G)//len(H))
+    subgroups.append(H)
+
+    subgroups = [get_permrep(H) for H in subgroups]
+    G = get_permrep(G)
+    H = Group([G.identity])
+    subgroups.insert(0, H)
+    subgroups.append(G)
+
+    for H in subgroups:
+        assert G.is_subgroup(H)
+        #print(H)
+    G.parabolics = subgroups
+    return G
+
+
+def test_gl():
+    #Rep.ring = QQ
+
+    print("test_gl()")
+
+    G = GL(3,2)
+    n = len(G)
+    #rep = Rep.regular(G)
+    #print(rep)
+    print(G)
+
+    reps = [Rep.permutation(G, H) for H in G.parabolics[1:]]
+    for r in reps:
+        print(r)
+    gs = GramSchmidt(reps)
+
+    subtract = gs.subtract
+    showtable = gs.showtable
+
+    showtable()
+    subtract(0,2)
+    subtract(1,2)
+    #subtract(0, 3)
+    #subtract(1, 3)
+    #subtract(2, 3)
+
+    showtable()
+
+    r0 = (gs.reps[0])
+    r1 = (gs.reps[1])
+
+    fs = r0.hom(r1)
+    assert len(fs)==1
+    f = fs[0]
+    print(f)
+    print(f.M)
+
+
+def test():
+    #test_rep()
+    #test_gram_schmidt()
+    test_gl()
 
 
 if __name__ == "__main__":

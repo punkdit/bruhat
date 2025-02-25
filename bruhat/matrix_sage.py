@@ -196,6 +196,29 @@ class Matrix(object):
         M = self.M.inverse()
         return Matrix(self.ring, M)
 
+    def pseudoinverse(self, algorithm=None):
+        """
+        Return the Moore-Penrose pseudoinverse of this matrix.
+
+        INPUT:
+
+        - ``algorithm`` -- (default: guess) one of the following:
+
+          - ``'numpy'`` -- use numpy's ``linalg.pinv()`` which is
+            suitable over real or complex fields
+
+          - ``'exact'`` -- use a simple algorithm which is not
+            numerically stable but useful over exact fields. Assume that
+            no conjugation is needed, that the conjugate transpose is
+            just the transpose.
+
+          - ``'exactconj'`` -- like ``exact`` but use the conjugate
+            transpose
+        """
+
+        M = self.M.pseudoinverse(algorithm=algorithm)
+        return Matrix(self.ring, M)
+
     def transpose(self):
         M = self.M.transpose()
         return Matrix(self.ring, M)
@@ -243,11 +266,15 @@ class Matrix(object):
         A = self.M.solve_right(other.M)
         return Matrix(self.ring, A)
 
-    def kernel(self):
+    def cokernel(self):
         K = all_cmdline.kernel(self.M)
         B = K.basis()
         #print(K, type(K))
         return Matrix(self.ring, B)
+
+#    def cokernel(self):
+#        K = self.t.kernel()
+#        return K.t
 
 
 def test():
