@@ -74,7 +74,7 @@ class Char:
         chi = [self.chi[i]*other.chi[i] for i in range(self.n)]
         return Char(self.G, chi)
 
-    def hom(other, self): # other <---- self
+    def dot(other, self): # other <---- self
         assert self.G is other.G
         #u = ring.zero()
         u = 0
@@ -203,6 +203,11 @@ class Rep:
         rep = {g : self.rep[~g].t for g in self.G}
         return Rep(self.G, rep, self.dim)
 
+    def is_irrep(self):
+        chi = self.chi
+        r = chi.dot(chi)
+        return r==1
+
     def restrict(self, H):
         rep = {h:self.rep[h] for h in H}
         return Rep(H, rep, self.dim)
@@ -258,7 +263,8 @@ class Rep:
         Iv = Matrix.identity(v.ring, v.dim)
         Iw = Matrix.identity(w.ring, w.dim)
         blocks = []
-        for g in G:
+        #for g in G:
+        for g in G.gens:
             lhs = v(~g) @ Iw
             rhs = Iv @ w(g)
             f = lhs-rhs
@@ -330,7 +336,7 @@ class GramSchmidt:
         for i in range(N):
           print("%3d:"%i, end="")
           for j in range(N):
-            u = chis[j].hom(chis[i])
+            u = chis[j].dot(chis[i])
             print("%3s "%u, end="", flush=True)
           print()
         print("   ", "===="*N)
@@ -343,6 +349,9 @@ class GramSchmidt:
         assert len(fs)
         f = fs[0]
         reps[i] = f.cokernel().tgt
+
+    def __getitem__(self, idx):
+        return self.reps[idx]
 
 
 
@@ -500,29 +509,34 @@ from bruhat.algebraic import Algebraic, get_permrep, get_subgroup, parse
 
 def GL(n,p):
     G = Algebraic.GL(n,p)
-    for g in G.gen:
-        print(g)
+    #for g in G.gen:
+    #    print(g)
 
     subgroups = []
     assert n==3
+
+    FLAG = "111 .11 ..1"
+    FLAG = parse(FLAG).reshape(n,n)
+    flag = get_subgroup(G, FLAG)
+    print(len(flag), len(G)//len(flag))
+    subgroups.append(flag)
+
     #POINT = "1111 .111 .111 .111"
     POINT = "111 .11 .11"
     POINT = parse(POINT).reshape(n,n)
     H = get_subgroup(G, POINT)
-    print("*--. =", len(H), len(G)//len(H))
+    #print("*--. =", len(H), len(G)//len(H))
     subgroups.append(H)
 
     #LINE = "1111 1111 ..11 ..11"
     LINE = "111 111 ..1"
     LINE = parse(LINE).reshape(n,n)
     H = get_subgroup(G, LINE)
-    print(".--* =", len(H), len(G)//len(H))
+    #print(".--* =", len(H), len(G)//len(H))
     subgroups.append(H)
 
     subgroups = [get_permrep(H) for H in subgroups]
     G = get_permrep(G)
-    H = Group([G.identity])
-    subgroups.insert(0, H)
     subgroups.append(G)
 
     for H in subgroups:
@@ -533,7 +547,7 @@ def GL(n,p):
 
 
 def test_gl():
-    #Rep.ring = QQ
+    Rep.ring = QQ
 
     print("test_gl()")
 
@@ -542,6 +556,27 @@ def test_gl():
     #rep = Rep.regular(G)
     #print(rep)
     print(G)
+
+    Hs = G.parabolics
+    reps = [Rep.permutation(G, H) for H in [Hs[0], Hs[1], Hs[3]]]
+    for r in reps:
+        print(r)
+    gs = GramSchmidt(reps)
+    gs.showtable()
+
+    gs.subtract(0, 2)
+    gs.subtract(1, 2)
+    gs.showtable()
+    gs.subtract(0, 1)
+    gs.showtable()
+    gs.subtract(0, 1)
+    gs.showtable()
+
+    for r in gs.reps:
+        print(r)
+        assert r.is_irrep()
+
+    return
 
     reps = [Rep.permutation(G, H) for H in G.parabolics[1:]]
     for r in reps:
@@ -563,6 +598,8 @@ def test_gl():
     r0 = (gs.reps[0])
     r1 = (gs.reps[1])
 
+    assert r0.is_irrep()
+
     fs = r0.hom(r1)
     assert len(fs)==1
     f = fs[0]
@@ -571,8 +608,8 @@ def test_gl():
 
 
 def test():
-    #test_rep()
-    #test_gram_schmidt()
+    test_rep()
+    test_gram_schmidt()
     test_gl()
 
 
