@@ -1,4 +1,5 @@
 
+SizeScreen([1000,1000]);
 
 G := GL(2,5);;
 Print(Order(G), "\n");;
@@ -18,11 +19,12 @@ Print(Order(G), "\n");;
 #quit;
 
 x := Indeterminate(GF(5), "x");
-m := CompanionMatrix(x^2+2);
+m := CompanionMat(x^2+2);
 m in G;
 H := Centralizer(G, m);
 Order(H);
 
+Print("IsomorphismGroups: ", IsomorphismGroups(H, CyclicGroup(24)), "\n");
 
 #fn := InducedClassFunction( chi, H );
 Print("Irr(G)\n");
