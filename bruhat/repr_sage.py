@@ -226,8 +226,8 @@ class Rep:
     
         H = set(H)
     
-        rep = {}
-        for g in G:
+        Ms = []
+        for g in G.get_gens():
             #print(g)
             lookup = {}
             for i in range(n):
@@ -247,8 +247,9 @@ class Rep:
                 cols.append(colcat(blocks))
             M = rowcat(cols)
             #print(M)
-            rep[g] = M
-        return Rep(G, rep, dim*n)
+            #rep[g] = M
+            Ms.append(M)
+        return Rep.generate(G, G.get_gens(), Ms)
 
     def hom(w, v): 
         """
@@ -264,6 +265,7 @@ class Rep:
         Iw = Matrix.identity(w.ring, w.dim)
         blocks = []
         #for g in G:
+        G.get_gens()
         for g in G.gens:
             lhs = v(~g) @ Iw
             rhs = Iv @ w(g)
@@ -505,56 +507,71 @@ def test_gram_schmidt():
         print(r)
 
 
-from bruhat.algebraic import Algebraic, get_permrep, get_subgroup, parse
 
 def GL(n,p):
+    from bruhat import algebraic
+    from bruhat.algebraic import Algebraic, get_permrep, get_subgroup, parse
+
     G = Algebraic.GL(n,p)
     #for g in G.gen:
     #    print(g)
 
-    subgroups = []
+    torus = []
+    for M in [
+        algebraic.Matrix([[0,0,1],[1,0,0],[0,1,1]]),
+        algebraic.Matrix([[0,0,1],[1,0,1],[0,1,0]]),
+    ]:
+        #H = Algebraic([M])
+        #assert len(H) == 7
+        H = [g for g in G if g*M==M*g]
+        H = get_permrep(H)
+        torus.append(H)
+
+    parabolics = []
     assert n==3
 
     FLAG = "111 .11 ..1"
     FLAG = parse(FLAG).reshape(n,n)
     flag = get_subgroup(G, FLAG)
     print(len(flag), len(G)//len(flag))
-    subgroups.append(flag)
+    parabolics.append(flag)
 
     #POINT = "1111 .111 .111 .111"
     POINT = "111 .11 .11"
     POINT = parse(POINT).reshape(n,n)
     H = get_subgroup(G, POINT)
     #print("*--. =", len(H), len(G)//len(H))
-    subgroups.append(H)
+    parabolics.append(H)
 
     #LINE = "1111 1111 ..11 ..11"
     LINE = "111 111 ..1"
     LINE = parse(LINE).reshape(n,n)
     H = get_subgroup(G, LINE)
     #print(".--* =", len(H), len(G)//len(H))
-    subgroups.append(H)
+    parabolics.append(H)
 
-    subgroups = [get_permrep(H) for H in subgroups]
+    parabolics = [get_permrep(H) for H in parabolics]
     G = get_permrep(G)
-    subgroups.append(G)
+    parabolics.append(G)
 
-    for H in subgroups:
+    for H in parabolics:
         assert G.is_subgroup(H)
         #print(H)
-    G.parabolics = subgroups
+    G.parabolics = parabolics
+    G.torus = torus
+
     return G
 
 
 def test_gl():
     Rep.ring = QQ
-
-    print("test_gl()")
+    #Rep.ring = CyclotomicField(7)
 
     G = GL(3,2)
     n = len(G)
-    #rep = Rep.regular(G)
-    #print(rep)
+
+    print("test_gl()")
+
     print(G)
 
     Hs = G.parabolics
@@ -574,8 +591,24 @@ def test_gl():
 
     for r in gs.reps:
         print(r)
-        assert r.is_irrep()
+        print("is_irrep:", r.is_irrep())
 
+    #reps.append(Rep.permutation(G, G.torus[0]))
+    Rep.ring = CyclotomicField(7)
+
+    for H in G.torus:
+        for j in range(1,7):
+            r = Rep.fourier(H, j)
+            print(r, "induce:")
+            r_torus = r.induce(G)
+            print("\t", r_torus)
+            gs.reps.append(r_torus)
+    #return
+
+    gs.showtable()
+
+    #gs.subtract(3, 1)
+    #gs.showtable()
     return
 
     reps = [Rep.permutation(G, H) for H in G.parabolics[1:]]

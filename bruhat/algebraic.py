@@ -2039,6 +2039,7 @@ def get_permrep(G):
         idxs = [lookup[(numpy.dot(op.A, v)%p).tobytes()] for v in space]
         perms.append(gset.Perm(idxs))
     G = gset.Group(perms)
+    G.get_gens()
     return G
 
 

@@ -162,7 +162,7 @@ def main_sp():
             dhar = B.characteristic_polynomial()
             assert char == dhar
 
-    return
+    #return
 
     for cgy in cgys:
         print(len(cgy))

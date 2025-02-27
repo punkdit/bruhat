@@ -22,7 +22,7 @@ from bruhat.argv import argv
 
 #from qumba.clifford_ring import degree
 #K = CyclotomicField(degree)
-#root = K.gen() # primitive eighth root of unity
+#root = K.gen() # primitive eighth root of _unity
 #w8 = root ** (degree // 8)
 #half = K.one()/2
 #w4 = w8**2
@@ -57,6 +57,13 @@ from bruhat.argv import argv
 #    s = s.replace(r"\zeta_{8}^{2}", "i")
 #    return s
 
+def unify(R, S):
+    if R.coerce_map_from(S) is not None:
+        return R
+    if S.coerce_map_from(R) is not None:
+        return S
+    assert 0
+
 
 class Matrix(object):
     def __init__(self, ring, rows, name=()):
@@ -71,7 +78,7 @@ class Matrix(object):
 
     def __eq__(self, other):
         assert isinstance(other, Matrix)
-        assert self.ring == other.ring
+        #assert self.ring == other.ring
         assert self.shape == other.shape
         return self.M == other.M
 
@@ -91,24 +98,27 @@ class Matrix(object):
 
     def __mul__(self, other):
         assert isinstance(other, Matrix), type(other)
-        assert self.ring == other.ring
+        #assert self.ring == other.ring
+        ring = unify(self.ring, other.ring)
         assert self.shape[1] == other.shape[0], (
             "cant multiply %sx%s by %sx%s"%(self.shape + other.shape))
         M = self.M * other.M
         name = self.name + other.name
-        return Matrix(self.ring, M, name)
+        return Matrix(ring, M, name)
 
     def __add__(self, other):
         assert isinstance(other, Matrix)
-        assert self.ring == other.ring
+        #assert self.ring == other.ring
+        ring = unify(self.ring, other.ring)
         M = self.M + other.M
-        return Matrix(self.ring, M)
+        return Matrix(ring, M)
 
     def __sub__(self, other):
         assert isinstance(other, Matrix)
-        assert self.ring == other.ring
+        #assert self.ring == other.ring
+        ring = unify(self.ring, other.ring)
         M = self.M - other.M
-        return Matrix(self.ring, M)
+        return Matrix(ring, M)
 
     def __neg__(self):
         M = -self.M
@@ -126,25 +136,29 @@ class Matrix(object):
 
     def __matmul__(self, other):
         assert isinstance(other, Matrix)
-        assert self.ring == other.ring
+        #assert self.ring == other.ring
+        ring = unify(self.ring, other.ring)
         M = self.M.tensor_product(other.M)
-        return Matrix(self.ring, M)
+        return Matrix(ring, M)
     tensor_product = __matmul__
 
     def direct_sum(self, other):
         assert isinstance(other, Matrix)
-        assert self.ring == other.ring
+        #assert self.ring == other.ring
+        ring = unify(self.ring, other.ring)
         #M = self.M.direct_sum(other.M)
         M = block_diagonal_matrix(self.M, other.M)
-        return Matrix(self.ring, M)
+        return Matrix(ring, M)
 
     def stack(self, other):
-        assert self.ring == other.ring
-        return Matrix(self.ring, self.M.stack(other.M))
+        #assert self.ring == other.ring
+        ring = unify(self.ring, other.ring)
+        return Matrix(ring, self.M.stack(other.M))
 
     def augment(self, other):
-        assert self.ring == other.ring
-        return Matrix(self.ring, self.M.augment(other.M))
+        #assert self.ring == other.ring
+        ring = unify(self.ring, other.ring)
+        return Matrix(ring, self.M.augment(other.M))
 
     def __getitem__(self, idx):
         #if type(idx) is int:

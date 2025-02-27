@@ -27,7 +27,7 @@ from numpy import all as alltrue
 scalar = numpy.int64
 
 from bruhat.algebraic import Algebraic, Matrix
-from bruhat.util import factorial, cross, is_prime
+from bruhat.util import factorial, cross, is_prime, choose
 from bruhat.action import mulclose
 from bruhat.equ import Equ
 from bruhat.argv import argv
@@ -299,6 +299,17 @@ class Group(object):
     @classmethod
     def generate(cls, gens):
         return cls(None, gens)
+
+    @cache
+    def get_gens(self):
+        perms = self.perms
+        n = len(perms)
+        for count in range(1,n):
+          for gens in choose(perms, count):
+            G = mulclose(gens)
+            if len(G) == n:
+                self.gens = list(gens)
+                return self.gens
 
 #    @property
 #    def identity(self):
