@@ -26,6 +26,7 @@ from bruhat.argv import argv
 from bruhat.matrix_sage import Matrix
 from bruhat.action import mulclose, mulclose_hom
 from bruhat.gset import Perm, Group, Coset
+from bruhat.smap import SMap
 
 
 def colcat(col):
@@ -349,6 +350,7 @@ class GramSchmidt:
         print("subtract", i, j)
         fs = reps[i].hom(reps[j])
         assert len(fs)
+        print("\thoms:", len(fs))
         f = fs[0]
         reps[i] = f.cokernel().tgt
 
@@ -510,7 +512,7 @@ def test_gram_schmidt():
 
 def GL(n,p):
     from bruhat import algebraic
-    from bruhat.algebraic import Algebraic, get_permrep, get_subgroup, parse
+    from bruhat.algebraic import Algebraic, get_subgroup, parse
 
     G = Algebraic.GL(n,p)
     #for g in G.gen:
@@ -536,14 +538,12 @@ def GL(n,p):
     print(len(flag), len(G)//len(flag))
     parabolics.append(flag)
 
-    #POINT = "1111 .111 .111 .111"
-    POINT = "111 .11 .11"
-    POINT = parse(POINT).reshape(n,n)
-    H = get_subgroup(G, POINT)
+    point = "111 .11 .11"
+    point = parse(point).reshape(n,n)
+    H = get_subgroup(G, point)
     #print("*--. =", len(H), len(G)//len(H))
     parabolics.append(H)
 
-    #LINE = "1111 1111 ..11 ..11"
     LINE = "111 111 ..1"
     LINE = parse(LINE).reshape(n,n)
     H = get_subgroup(G, LINE)
@@ -567,6 +567,109 @@ def GL(n,p):
     G.child = child
 
     return G
+
+
+def get_permrep(G):
+    """
+    permutation action of G on the non-zero vectors (in lexicographic order)
+    """
+    from bruhat import gset
+    from bruhat.algebraic import Matrix, enum2
+    assert len(G)
+    op = G[0]
+    n, _ = op.shape
+    p = op.p
+    space = [Matrix(numpy.array(v).reshape(n,1)) for v in enum2(n) if sum(v)!=0]
+    lookup = dict((v, idx) for (idx, v) in enumerate(space))
+    perms = []
+    rep = {}
+    for g in G:
+        idxs = [lookup[g*v] for v in space]
+        perm = gset.Perm(idxs)
+        rep[g] = perm
+        perms.append(perm)
+    X = gset.Group(perms)
+    X.get_gens()
+    X.rep = rep
+    X.space = space
+    X.G = G
+    return X
+
+
+def test_parabolic_induction():
+    from bruhat import algebraic
+    from bruhat.algebraic import Algebraic, get_subgroup, parse
+
+    n, p = 3, 2
+    GLn = Algebraic.GL(n,p)
+    X = get_permrep(GLn)
+    r = get_parabolic_induction(X)
+
+    print(r)
+    r.check()
+    print(r.is_irrep())
+
+
+
+def sort_sign(items):
+    sign = +1
+    N = len(items)
+    for n in range(N-1, 0, -1): # bubble sort
+        swapped = False
+        for i in range(n):
+            if items[i] > items[i + 1]:
+                items[i], items[i + 1] = items[i + 1], items[i]
+                swapped = True
+                sign *= -1
+        if not swapped:
+            break
+    jtems = list(items)
+    jtems.sort()
+    assert jtems==items
+    return sign
+    
+
+def get_parabolic_induction(X):
+
+    points = X.space
+    lines = set()
+    for a in points:
+      for b in points:
+        if a==b:
+            continue
+        c = a+b
+        l = [a,b,c]
+        l.sort()
+        l = tuple(l)
+        lines.add(l)
+    lines = list(lines)
+    lines.sort()
+
+    rep = {}
+    for g in X.G:
+        #print(g)
+        rows = []
+        for i,l in enumerate(lines):
+            a, b, c = l
+            l1 = [g*a, g*b, g*c]
+            l2 = list(l1)
+            #l2.sort()
+            sign = sort_sign(l2)
+            l2 = tuple(l2)
+            j = lines.index(l2)
+            #print(i, "-->", j, sign)
+            row = [0]*len(lines)
+            row[j] = sign
+            rows.append(row)
+        M = Matrix(Rep.ring, rows)
+        #print(M.t)
+        perm = X.rep[g]
+        rep[perm] = M.t
+
+    r = Rep(X, rep, len(lines))
+    return r
+
+
 
 
 def test_gl():
@@ -598,7 +701,8 @@ def test_gl():
     Hs = G.parabolics
     reps = [Rep.permutation(G, H) for H in [Hs[0], Hs[1], Hs[3]]]
 
-    reps.append(r)
+    reps.append(get_parabolic_induction(G))
+    #reps.append(r)
 
     for r in reps:
         print(r)
@@ -612,8 +716,12 @@ def test_gl():
     gs.showtable()
     gs.subtract(0, 1)
     gs.showtable()
-    gs.subtract(3, 0)
-    gs.showtable()
+#    gs.subtract(4, 0)
+#    gs.showtable()
+#    gs.subtract(4, 3)
+#    gs.showtable()
+#    gs.subtract(4, 3)
+#    gs.showtable()
 
     for r in gs.reps:
         print(r)
@@ -625,22 +733,27 @@ def test_gl():
     Rep.ring = CyclotomicField(7)
 
     for H in G.torus:
-        for j in range(1,7):
+        for j in [1,3]: #range(1,7):
             r = Rep.fourier(H, j)
             print(r, "induce:")
             r_torus = r.induce(G)
             print("\t", r_torus)
             gs.reps.append(r_torus)
-            break
+            #break
+        break
     #return
 
     gs.showtable()
 
-    gs.subtract(4, 1)
+    gs.subtract(4, 0)
+    gs.showtable()
+    gs.subtract(4, 3)
     gs.showtable()
     #gs.subtract(4, 1)
     #gs.showtable()
 
+    for r in reps:
+        print(r)
     return
 
     reps = [Rep.permutation(G, H) for H in G.parabolics[1:]]

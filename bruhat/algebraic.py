@@ -2027,19 +2027,27 @@ def get_subgroup(G, geom, check=False):
 
 
 def get_permrep(G):
+    """
+    permutation action of G on the non-zero vectors (in lexicographic order)
+    """
     from bruhat import gset
     assert len(G)
     op = G[0]
     n, _ = op.shape
     p = op.p
-    space = list(numpy.array(v) for v in enum2(n))
+    space = list(numpy.array(v) for v in enum2(n) if sum(v)!=0)
     lookup = dict((v.tobytes(), idx) for (idx, v) in enumerate(space))
     perms = []
+    rep = {}
     for op in G:
         idxs = [lookup[(numpy.dot(op.A, v)%p).tobytes()] for v in space]
-        perms.append(gset.Perm(idxs))
+        perm = gset.Perm(idxs)
+        rep[op] = perm
+        perms.append(perm)
     G = gset.Group(perms)
     G.get_gens()
+    G.rep = rep
+    G.space = space
     return G
 
 
