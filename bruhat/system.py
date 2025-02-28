@@ -13,6 +13,19 @@ from sage import all_cmdline
 from bruhat.matrix_sage import Matrix
 from bruhat.argv import argv
 
+def dot(A, B):
+    return numpy.dot(A, B)
+
+def identity(m):
+    return numpy.identity(m, dtype=int_scalar)
+
+def array(A):
+    return numpy.array(A, dtype=int_scalar)
+
+def zeros(m, n):
+    return numpy.zeros((m,n), dtype=int_scalar)
+
+
 
 class LinearCombination(object):
     def __init__(self, data={}):
@@ -129,8 +142,9 @@ def Unknown(*args):
 
 class System(object):
     "system of linear equations"
-    def __init__(self, *Ts):
+    def __init__(self, ring, *Ts):
         assert Ts
+        self.ring = ring
         m = sum(T.shape[0] for T in Ts)
         n = sum(T.shape[1] for T in Ts)
         T = Unknown(m, n)
@@ -161,16 +175,16 @@ class System(object):
         self.T = T
 
     def append(self, lhs, rhs):
-#        if type(rhs) in (int, float, int) and rhs==0:
-#            rhs = zeros2(*lhs.shape)
-#        if type(rhs) in (int, float, int) and rhs==1:
-#            n = min(*lhs.shape)
-#            rhs = identity2(n)
+        if type(rhs) in (int, float) and rhs==0:
+            rhs = zeros(*lhs.shape)
+        if type(rhs) in (int, float) and rhs==1:
+            n = min(*lhs.shape)
+            rhs = identity(n)
 #        if lhs.dtype==int_scalar:
 #            lhs, rhs = rhs, lhs # swap
 #        elif lhs.dtype==object and rhs.dtype==object:
 #            lhs = lhs-rhs
-#            rhs = zeros2(*rhs.shape)
+#            rhs = zeros(*rhs.shape)
 #        assert lhs.dtype == object, lhs.dtype
 #        assert rhs.dtype == int_scalar, rhs.dtype
 #        if len(lhs.shape)==1:
@@ -188,10 +202,10 @@ class System(object):
         T, lhss, rhss = self.T, self.lhss, self.rhss
         m = sum(lhs.shape[0]*lhs.shape[1] for lhs in lhss)
         n = T.shape[0]*T.shape[1]
-        H = zeros2(
+        H = zeros(
             m, # this many constraints
             n) # this many unknowns
-        v = zeros2(m, 1)
+        v = zeros(m, 1)
         row = 0
         for lhs, rhs in zip(lhss, rhss):
           #print(lhs)
@@ -218,24 +232,28 @@ class System(object):
 
     def kernel(self):
         H, v = self.build()
-        basis = find_kernel(H)
+        #basis = find_kernel(H)
+        H = Matrix(self.ring, H)
+        basis = H.kernel().t
         return basis
 
     def solve(self, unpack=True, check=False):
         H, v = self.build()
-        print("solve:")
-        print(H)
-        H = Matrix(QQ, H)
-        v = Matrix(QQ, v)
+        #print("solve:")
+        #print(H)
+        H = Matrix(self.ring, H)
+        v = Matrix(self.ring, v)
         #Hinv = ~H
         Hinv = H.pseudoinverse()
-        #u = dot2(Hinv, v)
+        #print("Hinv:")
+        #print(Hinv)
+        #u = dot(Hinv, v)
         u = Hinv * v
         #print shortstrx(H, u, v)
         if H*u != v:
             # No solution
             return None
-        #if not eq2(dot2(H, u), v):
+        #if not eq(dot(H, u), v):
             #return None
         #u.shape = self.T.shape
         u = u.reshape(*self.T.shape)
@@ -262,9 +280,21 @@ class System(object):
         kern = self.kernel()
         if not kern:
             return
-        for v in span(kern):
-            v.shape = u.shape
-            yield self.unpack((u+v)%2)
+        #print("kern:")
+        #print(kern)
+        #for v in span(kern):
+        for v in kern:
+            #v.shape = u.shape
+            v = v.reshape(*u.shape)
+            yield self.unpack((u+v))
+
+    def solve_homogeneous(self):
+        kern = self.kernel()
+        if not kern:
+            return
+        for v in kern:
+            #v = v.reshape(*u.shape)
+            yield self.unpack(v)
 
     def random_solution(self):
         u = self.solve(unpack=False)
@@ -275,40 +305,32 @@ class System(object):
             v.shape = u.shape
             if random()<=0.5:
                 u += v
-        return self.unpack(u%2)
-
-def dot2(A, B):
-    return numpy.dot(A, B)
-
-def identity2(m):
-    return numpy.identity(m, dtype=int_scalar)
-
-def array2(A):
-    return numpy.array(A, dtype=int_scalar)
-
-def zeros2(m, n):
-    return numpy.zeros((m,n), dtype=int_scalar)
+        return self.unpack(u)
 
 
 def test():
     #H = Matrix(QQ, [[1,0,1],[1,0,0],[0,1,1]])
     #print(H * ~H)
-    H = array2([[1,0,1],[1,0,0],[0,1,1]])
+
+    one = QQ.gen()
+    r = one/2
+    H = array([[r,0,1],[1,0,0],[0,1,1]])
 
     m, n = H.shape
 
     T = Unknown(n, m)
     print(T)
-    print(dot2(H,T))
+    print(dot(H,T))
 
-    system = System(T)
-    system.append(dot2(H, T), identity2(m))
+    system = System(QQ, T)
+    system.append(dot(H, T), identity(m))
 
     T = system.solve()
+    print("T")
+    print(T)
 
     H = Matrix(QQ, H)
     assert H*T == Matrix.identity(QQ, m)
-    #assert eq2(dot2(H, T), identity2(m))
 
 
 

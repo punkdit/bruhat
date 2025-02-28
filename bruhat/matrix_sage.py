@@ -234,6 +234,14 @@ class Matrix(object):
         M = self.M.pseudoinverse(algorithm=algorithm)
         return Matrix(self.ring, M)
 
+    def to_numpy(self):
+        u = numpy.empty(self.shape, dtype=object)
+        m, n = self.shape
+        for i in range(m):
+          for j in range(n):
+            u[i,j] = self.M[i,j]
+        return u
+
     def transpose(self):
         M = self.M.transpose()
         return Matrix(self.ring, M)

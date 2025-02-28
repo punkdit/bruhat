@@ -263,7 +263,7 @@ class Rep:
             Ms.append(M)
         return Rep.generate(G, G.get_gens(), Ms)
 
-    def hom(w, v): 
+    def hom_fail(w, v): 
         """
             find basis for space of intertwiners
             w <--- v
@@ -303,6 +303,49 @@ class Rep:
             #f = f.reshape(w.dim, v.dim) #??
             f = f.reshape(v.dim, w.dim).t
             hom = Hom(w, v, f)
+            #hom.other = Hom(w,v,f0)
+            homs.append(hom)
+        return homs
+    
+    def hom(w, v): 
+        """
+            find basis for space of intertwiners
+            w <--- v
+        """
+        assert isinstance(v, Rep)
+        assert isinstance(w, Rep)
+        assert v.G is w.G
+
+        #print("hom", w, "<--", v)
+        m, n = w.dim, v.dim
+    
+        G = v.G
+        Iv = Matrix.identity(v.ring, v.dim)
+        Iw = Matrix.identity(w.ring, w.dim)
+        blocks = []
+        #for g in G:
+        G.get_gens()
+
+        from bruhat.system import Unknown, System, array, dot
+        f = Unknown(m, n)
+        system = System(v.ring, f)
+        for g in G.gens:
+            wg = (w(g)).to_numpy()
+            vg = (v(g)).to_numpy()
+            lhs = dot(wg, f)
+            rhs = dot(f, vg)
+            system.append(lhs-rhs, 0)
+
+        #f = system.solve()
+        
+        homs = []
+        #for f in system.all_solutions():
+        for f in system.solve_homogeneous():
+            #print("f =")
+            #print(f)
+            f = f.reshape(w.dim, v.dim)
+            hom = Hom(w, v, f)
+            hom.check()
             #hom.other = Hom(w,v,f0)
             homs.append(hom)
         return homs
@@ -868,6 +911,21 @@ def test_gl():
 
     for c in chis:
         print(c)
+
+    gs.showtable()
+    gs.subtract(4,0)
+    gs.showtable()
+    gs.subtract(4,1)
+    gs.showtable()
+    gs.subtract(4,3)
+    gs.showtable()
+
+    gs.subtract(5,0)
+    gs.showtable()
+    gs.subtract(5,1)
+    gs.showtable()
+    gs.subtract(5,3)
+    gs.showtable()
 
 
 def test():
