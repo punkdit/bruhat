@@ -619,7 +619,7 @@ def test_gl():
         print(r)
         print("is_irrep:", r.is_irrep())
 
-    return
+    #return
 
     #reps.append(Rep.permutation(G, G.torus[0]))
     Rep.ring = CyclotomicField(7)
@@ -631,12 +631,16 @@ def test_gl():
             r_torus = r.induce(G)
             print("\t", r_torus)
             gs.reps.append(r_torus)
+            break
     #return
 
     gs.showtable()
 
-    #gs.subtract(3, 1)
+    gs.subtract(4, 1)
+    gs.showtable()
+    #gs.subtract(4, 1)
     #gs.showtable()
+
     return
 
     reps = [Rep.permutation(G, H) for H in G.parabolics[1:]]
