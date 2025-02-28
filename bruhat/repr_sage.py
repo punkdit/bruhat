@@ -550,6 +550,11 @@ def GL(n,p):
     #print(".--* =", len(H), len(G)//len(H))
     parabolics.append(H)
 
+    child = "1.. .11 .11"
+    child = parse(child).reshape(n,n)
+    child = get_subgroup(G, child)
+    child = get_permrep(child)
+
     parabolics = [get_permrep(H) for H in parabolics]
     G = get_permrep(G)
     parabolics.append(G)
@@ -559,6 +564,7 @@ def GL(n,p):
         #print(H)
     G.parabolics = parabolics
     G.torus = torus
+    G.child = child
 
     return G
 
@@ -574,8 +580,26 @@ def test_gl():
 
     print(G)
 
+    H = G.child
+    print(H)
+    rep = {}
+    I = G.identity
+    for g in H:
+        if g != I and g*g == I:
+            rep[g] = Matrix(Rep.ring, [[-1]])
+        else:
+            rep[g] = Matrix(Rep.ring, [[1]])
+    r = Rep(H, rep, 1)
+    r.check()
+    r = r.induce(G)
+    print(r)
+    #return
+
     Hs = G.parabolics
     reps = [Rep.permutation(G, H) for H in [Hs[0], Hs[1], Hs[3]]]
+
+    reps.append(r)
+
     for r in reps:
         print(r)
     gs = GramSchmidt(reps)
@@ -588,10 +612,14 @@ def test_gl():
     gs.showtable()
     gs.subtract(0, 1)
     gs.showtable()
+    gs.subtract(3, 0)
+    gs.showtable()
 
     for r in gs.reps:
         print(r)
         print("is_irrep:", r.is_irrep())
+
+    return
 
     #reps.append(Rep.permutation(G, G.torus[0]))
     Rep.ring = CyclotomicField(7)

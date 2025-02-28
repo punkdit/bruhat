@@ -142,6 +142,16 @@ class Perm(object):
             n -= 1
         return g
 
+    def sign(self):
+        perm = self.perm
+        n = self.rank
+        s = +1
+        for i in range(n):
+          for j in range(i+1,n):
+            if perm[i]>perm[j]:
+                s *= -1
+        return s
+
     def cross(left, right):
         assert isinstance(right, Perm)
         m, n = left.rank, right.rank
