@@ -50,7 +50,12 @@ class Char:
         self.G = G
 
     def __str__(self):
-        return "Char(%s)"%(self.chi,)
+        G = self.G
+        items = []
+        for cls in G.conjugacy_classes():
+            i = G.lookup[cls[0]]
+            items.append(self.chi[i])
+        return "Char(%s)"%(items,)
 
     def __eq__(self, other):
         assert self.G is other.G
@@ -161,6 +166,12 @@ class Rep:
         return Rep(G, rep, 1)
 
     @classmethod
+    def sign(cls, G):
+        M = Matrix(cls.ring, [[1]])
+        rep = {g:g.sign()*M for g in G}
+        return Rep(G, rep, 1)
+
+    @classmethod
     def generate(cls, G, gs, Ms):
         assert len(gs) == len(Ms)
         assert len(gs)
@@ -268,16 +279,31 @@ class Rep:
         #for g in G:
         G.get_gens()
         for g in G.gens:
-            lhs = v(~g) @ Iw
-            rhs = Iv @ w(g)
+            #lhs = v(~g) @ Iw
+            #rhs = Iv @ w(g)
+
+            #lhs = v(g) @ Iw
+            #rhs = Iv @ w(~g)
+
+            #lhs = Iw @ v(~g).t
+            #rhs = w(g) @ Iv
+
+            lhs = Iw @ v(g)
+            rhs = w(~g).t @ Iv
+
             f = lhs-rhs
-            blocks.append(f)
+            blocks.append(f.t)
         M = rowcat(blocks)
         K = M.cokernel()
+        assert (K*M).is_zero()
+        print("Rep.hom()")
+        print("\tK:", K)
         homs = []
         for f in K:
+            #f = f.reshape(w.dim, v.dim) #??
             f = f.reshape(v.dim, w.dim).t
             hom = Hom(w, v, f)
+            #hom.other = Hom(w,v,f0)
             homs.append(hom)
         return homs
     
@@ -299,11 +325,16 @@ class Hom:
         return "(%s<---%s)"%(self.tgt, self.src)
 
     def check(self):
+        assert self.is_valid()
+
+    def is_valid(self):
         tgt = self.tgt
         src = self.src
         M = self.M
-        for g in self.G:
-            assert M*src(g) == tgt(g)*M
+        for g in self.G.gens:
+            if M*src(g) != tgt(g)*M:
+                return False
+        return True
 
     def __mul__(lhs, rhs):
         assert isinstance(rhs, Hom)
@@ -345,13 +376,13 @@ class GramSchmidt:
         print("   ", "===="*N)
         print()
 
-    def subtract(self, i, j):
+    def subtract(self, i, j, idx=0):
         reps = self.reps
         print("subtract", i, j)
         fs = reps[i].hom(reps[j])
         assert len(fs)
         print("\thoms:", len(fs))
-        f = fs[0]
+        f = fs[idx]
         reps[i] = f.cokernel().tgt
 
     def __getitem__(self, idx):
@@ -436,7 +467,7 @@ def test_rep():
 
 
 def test_gram_schmidt():
-    #Rep.ring = QQ # slower than CyclotomicField() !
+    Rep.ring = QQ # ARGHHH much slower than CyclotomicField() !
 
     G = Group.symmetric(4)
     reps = []
@@ -468,6 +499,7 @@ def test_gram_schmidt():
     #        f.check()
     #  print()
 
+    
     fs = reps[2].hom(reps[1])
     for f in fs:
         f.check()
@@ -507,6 +539,82 @@ def test_gram_schmidt():
 
     for r in gs.reps:
         print(r)
+
+
+def test_induce():
+
+    print("\n\ntest_induce()")
+
+    n = 3
+    G = Group.symmetric(n)
+    print(G)
+
+    for g in G:
+        if g.order() == n:
+            break
+    H = Group.generate([g])
+
+#    rep = Rep.fourier(H, 1)
+#    rep = rep.induce(G)
+#    print(rep)
+#    print(rep.chi)
+#    rep.dump()
+#
+#    fs = rep.hom(rep)
+#    print(len(fs))
+#    print(rep.is_irrep())
+
+    #return
+    Rep.ring = QQ
+
+    r0 = Rep.trivial(G)
+    r1 = Rep.sign(G)
+
+    reg = Rep.regular(G)
+
+    for f in reg.hom(r0):
+        f.check()
+    for f in reg.hom(r1):
+        f.check()
+
+    a = Perm([0,2,1])
+    b = Perm([1,2,0])
+    assert a in G
+    assert b in G
+
+    # 2d rep of S3
+    A = Matrix(Rep.ring, [[0,1],[1,0]])
+    B = Matrix(Rep.ring, [[0,-1],[1,-1]])
+    r2 = Rep.generate(G, [a,b], [A,B])
+    r2.check()
+    #rep.dump()
+
+    homs = reg.hom(r2)
+    assert len(homs) == 2
+    for f in homs:
+        print("is_valid:", f.is_valid()) #, f.other.is_valid())
+
+    k = homs[0].cokernel()
+    k.check()
+    r = k.tgt
+    r.check()
+
+    print(r)
+    print("\n\nDEBUG:")
+
+    homs = r.hom(r2)
+    assert len(homs) == 1
+    for f in homs:
+        f.src.check()
+        f.tgt.check()
+        print("src:", f.src)
+        #f.src.dump()
+        print("tgt:", f.tgt)
+        #f.tgt.dump()
+        print("f:")
+        print(f.M)
+        print("is_valid:", f.is_valid()) #, f.other.is_valid())
+        f.check()
 
 
 
@@ -679,6 +787,9 @@ def test_gl():
     G = GL(3,2)
     n = len(G)
 
+    clss = G.conjugacy_classes()
+    assert len(clss) == 6
+
     print("test_gl()")
 
     print(G)
@@ -741,48 +852,22 @@ def test_gl():
             gs.reps.append(r_torus)
             #break
         break
-    #return
+    for i,r in enumerate(gs.reps):
+        print(i, r)
+        #print(r.chi)
 
-    gs.showtable()
+    chis = [rep.chi for rep in gs.reps]
+    chis[4] = chis[4] - chis[0] - chis[1] - chis[3]
+    chis[5] = chis[5] - chis[0] - chis[1] - chis[3]
 
-    gs.subtract(4, 0)
-    gs.showtable()
-    gs.subtract(4, 3)
-    gs.showtable()
-    #gs.subtract(4, 1)
-    #gs.showtable()
+    for c in chis:
+      for d in chis:
+        print("%5s"%(c.dot(d)), end=" ")
+      print()
+    print()
 
-    for r in reps:
-        print(r)
-    return
-
-    reps = [Rep.permutation(G, H) for H in G.parabolics[1:]]
-    for r in reps:
-        print(r)
-    gs = GramSchmidt(reps)
-
-    subtract = gs.subtract
-    showtable = gs.showtable
-
-    showtable()
-    subtract(0,2)
-    subtract(1,2)
-    #subtract(0, 3)
-    #subtract(1, 3)
-    #subtract(2, 3)
-
-    showtable()
-
-    r0 = (gs.reps[0])
-    r1 = (gs.reps[1])
-
-    assert r0.is_irrep()
-
-    fs = r0.hom(r1)
-    assert len(fs)==1
-    f = fs[0]
-    print(f)
-    print(f.M)
+    for c in chis:
+        print(c)
 
 
 def test():

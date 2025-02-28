@@ -209,6 +209,7 @@ class Matrix(object):
     def inverse(self):
         M = self.M.inverse()
         return Matrix(self.ring, M)
+    __invert__ = inverse
 
     def pseudoinverse(self, algorithm=None):
         """
@@ -286,9 +287,14 @@ class Matrix(object):
         #print(K, type(K))
         return Matrix(self.ring, B)
 
-#    def cokernel(self):
-#        K = self.t.kernel()
-#        return K.t
+    def kernel(self):
+        K = self.t.cokernel().t
+        return K
+
+    def sum(self):
+        m, n = self.shape
+        u = sum(self.M[i,j] for i in range(m) for j in range(n))
+        return u
 
 
 def test():

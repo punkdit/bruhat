@@ -604,6 +604,23 @@ class Group(object):
         #return list(items)
 
     @cache
+    def conjugacy_classes(G):
+        remain = set(G)
+        clss = []
+        while remain:
+            g = iter(remain).__next__()
+            remain.remove(g)
+            cls = [g]
+            for h in G:
+                k = h*g*(~h)
+                if k in remain:
+                    remain.remove(k)
+                    cls.append(k)
+            clss.append(cls)
+        clss.sort(key = lambda cls:cls[0])
+        return clss
+
+    @cache
     def conjugacy_subgroups(G, Hs=None, sort=False, verbose=False):
 
         # Find all conjugacy classes of subgroups
