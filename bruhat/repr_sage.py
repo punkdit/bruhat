@@ -660,14 +660,61 @@ def test_induce():
         f.check()
 
 
+class Space:
+    def __init__(self, n, p):
+        self.n = n
+        self.p = p
+        shape = (p,)*n
+        space = [v for v in numpy.ndindex(shape) if sum(v)]
+        print(space)
+        assert len(space) == p**n - 1
+        from bruhat.algebraic import Matrix
+        space = [Matrix(numpy.array(v).reshape(n,1), p) for v in space]
+        lookup = dict((v, idx) for (idx, v) in enumerate(space))
+        self.space = space
+        self.lookup = lookup
 
-def GL(n,p):
+    def get_permrep(self, G):
+        """
+        permutation action of G on the non-zero vectors (in lexicographic order)
+        """
+        from bruhat import gset
+        #from bruhat.algebraic import Matrix, enum2
+        assert len(G)
+        space, lookup = self.space, self.lookup
+        op = G[0]
+        n, _ = op.shape
+        p = op.p
+        perms = []
+        rep = {}
+        #print(lookup)
+        #print("lookup:")
+        #for k,v in lookup.items():
+        #    print(k)
+        for g in G:
+            idxs = [lookup[g*v] for v in space]
+            perm = gset.Perm(idxs)
+            rep[g] = perm
+            perms.append(perm)
+        X = gset.Group(perms)
+        X.get_gens()
+        X.rep = rep
+        X.space = space
+        X.G = G
+        return X
+
+
+def GL32():
     from bruhat import algebraic
     from bruhat.algebraic import Algebraic, get_subgroup, parse
 
+    n, p = 3, 2
     G = Algebraic.GL(n,p)
     #for g in G.gen:
     #    print(g)
+
+    space = Space(n, p)
+    get_permrep = space.get_permrep
 
     torus = []
     for M in [
@@ -720,31 +767,35 @@ def GL(n,p):
     return G
 
 
-def get_permrep(G):
-    """
-    permutation action of G on the non-zero vectors (in lexicographic order)
-    """
-    from bruhat import gset
-    from bruhat.algebraic import Matrix, enum2
-    assert len(G)
-    op = G[0]
-    n, _ = op.shape
-    p = op.p
-    space = [Matrix(numpy.array(v).reshape(n,1)) for v in enum2(n) if sum(v)!=0]
-    lookup = dict((v, idx) for (idx, v) in enumerate(space))
-    perms = []
-    rep = {}
-    for g in G:
-        idxs = [lookup[g*v] for v in space]
-        perm = gset.Perm(idxs)
-        rep[g] = perm
-        perms.append(perm)
-    X = gset.Group(perms)
-    X.get_gens()
-    X.rep = rep
-    X.space = space
-    X.G = G
-    return X
+def test_gl23():
+    from bruhat import algebraic
+    from bruhat.algebraic import Algebraic, get_subgroup, parse
+
+    n, p = 2, 3
+    G = Algebraic.GL(n,p)
+    #for g in G.gen:
+    #    print(g)
+
+    space = Space(n, p)
+    get_permrep = space.get_permrep
+
+    X = get_permrep(G)
+    print(X)
+
+    point = parse("11 .1").reshape(n,n)
+    point = get_subgroup(G, point)
+    point = get_permrep(point)
+
+    print(point)
+
+    r0 = Rep.trivial(X)
+    r1 = Rep.permutation(X, point)
+
+    gs = GramSchmidt([r0, r1])
+    gs.showtable()
+    gs.subtract(1,0)
+    gs.showtable()
+    print(gs.reps[1])
 
 
 def test_parabolic_induction():
@@ -827,7 +878,7 @@ def test_gl():
     Rep.ring = QQ
     #Rep.ring = CyclotomicField(7)
 
-    G = GL(3,2)
+    G = GL32()
     n = len(G)
 
     clss = G.conjugacy_classes()

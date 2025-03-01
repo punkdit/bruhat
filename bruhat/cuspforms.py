@@ -273,7 +273,7 @@ def main():
         chars.append(char)
         s = str(char.factor())
         s = s.replace(" ", "").replace("*", "")
-        print(len(items), " & $%s$"%I.latex(), " & $%s$"%s, " & ? & ? ", r"\\")
+        print(len(items), " &  %s "%I.latex(), " & $%s$"%s, " & ? & ? ", r"\\")
         found = {char}
         for h in items[1:]:
             B = sage.matrix(F, n, n, h.A)
