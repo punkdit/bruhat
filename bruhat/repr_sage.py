@@ -17,9 +17,7 @@ cache = lru_cache(maxsize=None)
 
 import numpy
 
-from sage.all_cmdline import (
-    FiniteField, CyclotomicField, latex, block_diagonal_matrix,
-    PolynomialRing, ZZ, QQ)
+from sage.all_cmdline import FiniteField, CyclotomicField, latex, ZZ, QQ
 from sage import all_cmdline 
 
 from bruhat.argv import argv
@@ -560,9 +558,9 @@ def test_gram_schmidt():
     k.tgt.check()
     k.check()
 
-    gs = Basis(reps)
-    showtable = gs.showtable
-    subtract = gs.subtract
+    basis = Basis(reps)
+    showtable = basis.showtable
+    subtract = basis.subtract
     showtable()
 
     subtract(1, 0)
@@ -589,7 +587,7 @@ def test_gram_schmidt():
     subtract(4, 3)
     showtable()
 
-    for r in gs.reps:
+    for r in basis.reps:
         print(r)
 
 
@@ -810,10 +808,10 @@ def test_gl2():
     r0 = Rep.trivial(X2)
     r1 = Rep.permutation(X2, point)
 
-    gs = Basis([r0, r1])
-    gs.showtable()
-    gs.subtract(1,0)
-    gs.showtable()
+    basis = Basis([r0, r1])
+    basis.showtable()
+    basis.subtract(1,0)
+    basis.showtable()
 
 
     dim = len(s2)
@@ -833,12 +831,12 @@ def test_gl2():
     print(rep)
     #rep.check()
 
-    gs.append(rep)
-    gs.subtract(2,0)
-    gs.subtract(2,1)
-    gs.showtable()
+    basis.append(rep)
+    basis.subtract(2,0)
+    basis.subtract(2,1)
+    basis.showtable()
 
-    #gs[2].dump()
+    #basis[2].dump()
 
     remain = set(s2)
     orbits = []
@@ -871,8 +869,8 @@ def test_gl2():
     print(rep)
     rep.check()
 
-    gs.append(rep)
-    gs.showtable()
+    basis.append(rep)
+    basis.showtable()
 
 
 def sort_sign(items):
@@ -995,24 +993,24 @@ def test_gl():
 
     for r in reps:
         print(r)
-    gs = Basis(reps)
-    gs.showtable()
+    basis = Basis(reps)
+    basis.showtable()
 
-    gs.subtract(0, 2)
-    gs.subtract(1, 2)
-    gs.showtable()
-    gs.subtract(0, 1)
-    gs.showtable()
-    gs.subtract(0, 1)
-    gs.showtable()
-#    gs.subtract(4, 0)
-#    gs.showtable()
-#    gs.subtract(4, 3)
-#    gs.showtable()
-#    gs.subtract(4, 3)
-#    gs.showtable()
+    basis.subtract(0, 2)
+    basis.subtract(1, 2)
+    basis.showtable()
+    basis.subtract(0, 1)
+    basis.showtable()
+    basis.subtract(0, 1)
+    basis.showtable()
+#    basis.subtract(4, 0)
+#    basis.showtable()
+#    basis.subtract(4, 3)
+#    basis.showtable()
+#    basis.subtract(4, 3)
+#    basis.showtable()
 
-    for r in gs.reps:
+    for r in basis.reps:
         print(r)
         print("is_irrep:", r.is_irrep())
 
@@ -1027,14 +1025,14 @@ def test_gl():
             print(r, "induce:")
             r_torus = r.induce(G)
             print("\t", r_torus)
-            gs.reps.append(r_torus)
+            basis.reps.append(r_torus)
             #break
         break
-    for i,r in enumerate(gs.reps):
+    for i,r in enumerate(basis.reps):
         print(i, r)
         #print(r.chi)
 
-    chis = [rep.chi for rep in gs.reps]
+    chis = [rep.chi for rep in basis.reps]
     chis[4] = chis[4] - chis[0] - chis[1] - chis[3]
     chis[5] = chis[5] - chis[0] - chis[1] - chis[3]
 
@@ -1047,26 +1045,43 @@ def test_gl():
     for c in chis:
         print(c)
 
-    gs.showtable()
-    gs.subtract(4,0)
-    gs.showtable()
-    gs.subtract(4,1)
-    gs.showtable()
-    gs.subtract(4,3)
-    gs.showtable()
+    basis.showtable()
+    basis.subtract(4,0)
+    basis.showtable()
+    basis.subtract(4,1)
+    basis.showtable()
+    basis.subtract(4,3)
+    basis.showtable()
 
-    gs.subtract(5,0)
-    gs.showtable()
-    gs.subtract(5,1)
-    gs.showtable()
-    gs.subtract(5,3)
-    gs.showtable()
+    basis.subtract(5,0)
+    basis.showtable()
+    basis.subtract(5,1)
+    basis.showtable()
+    basis.subtract(5,3)
+    basis.showtable()
 
-    for r in gs.reps:
+    for r in basis.reps:
         print(r)
 
-    #gs.reps.append(cnot)
-    #gs.showtable()
+    #basis.reps.append(cnot)
+    #basis.showtable()
+
+
+def test_structure():
+
+    from bruhat.algebraic import qchoose_2
+
+    n = 4
+    p = 3
+
+    for m in range(n+1):
+        count = 0
+        for item in qchoose_2(n, m, p):
+            count += 1
+        print(count)
+
+    print( p**0 + p + p**2 + p**3 )
+    print( p**0 + p + 2*p**2 + p**3 + p**4 )
 
 
 

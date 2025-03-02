@@ -40,13 +40,15 @@ EPSILON = 1e-8
 DEFAULT_P = argv.get("p", 2)
 
 
-def qchoose_2(n, m, p=DEFAULT_P):
+def qchoose(n, m, p=DEFAULT_P):
     if m>n:
         return
     col = m
     row = n-m
     for A in geometry.get_cell(row, col, p):
         yield A
+
+qchoose_2 = qchoose # backwards compat
 
 
 def pdiv(i, j, p=DEFAULT_P):
@@ -1528,7 +1530,7 @@ class Sp(Algebraic):
         F = self.invariant_form
         p = self.p
         n = self.n
-        for M in qchoose_2(n, m, p):
+        for M in qchoose(n, m, p):
             M = Matrix(M, p)
             A = M*F*M.transpose()
             if A.is_zero():
@@ -1539,7 +1541,7 @@ class Sp(Algebraic):
         items = [[M.A for M in self.qchoose(m)]]
         for m1 in dims[1:]:
             assert m1<=m
-            items.append(list(qchoose_2(m, m1)))
+            items.append(list(qchoose(m, m1)))
             m = m1
         n = len(items)
         #print("Sp.all_figs")
@@ -2611,7 +2613,7 @@ class Figure(object):
         items = []
         for d in dims[1:]:
             assert d<=d0
-            items.append(list(qchoose_2(d0, d)))
+            items.append(list(qchoose(d0, d)))
             d0 = d
         n = len(items)
         for select in cross(items):
