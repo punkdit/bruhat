@@ -2,6 +2,8 @@
 
 from os import popen
 
+import numpy
+
 #from sage.all_cmdline import GL, SL, matrix, Matrix, GF
 from sage import all_cmdline as sage
 
@@ -262,6 +264,23 @@ def main():
     AC = A.direct_sum(C)
     AD = A.direct_sum(D)
 
+    def mklatex(r):
+        s = rg._latex_()
+        s = s.replace("\n", "")
+        s = s.replace(" ", "")
+        s = s.replace("0", ".")
+        return s
+
+    def mklatex(r):
+        #M = Matrix([[r[0,0],r[0,1]],[r[1,0],r[1,1]]], p)
+        m = r.nrows()
+        m = int(m)
+        M = numpy.zeros((m,m))
+        for (i,j) in numpy.ndindex((m,m)):
+            M[i,j] = r[i,j]
+        M = Matrix(M, p)
+        return M.latex(delim="")
+
     I = G.I
     F = sage.GF(p)
     chars = []
@@ -270,10 +289,14 @@ def main():
         A = sage.matrix(F, n, n, g.A)
         char = A.characteristic_polynomial()
         #print(len(items), "-->", char, "\t", char.factor())
+        rg = A.rational_form(subdivide=False)
         chars.append(char)
         s = str(char.factor())
         s = s.replace(" ", "").replace("*", "")
-        print(len(items), " &  %s "%I.latex(), " & $%s$"%s, " & ? & ? ", r"\\")
+        #for h in items:
+        #    print("#", h.latex())
+#        print(len(items), " &  %s "%g.latex(), " & $%s$"%s, " & ? & ? ", r"\\")
+        print(len(items), " &  %s "%mklatex(rg), " & %s"%s, " & ? & ? ", r"\\")
         found = {char}
         for h in items[1:]:
             B = sage.matrix(F, n, n, h.A)

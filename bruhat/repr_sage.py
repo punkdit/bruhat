@@ -27,6 +27,8 @@ from bruhat.matrix_sage import Matrix
 from bruhat.action import mulclose, mulclose_hom
 from bruhat.gset import Perm, Group, Coset
 from bruhat.smap import SMap
+from bruhat import gset
+from bruhat.algebraic import Matrix as FMatrix
 
 
 def colcat(col):
@@ -101,7 +103,7 @@ class Rep:
         self.chi = Char(self.G, [rep[g].trace() for g in G])
 
     def __str__(self):
-        return "Rep(group of order %s, dim=%s)"%(len(self.G), self.dim)
+        return "Rep(group of order %s, dim=%s, irrep=%s)"%(len(self.G), self.dim, self.is_irrep())
 
     def check(self):
         dim = self.dim
@@ -401,9 +403,19 @@ class Hom:
 
 
 # https://ncatlab.org/nlab/show/Gram-Schmidt+process#CategorifiedGramSchmidtProcess
-class GramSchmidt:
+class Basis:
     def __init__(self, reps):
         self.reps = reps
+
+    def __getitem__(self, idx):
+        return self.reps[idx]
+
+    def __len__(self):
+        return len(self.reps)
+
+    def append(self, rep):
+        assert isinstance(rep, Rep)
+        self.reps.append(rep)
 
     def showtable(self):
         reps = self.reps
@@ -415,21 +427,18 @@ class GramSchmidt:
           for j in range(N):
             u = chis[j].dot(chis[i])
             print("%3s "%u, end="", flush=True)
-          print()
+          print(" ", reps[i], reps[i].chi)
         print("   ", "===="*N)
         print()
 
     def subtract(self, i, j, idx=0):
         reps = self.reps
-        print("subtract", i, j)
+        print("subtract: %d-%d" %( i, j ), end=", ")
         fs = reps[i].hom(reps[j])
         assert len(fs)
-        print("\thoms:", len(fs))
+        print("homs:", len(fs))
         f = fs[idx]
         reps[i] = f.cokernel().tgt
-
-    def __getitem__(self, idx):
-        return self.reps[idx]
 
 
 
@@ -551,7 +560,7 @@ def test_gram_schmidt():
     k.tgt.check()
     k.check()
 
-    gs = GramSchmidt(reps)
+    gs = Basis(reps)
     showtable = gs.showtable
     subtract = gs.subtract
     showtable()
@@ -661,25 +670,33 @@ def test_induce():
 
 
 class Space:
+    "vector space over finite field F_p"
     def __init__(self, n, p):
         self.n = n
         self.p = p
         shape = (p,)*n
-        space = [v for v in numpy.ndindex(shape) if sum(v)]
-        print(space)
+        space = [v for v in numpy.ndindex(shape) if sum(v)] # skip zero vector ?
         assert len(space) == p**n - 1
-        from bruhat.algebraic import Matrix
-        space = [Matrix(numpy.array(v).reshape(n,1), p) for v in space]
+        space = [FMatrix(numpy.array(v).reshape(n,1), p) for v in space]
         lookup = dict((v, idx) for (idx, v) in enumerate(space))
         self.space = space
         self.lookup = lookup
+
+    def __str__(self):
+        s = str(self.space)
+        s = s.replace(" ", "").replace("\n", "")
+        return s
+
+    def __getitem__(self, idx):
+        return self.space[idx]
+
+    def __len__(self):
+        return len(self.space)
 
     def get_permrep(self, G):
         """
         permutation action of G on the non-zero vectors (in lexicographic order)
         """
-        from bruhat import gset
-        #from bruhat.algebraic import Matrix, enum2
         assert len(G)
         space, lookup = self.space, self.lookup
         op = G[0]
@@ -718,8 +735,8 @@ def GL32():
 
     torus = []
     for M in [
-        algebraic.Matrix([[0,0,1],[1,0,0],[0,1,1]]),
-        algebraic.Matrix([[0,0,1],[1,0,1],[0,1,0]]),
+        FMatrix([[0,0,1],[1,0,0],[0,1,1]]),
+        FMatrix([[0,0,1],[1,0,1],[0,1,0]]),
     ]:
         #H = Algebraic([M])
         #assert len(H) == 7
@@ -767,50 +784,95 @@ def GL32():
     return G
 
 
-def test_gl23():
+def test_gl2():
     from bruhat import algebraic
     from bruhat.algebraic import Algebraic, get_subgroup, parse
 
-    n, p = 2, 3
-    G = Algebraic.GL(n,p)
-    #for g in G.gen:
-    #    print(g)
+    p = 3
+    GL1 = Algebraic.GL(1,p)
+    GL2 = Algebraic.GL(2,p)
 
-    space = Space(n, p)
-    get_permrep = space.get_permrep
+    s1 = Space(1, p)
+    s2 = Space(2, p)
 
-    X = get_permrep(G)
-    print(X)
+    X1 = s1.get_permrep(GL1)
+    X2 = s2.get_permrep(GL2)
+    print(X1, s1)
+    print(X2, s2)
+    #return
 
-    point = parse("11 .1").reshape(n,n)
-    point = get_subgroup(G, point)
-    point = get_permrep(point)
+    point = parse("11 .1").reshape(2,2)
+    point = get_subgroup(GL2, point)
+    point = s2.get_permrep(point)
 
     print(point)
 
-    r0 = Rep.trivial(X)
-    r1 = Rep.permutation(X, point)
+    r0 = Rep.trivial(X2)
+    r1 = Rep.permutation(X2, point)
 
-    gs = GramSchmidt([r0, r1])
+    gs = Basis([r0, r1])
     gs.showtable()
     gs.subtract(1,0)
     gs.showtable()
-    print(gs.reps[1])
 
 
-def test_parabolic_induction():
-    from bruhat import algebraic
-    from bruhat.algebraic import Algebraic, get_subgroup, parse
+    dim = len(s2)
+    rep = {}
+    for g in GL2:
+        #print(g)
+        cols = []
+        for v in s2:
+            col = [0]*dim
+            gv = g*v
+            idx = s2.lookup[gv]
+            col[idx] = 1
+            cols.append(col)
+        M = Matrix(Rep.ring, cols).t
+        rep[X2.rep[g]] = M
+    rep = Rep(X2, rep, dim)
+    print(rep)
+    #rep.check()
 
-    n, p = 3, 2
-    GLn = Algebraic.GL(n,p)
-    X = get_permrep(GLn)
-    r = get_parabolic_induction(X)
+    gs.append(rep)
+    gs.subtract(2,0)
+    gs.subtract(2,1)
+    gs.showtable()
 
-    print(r)
-    r.check()
-    print(r.is_irrep())
+    #gs[2].dump()
 
+    remain = set(s2)
+    orbits = []
+    lookup = {}
+    sign = {}
+    while remain:
+        v = remain.pop()
+        u = 2*v
+        assert u in remain
+        remain.remove(u)
+        o = (u,v)
+        orbits.append(o)
+        lookup[u] = o
+        lookup[v] = o
+        sign[u] = +1
+        sign[v] = -1
+
+    rep = {}
+    for g in GL2:
+        s = 1
+        for (u,v) in orbits:
+            assert lookup[g*u] == lookup[g*v]
+            u1 = g*u
+            s *= sign[u]*sign[u1]
+        x = s*Matrix(Rep.ring, [[1]])
+        rep[X2.rep[g]] = x
+        #print(s, end=" ")
+    #print()
+    rep = Rep(X2, rep, 1)
+    print(rep)
+    rep.check()
+
+    gs.append(rep)
+    gs.showtable()
 
 
 def sort_sign(items):
@@ -872,6 +934,19 @@ def get_parabolic_induction(X):
     return r
 
 
+def test_parabolic_induction():
+    from bruhat import algebraic
+    from bruhat.algebraic import Algebraic, get_subgroup, parse
+
+    G = GL32()
+    r = get_parabolic_induction(G)
+
+    print(r)
+    r.check()
+    assert r.is_irrep()
+
+
+
 
 
 def test_gl():
@@ -888,6 +963,13 @@ def test_gl():
 
     print(G)
 
+    #r = Rep.permutation(G, Group([G.identity]))
+    rep = {}
+    for g in G:
+        M = Matrix.get_perm(Rep.ring, g)
+        rep[g] = M
+    cnot = Rep(G, rep, G.rank)
+
     H = G.child
     print(H)
     rep = {}
@@ -903,7 +985,9 @@ def test_gl():
     print(r)
     #return
 
+
     Hs = G.parabolics
+
     reps = [Rep.permutation(G, H) for H in [Hs[0], Hs[1], Hs[3]]]
 
     reps.append(get_parabolic_induction(G))
@@ -911,7 +995,7 @@ def test_gl():
 
     for r in reps:
         print(r)
-    gs = GramSchmidt(reps)
+    gs = Basis(reps)
     gs.showtable()
 
     gs.subtract(0, 2)
@@ -977,6 +1061,13 @@ def test_gl():
     gs.showtable()
     gs.subtract(5,3)
     gs.showtable()
+
+    for r in gs.reps:
+        print(r)
+
+    #gs.reps.append(cnot)
+    #gs.showtable()
+
 
 
 def test():

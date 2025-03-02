@@ -197,6 +197,17 @@ class Matrix(object):
         rows = [[0]*n for i in range(n)]
         return Matrix(ring, rows)
 
+    @classmethod
+    def get_perm(cls, ring, perm):
+        n = len(perm)
+        cols = []
+        for i in perm:
+            col = [0]*n
+            col[i] = 1
+            cols.append(col)
+        M = Matrix(ring, cols)
+        return M.t
+
     def order(self):
         I = self.identity(self.ring, len(self))
         count = 1

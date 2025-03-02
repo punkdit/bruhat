@@ -591,8 +591,11 @@ class Algebraic(object):
         assert n>0
         assert isprime(p)
     
-        H = cls.SL(n, p)
-        gen = list(H.gen)
+        if n>1:
+            H = cls.SL(n, p)
+            gen = list(H.gen)
+        else:
+            gen = []
         if p>2:
             # find generator of GL(1,F_p)
             for a in range(1,p):
