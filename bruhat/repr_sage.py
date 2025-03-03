@@ -1069,14 +1069,14 @@ def test_gl():
 
 def test_structure():
 
-    from bruhat.algebraic import qchoose_2
+    from bruhat.algebraic import qchoose
 
     n = 4
     p = 3
 
     for m in range(n+1):
         count = 0
-        for item in qchoose_2(n, m, p):
+        for item in qchoose(n, m, p):
             count += 1
         print(count)
 
