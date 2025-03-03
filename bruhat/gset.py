@@ -272,7 +272,7 @@ class Group(object):
         actions of some abstract group on a concrete group. There is not much
         to distinguish these two kinds of group apart from your imagination.
     """
-    def __init__(self, perms=None, gen=None):
+    def __init__(self, perms=None, gen=None, items=None):
         if perms is None:
             assert gen is not None
             perms = list(mulclose(gen))
@@ -290,6 +290,9 @@ class Group(object):
         self.rank = perms[0].rank
         self.lookup = dict((perm, idx) for (idx, perm) in enumerate(self.perms))
         self.identity = Perm(list(range(self.rank)))
+        if items is None:
+            items = list(range(self.rank))
+        self.items = items
         self._str = str(self.canonical)
         self._hash = hash(self._str)
         self._subgroups = None # cache

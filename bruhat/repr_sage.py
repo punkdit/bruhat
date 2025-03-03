@@ -26,6 +26,7 @@ from bruhat.action import mulclose, mulclose_hom
 from bruhat.gset import Perm, Group, Coset
 from bruhat.smap import SMap
 from bruhat import gset
+from bruhat.algebraic import Algebraic
 from bruhat.algebraic import Matrix as FMatrix
 
 
@@ -110,6 +111,19 @@ class Rep:
           rep_g = self(g)
           assert rep_g.shape == (dim,dim)
           for h in G:
+            rep_h = self(h)
+            rep_gh = self(g*h)
+            assert rep_g*rep_h == rep_gh
+
+    def some_check(self, count=100):
+        dim = self.dim
+        G = self.G
+        gs = list(G)
+        for i in range(count):
+            g = choice(gs)
+            rep_g = self(g)
+            assert rep_g.shape == (dim,dim)
+            h = choice(gs)
             rep_h = self(h)
             rep_gh = self(g*h)
             assert rep_g*rep_h == rep_gh
@@ -702,10 +716,6 @@ class Space:
         p = op.p
         perms = []
         rep = {}
-        #print(lookup)
-        #print("lookup:")
-        #for k,v in lookup.items():
-        #    print(k)
         for g in G:
             idxs = [lookup[g*v] for v in space]
             perm = gset.Perm(idxs)
@@ -717,6 +727,16 @@ class Space:
         X.space = space
         X.G = G
         return X
+
+    def get_parabolic(self, G, figure):
+        n = self.n
+        from bruhat.algebraic import parse, get_subgroup
+        figure = parse(figure).reshape(n,n)
+        H = get_subgroup(G, figure)
+        H = self.get_permrep(H)
+        return H
+
+
 
 
 def GL32():
@@ -780,7 +800,6 @@ def GL32():
     G.child = child
 
     return G
-
 
 def test_gl2():
     from bruhat import algebraic
@@ -1069,19 +1088,175 @@ def test_gl():
 
 def test_structure():
 
-    from bruhat.algebraic import qchoose
-
+    p = 2
     n = 4
-    p = 3
+    m = 2
+    k = n-m
+    # n == k+n
+    items = list(FMatrix.qchoose(n, m, p))
+    assert len(items) == p**0 + p + 2*p**2 + p**3 + p**4
 
-    for m in range(n+1):
-        count = 0
-        for item in qchoose(n, m, p):
-            count += 1
-        print(count)
+    for item in items:
+        assert item.normal_form() == item
+    lookup = {item:i for (i,item) in enumerate(items)}
 
-    print( p**0 + p + p**2 + p**3 )
-    print( p**0 + p + 2*p**2 + p**3 + p**4 )
+    GL = Algebraic.GL(n, p)
+    print(len(GL), len(items))
+    dim = len(items)
+
+    Rep.ring = ZZ
+    GLm = Algebraic.GL(m, p)
+    print(GLm)
+    Xm = Space(2, p).get_permrep(GLm)
+    r = Rep.sign(Xm)
+    print(r, r.chi)
+
+    space = Space(n, p)
+    Xn = space.get_permrep(GL)
+
+    ring = ZZ
+
+    rep = {}
+    for g in GL.gens:
+        cols = []
+        for idx,item in enumerate(items):
+            jtem = (g*item.t).t
+            ktem = jtem.normal_form()
+            h = ktem.t.solve(jtem.t)
+            assert h in GLm
+            u = r(Xm.rep[h])
+            jdx = lookup[ktem]
+            col = [0]*dim
+            col[jdx] = u.M[0,0]
+            cols.append(col)
+        rep[Xn.rep[g]] = Matrix(ring, cols).t
+    gs = list(rep.keys())
+    rep = Rep.generate(Xn, gs, [rep[g] for g in gs])
+    #rep = Rep(G, rep, dim)
+    print(rep, rep.chi)
+    rep.some_check()
+            
+
+def get_2d(G):
+    assert isinstance(G, Group)
+    assert len(G) == 6
+
+    a = Perm([0,2,1])
+    b = Perm([1,2,0])
+
+    for a in G:
+      for b in G:
+        # 2d rep of S3
+        A = Matrix(Rep.ring, [[0,1],[1,0]])
+        B = Matrix(Rep.ring, [[0,-1],[1,-1]])
+        hom = mulclose_hom([a,b], [A,B])
+        if len(hom) != len(G):
+            continue
+        rep = Rep.generate(G, [a,b], [A,B])
+        try:
+            rep.check()
+            return rep
+        except AssertionError:
+            pass
+    assert 0
+
+
+def test_monoidal():
+
+    p = 2
+    n = 4
+    m = 2 # left
+    k = n-m # right
+
+    items = list(FMatrix.qchoose(n, m, p))
+    assert len(items) == p**0 + p + 2*p**2 + p**3 + p**4
+
+    for item in items:
+        assert item.normal_form() == item
+    lookup = {item:i for (i,item) in enumerate(items)}
+
+    GL = Algebraic.GL(n, p)
+    print(len(GL), len(items))
+    dim = len(items)
+    Rep.ring = ZZ
+
+    space = Space(n, p)
+    Xn = space.get_permrep(GL)
+
+    Xm = space.get_parabolic(GL, "1111 1111 ..11 ..11")
+    assert len(Xn)//len(Xm) == 35
+
+    r = Rep.sign(Xm)
+    print(r, r.chi)
+
+    r2 = get_2d(Xm)
+    print(r2)
+
+    r = p_induce(Xn, Xm, r2)
+    print(r)
+
+    return
+
+
+    ring = ZZ
+
+    rep = {}
+    for g in GL.gens:
+        cols = []
+        for idx,item in enumerate(items):
+            jtem = (g*item.t).t
+            ktem = jtem.normal_form()
+            h = ktem.t.solve(jtem.t)
+            assert h in GLm
+            u = r(Xm.rep[h])
+            jdx = lookup[ktem]
+            col = [0]*dim
+            col[jdx] = u.M[0,0]
+            cols.append(col)
+        rep[Xn.rep[g]] = Matrix(ring, cols).t
+    gs = list(rep.keys())
+    rep = Rep.generate(Xn, gs, [rep[g] for g in gs])
+    #rep = Rep(G, rep, dim)
+    print(rep, rep.chi)
+    rep.some_check()
+            
+def p_induce(G, H, rep):
+    ring = Rep.ring
+    dim = rep.dim
+    cosets = G.left_cosets(H)
+    n = len(cosets)
+    #print("left_cosets:", n)
+    ts = [gH[0] for gH in cosets]
+    #print(ts)
+    for t,gH in zip(ts, cosets):
+        assert Coset([t*h for h in H]) == gH
+
+    H = set(H)
+
+    Ms = []
+    for g in G.get_gens():
+        #print(g)
+        lookup = {}
+        for i in range(n):
+          for j in range(n):
+            if (~ts[j])*g*ts[i] in H:
+                assert lookup.get(i) is None
+                lookup[i] = j
+        #print(lookup)
+        cols = []
+        for i in range(n):
+            #blocks = [Matrix.zero(ring,dim,dim) for _ in range(n)]
+            blocks = [Matrix.zero(ring,dim,dim)]*n
+            j = lookup[i]
+            U = rep((~ts[j])*g*ts[i])
+            #print(U, U.shape)
+            blocks[j] = U
+            cols.append(colcat(blocks))
+        M = rowcat(cols)
+        #print(M)
+        #rep[g] = M
+        Ms.append(M)
+    return Rep.generate(G, G.get_gens(), Ms)
 
 
 
@@ -1104,10 +1279,12 @@ if __name__ == "__main__":
         seed(_seed)
 
     if profile:
+        print("%s()"%name)
         import cProfile as profile
         profile.run("%s()"%name)
 
     elif name is not None:
+        print("%s()"%name)
         fn = eval(name)
         fn()
 

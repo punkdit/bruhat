@@ -29,7 +29,7 @@ from bruhat.action import mulclose, mulclose_hom
 from bruhat.spec import isprime
 from bruhat.argv import argv
 from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse, intersect
-from bruhat.solve import zeros2, identity2
+from bruhat.solve import zeros2, identity2, solve
 from bruhat.dev import geometry
 from bruhat.util import cross, allperms, choose
 from bruhat.smap import SMap
@@ -351,8 +351,11 @@ class Matrix(object):
         return Matrix(A, self.p)
 
     def transpose(self):
-        A = self.A
-        return Matrix(A.transpose(), self.p)
+        return Matrix(self.A.transpose(), self.p)
+
+    @property
+    def t(self):
+        return self.transpose()
 
     def sum(self):
         return self.A.sum()
@@ -390,6 +393,16 @@ class Matrix(object):
         assert p==2
         for A in geometry.all_codes(m, n):
             yield cls(A, p)
+
+    @classmethod
+    def qchoose(cls, m, n, p=DEFAULT_P):
+        for A in qchoose(m, n, p):
+            yield cls(A, p)
+
+    def solve(self, other):
+        assert self.p == 2, "not implemented"
+        A = solve(self.A, other.A)
+        return Matrix(A, self.p)
 
     def get_pivots(M):
         A = M.A
@@ -478,7 +491,7 @@ assert order_sp(4, 2)==720   # 6!
 class Algebraic(object):
     def __init__(self, gen, order=None, p=DEFAULT_P, G=None, verbose=False, **kw):
         self.__dict__.update(kw)
-        self.gen = list(gen)
+        self.gens = self.gen = list(gen) # XXX rename as gens
         if G is not None:
             assert order is None or order==len(G)
             order = len(G)
@@ -491,6 +504,9 @@ class Algebraic(object):
         assert p == A.p
         self.I = Matrix.identity(self.n, p)
         self.verbose = verbose
+
+    def __str__(self):
+        return "%s(group of order %d)"%(self.__class__.__name__, len(self))
 
     def get_elements(self):
         if self.G is None:
