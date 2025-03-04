@@ -623,6 +623,35 @@ class Algebraic(object):
             if g.mask(U) == g and g.mask(I) == II:
                 uni.append(g)
         return uni
+
+    def levi_decompose(self, ms):
+        n = self.n
+        assert sum(ms)==n, (ms, n)
+        levis = []
+        uni = []
+        parabolic = []
+        i = 0
+        mask = zeros2(n, n).astype(scalar)
+        umask = identity2(n).astype(scalar)
+        for m in ms:
+            levi = self.get_levi(i, m)
+            levis.append(levi)
+            for j in range(i, i+m):
+                mask[j, i:] = 1
+                umask[j, i+m:] = 1
+            i += m
+        #print(mask)
+        #print(umask)
+        for g in self:
+            if g.mask(mask) == g:
+                parabolic.append(g)
+            if g.mask(umask) == g:
+                for i in range(n):
+                    if g[i,i] != 1:
+                        break
+                else:
+                    uni.append(g)
+        return levis, uni, parabolic
     
     def show(self):
         items = [M.A for M in self]
@@ -669,6 +698,8 @@ class Algebraic(object):
         if n>1:
             H = cls.SL(n, p)
             gen = list(H.gen)
+        elif p==2:
+            gen = [Matrix([[1]], p)]
         else:
             gen = []
         if p>2:

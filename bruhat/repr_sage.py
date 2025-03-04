@@ -28,6 +28,7 @@ from bruhat.smap import SMap
 from bruhat import gset
 from bruhat.algebraic import Algebraic
 from bruhat.algebraic import Matrix as FMatrix
+from bruhat.util import cross
 
 
 def colcat(col):
@@ -92,7 +93,8 @@ class Char:
 
 
 class Rep:
-    ring = CyclotomicField()
+    #ring = CyclotomicField()
+    ring = QQ
 
     def __init__(self, G, rep, dim):
         assert isinstance(G, Group)
@@ -205,11 +207,12 @@ class Rep:
         else:
             assert 0, "not implemented" # XXX
         n = len(A)
-        u = CyclotomicField(n).gen()
-        u = cls.ring(u)
+        ring = CyclotomicField(n)
+        u = ring.gen()
+        #u = cls.ring(u)
         rep = {}
         for j in range(n):
-            M = Matrix(cls.ring, [[u**(j*i)]])
+            M = Matrix(ring, [[u**(j*i)]])
             rep[a**j] = M
         return Rep(A, rep, 1)
 
@@ -401,6 +404,11 @@ class Hom:
         assert M.shape == (tgt.dim, src.dim)
         self.M = M
 
+    def __eq__(self, other):
+        assert self.src is other.src
+        assert self.tgt is other.tgt
+        return self.M == other.M
+
     def __str__(self):
         return "(%s<---%s)"%(self.tgt, self.src)
 
@@ -458,7 +466,7 @@ class Basis:
         c, d = reps[i].chi, reps[j].chi
         return d.dot(c)
 
-    def showtable(self):
+    def show(self):
         reps = self.reps
         N = len(reps)
         print("   ", "===="*N)
@@ -494,7 +502,7 @@ class Basis:
         row = 0
         while row < len(self):
             #print("Basis.reduce", row)
-            #self.showtable()
+            #self.show()
             assert self.get(row, row) == 1
             for sow in range(row+1, len(self)):
                 u = self.get(row, sow)
@@ -630,15 +638,15 @@ def test_gram_schmidt():
     k.check()
 
     basis = Basis(reps)
-    showtable = basis.showtable
+    show = basis.show
     subtract = basis.subtract
-    showtable()
+    show()
 
     subtract(1, 0)
     subtract(2, 0)
     subtract(3, 0)
     subtract(4, 0)
-    showtable()
+    show()
 
     subtract(2, 1)
     subtract(3, 1)
@@ -646,17 +654,17 @@ def test_gram_schmidt():
     subtract(4, 1)
     subtract(4, 1)
     subtract(4, 1)
-    showtable()
+    show()
 
     subtract(3, 2)
     subtract(4, 2)
     subtract(4, 2)
-    showtable()
+    show()
 
     subtract(4, 3)
     subtract(4, 3)
     subtract(4, 3)
-    showtable()
+    show()
 
     for r in basis.reps:
         print(r)
@@ -885,9 +893,9 @@ def test_gl2():
     r1 = Rep.permutation(X2, point)
 
     basis = Basis([r0, r1])
-    basis.showtable()
+    basis.show()
     basis.subtract(1,0)
-    basis.showtable()
+    basis.show()
 
 
     dim = len(s2)
@@ -910,7 +918,7 @@ def test_gl2():
     basis.append(rep)
     basis.subtract(2,0)
     basis.subtract(2,1)
-    basis.showtable()
+    basis.show()
 
     #basis[2].dump()
 
@@ -946,7 +954,7 @@ def test_gl2():
     rep.check()
 
     basis.append(rep)
-    basis.showtable()
+    basis.show()
 
 
 def sort_sign(items):
@@ -1001,7 +1009,7 @@ def get_parabolic_induction(X):
             rows.append(row)
         M = Matrix(Rep.ring, rows)
         #print(M.t)
-        perm = X.rep[g]
+        perm = X.hom[g]
         rep[perm] = M.t
 
     r = Rep(X, rep, len(lines))
@@ -1070,21 +1078,21 @@ def test_gl():
     for r in reps:
         print(r)
     basis = Basis(reps)
-    basis.showtable()
+    basis.show()
 
     basis.subtract(0, 2)
     basis.subtract(1, 2)
-    basis.showtable()
+    basis.show()
     basis.subtract(0, 1)
-    basis.showtable()
+    basis.show()
     basis.subtract(0, 1)
-    basis.showtable()
+    basis.show()
 #    basis.subtract(4, 0)
-#    basis.showtable()
+#    basis.show()
 #    basis.subtract(4, 3)
-#    basis.showtable()
+#    basis.show()
 #    basis.subtract(4, 3)
-#    basis.showtable()
+#    basis.show()
 
     for r in basis.reps:
         print(r)
@@ -1121,26 +1129,28 @@ def test_gl():
     for c in chis:
         print(c)
 
-    basis.showtable()
+    basis.show()
     basis.subtract(4,0)
-    basis.showtable()
+    basis.show()
     basis.subtract(4,1)
-    basis.showtable()
+    basis.show()
     basis.subtract(4,3)
-    basis.showtable()
+    basis.show()
 
     basis.subtract(5,0)
-    basis.showtable()
+    basis.show()
     basis.subtract(5,1)
-    basis.showtable()
+    basis.show()
     basis.subtract(5,3)
-    basis.showtable()
+    basis.show()
 
     for r in basis.reps:
         print(r)
 
-    #basis.reps.append(cnot)
-    #basis.showtable()
+    if argv.cnot:
+        print("cnot:")
+        basis.reps.append(cnot)
+        basis.show()
 
 
 def test_structure():
@@ -1181,12 +1191,12 @@ def test_structure():
             ktem = jtem.normal_form()
             h = ktem.t.solve(jtem.t)
             assert h in GLm
-            u = r(Xm.rep[h])
+            u = r(Xm.hom[h])
             jdx = lookup[ktem]
             col = [0]*dim
             col[jdx] = u.M[0,0]
             cols.append(col)
-        rep[Xn.rep[g]] = Matrix(ring, cols).t
+        rep[Xn.hom[g]] = Matrix(ring, cols).t
     gs = list(rep.keys())
     rep = Rep.generate(Xn, gs, [rep[g] for g in gs])
     #rep = Rep(G, rep, dim)
@@ -1218,122 +1228,45 @@ def get_2d(G):
     assert 0
 
 
-def test_monoidal():
-
-    p = 2
-    n = 4
-    m = 2 # left
-    k = n-m # right
-
-    items = list(FMatrix.qchoose(n, m, p))
-    assert len(items) == p**0 + p + 2*p**2 + p**3 + p**4
-
-    for item in items:
-        assert item.normal_form() == item
-    lookup = {item:i for (i,item) in enumerate(items)}
-
-    GL = Algebraic.GL(n, p)
-    print(len(GL), len(items))
-    dim = len(items)
-    Rep.ring = ZZ
-
-    space = Space(n, p)
-    Xn = space.get_permrep(GL)
-
-    Xm = space.get_parabolic(GL, "1111 1111 ..11 ..11")
-    assert len(Xn)//len(Xm) == 35
-
-    r = Rep.sign(Xm)
-    print(r, r.chi)
-
-    r2 = get_2d(Xm)
-    print(r2)
-
-    r = p_induce(Xn, Xm, r2)
-    print(r)
-
-    return
-
-
-    ring = ZZ
-
-    rep = {}
-    for g in GL.gens:
-        cols = []
-        for idx,item in enumerate(items):
-            jtem = (g*item.t).t
-            ktem = jtem.normal_form()
-            h = ktem.t.solve(jtem.t)
-            assert h in GLm
-            u = r(Xm.rep[h])
-            jdx = lookup[ktem]
-            col = [0]*dim
-            col[jdx] = u.M[0,0]
-            cols.append(col)
-        rep[Xn.rep[g]] = Matrix(ring, cols).t
-    gs = list(rep.keys())
-    rep = Rep.generate(Xn, gs, [rep[g] for g in gs])
-    #rep = Rep(G, rep, dim)
-    print(rep, rep.chi)
-    rep.some_check()
-            
-def p_induce(G, H, rep):
-    ring = Rep.ring
-    dim = rep.dim
-    cosets = G.left_cosets(H)
-    n = len(cosets)
-    #print("left_cosets:", n)
-    ts = [gH[0] for gH in cosets]
-    #print(ts)
-    for t,gH in zip(ts, cosets):
-        assert Coset([t*h for h in H]) == gH
-
-    H = set(H)
-
-    Ms = []
-    for g in G.get_gens():
-        #print(g)
-        lookup = {}
-        for i in range(n):
-          for j in range(n):
-            if (~ts[j])*g*ts[i] in H:
-                assert lookup.get(i) is None
-                lookup[i] = j
-        #print(lookup)
-        cols = []
-        for i in range(n):
-            #blocks = [Matrix.zero(ring,dim,dim) for _ in range(n)]
-            blocks = [Matrix.zero(ring,dim,dim)]*n
-            j = lookup[i]
-            U = rep((~ts[j])*g*ts[i])
-            #print(U, U.shape)
-            blocks[j] = U
-            cols.append(colcat(blocks))
-        M = rowcat(cols)
-        #print(M)
-        #rep[g] = M
-        Ms.append(M)
-    return Rep.generate(G, G.get_gens(), Ms)
-
-
 def test_levi():
 
-    Rep.ring = QQ
-
-    n, p = 4, 2
-
+    n, p = 3, 3
     space = Space(n, p)
     GL = Algebraic.GL(n,p)
 
-    print(GL)
+    levis, uni, parabolic = GL.levi_decompose([1,2])
+    assert len(levis) == 2
+    assert len(levis[0]) == 2
+    assert len(levis[1]) == 48
+    assert len(uni) == 3**2, len(uni)
+    assert len(parabolic) == 2*48 * 3**2, len(parabolic)
 
-    parabolic = GL.get_parabolic([0,1,0])
+    n, p = 4, 2
+    space = Space(n, p)
+    GL = Algebraic.GL(n,p)
+
+    levis, uni, parabolic = GL.levi_decompose([1,3])
+    assert len(levis) == 2
+    assert len(levis[0]) == 1
+    assert len(levis[1]) == 168
+    assert len(uni) == 8
+    assert len(parabolic) == 1344, len(parabolic)
+
+    levis, uni, parabolic = GL.levi_decompose([2,2])
+    assert len(levis) == 2
+    assert len(levis[0]) == 6
+    assert len(levis[1]) == 6
+    assert len(uni) == 16
+    assert len(parabolic) == 576 
+
+    #parabolic = GL.get_parabolic([0,1,0])
 
     G = space.get_permrep(GL)
     P = Group([G.hom[g] for g in parabolic]) # == get_permrep(parabolic)
 
-    l0 = GL.get_levi(0,2)
-    l1 = GL.get_levi(2,2)
+    #l0 = GL.get_levi(0,2)
+    #l1 = GL.get_levi(2,2)
+    l0, l1 = levis
     GL2 = Algebraic.GL(2,p)
     for g in l0:
         h = l0.hom[g]
@@ -1343,10 +1276,10 @@ def test_levi():
     for g in GL2:
         assert l0.ihom[g] in l0
 
-    uni = GL.get_unipotent()
-    assert len(uni) == p**6
-    uni = [g for g in uni if g[0,1]==g[2,3]==0]
-    assert len(uni) == p**4
+    #uni = GL.get_unipotent()
+    #assert len(uni) == p**6
+    #uni = [g for g in uni if g[0,1]==g[2,3]==0]
+    #assert len(uni) == p**4
     Uni = space.get_permrep(uni)
     Uni.do_check()
     assert len(Uni) == p**4
@@ -1394,9 +1327,104 @@ def test_levi():
         basis.append(rep)
       print()
 
-    basis = Basis(basis)
-    basis.showtable()
+    #basis = Basis(basis)
+    #basis.show()
     
+
+def test_monoidal():
+
+    n, p = 3, 2
+    space = Space(n, p)
+    gl = Algebraic.GL(n,p)
+
+    levis, uni, parabolic = gl.levi_decompose([1,1,1])
+    P = space.get_permrep(parabolic)
+    G = space.get_permrep(gl)
+    rep = Rep.permutation(G, P)
+    print(rep)
+
+    fs = rep.hom(rep)
+    assert len(fs) == 6 # S_3 acts on A@A@A
+
+    N = rep.dim**2
+    rows = []
+    for f in fs:
+        M = f.M
+        M = M.reshape(1,N)
+        rows.append(M.M[0])
+    A = Matrix(QQ, rows).t
+    #print(A.shape)
+
+    for f in fs:
+      for g in fs:
+        gf = g*f
+        if gf in fs:
+            print(fs.index(gf), end=" ")
+        else:
+            print("?", end=" ")
+      print()
+
+    def getname(M):
+        M = M.reshape(M.shape[0]*M.shape[1], 1)
+        a = A.solve(M).t
+        return a
+
+    for f in fs:
+      for g in fs:
+        gf = g*f
+        a = getname(gf.M)
+        print(a, end=" ")
+      print()
+    #levis, uni, parabolic = GL.levi_decompose([1,2])
+
+    print()
+
+    I = Matrix.identity(Rep.ring, rep.dim)
+    found = []
+    #for cs in cross([tuple(range(-4,5))]*len(fs)):
+    for cs in cross([tuple(range(-2,2))]*len(fs)):
+        if cs[1:] == (0,)*(len(fs)-1):
+            continue
+        f = reduce(add, [cs[i]*fs[i].M for i in range(len(fs))])
+        ff = f*f
+        if ff == I:
+            print("ff=I:", cs)
+        elif ff == f:
+            print("ff=f:", cs)
+        elif ff == f+2*I:
+            print("ff=f+2*I:", cs)
+            found.append(f)
+
+    N = len(found)
+    print("found:", N)
+    pairs = []
+    for i in range(N):
+      for j in range(i+1, N):
+        a = found[i]
+        b = found[j]
+        if a*b*a == b*a*b:
+            print("aba == bab", i, j)
+            pairs.append((a,b))
+
+    for (a,b) in pairs:
+        alg = [I, a, b, a*b, b*a, a*b*a]
+        for g in alg:
+            print(getname(g))
+        print()
+        
+
+
+
+class Levi:
+    def __init__(self, space, GL, ms):
+        levis, uni, parabolic = GL.levi_decompose(ms)
+        self.space = space
+        self.levis = levis
+        self.uni = uni
+        self.parabolic = parabolic
+
+    #def induce(self, reps):
+            
 
 
 
