@@ -566,6 +566,63 @@ class Algebraic(object):
             else:
                 H.append(g)
         return Algebraic(H)
+
+    def get_levi(self, i, m):
+        n = self.n
+        assert 0<=i, (i,m,n)
+        assert 0<m, (i,m,n)
+        assert i+m <= n, (i,m,n)
+        GLm = Algebraic.GL(m, self.p)
+        levi = []
+        ihom = {}
+        hom = {}
+        for g in GLm:
+            A = numpy.identity(n, dtype=scalar)
+            A[i:i+m, i:i+m] = g.A
+            M = Matrix(A, self.p)
+            ihom[g] = M
+            hom[M] = g
+            levi.append(M)
+        gens = [ihom[g] for g in GLm.gens]
+        levi = Algebraic(gens, p=self.p, G=levi)
+        levi.ihom = ihom
+        levi.hom = hom
+        return levi
+
+    def get_parabolic(self, bits):
+        assert len(bits) == self.n-1
+        n = self.n
+        mask = zeros2(n,n)
+        mask[:] = 1
+        for (i,bit) in enumerate(bits):
+            if bit==0:
+                continue
+            for j in range(i+1, n):
+                mask[j, :i+1] = 0
+        #print(mask)
+        m2 = mask * mask.transpose()
+        #print(m2)
+        parabolic = []
+        #levi = []
+        for g in self:
+            if g.mask(mask) == g:
+                parabolic.append(g)
+                #if g.mask(m2) == g:
+                    #levi.append(g)
+        return parabolic
+
+    def get_unipotent(self):
+        n = self.n
+        I = numpy.identity(n, dtype=scalar)
+        II = Matrix(I, self.p)
+        U = numpy.zeros((n,n), dtype=scalar)
+        for i in range(n):
+            U[i, i:] = 1
+        uni = []
+        for g in self:
+            if g.mask(U) == g and g.mask(I) == II:
+                uni.append(g)
+        return uni
     
     def show(self):
         items = [M.A for M in self]

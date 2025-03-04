@@ -103,6 +103,7 @@ class Rep:
 
     def __str__(self):
         return "Rep(group of order %s, dim=%s, irrep=%s)"%(len(self.G), self.dim, self.is_irrep())
+    __repr__ = __str__
 
     def check(self):
         dim = self.dim
@@ -219,6 +220,20 @@ class Rep:
         assert self.G is other.G
         rep = {g : self(g).direct_sum(other(g)) for g in self.G}
         return Rep(self.G, rep, self.dim+other.dim)
+
+    def __mul__(self, other):
+        G = self.G
+        H = other.G
+        GH = []
+        rep = {}
+        for g in G:
+          for h in H:
+            gh = g*h
+            assert gh not in rep
+            rep[gh] = self(g) @ other(h)
+            GH.append(gh)
+        GH = Group(GH, G.gens + H.gens)
+        return Rep(GH, rep, self.dim*other.dim)
 
     def __matmul__(self, other):
         assert self.G is other.G
@@ -363,6 +378,14 @@ class Rep:
             #hom.other = Hom(w,v,f0)
             homs.append(hom)
         return homs
+
+    @classmethod
+    def irreps(cls, G):
+        Hs = G.conjugacy_subgroups()
+        reps = [Rep.permutation(G, H) for H in Hs]
+        basis = Basis(reps)
+        basis.reduce()
+        return basis
     
 
 class Hom:
@@ -416,8 +439,9 @@ class Hom:
 
 # https://ncatlab.org/nlab/show/Gram-Schmidt+process#CategorifiedGramSchmidtProcess
 class Basis:
-    def __init__(self, reps):
+    def __init__(self, reps, verbose=True):
         self.reps = reps
+        self.verbose = verbose
 
     def __getitem__(self, idx):
         return self.reps[idx]
@@ -428,6 +452,11 @@ class Basis:
     def append(self, rep):
         assert isinstance(rep, Rep)
         self.reps.append(rep)
+
+    def get(self, i, j):
+        reps = self.reps
+        c, d = reps[i].chi, reps[j].chi
+        return d.dot(c)
 
     def showtable(self):
         reps = self.reps
@@ -445,12 +474,40 @@ class Basis:
 
     def subtract(self, i, j, idx=0):
         reps = self.reps
-        print("subtract: %d-%d" %( i, j ), end=", ")
+        #print("Basis.subtract: %d-%d" %( i, j ), end=", ")
         fs = reps[i].hom(reps[j])
         assert len(fs)
-        print("homs:", len(fs))
+        #print("homs:", len(fs))
         f = fs[idx]
         reps[i] = f.cokernel().tgt
+
+    def swap(self, i, j):
+        #print("Basis.swap", i, j)
+        reps = self.reps
+        reps[i], reps[j] = reps[j], reps[i]
+
+    def pop(self, i):
+        #print("Basis.pop", i)
+        return self.reps.pop(i)
+
+    def reduce(self):
+        row = 0
+        while row < len(self):
+            #print("Basis.reduce", row)
+            #self.showtable()
+            assert self.get(row, row) == 1
+            for sow in range(row+1, len(self)):
+                u = self.get(row, sow)
+                if self.get(sow, sow) == 1 and u:
+                    assert u == 1, u
+                    self.pop(sow)
+                    break
+                if u:
+                    self.subtract(sow, row)
+                    break
+            else:
+                row += 1
+        
 
 
 
@@ -715,15 +772,15 @@ class Space:
         n, _ = op.shape
         p = op.p
         perms = []
-        rep = {}
+        hom = {}
         for g in G:
             idxs = [lookup[g*v] for v in space]
             perm = gset.Perm(idxs)
-            rep[g] = perm
+            hom[g] = perm
             perms.append(perm)
         X = gset.Group(perms)
         X.get_gens()
-        X.rep = rep
+        X.hom = hom
         X.space = space
         X.G = G
         return X
@@ -1257,6 +1314,90 @@ def p_induce(G, H, rep):
         #rep[g] = M
         Ms.append(M)
     return Rep.generate(G, G.get_gens(), Ms)
+
+
+def test_levi():
+
+    Rep.ring = QQ
+
+    n, p = 4, 2
+
+    space = Space(n, p)
+    GL = Algebraic.GL(n,p)
+
+    print(GL)
+
+    parabolic = GL.get_parabolic([0,1,0])
+
+    G = space.get_permrep(GL)
+    P = Group([G.hom[g] for g in parabolic]) # == get_permrep(parabolic)
+
+    l0 = GL.get_levi(0,2)
+    l1 = GL.get_levi(2,2)
+    GL2 = Algebraic.GL(2,p)
+    for g in l0:
+        h = l0.hom[g]
+        assert g in GL, str(h)
+        assert h in GL2
+        assert g in parabolic
+    for g in GL2:
+        assert l0.ihom[g] in l0
+
+    uni = GL.get_unipotent()
+    assert len(uni) == p**6
+    uni = [g for g in uni if g[0,1]==g[2,3]==0]
+    assert len(uni) == p**4
+    Uni = space.get_permrep(uni)
+    Uni.do_check()
+    assert len(Uni) == p**4
+
+    L0 = space.get_permrep(l0)
+    assert P.is_subgroup(L0)
+    reps0 = Rep.irreps(L0)
+    assert len(reps0) == 3
+
+    L1 = space.get_permrep(l1)
+    assert P.is_subgroup(L1)
+    reps1 = Rep.irreps(L1)
+
+    print( P )
+    print( Uni )
+    print( L0 )
+    print( L1 )
+
+    L = set(l0*l1 for l0 in L0 for l1 in L1)
+    L = Group(L)
+    assert P.is_subgroup(L)
+    assert P.is_subgroup(Uni)
+    assert P.is_normal(Uni)
+    assert len(L) * len(Uni) == len(P)
+
+    basis = []
+    for r0 in reps0:
+      for r1 in reps1:
+        r01 = r0*r1
+        r01.check()
+        print(r01)
+        L = r01.G
+        #print( len(L) * len(Uni) , len(P) )
+        rep = {}
+        for l in L:
+          for u in Uni:
+            lu = u*l
+            assert lu not in rep
+            rep[lu] = r01(l)
+        rep = Rep(P, rep, r01.dim)
+        print(rep)
+        rep.check()
+        rep = rep.induce(G)
+        print(rep)
+        basis.append(rep)
+      print()
+
+    basis = Basis(basis)
+    basis.showtable()
+    
+
 
 
 
