@@ -22,8 +22,8 @@ from math import prod
 
 import numpy
 
-#scalar = numpy.int64
-scalar = numpy.int8 # CAREFUL !!
+scalar = numpy.int64
+#scalar = numpy.int8 # CAREFUL !! only works for p < 11
 
 from bruhat.action import mulclose, mulclose_hom
 from bruhat.spec import isprime

@@ -27,11 +27,17 @@ def get_inv(G):
         g = iter(remain).__next__()
         for h in remain:
             if g*h == I:
+                if h*g != I:
+                    print(g)
+                    print(h)
+                    print(g*h)
+                    print(h*g)
+                    assert 0
                 inv[g] = h
                 inv[h] = g
                 break
         else:
-            assert 0
+            assert 0, g
         remain.remove(g)
         if g != h:
             remain.remove(h)
