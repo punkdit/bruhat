@@ -433,7 +433,7 @@ class Matrix(object):
 
     def order(self):
         n = len(self)
-        I = Matrix.identity(n)
+        I = Matrix.identity(n, self.p)
         count = 1
         g = self
         while g != I:

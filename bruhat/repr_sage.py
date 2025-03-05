@@ -18,7 +18,7 @@ cache = lru_cache(maxsize=None)
 import numpy
 
 from sage.all_cmdline import FiniteField, CyclotomicField, latex, ZZ, QQ
-from sage import all_cmdline 
+from sage import all_cmdline as sage
 
 from bruhat.argv import argv
 from bruhat.matrix_sage import Matrix
@@ -430,18 +430,57 @@ class Hom:
         M = lhs.M * rhs.M
         return Hom(lhs.tgt, rhs.src, M)
 
+    def __add__(lhs, rhs):
+        assert isinstance(rhs, Hom)
+        assert lhs.src == rhs.src
+        assert lhs.tgt == rhs.tgt
+        M = lhs.M + rhs.M
+        return Hom(lhs.tgt, lhs.src, M)
+
+    def __sub__(lhs, rhs):
+        assert isinstance(rhs, Hom)
+        assert lhs.src == rhs.src
+        assert lhs.tgt == rhs.tgt
+        M = lhs.M - rhs.M
+        return Hom(lhs.tgt, lhs.src, M)
+
+    def __rmul__(lhs, u):
+        M = u*lhs.M
+        return Hom(lhs.tgt, lhs.src, M)
+
     def cokernel(self):
         tgt = self.tgt
         M = self.M
         G = self.G
         K = M.cokernel()
+        if not len(K):
+            return None # ???
         Ki = K.pseudoinverse()
+        #print(K, K.shape)
+        #print(Ki, Ki.shape)
         rep = {}
         for g in G:
             rep[g] = K * tgt(g) * Ki
         dim = K.shape[0]
         r = Rep(G, rep, dim)
         return Hom(r, tgt, K)
+
+    def kernel(self):
+        src = self.src
+        M = self.M
+        G = self.G
+        K = M.kernel()
+        if not len(K):
+            return None # ???
+        Ki = K.pseudoinverse()
+        #print(K, K.shape)
+        #print(Ki, Ki.shape)
+        rep = {}
+        for g in G:
+            rep[g] = Ki * src(g) * K
+        dim = K.shape[1]
+        r = Rep(G, rep, dim)
+        return Hom(src, r, K)
 
 
 
@@ -466,7 +505,7 @@ class Basis:
         c, d = reps[i].chi, reps[j].chi
         return d.dot(c)
 
-    def show(self):
+    def show(self, chars=True):
         reps = self.reps
         N = len(reps)
         print("   ", "===="*N)
@@ -475,8 +514,12 @@ class Basis:
           print("%3d:"%i, end="")
           for j in range(N):
             u = chis[j].dot(chis[i])
-            print("%3s "%u, end="", flush=True)
-          print(" ", reps[i], reps[i].chi)
+            print("%3s "%("." if u==0 else u), end="", flush=True)
+          print(" ", reps[i], end=" ")
+          if chars:
+            print(reps[i].chi)
+          else:
+            print()
         print("   ", "===="*N)
         print()
 
@@ -1051,6 +1094,8 @@ def test_gl():
         M = Matrix.get_perm(Rep.ring, g)
         rep[g] = M
     cnot = Rep(G, rep, G.rank)
+    print(cnot)
+    return
 
     H = G.child
     print(H)
@@ -1329,6 +1374,209 @@ def test_levi():
 
     #basis = Basis(basis)
     #basis.show()
+
+
+def test_permutation():
+
+    G = Group.symmetric(3)
+    r = Rep.regular(G)
+    print(r)
+
+    homs = r.hom(r)
+    print(len(homs))
+
+    #for hom in homs:
+    #    print(hom.M)
+
+    perms = []
+    for f in homs:
+      perm = []
+      for g in homs:
+        gf = g*f
+        i = homs.index(gf)
+        perm.append(i)
+      perms.append(Perm(perm))
+    E = Group.generate(perms)
+    I = E.identity
+    refls = [a for a in E if a*a==I and a!=I]
+    a, b = refls[:2]
+    assert a*b*a == b*a*b
+
+    for H in G.subgroups():
+        if len(H) == 2:
+            break
+    r = Rep.permutation(G, H)
+    print(r)
+    homs = r.hom(r)
+    print(len(homs))
+    homs = [f.M for f in homs]
+    for f in homs:
+        print(f)
+    f = homs[1]
+    print(f*f)
+
+
+def test_gl25():
+
+    Rep.ring = CyclotomicField(24)
+
+    n, p = 2, 5
+    space = Space(n, p)
+    gl = Algebraic.GL(n,p)
+    assert len(gl) == 480
+    gl1 = Algebraic.GL(1,p)
+
+    G = space.get_permrep(gl)
+    levis, uni, parabolic = gl.levi_decompose([1,1])
+    P = space.get_permrep(parabolic)
+
+#    from bruhat.cuspforms import slow_get_conjugacy_classes
+#    cgys = slow_get_conjugacy_classes(gl)
+#
+#    print(len(cgys))
+#
+#    F = sage.GF(p)
+#    for cgy in cgys:
+#        g = cgy[0]
+#        A = sage.matrix(F, n, n, g.A)
+#        char = A.characteristic_polynomial()
+#        #char.factor()
+#        if not char.is_irreducible():
+#            continue
+#        assert p**2-1 == 24
+#        print([g.order() for g in cgy])
+#        #for g in cgy:
+#        #    if g.order() == p**2-1:
+#        #        break
+#        #else:
+#        #    assert 0
+#        #print(g, char.factor(), g.order())
+
+    found = [g for g in gl if g.order() == 24]
+    remain = set(found)
+    gfs = []
+    while remain:
+        g = remain.pop()
+        gf = mulclose([g])
+        gf = list(gf)
+        for g in gf:
+            if g in remain:
+                remain.remove(g)
+        gfs.append(gf)
+    print(len(gfs))
+    cuspidals = []
+    for gf in gfs:
+        GF = space.get_permrep(gf)
+        r = Rep.fourier(GF, 1)
+        #print(r)
+        r = r.induce(G)
+        print(r)
+        cuspidals.append(r)
+
+    #return
+
+    l0, l1 = levis
+    for g in l0:
+        h = l0.hom[g]
+        assert g in gl, str(g)
+        assert h in gl1
+        assert g in parabolic
+    for g in gl1:
+        assert l0.ihom[g] in l0
+
+    Uni = space.get_permrep(uni)
+    Uni.do_check()
+    assert len(Uni) == p
+
+    L0 = space.get_permrep(l0)
+    assert P.is_subgroup(L0)
+    assert L0.is_abelian()
+    assert len(L0) == p-1
+    reps0 = [Rep.fourier(L0, i) for i in range(p-1)]
+    #for r in reps0:
+    #    print(r, r.chi)
+
+    L1 = space.get_permrep(l1)
+    assert P.is_subgroup(L1)
+    reps1 = [Rep.fourier(L1, i) for i in range(p-1)]
+
+    print( P )
+    print( Uni )
+    print( L0 )
+    print( L1 )
+
+    L = set(l0*l1 for l0 in L0 for l1 in L1)
+    L = Group(L)
+    assert P.is_subgroup(L)
+    assert P.is_subgroup(Uni)
+    assert P.is_normal(Uni)
+    assert len(L) * len(Uni) == len(P)
+
+    basis = []
+    N = p-1
+
+    for i in range(N):
+        r01 = reps0[i]*reps1[i]
+        r01.check()
+        #print(r01)
+        L = r01.G
+        #print( len(L) * len(Uni) , len(P) )
+        rep = {}
+        for l in L:
+          for u in Uni:
+            lu = u*l
+            assert lu not in rep
+            rep[lu] = r01(l)
+        rep = Rep(P, rep, r01.dim)
+        #print(rep)
+        rep.check()
+        rep = rep.induce(G)
+        #print(rep)
+        a, b = rep.hom(rep)
+
+        r = (a+b).cokernel()
+        c = r.tgt
+        assert c.is_irrep()
+        basis.append(c)
+        f, = rep.hom(c)
+        #print("f:")
+        #print(f)
+        d = f.cokernel().tgt
+        #print(d)
+        assert d.is_irrep()
+        basis.append(d)
+    for r in basis:
+        print(r, r.chi)
+        r.some_check()
+
+    for i in range(N):
+      for j in range(i+1, N):
+        r01 = reps0[i]*reps1[j]
+        r01.check()
+        print(r01)
+        L = r01.G
+        #print( len(L) * len(Uni) , len(P) )
+        rep = {}
+        for l in L:
+          for u in Uni:
+            lu = u*l
+            assert lu not in rep
+            rep[lu] = r01(l)
+        rep = Rep(P, rep, r01.dim)
+        print(rep)
+        rep.check()
+        rep = rep.induce(G)
+        print(rep)
+        basis.append(rep)
+      print()
+
+    basis += cuspidals
+    basis = Basis(basis)
+    basis.show(False)
+
+
+
+
     
 
 def test_monoidal():
