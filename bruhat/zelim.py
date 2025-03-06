@@ -110,7 +110,7 @@ def zelim(A, truncate=True, verbose=False):
 
         val0 = A[row, col]
         assert val0
-        assert numpy.alltrue(L[:, row]==0)
+        assert numpy.all(L[:, row]==0)
         L[row, row] = 1
         for row1 in range(row + 1, n):
             val1 = A[row1, col]
@@ -127,7 +127,7 @@ def zelim(A, truncate=True, verbose=False):
         row += 1
     
     if row < n:
-        assert numpy.alltrue(L[:, row]==0)
+        assert numpy.all(L[:, row]==0)
         L[row, row] = 1
     
     if truncate:
@@ -537,7 +537,7 @@ def process(table):
     LM = numpy.dot(L, M)
     #print("LM =")
     #print(shortstr(LM))
-    assert(numpy.alltrue(LM==A))
+    assert(numpy.all(LM==A))
 
     reps = A[:, -1]
     print("order:", order)

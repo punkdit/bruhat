@@ -576,18 +576,28 @@ class Basis:
             #print("Basis.reduce", row)
             #self.show()
             if self.get(row, row) != 1:
-                break # ??
-            for sow in range(row+1, len(self)):
-                u = self.get(row, sow)
-                if self.get(sow, sow) == 1 and u:
-                    assert u == 1, u
-                    self.pop(sow)
-                    break
-                if u:
-                    self.subtract(sow, row)
-                    break
-            else:
+                #break # ??
+                #for sow in range(row+1, len(self)):
+                for sow in range(len(self)):
+                    if sow==row:
+                        continue
+                    u = self.get(row, sow)
+                    if u==1:
+                        self.subtract(row, sow)
+                        break
                 row += 1
+            else:
+                for sow in range(row+1, len(self)):
+                    u = self.get(row, sow)
+                    if self.get(sow, sow) == 1 and u:
+                        assert u == 1, u
+                        self.pop(sow)
+                        break
+                    if u:
+                        self.subtract(sow, row)
+                        break
+                else:
+                    row += 1
         
     def rank(self):
         if not len(self):
@@ -1522,14 +1532,16 @@ def test_gl25():
         gfs.append(gf)
     gfs.sort()
     cuspidals = []
-    for gf in gfs:
+    for gf in gfs[1:]:
         GF = space.get_permrep(gf)
-        for j in [1, 2, 3, 4, 6, 7, 12, 13, 14, 18]:
+        #for j in [0, 1, 2, 3, 4, 6, 7, 8, 9, 12, 13, 14, 18, 19]:
+        for j in [1, 2, 3, 4, 7, 8, 9, 13, 14, 19]:
             r = Rep.fourier(GF, j)
             r = r.induce(G)
             print(r)
             cuspidals.append(r)
             #break
+        break
 
     basis = Basis(cuspidals)
     basis.show(0, fmt="%s")
@@ -1640,8 +1652,9 @@ def test_gl25():
     basis.show(False, fmt="%s")
 
     basis.reduce()
-
     basis.show(False, fmt="%s")
+    for r in basis:
+        print(r)
 
     return basis
 
