@@ -143,6 +143,14 @@ class Rep:
             return False
         return self.rep == other.rep
 
+    def is_iso(self, other):
+        if self.chi != other.chi:
+            return False
+        for f in self.hom(other):
+            if f.is_iso():
+                return True
+        return False # ???
+
     @classmethod
     def regular(cls, G):
         n = len(G)
@@ -448,6 +456,20 @@ class Hom:
         M = u*lhs.M
         return Hom(lhs.tgt, lhs.src, M)
 
+    def __invert__(self):
+        M = self.M.pseudoinverse()
+        return Hom(self.src, self.tgt, M)
+
+    def is_iso(self):
+        tgt, src = self.tgt, self.src
+        if tgt.dim != src.dim:
+            return False
+        iself = ~self
+        a = self*iself
+        b = iself*self
+        I = Matrix.identity(Rep.ring, src.dim)
+        return a.M==I and b.M==I
+
     def cokernel(self):
         tgt = self.tgt
         M = self.M
@@ -492,6 +514,12 @@ class Basis:
 
     def __getitem__(self, idx):
         return self.reps[idx]
+
+    def __setitem__(self, idx, value):
+        self.reps[idx] = value
+
+    def __delitem__(self, idx):
+        del self.reps[idx]
 
     def __len__(self):
         return len(self.reps)
@@ -546,7 +574,8 @@ class Basis:
         while row < len(self):
             #print("Basis.reduce", row)
             #self.show()
-            assert self.get(row, row) == 1
+            if self.get(row, row) != 1:
+                break # ??
             for sow in range(row+1, len(self)):
                 u = self.get(row, sow)
                 if self.get(sow, sow) == 1 and u:
@@ -636,6 +665,20 @@ def test_rep():
     r = rep.induce(G)
     assert r.dim == 8
     r.check()
+
+    assert rep.is_iso(rep)
+
+    U = Matrix(Rep.ring, [[1,1],[0,1]])
+    Ui = ~U
+    A = U*A*Ui
+    B = U*B*Ui
+    sep = Rep.generate(H, [a,b], [A,B])
+    sep.check()
+
+    assert rep != sep
+    assert rep.is_iso(sep)
+    
+
 
 
 def test_gram_schmidt():
@@ -1459,16 +1502,16 @@ def test_gl25():
         g = remain.pop()
         gf = mulclose([g])
         gf = list(gf)
+        gf.sort(key = str)
         for g in gf:
             if g in remain:
                 remain.remove(g)
         gfs.append(gf)
-    print(len(gfs))
+    gfs.sort()
     cuspidals = []
     for gf in gfs:
         GF = space.get_permrep(gf)
         r = Rep.fourier(GF, 1)
-        #print(r)
         r = r.induce(G)
         print(r)
         cuspidals.append(r)
@@ -1516,8 +1559,10 @@ def test_gl25():
     N = p-1
 
     for i in range(N):
+        break
+
         r01 = reps0[i]*reps1[i]
-        r01.check()
+        #r01.check()
         #print(r01)
         L = r01.G
         #print( len(L) * len(Uni) , len(P) )
@@ -1529,7 +1574,7 @@ def test_gl25():
             rep[lu] = r01(l)
         rep = Rep(P, rep, r01.dim)
         #print(rep)
-        rep.check()
+        #rep.check()
         rep = rep.induce(G)
         #print(rep)
         a, b = rep.hom(rep)
@@ -1552,7 +1597,7 @@ def test_gl25():
     for i in range(N):
       for j in range(i+1, N):
         r01 = reps0[i]*reps1[j]
-        r01.check()
+        #r01.check()
         print(r01)
         L = r01.G
         #print( len(L) * len(Uni) , len(P) )
@@ -1564,7 +1609,7 @@ def test_gl25():
             rep[lu] = r01(l)
         rep = Rep(P, rep, r01.dim)
         print(rep)
-        rep.check()
+        #rep.check()
         rep = rep.induce(G)
         print(rep)
         basis.append(rep)
@@ -1573,8 +1618,24 @@ def test_gl25():
     basis += cuspidals
     basis = Basis(basis)
     basis.show(False)
+    print()
 
+    basis.reduce()
 
+    basis.show(False)
+
+    return basis
+
+    r = basis[14]
+    homs = r.hom(r)
+    print("homs:", len(homs))
+    a, b = homs
+    print((a+b).cokernel())
+    print((a-b).cokernel())
+#    for f in homs:
+#        print(f.M, f)
+#        s = f.cokernel()
+#        print(s)
 
 
     
