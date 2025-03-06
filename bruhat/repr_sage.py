@@ -533,22 +533,23 @@ class Basis:
         c, d = reps[i].chi, reps[j].chi
         return d.dot(c)
 
-    def show(self, chars=True):
+    def show(self, chars=True, fmt="%3s "):
         reps = self.reps
         N = len(reps)
-        print("   ", "===="*N)
+        print("   ", "="*N)
         chis = [r.chi for r in reps]
         for i in range(N):
           print("%3d:"%i, end="")
           for j in range(N):
             u = chis[j].dot(chis[i])
-            print("%3s "%("." if u==0 else u), end="", flush=True)
-          print(" ", reps[i], end=" ")
+            print(fmt%("." if u==0 else u), end="", flush=True)
+          #print(" ", reps[i], end=" ")
           if chars:
             print(reps[i].chi)
           else:
             print()
-        print("   ", "===="*N)
+        print("   ", "="*N)
+        print("rank:", self.rank())
         print()
 
     def subtract(self, i, j, idx=0):
@@ -588,6 +589,16 @@ class Basis:
             else:
                 row += 1
         
+    def rank(self):
+        if not len(self):
+            return 0
+        
+        r = self[0]
+        G = r.G
+        rows = [[r.chi[g] for g in G] for r in self]
+        M = Matrix(r.ring, rows)
+        #print(M)
+        return M.rank()
 
 
 
@@ -754,6 +765,8 @@ def test_gram_schmidt():
 
     for r in basis.reps:
         print(r)
+
+    print(basis.rank())
 
 
 def test_induce():
@@ -1511,10 +1524,15 @@ def test_gl25():
     cuspidals = []
     for gf in gfs:
         GF = space.get_permrep(gf)
-        r = Rep.fourier(GF, 1)
-        r = r.induce(G)
-        print(r)
-        cuspidals.append(r)
+        for j in [1, 2, 3, 4, 6, 7, 12, 13, 14, 18]:
+            r = Rep.fourier(GF, j)
+            r = r.induce(G)
+            print(r)
+            cuspidals.append(r)
+            #break
+
+    basis = Basis(cuspidals)
+    basis.show(0, fmt="%s")
 
     #return
 
@@ -1559,7 +1577,7 @@ def test_gl25():
     N = p-1
 
     for i in range(N):
-        break
+        #break
 
         r01 = reps0[i]*reps1[i]
         #r01.check()
@@ -1590,9 +1608,9 @@ def test_gl25():
         #print(d)
         assert d.is_irrep()
         basis.append(d)
-    for r in basis:
-        print(r, r.chi)
-        r.some_check()
+    #for r in basis:
+    #    print(r, r.chi)
+    #    r.some_check()
 
     for i in range(N):
       for j in range(i+1, N):
@@ -1615,14 +1633,15 @@ def test_gl25():
         basis.append(rep)
       print()
 
-    basis += cuspidals
     basis = Basis(basis)
-    basis.show(False)
-    print()
+    basis.show(False, fmt="%s")
+    basis = basis.reps + cuspidals
+    basis = Basis(basis)
+    basis.show(False, fmt="%s")
 
     basis.reduce()
 
-    basis.show(False)
+    basis.show(False, fmt="%s")
 
     return basis
 
