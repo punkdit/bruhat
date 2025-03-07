@@ -10,6 +10,7 @@ see also: bruhat.cuspforms
 """
 
 from random import choice, shuffle
+from string import ascii_uppercase
 from operator import mul, matmul, add
 from functools import reduce
 #from functools import cache
@@ -96,6 +97,7 @@ class Char:
 class Rep:
     #ring = CyclotomicField()
     ring = QQ
+    name = None
 
     def __init__(self, G, rep, dim):
         assert isinstance(G, Group)
@@ -105,7 +107,9 @@ class Rep:
         self.chi = Char(self.G, [rep[g].trace() for g in G])
 
     def __str__(self):
-        return "Rep(group of order %s, dim=%s, irrep=%s)"%(len(self.G), self.dim, self.is_irrep())
+        extra = ", name=%r"%self.name if self.name else ""
+        return "Rep(group of order %s, dim=%s, irrep=%s%s)"%(
+            len(self.G), self.dim, self.is_irrep(), extra)
     __repr__ = __str__
 
     def check(self):
@@ -534,7 +538,7 @@ class Basis:
         c, d = reps[i].chi, reps[j].chi
         return d.dot(c)
 
-    def show(self, chars=True, fmt="%3s "):
+    def show(self, fmt="%s", showreps=True, showchars=False):
         reps = self.reps
         N = len(reps)
         print("   ", "="*N)
@@ -544,9 +548,10 @@ class Basis:
           for j in range(N):
             u = chis[j].dot(chis[i])
             print(fmt%("." if u==0 else u), end="", flush=True)
-          #print(" ", reps[i], end=" ")
-          if chars:
-            print(reps[i].chi)
+          if showreps:
+            print(" ", reps[i], end="")
+          if showchars:
+            print(" ", reps[i].chi)
           else:
             print()
         print("   ", "="*N)
@@ -1525,28 +1530,7 @@ def test_gl25():
     levis, uni, parabolic = gl.levi_decompose([1,1])
     P = space.get_permrep(parabolic)
 
-    #A = FMatrix.companion([2, 0, 1], p)
-    #torus = [g for g in gl if g*A == A*g]
-    #print(len(torus))
-    #return
-
-#    found = [g for g in gl if g.order() == 24]
-#    remain = set(found)
-#    gfs = []
-#    while remain:
-#        g = remain.pop()
-#        gf = mulclose([g])
-#        gf = list(gf)
-#        gf.sort(key = str)
-#        for g in gf:
-#            if g in remain:
-#                remain.remove(g)
-#        gfs.append(gf)
-#    gfs.sort()
-#    shuffle(gfs)
     cuspidals = []
-    #for gf in gfs:
-
     Torus = space.get_permrep(torus)
     #for j in [0, 1, 2, 3, 4, 6, 7, 8, 9, 12, 13, 14, 18, 19]:
     for j in [1, 2, 3, 4, 7, 8, 9, 13, 14, 19]:
@@ -1556,7 +1540,7 @@ def test_gl25():
         cuspidals.append(r)
 
     basis = Basis(cuspidals)
-    basis.show(0, fmt="%s")
+    basis.show(fmt="%s")
 
     #return
 
@@ -1601,8 +1585,10 @@ def test_gl25():
     N = p-1
 
     for i in range(N):
-        #break
+        reps0[i].name = ascii_uppercase[i]
+        reps1[i].name = ascii_uppercase[i]
 
+    for i in range(N):
         r01 = reps0[i]*reps1[i]
         #r01.check()
         #print(r01)
@@ -1624,6 +1610,7 @@ def test_gl25():
         r = (a+b).cokernel()
         c = r.tgt
         assert c.is_irrep()
+        c.name = r"\yng(1,1)(%s)"%reps0[i].name
         basis.append(c)
         f, = rep.hom(c)
         #print("f:")
@@ -1631,10 +1618,8 @@ def test_gl25():
         d = f.cokernel().tgt
         #print(d)
         assert d.is_irrep()
+        d.name = r"\yng(2)(%s)"%reps0[i].name
         basis.append(d)
-    #for r in basis:
-    #    print(r, r.chi)
-    #    r.some_check()
 
     for i in range(N):
       for j in range(i+1, N):
@@ -1654,33 +1639,35 @@ def test_gl25():
         #rep.check()
         rep = rep.induce(G)
         print(rep)
+        assert rep.is_irrep()
+        rep.name = r"%s\otimes %s"%(reps0[i].name, reps1[j].name)
         basis.append(rep)
       print()
 
-    basis = Basis(basis)
-    basis.show(False, fmt="%s")
-    basis = basis.reps + cuspidals
-    basis = Basis(basis)
-    basis.show(False, fmt="%s")
-
-    basis.reduce()
-    basis.show(False, fmt="%s")
     for r in basis:
         print(r)
+        print(r.chi)
+        r.some_check()
+    #return
+
+    basis = Basis(basis)
+    basis.show(fmt="%s")
+    basis = basis.reps + cuspidals
+    basis = Basis(basis)
+    basis.show(fmt="%s")
+
+    basis.reduce()
+    basis.show(fmt="%s")
+    #for r in basis:
+    #    print(r)
+
+    for j in range(len(Torus)):
+        r = Rep.fourier(Torus, j)
+        r = r.induce(G)
+        basis.append(r)
+    basis.show(fmt="%s")
 
     return basis
-
-    r = basis[14]
-    homs = r.hom(r)
-    print("homs:", len(homs))
-    a, b = homs
-    print((a+b).cokernel())
-    print((a-b).cokernel())
-#    for f in homs:
-#        print(f.M, f)
-#        s = f.cokernel()
-#        print(s)
-
 
     
 
