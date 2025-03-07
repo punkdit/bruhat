@@ -6,9 +6,10 @@ practice representation_theory, induce / restrict, etc.
 good notes here:
 https://dec41.user.srcf.net/h/II_L/representation_theory/10
 
+see also: bruhat.cuspforms 
 """
 
-from random import choice
+from random import choice, shuffle
 from operator import mul, matmul, add
 from functools import reduce
 #from functools import cache
@@ -1482,6 +1483,31 @@ def test_permutation():
     print(f*f)
 
 
+def get_torus(gl):
+    from bruhat.cuspforms import slow_get_conjugacy_classes
+    cgys = slow_get_conjugacy_classes(gl)
+
+    print(len(cgys))
+
+    F = sage.GF(p)
+    for cgy in cgys:
+        g = cgy[0]
+        A = sage.matrix(F, n, n, g.A)
+        char = A.characteristic_polynomial()
+        #char.factor()
+        if not char.is_irreducible():
+            continue
+        assert p**2-1 == 24
+        print([g.order() for g in cgy])
+        #for g in cgy:
+        #    if g.order() == p**2-1:
+        #        break
+        #else:
+        #    assert 0
+        #print(g, char.factor(), g.order())
+
+
+
 def test_gl25():
 
     Rep.ring = CyclotomicField(24)
@@ -1492,56 +1518,42 @@ def test_gl25():
     assert len(gl) == 480
     gl1 = Algebraic.GL(1,p)
 
+    torus = gl.get_torus()
+    assert len(torus) == p**n-1
+
     G = space.get_permrep(gl)
     levis, uni, parabolic = gl.levi_decompose([1,1])
     P = space.get_permrep(parabolic)
 
-#    from bruhat.cuspforms import slow_get_conjugacy_classes
-#    cgys = slow_get_conjugacy_classes(gl)
-#
-#    print(len(cgys))
-#
-#    F = sage.GF(p)
-#    for cgy in cgys:
-#        g = cgy[0]
-#        A = sage.matrix(F, n, n, g.A)
-#        char = A.characteristic_polynomial()
-#        #char.factor()
-#        if not char.is_irreducible():
-#            continue
-#        assert p**2-1 == 24
-#        print([g.order() for g in cgy])
-#        #for g in cgy:
-#        #    if g.order() == p**2-1:
-#        #        break
-#        #else:
-#        #    assert 0
-#        #print(g, char.factor(), g.order())
+    #A = FMatrix.companion([2, 0, 1], p)
+    #torus = [g for g in gl if g*A == A*g]
+    #print(len(torus))
+    #return
 
-    found = [g for g in gl if g.order() == 24]
-    remain = set(found)
-    gfs = []
-    while remain:
-        g = remain.pop()
-        gf = mulclose([g])
-        gf = list(gf)
-        gf.sort(key = str)
-        for g in gf:
-            if g in remain:
-                remain.remove(g)
-        gfs.append(gf)
-    gfs.sort()
+#    found = [g for g in gl if g.order() == 24]
+#    remain = set(found)
+#    gfs = []
+#    while remain:
+#        g = remain.pop()
+#        gf = mulclose([g])
+#        gf = list(gf)
+#        gf.sort(key = str)
+#        for g in gf:
+#            if g in remain:
+#                remain.remove(g)
+#        gfs.append(gf)
+#    gfs.sort()
+#    shuffle(gfs)
     cuspidals = []
-    for gf in gfs[1:]:
-        GF = space.get_permrep(gf)
-        #for j in [0, 1, 2, 3, 4, 6, 7, 8, 9, 12, 13, 14, 18, 19]:
-        for j in [1, 2, 3, 4, 7, 8, 9, 13, 14, 19]:
-            r = Rep.fourier(GF, j)
-            r = r.induce(G)
-            print(r)
-            cuspidals.append(r)
-            #break
-        break
+    #for gf in gfs:
+
+    Torus = space.get_permrep(torus)
+    #for j in [0, 1, 2, 3, 4, 6, 7, 8, 9, 12, 13, 14, 18, 19]:
+    for j in [1, 2, 3, 4, 7, 8, 9, 13, 14, 19]:
+        r = Rep.fourier(Torus, j)
+        r = r.induce(G)
+        print(r)
+        cuspidals.append(r)
 
     basis = Basis(cuspidals)
     basis.show(0, fmt="%s")

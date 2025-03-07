@@ -269,6 +269,18 @@ class Matrix(object):
         A = numpy.identity(n, dtype=scalar)
         return Matrix(A, p, name="I")
 
+    @classmethod
+    def companion(cls, coeffs, p=DEFAULT_P):
+        assert len(coeffs), coeffs
+        assert coeffs[-1] == 1, coeffs
+        n = len(coeffs)-1
+        A = numpy.zeros((n, n), dtype=scalar)
+        for i in range(n-1):
+            A[i+1, i] = 1
+        for i in range(n):
+            A[i, n-1] = (p-coeffs[i]) % p
+        return Matrix(A, p)
+
     def get_bitkey(self):
         assert self.p == 2
         A = numpy.packbits(self.A)
@@ -542,6 +554,26 @@ class Algebraic(object):
 
     def __eq__(self, other):
         return set(self.get_elements()) == set(other.get_elements())
+
+    def get_torus(self):
+        n = self.n
+        p = self.p
+        for coeffs in cross([list(range(p))]*n):
+            op = "+".join("%d*x**%d"%(v,i) for (i,v) in enumerate(coeffs))
+            op = "lambda x : (%s+x**%d)%%%d"%(op,n,p)
+            fn = eval(op)
+            vals = [fn(x) for x in range(p)]
+            if 0 not in vals:
+                break
+        else:
+            assert 0, "no irreducible found"
+        #print(coeffs)
+        M = Matrix.companion(coeffs + (1,), p)
+        torus = []
+        for g in self:
+            if g*M == M*g:
+                torus.append(g)
+        return torus
 
     def left_stabilizer(self, M):
         # find subgroup that stabilize the rowspace of M
