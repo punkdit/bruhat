@@ -90,7 +90,12 @@ class Matrix(object):
         lines[0] = "[" + lines[0]
         lines[-1] = lines[-1] + "]"
         lines[1:] = [" "+l for l in lines[1:]]
-        return '\n'.join(lines)
+        s = '\n'.join(lines)
+        s = s.replace(" 0 ", " . ")
+        s = s.replace("[0 ", "[. ")
+        s = s.replace(" 0]", " .]")
+        s = s.replace("0", ".")
+        return s
     __repr__ = __str__
 
     def __len__(self):

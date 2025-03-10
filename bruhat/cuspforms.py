@@ -296,6 +296,7 @@ def main():
         char = A.characteristic_polynomial()
         #print(len(items), "-->", char, "\t", char.factor())
         rg = A.rational_form(subdivide=False)
+        print(rg)
         chars.append(char)
         s = str(char.factor())
         s = s.replace(" ", "").replace("*", "")

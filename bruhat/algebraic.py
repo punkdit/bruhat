@@ -555,18 +555,22 @@ class Algebraic(object):
     def __eq__(self, other):
         return set(self.get_elements()) == set(other.get_elements())
 
-    def get_torus(self):
+    def get_torus(self, idx=0):
         n = self.n
         p = self.p
+        count = 0
         for coeffs in cross([list(range(p))]*n):
             op = "+".join("%d*x**%d"%(v,i) for (i,v) in enumerate(coeffs))
             op = "lambda x : (%s+x**%d)%%%d"%(op,n,p)
             fn = eval(op)
             vals = [fn(x) for x in range(p)]
-            if 0 not in vals:
+            if 0 in vals:
+                continue
+            if idx==count:
                 break
+            count += 1
         else:
-            assert 0, "no irreducible found"
+            assert 0, "no irreducible found for idx=%d"%idx
         #print(coeffs)
         M = Matrix.companion(coeffs + (1,), p)
         torus = []
@@ -574,6 +578,38 @@ class Algebraic(object):
             if g*M == M*g:
                 torus.append(g)
         return torus
+
+    def get_inv(G):
+        inv = {}
+        I = G.I
+        print("inv:", end="", flush=True)
+        remain = set(G)
+        itemss = []
+        while remain:
+            #print("|G| =", len(G))
+            g = iter(remain).__next__()
+            for h in remain:
+                if g*h == I:
+                    if h*g != I:
+                        print(g)
+                        print(h)
+                        print(g*h)
+                        print(h*g)
+                        assert 0
+                    inv[g] = h
+                    inv[h] = g
+                    break
+            else:
+                assert 0, g
+            remain.remove(g)
+            if g != h:
+                remain.remove(h)
+            if len(remain)%100 == 0:
+                print("[%d]"%len(remain), end="", flush=True)
+    
+        print()
+        assert len(inv) == len(G)
+        return inv
 
     def left_stabilizer(self, M):
         # find subgroup that stabilize the rowspace of M

@@ -1515,34 +1515,85 @@ def get_torus(gl):
 
 def test_gl25():
 
-    Rep.ring = CyclotomicField(24)
-
     n, p = 2, 5
     space = Space(n, p)
     gl = Algebraic.GL(n,p)
     assert len(gl) == 480
     gl1 = Algebraic.GL(1,p)
 
+    Rep.ring = CyclotomicField(p**n - 1)
+
+    ts = [gl.get_torus(i) for i in range(10)]
+
+    for a in ts:
+      for b in ts:
+        c = set(a).intersection(b)
+        print(len(c), end=" ")
+      print()
+
     torus = gl.get_torus()
     assert len(torus) == p**n-1
 
+    stab = []
+    inv = gl.get_inv()
+    for g in gl:
+        gi = inv[g]
+        for h in torus:
+            if g*h*gi not in torus:
+                break
+        else:
+            stab.append(g)
+    print(len(stab))
+
     G = space.get_permrep(gl)
+    Torus = space.get_permrep(torus)
+    Stab = space.get_permrep(stab)
+
+#    for X in [
+#        X = G.action_subgroup(Stab),
+#        X = G.action_subgroup(Torus)
+#    ]:
+#    
+#        XX = X*X
+#        for o in XX.get_atoms():
+#            print(o)
+#    
+#        r = Rep.permutation(G, Torus)
+#        print(r)
+#        fs = r.hom(r)
+#        print(len(fs))
+#        A = Algebra(fs)
+#        A.display()
+
+    
     levis, uni, parabolic = gl.levi_decompose([1,1])
     P = space.get_permrep(parabolic)
 
+#    for j in range(p**n-1):
+#        r = Rep.fourier(Torus, j)
+#        r = r.induce(G)
+#        print(r)
+#        fs = r.hom(r)
+#        A = Algebra(fs)
+#        A.display()
+#    return
+
     cuspidals = []
-    Torus = space.get_permrep(torus)
     #for j in [0, 1, 2, 3, 4, 6, 7, 8, 9, 12, 13, 14, 18, 19]:
     for j in [1, 2, 3, 4, 7, 8, 9, 13, 14, 19]:
         r = Rep.fourier(Torus, j)
         r = r.induce(G)
         print(r)
+        #fs = r.hom(r)
+        #print(len(fs))
+        #for f in fs:
+        #    print(f.M)
         cuspidals.append(r)
 
     basis = Basis(cuspidals)
-    basis.show(fmt="%s")
+    basis.show()
 
-    #return
+    return
 
     l0, l1 = levis
     for g in l0:
@@ -1651,23 +1702,60 @@ def test_gl25():
     #return
 
     basis = Basis(basis)
-    basis.show(fmt="%s")
+    basis.show()
     basis = basis.reps + cuspidals
     basis = Basis(basis)
-    basis.show(fmt="%s")
+    basis.show()
 
     basis.reduce()
-    basis.show(fmt="%s")
-    #for r in basis:
-    #    print(r)
+    basis.show()
+
+    i = p-1
+    for r in basis:
+        if r.name is None:
+            r.name = ascii_uppercase[i]
+            i += 1
+        print(r)
 
     for j in range(len(Torus)):
         r = Rep.fourier(Torus, j)
         r = r.induce(G)
         basis.append(r)
-    basis.show(fmt="%s")
+    basis.show()
 
     return basis
+
+
+class Algebra:
+    def __init__(self, fs):
+        self.fs = fs
+        rows = []
+        for f in fs:
+            M = f.M
+            n = M.shape[0]*M.shape[1]
+            M = M.reshape(1,n)
+            rows.append(M.M[0])
+        self.A = Matrix(Rep.ring, rows).t
+    def getname(self, M):
+        A = self.A
+        M = M.reshape(M.shape[0]*M.shape[1], 1)
+        a = A.solve(M).t
+        return a
+    def __str__(self):
+        return "Algebra(dim=%d)"%(len(self.fs),)
+    def display(self):
+        print(self)
+        fs = self.fs
+        for f in fs:
+          for g in fs:
+            gf = g*f
+            #if gf in fs:
+            #    print(fs.index(gf), end=" ")
+            #else:
+            #    print("?", end=" ")
+            a = self.getname(gf.M)
+            print(a, end=" ")
+          print()
 
     
 
@@ -1704,6 +1792,7 @@ def test_monoidal():
             print("?", end=" ")
       print()
 
+
     def getname(M):
         M = M.reshape(M.shape[0]*M.shape[1], 1)
         a = A.solve(M).t
@@ -1716,6 +1805,7 @@ def test_monoidal():
         print(a, end=" ")
       print()
     #levis, uni, parabolic = GL.levi_decompose([1,2])
+    return
 
     print()
 
