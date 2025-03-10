@@ -1593,7 +1593,7 @@ def test_gl25():
     basis = Basis(cuspidals)
     basis.show()
 
-    return
+    #return
 
     l0, l1 = levis
     for g in l0:
@@ -1695,6 +1695,7 @@ def test_gl25():
         basis.append(rep)
       print()
 
+    print("chi:")
     for r in basis:
         print(r)
         print(r.chi)
@@ -1716,6 +1717,7 @@ def test_gl25():
             r.name = ascii_uppercase[i]
             i += 1
         print(r)
+        print(r.chi)
 
     for j in range(len(Torus)):
         r = Rep.fourier(Torus, j)
