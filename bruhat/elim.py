@@ -122,7 +122,7 @@ def identity(ring, m):
 
 
 def eq(A, B):
-    return numpy.alltrue(A==B)
+    return numpy.all(A==B)
 
 
 def dot(ring, A, B):
@@ -283,7 +283,7 @@ def plu_reduce(ring, A, truncate=False, check=False, verbose=False):
 
         assert i<=j
         if i and check:
-            assert numpy.alltrue(U[i:,:j]==zero) # XX rm
+            assert numpy.all(U[i:,:j]==zero) # XX rm
 
         # first find a nonzero entry in this col
         for i1 in range(i, m):
@@ -525,7 +525,7 @@ def kernel(ring, A, check=False, verbose=False):
     K = K[:, j:]
     if check:
         B = dot(ring, A0, K)
-        assert numpy.alltrue(B==zero)
+        assert numpy.all(B==zero)
 
     return K
 
@@ -762,6 +762,33 @@ def intersect(ring, W1, W2):
 
 
 
+def test_gf():
+    from bruhat.slow_element import  PolynomialRing, FiniteField, GaloisField
+    ring = FiniteField(2)
+    A = parse(
+    """
+    010000
+    001000
+    000010
+    110000
+    101000
+    100010
+    """)
+    print(shortstr(A))
+
+    B = pseudo_inverse(ring, A, check=True)
+    print(shortstr(B))
+
+    P, L, U = plu_reduce(ring, A, verbose=False, check=True)
+    print(shortstr(P))
+    print(shortstr(L))
+    print(shortstr(U))
+    PLU = dot(ring, dot(ring, P, L), U)
+    print(shortstr(PLU))
+    R = row_reduce(ring, A)
+    print(shortstr(R))
+
+
 
 
 def test():
@@ -842,7 +869,7 @@ def test():
         #print("kernel: A, K, A*K")
         #print(shortstr(A, K, dot(ring, A, K)))
         B = dot(ring, A, K)
-        assert numpy.alltrue(B==zero)
+        assert numpy.all(B==zero)
 
         if K.shape[1]>1:
             break
@@ -893,15 +920,15 @@ def test():
         assert rank(ring, g)==m-n
         gf = dot(ring, g, f)
         #print(shortstr(gf))
-        assert numpy.alltrue(gf==ring.zero)
+        assert numpy.all(gf==ring.zero)
 
 
-    print("OK")
 
 
 if __name__ == "__main__":
 
-    test()
+    test_gf()
 
+    print("OK\n")
 
 
