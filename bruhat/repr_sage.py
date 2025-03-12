@@ -617,6 +617,94 @@ class Basis:
         return M.rank()
 
 
+class Algebra:
+    def __init__(self, fs):
+        self.fs = fs
+        rows = []
+        for f in fs:
+            M = f.M
+            n = M.shape[0]*M.shape[1]
+            M = M.reshape(1,n)
+            rows.append(M.M[0])
+        self.A = Matrix(Rep.ring, rows).t
+    def getname(self, M):
+        A = self.A
+        M = M.reshape(M.shape[0]*M.shape[1], 1)
+        a = A.solve(M).t
+        return a
+    def __str__(self):
+        return "Algebra(dim=%d)"%(len(self.fs),)
+    def display(self):
+        print(self)
+        fs = self.fs
+        for f in fs:
+          for g in fs:
+            gf = g*f
+            #if gf in fs:
+            #    print(fs.index(gf), end=" ")
+            #else:
+            #    print("?", end=" ")
+            a = self.getname(gf.M)
+            print(a, end=" ")
+          print()
+
+    
+class Space:
+    "vector space over finite field F_p"
+    def __init__(self, n, p):
+        self.n = n
+        self.p = p
+        shape = (p,)*n
+        space = [v for v in numpy.ndindex(shape) if sum(v)] # skip zero vector ?
+        assert len(space) == p**n - 1
+        space = [FMatrix(numpy.array(v).reshape(n,1), p) for v in space]
+        lookup = dict((v, idx) for (idx, v) in enumerate(space))
+        self.space = space
+        self.lookup = lookup
+
+    def __str__(self):
+        s = str(self.space)
+        s = s.replace(" ", "").replace("\n", "")
+        return s
+
+    def __getitem__(self, idx):
+        return self.space[idx]
+
+    def __len__(self):
+        return len(self.space)
+
+    def get_permrep(self, G):
+        """
+        permutation action of G on the non-zero vectors (in lexicographic order)
+        """
+        assert len(G)
+        space, lookup = self.space, self.lookup
+        op = G[0]
+        n, _ = op.shape
+        p = op.p
+        perms = []
+        hom = {}
+        for g in G:
+            idxs = [lookup[g*v] for v in space]
+            perm = gset.Perm(idxs)
+            hom[g] = perm
+            perms.append(perm)
+        X = gset.Group(perms)
+        X.get_gens()
+        X.hom = hom
+        X.space = space
+        X.G = G
+        return X
+
+    def get_parabolic(self, G, figure):
+        n = self.n
+        from bruhat.algebraic import parse, get_subgroup
+        figure = parse(figure).reshape(n,n)
+        H = get_subgroup(G, figure)
+        H = self.get_permrep(H)
+        return H
+
+
 
 def test_rep():
     print("test_rep()")
@@ -859,62 +947,6 @@ def test_induce():
         print(f.M)
         print("is_valid:", f.is_valid()) #, f.other.is_valid())
         f.check()
-
-
-class Space:
-    "vector space over finite field F_p"
-    def __init__(self, n, p):
-        self.n = n
-        self.p = p
-        shape = (p,)*n
-        space = [v for v in numpy.ndindex(shape) if sum(v)] # skip zero vector ?
-        assert len(space) == p**n - 1
-        space = [FMatrix(numpy.array(v).reshape(n,1), p) for v in space]
-        lookup = dict((v, idx) for (idx, v) in enumerate(space))
-        self.space = space
-        self.lookup = lookup
-
-    def __str__(self):
-        s = str(self.space)
-        s = s.replace(" ", "").replace("\n", "")
-        return s
-
-    def __getitem__(self, idx):
-        return self.space[idx]
-
-    def __len__(self):
-        return len(self.space)
-
-    def get_permrep(self, G):
-        """
-        permutation action of G on the non-zero vectors (in lexicographic order)
-        """
-        assert len(G)
-        space, lookup = self.space, self.lookup
-        op = G[0]
-        n, _ = op.shape
-        p = op.p
-        perms = []
-        hom = {}
-        for g in G:
-            idxs = [lookup[g*v] for v in space]
-            perm = gset.Perm(idxs)
-            hom[g] = perm
-            perms.append(perm)
-        X = gset.Group(perms)
-        X.get_gens()
-        X.hom = hom
-        X.space = space
-        X.G = G
-        return X
-
-    def get_parabolic(self, G, figure):
-        n = self.n
-        from bruhat.algebraic import parse, get_subgroup
-        figure = parse(figure).reshape(n,n)
-        H = get_subgroup(G, figure)
-        H = self.get_permrep(H)
-        return H
 
 
 
@@ -1513,23 +1545,26 @@ def get_torus(gl):
 
 
 
-def test_gl25():
+def test_cuspidal():
 
-    n, p = 2, 5
+    n = argv.get("n", 2)
+    p = argv.get("p", 5)
+
     space = Space(n, p)
     gl = Algebraic.GL(n,p)
-    assert len(gl) == 480
     gl1 = Algebraic.GL(1,p)
+    print("|GL(%d,%d)| = %d"%(n, p, len(gl)))
 
     Rep.ring = CyclotomicField(p**n - 1)
 
-    ts = [gl.get_torus(i) for i in range(10)]
-
-    for a in ts:
-      for b in ts:
-        c = set(a).intersection(b)
-        print(len(c), end=" ")
-      print()
+    if (n,p) == (2,5):
+        ts = [gl.get_torus(i) for i in range(10)]
+    
+        for a in ts:
+          for b in ts:
+            c = set(a).intersection(b)
+            print(len(c), end=" ")
+          print()
 
     torus = gl.get_torus()
     assert len(torus) == p**n-1
@@ -1566,7 +1601,8 @@ def test_gl25():
 #        A.display()
 
     
-    levis, uni, parabolic = gl.levi_decompose([1,1])
+    diag = [1]*n
+    levis, uni, parabolic = gl.levi_decompose(diag)
     P = space.get_permrep(parabolic)
 
 #    for j in range(p**n-1):
@@ -1578,22 +1614,6 @@ def test_gl25():
 #        A.display()
 #    return
 
-    cuspidals = []
-    #for j in [0, 1, 2, 3, 4, 6, 7, 8, 9, 12, 13, 14, 18, 19]:
-    for j in [1, 2, 3, 4, 7, 8, 9, 13, 14, 19]:
-        r = Rep.fourier(Torus, j)
-        r = r.induce(G)
-        print(r)
-        #fs = r.hom(r)
-        #print(len(fs))
-        #for f in fs:
-        #    print(f.M)
-        cuspidals.append(r)
-
-    basis = Basis(cuspidals)
-    basis.show()
-
-    #return
 
     l0, l1 = levis
     for g in l0:
@@ -1695,15 +1715,33 @@ def test_gl25():
         basis.append(rep)
       print()
 
-    print("chi:")
     for r in basis:
         print(r)
-        print(r.chi)
+        #print(r.chi)
         r.some_check()
     #return
 
     basis = Basis(basis)
     basis.show()
+
+    #return
+
+    cuspidals = []
+    #for j in [0, 1, 2, 3, 4, 6, 7, 8, 9, 12, 13, 14, 18, 19]:
+    #for j in [1, 2, 3, 4, 7, 8, 9, 13, 14, 19]:
+    for j in range(p**2-1):
+        r = Rep.fourier(Torus, j)
+        r = r.induce(G)
+        print(r)
+        #fs = r.hom(r)
+        #print(len(fs))
+        #for f in fs:
+        #    print(f.M)
+        cuspidals.append(r)
+
+    Basis(cuspidals).show()
+
+    #return
     basis = basis.reps + cuspidals
     basis = Basis(basis)
     basis.show()
@@ -1728,38 +1766,6 @@ def test_gl25():
     return basis
 
 
-class Algebra:
-    def __init__(self, fs):
-        self.fs = fs
-        rows = []
-        for f in fs:
-            M = f.M
-            n = M.shape[0]*M.shape[1]
-            M = M.reshape(1,n)
-            rows.append(M.M[0])
-        self.A = Matrix(Rep.ring, rows).t
-    def getname(self, M):
-        A = self.A
-        M = M.reshape(M.shape[0]*M.shape[1], 1)
-        a = A.solve(M).t
-        return a
-    def __str__(self):
-        return "Algebra(dim=%d)"%(len(self.fs),)
-    def display(self):
-        print(self)
-        fs = self.fs
-        for f in fs:
-          for g in fs:
-            gf = g*f
-            #if gf in fs:
-            #    print(fs.index(gf), end=" ")
-            #else:
-            #    print("?", end=" ")
-            a = self.getname(gf.M)
-            print(a, end=" ")
-          print()
-
-    
 
 def test_monoidal():
 
