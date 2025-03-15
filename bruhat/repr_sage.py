@@ -10,17 +10,20 @@ see also: bruhat.cuspforms
 """
 
 from random import choice, shuffle
-from string import ascii_uppercase
+from string import ascii_uppercase, ascii_lowercase
 from operator import mul, matmul, add
 from functools import reduce
 #from functools import cache
 from functools import lru_cache
 cache = lru_cache(maxsize=None)
 
+ascii_names = ascii_uppercase + ascii_lowercase
+
 import numpy
 
 from sage.all_cmdline import FiniteField, CyclotomicField, latex, ZZ, QQ
 from sage import all_cmdline as sage
+sage.Parallelism().set(nproc=1)
 
 from bruhat.argv import argv
 from bruhat.matrix_sage import Matrix
@@ -1545,10 +1548,10 @@ def get_torus(gl):
 
 
 
-def test_cuspidal():
+def test_cuspidal(n=2, p=5):
 
-    n = argv.get("n", 2)
-    p = argv.get("p", 5)
+    n = argv.get("n", n)
+    p = argv.get("p", p)
 
     space = Space(n, p)
     gl = Algebraic.GL(n,p)
@@ -1656,8 +1659,8 @@ def test_cuspidal():
     N = p-1
 
     for i in range(N):
-        reps0[i].name = ascii_uppercase[i]
-        reps1[i].name = ascii_uppercase[i]
+        reps0[i].name = ascii_names[i]
+        reps1[i].name = ascii_names[i]
 
     for i in range(N):
         r01 = reps0[i]*reps1[i]
@@ -1727,41 +1730,53 @@ def test_cuspidal():
     #return
 
     cuspidals = []
+    jdxs = list(range(p**2-1))
     #for j in [0, 1, 2, 3, 4, 6, 7, 8, 9, 12, 13, 14, 18, 19]:
     #for j in [1, 2, 3, 4, 7, 8, 9, 13, 14, 19]:
-    for j in range(p**2-1):
-        r = Rep.fourier(Torus, j)
+    if p==5:
+        jdxs = [1, 2, 3, 4, 7, 8, 9, 13, 14, 19]
+    if p==7:
+        jdxs = [1,2,3,4,5,6,9,10,11,12,13,17,18,19,20,25,26,27,33,34,41]
+
+    for jdx in jdxs:
+        r = Rep.fourier(Torus, jdx)
         r = r.induce(G)
         print(r)
-        #fs = r.hom(r)
-        #print(len(fs))
-        #for f in fs:
-        #    print(f.M)
-        cuspidals.append(r)
+        #r.jdx = jdx
+        #cuspidals.append(r)
 
-    Basis(cuspidals).show()
+        basis.append(r)
+        basis.reduce()
+        basis.show()
 
-    #return
-    basis = basis.reps + cuspidals
-    basis = Basis(basis)
-    basis.show()
+    #Basis(cuspidals).show()
 
-    basis.reduce()
-    basis.show()
+#    #return
+#    basis = basis.reps + cuspidals
+#    basis = Basis(basis)
+#    basis.show()
+#
+#    basis.reduce()
+#    basis.show()
 
     i = p-1
     for r in basis:
         if r.name is None:
-            r.name = ascii_uppercase[i]
+            r.name = ascii_names[i]
             i += 1
         print(r)
         print(r.chi)
 
-    for j in range(len(Torus)):
-        r = Rep.fourier(Torus, j)
+    #for cusp in cuspidals:
+    for jdx in jdxs:
+        r = Rep.fourier(Torus, jdx)
         r = r.induce(G)
-        basis.append(r)
-    basis.show()
+        print(r)
+        name = []
+        for irr in basis:
+            if r.chi.dot(irr.chi):
+                name.append(irr.name)
+        print(jdx, name)
 
     return basis
 
