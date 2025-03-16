@@ -7,6 +7,8 @@ good notes here:
 https://dec41.user.srcf.net/h/II_L/representation_theory/10
 
 see also: bruhat.cuspforms 
+
+https://ncatlab.org/nlab/show/Gram-Schmidt+process#CategorifiedGramSchmidtProcess
 """
 
 from random import choice, shuffle
@@ -53,38 +55,40 @@ class Char:
     def __init__(self, G, chi):
         assert len(chi) == len(G)
         self.n = len(chi)
-        self.chi = chi
+        self._chi = chi
         self.G = G
+        self.ring = Rep.ring
+        self.name = None
 
     def __str__(self):
         G = self.G
         items = []
         for cls in G.conjugacy_classes():
             i = G.lookup[cls[0]]
-            items.append(self.chi[i])
+            items.append(self._chi[i])
         return "Char(%s)"%(items,)
 
     def __eq__(self, other):
         assert self.G is other.G
-        return self.chi == other.chi
+        return self._chi == other._chi
 
     def __getitem__(self, g):
         i = self.G.lookup[g]
-        return self.chi[i]
+        return self._chi[i]
 
     def __add__(self, other):
         assert self.G is other.G
-        chi = [self.chi[i]+other.chi[i] for i in range(self.n)]
+        chi = [self._chi[i]+other._chi[i] for i in range(self.n)]
         return Char(self.G, chi)
 
     def __sub__(self, other):
         assert self.G is other.G
-        chi = [self.chi[i]-other.chi[i] for i in range(self.n)]
+        chi = [self._chi[i]-other._chi[i] for i in range(self.n)]
         return Char(self.G, chi)
 
     def __mul__(self, other):
         assert self.G is other.G
-        chi = [self.chi[i]*other.chi[i] for i in range(self.n)]
+        chi = [self._chi[i]*other._chi[i] for i in range(self.n)]
         return Char(self.G, chi)
 
     def dot(other, self): # other <---- self
@@ -92,7 +96,7 @@ class Char:
         #u = ring.zero()
         u = 0
         for i in range(self.n):
-            u += self.chi[i].conjugate() * other.chi[i]
+            u += self._chi[i].conjugate() * other._chi[i]
         u /= self.n
         return u
 
@@ -514,8 +518,126 @@ class Hom:
 
 
 
+class Table:
+    "Character Table"
+    def __init__(self, reps, verbose=True):
+        chis = []
+        for rep in reps:
+            chi = rep.chi
+            chi.name = rep.name
+            chis.append(chi)
+        self.chis = chis
+        self.verbose = verbose
+
+    def __getitem__(self, idx):
+        return self.chis[idx]
+
+    def __setitem__(self, idx, value):
+        if isinstance(value, Rep):
+            chi = value.chi
+            chi.name = value.name
+            value = chi
+        self.chis[idx] = value
+
+    def __delitem__(self, idx):
+        del self.chis[idx]
+
+    def __len__(self):
+        return len(self.chis)
+
+    def append(self, rep):
+        assert isinstance(rep, Rep)
+        chi = rep.chi
+        chi.name = rep.name
+        self.chis.append(chi)
+
+    def get(self, i, j):
+        chis = self.chis
+        c, d = chis[i], chis[j]
+        return d.dot(c)
+
+    def show(self, fmt="%s", showreps=True, showchars=False):
+        chis = self.chis
+        N = len(chis)
+        print("   ", "="*N)
+        for i in range(N):
+          print("%3d:"%i, end="")
+          for j in range(N):
+            u = chis[j].dot(chis[i])
+            print(fmt%("." if u==0 else u), end="", flush=True)
+          if showchars:
+            print(" ", chis[i])
+          else:
+            print()
+        print("   ", "="*N)
+        print("rank:", self.rank())
+        print()
+
+    def subtract(self, i, j, idx=0):
+        chis = self.chis
+        chis[i] = chis[i] - chis[j]
+
+    def swap(self, i, j):
+        chis = self.chis
+        #print("Basis.swap", i, j)
+        chis[i], chis[j] = chis[j], chis[i]
+
+    def pop(self, i):
+        #print("Basis.pop", i)
+        return self.chis.pop(i)
+
+    def reduce(self, verbose=False):
+        row = 0
+        while row < len(self):
+            if verbose:
+                print("reduce", row)
+                self.show()
+            if self.get(row, row) != 1:
+                #break # ??
+                #for sow in range(row+1, len(self)):
+                for sow in range(len(self)):
+                    if sow==row:
+                        continue
+                    u = self.get(row, sow)
+                    if u==1:
+                        if verbose:
+                            print("\tsubtract", row, sow)
+                        self.subtract(row, sow)
+                        break
+                row += 1
+            else:
+                for sow in range(row+1, len(self)):
+                    u = self.get(row, sow)
+                    if self.get(sow, sow) == 1 and u:
+                        assert u == 1, u
+                        if verbose:
+                            print("\tpop", sow)
+                        self.pop(sow)
+                        break
+                    if u:
+                        if verbose:
+                            print("\tsubtract", row, sow)
+                        self.subtract(sow, row)
+                        break
+                else:
+                    row += 1
+        
+    def rank(self):
+        if not len(self):
+            return 0
+        
+        r = self[0]
+        G = r.G
+        rows = [[chi[g] for g in G] for chi in self]
+        M = Matrix(r.ring, rows)
+        #print(M)
+        return M.rank()
+
+
+
 # https://ncatlab.org/nlab/show/Gram-Schmidt+process#CategorifiedGramSchmidtProcess
 class Basis:
+    "categorified Character Table"
     def __init__(self, reps, verbose=True):
         self.reps = reps
         self.verbose = verbose
@@ -579,7 +701,7 @@ class Basis:
         #print("Basis.pop", i)
         return self.reps.pop(i)
 
-    def reduce(self):
+    def reduce(self, verbose=False):
         row = 0
         while row < len(self):
             #print("Basis.reduce", row)
@@ -841,7 +963,8 @@ def test_gram_schmidt():
     k.tgt.check()
     k.check()
 
-    basis = Basis(reps)
+#    basis = Basis(reps)
+    basis = Table(reps)
     show = basis.show
     subtract = basis.subtract
     show()
@@ -870,10 +993,10 @@ def test_gram_schmidt():
     subtract(4, 3)
     show()
 
-    for r in basis.reps:
+    for r in basis:
         print(r)
 
-    print(basis.rank())
+    assert basis.rank() == 5
 
 
 def test_induce():
@@ -1724,6 +1847,7 @@ def test_cuspidal(n=2, p=5):
         r.some_check()
     #return
 
+    #basis = Table(basis)
     basis = Basis(basis)
     basis.show()
 
@@ -1746,8 +1870,13 @@ def test_cuspidal(n=2, p=5):
         #cuspidals.append(r)
 
         basis.append(r)
+        basis.show()
         basis.reduce()
         basis.show()
+
+    basis.show()
+    basis.reduce(verbose=True)
+    basis.show()
 
     #Basis(cuspidals).show()
 
@@ -1760,12 +1889,11 @@ def test_cuspidal(n=2, p=5):
 #    basis.show()
 
     i = p-1
-    for r in basis:
-        if r.name is None:
-            r.name = ascii_names[i]
+    for chi in basis:
+        if chi.name is None:
+            chi.name = ascii_names[i]
             i += 1
-        print(r)
-        print(r.chi)
+        print(chi)
 
     #for cusp in cuspidals:
     for jdx in jdxs:
@@ -1773,9 +1901,9 @@ def test_cuspidal(n=2, p=5):
         r = r.induce(G)
         print(r)
         name = []
-        for irr in basis:
-            if r.chi.dot(irr.chi):
-                name.append(irr.name)
+        for chi in basis:
+            if r.chi.dot(chi):
+                name.append(chi.name)
         print(jdx, name)
 
     return basis
@@ -1886,6 +2014,7 @@ def test():
     test_rep()
     test_gram_schmidt()
     test_gl()
+    test_cuspidal(2,3)
 
 
 if __name__ == "__main__":
