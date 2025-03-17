@@ -76,6 +76,12 @@ class Matrix(object):
             name = (name,)
         self.name = name
 
+    @classmethod
+    def promote(cls, ring, rows, name=()):
+        if isinstance(rows, cls):
+            return rows
+        return cls(ring, rows, name)
+
     def __eq__(self, other):
         assert isinstance(other, Matrix)
         #assert self.ring == other.ring
@@ -169,6 +175,7 @@ class Matrix(object):
         #if type(idx) is int:
         #    return self.M[idx]
         M = self.M[idx]
+        #print(type(M), type(self.M))
         return Matrix(self.ring, M)
 
     def reshape(self, m, n):
@@ -290,16 +297,15 @@ class Matrix(object):
 
     def eigenvectors(self):
         evs = self.M.eigenvectors_right()
-        vecs = []
-        for val,vec,dim in evs:
-            #print(val, dim)
-            #print(type(vec[0]))
-            vec = all_cmdline.Matrix(self.ring, vec[0])
-            vec = vec.transpose() 
-            vec = Matrix(self.ring, vec)
-            vecs.append((val, vec, dim))
+        spaces = []
+        for val,vecs,dim in evs:
+            vecs = all_cmdline.Matrix(self.ring, vecs)
+            vecs = vecs.transpose() 
+            vecs = Matrix(self.ring, vecs)
+            assert vecs.shape[1] == dim
+            spaces.append((val, vecs, dim))
         #print(type(self.M))
-        return vecs
+        return spaces
 
     def solve(self, other):
         A = self.M.solve_right(other.M)

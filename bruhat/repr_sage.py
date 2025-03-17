@@ -11,6 +11,7 @@ see also: bruhat.cuspforms
 https://ncatlab.org/nlab/show/Gram-Schmidt+process#CategorifiedGramSchmidtProcess
 """
 
+from math import lcm
 from random import choice, shuffle
 from string import ascii_uppercase, ascii_lowercase
 from operator import mul, matmul, add
@@ -35,7 +36,7 @@ from bruhat.smap import SMap
 from bruhat import gset
 from bruhat.algebraic import Algebraic
 from bruhat.algebraic import Matrix as FMatrix
-from bruhat.util import cross
+from bruhat.util import cross, all_primes
 
 
 def colcat(col):
@@ -1670,6 +1671,341 @@ def get_torus(gl):
         #print(g, char.factor(), g.order())
 
 
+def test_irr():
+
+    n = argv.get("n", 5)
+    #G = Group.symmetric(n)
+    #G = Group.dihedral(n)
+    G = Group.alternating(n)
+
+#    chis = burnside_irr(G)
+#    print()
+#    for chi in chis:
+#        print(chi)
+#
+#    #return
+
+    n = argv.get("n", 2)
+    p = argv.get("p", 7)
+    space = Space(n, p)
+    gl = Algebraic.GL(n,p)
+    G = space.get_permrep(gl)
+
+    chis = dixon_irr(G)
+    print()
+    for chi in chis:
+        print(chi)
+
+    assert len(G) == sum(chi[0]**2 for chi in chis)
+
+
+
+def dixon_irr(G):
+    print(G)
+
+    m = 1
+    for g in G:
+        k = g.order()
+        m = lcm(m, k)
+    print("m =", m)
+
+    for p in all_primes(2*len(G)):
+        if p <= 2*(len(G)**0.5):
+            continue
+        if (p-1)%m == 0:
+            break
+    else:
+        assert 0, "whoops, ran out of primes"
+    print("p =", p)
+    assert p % len(G) != 0
+
+    ring = FiniteField(p)
+    one = ring.one()
+    zero = ring.zero()
+
+    # choose z having multiplicative order m when viewed as an element of Z*_p.
+    for z in range(1, p):
+        for i in range(1, m):
+            if (z**i)%p == 1:
+                break
+        else:
+            if (z**m)%p == 1:
+                break
+        continue
+    else:
+        assert 0
+
+    z = one*z
+    print("z =", z)
+    assert z**m == 1
+
+
+    K = G.conjugacy_classes()
+    N = len(K)
+    print("cgys:", N)
+    for cgy in K:
+        print(len(cgy), end=" ")
+    print()
+
+    rev = {}
+    for i in range(N):
+      for g in K[i]:
+        rev[g] = i
+    inv = []
+    for cgy in K:
+        j = None
+        for g in cgy:
+            assert j is None or j == rev[~g]
+            j = rev[~g]
+        inv.append(j)
+
+    cmats = [numpy.zeros((N,N), dtype=int) for r in range(N)]
+    idxs = {K[t][0]:t for t in range(N)}
+    for r in range(N):
+     for s in range(N):
+        for x in K[r]:
+          for y in K[s]:
+            xy = x*y
+            t = idxs.get(xy)
+            if t is None:
+                continue
+            key = (r,s,t)
+            #matrix[key] = matrix.get(key, 0) + 1
+            cmats[r][s,t] += 1
+
+
+    cmats = [Matrix(ring, cmat) for cmat in cmats]
+    for a in cmats:
+      for b in cmats:
+        assert a*b==b*a
+
+    best = None
+    for A in cmats:
+        evecs = A.M.eigenvectors_right()
+        if best is None:
+            best = evecs
+        w = max([item[2] for item in best])
+        if max([item[2] for item in evecs]) < w:
+            best = evecs
+
+    while len(best) < N:
+        print("best:", len(best))
+        dims = []
+        basis = []
+        for val,vecs,dim in best:
+            dims.append(dim)
+            basis += vecs
+        U = Matrix.promote(ring, basis).t
+        #U = Matrix(ring, basis).t
+        V = U.pseudoinverse()
+
+        i = 0
+        for idx,dim in enumerate(dims):
+            if dim > 1:
+                break
+            i += 1
+        else:
+            assert 0
+        
+        for A in cmats:
+            B = V*A*U
+            b = B[i:i+dim, i:i+dim]
+            assert b.shape == (dim,dim)
+            if b.is_zero():
+                continue
+            evecs = b.M.eigenvectors_right()
+            if len(evecs) == dim:
+                break
+        else:
+            assert 0
+
+        best.pop(idx)
+        for (val, vecs, dim) in evecs:
+            #print(val, vecs, dim)
+            assert len(vecs)==dim==1
+            v = vecs[0]
+            u = [0]*N
+            for row in range(len(v)):
+                u[i+row] = v[row]
+            u = Matrix(ring, u).t
+            u = U*u
+            assert A*u == val*u
+            u = tuple(u.M[j,0] for j in range(N)) # UGRRRH!
+            best.append( (val, [u,], dim) )
+
+    omega = []
+    for (val, vecs, dim) in best:
+        assert dim==1
+        vec = vecs[0]
+        omega.append(vec)
+        vec = Matrix(ring, vec).t
+        assert vec.M[0,0] == 1
+
+        for A in cmats:
+            u = A*vec
+            val = u.M[0,0]
+            assert u == val*vec
+        #assert A*vec == val*vec
+
+    root = {}
+    for u in range(p//2+1):
+        u = u*one
+        #print(u, u*u)
+        root[u*u] = u
+    #return
+
+    tchis = []
+    for i in range(N):
+        chi1 = zero
+        for r in range(N):
+            chi1 += omega[i][r] * omega[i][inv[r]] / len(K[r])
+        chi1 = 1/chi1
+        chi1 = len(G)*chi1
+        chi1 = root[chi1]
+        chi = [chi1]
+        for j in range(1, N):
+            c = omega[i][j] * chi1 / len(K[j])
+            chi.append(c)
+        tchis.append(chi)
+
+    tchis.sort( key = lambda chi : (int(chi[0]),str(chi)) )
+    for chi in tchis:
+        print(chi)
+    assert len(G) == sum(int(chi[0])**2 for chi in tchis)
+
+    lookup = {}
+    for i,cgy in enumerate(K):
+        for g in cgy:
+            lookup[g] = i
+
+    F = CyclotomicField()
+    zero = F.zero()
+    one = F.one()
+    zeta = F.gen(m)
+    print(zeta)
+    chis = []
+    for tchi in tchis:
+      d = int(tchi[0]) # _dimension
+      chi = []
+      for i in range(N):
+        cgy = K[i]
+        x = cgy[0]
+        k = x.order()
+        eta = zeta ** (m//k)
+        #print("eta:", eta)
+        value = zero
+        for s in range(k):
+            u = reduce(add, [tchi[lookup[x**l]]/(z**(s*l*m//k)) for l in range(k)])
+            u = int(u/k)
+            #print("\t", u)
+            value += u * (eta ** s)
+        chi.append(value)
+      chis.append(chi)
+
+    if len(chis)>1:
+        chis.sort( key = lambda chi : (chi[0],str(chi).count("-"),str(chi)) )
+
+    return chis
+    
+        
+
+
+def burnside_irr(G):
+    #print(G)
+
+    K = G.conjugacy_classes()
+    N = len(K)
+    #print("cgys:", N)
+    #for cgy in K:
+    #    print(len(cgy), end=" ")
+    #print()
+
+    rev = {}
+    for i in range(N):
+      for g in K[i]:
+        rev[g] = i
+    inv = []
+    for cgy in K:
+        j = None
+        for g in cgy:
+            assert j is None or j == rev[~g]
+            j = rev[~g]
+        inv.append(j)
+
+    cmats = [numpy.zeros((N,N), dtype=int) for r in range(N)]
+    idxs = {K[t][0]:t for t in range(N)}
+    for r in range(N):
+     for s in range(N):
+        for x in K[r]:
+          for y in K[s]:
+            z = x*y
+            t = idxs.get(z)
+            if t is None:
+                continue
+            key = (r,s,t)
+            #matrix[key] = matrix.get(key, 0) + 1
+            cmats[r][s,t] += 1
+
+    #ring = QQ
+    ring = CyclotomicField()
+
+    cmats = [Matrix(ring, cmat) for cmat in cmats]
+    for a in cmats:
+      for b in cmats:
+        assert a*b==b*a
+    for A in cmats:
+        #print(A)
+        evs = A.M.eigenvalues()
+        #print(evs)
+        if len(set(evs)) != len(evs):
+            continue
+        evecs = A.M.eigenvectors_right()
+        break
+    else:
+        print("need simultaneous eigenvectors_right")
+        return
+
+    omega = []
+    for (val, vecs, dim) in evecs:
+        assert dim==1
+        vec = vecs[0]
+        omega.append(vec)
+        vec = Matrix(ring, vec).t
+        assert vec.M[0,0] == 1
+        #print(val, vec.t)
+        assert A*vec == val*vec
+
+    one = ring.one()
+    zero = ring.zero()
+    chis = []
+    for i in range(N):
+        chi1 = zero
+        for r in range(N):
+            chi1 += omega[i][r] * omega[i][inv[r]] / len(K[r])
+        chi1 = 1/chi1
+        chi1 = len(G)*chi1
+        chi1 = chi1**(one/2)
+        chi = [chi1]
+        for j in range(1, N):
+            c = omega[i][j] * chi1 / len(K[j])
+            chi.append(c)
+        chis.append(chi)
+
+    if len(chis)>1:
+        chis.sort( key = lambda chi : (chi[0],str(chi).count("-"),str(chi)) )
+        
+    return chis
+        
+
+
+
+
+
+    
+    
+        
+    
+
 
 def test_cuspidal(n=2, p=5):
 
@@ -1901,9 +2237,9 @@ def test_cuspidal(n=2, p=5):
         r = r.induce(G)
         print(r)
         name = []
-        for chi in basis:
-            if r.chi.dot(chi):
-                name.append(chi.name)
+        for s in basis:
+            if r.chi.dot(s.chi):
+                name.append(s.name)
         print(jdx, name)
 
     return basis
