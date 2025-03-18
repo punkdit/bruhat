@@ -1673,10 +1673,10 @@ def get_torus(gl):
 
 def test_irr():
 
-    n = argv.get("n", 5)
+    #n = argv.get("n", 5)
     #G = Group.symmetric(n)
     #G = Group.dihedral(n)
-    G = Group.alternating(n)
+    #G = Group.alternating(n)
 
 #    chis = burnside_irr(G)
 #    print()
@@ -1690,33 +1690,43 @@ def test_irr():
     space = Space(n, p)
     gl = Algebraic.GL(n,p)
     G = space.get_permrep(gl)
+    print(G)
 
     chis = dixon_irr(G)
-    print()
     for chi in chis:
         print(chi)
 
     assert len(G) == sum(chi[0]**2 for chi in chis)
+    cgys = G.conjugacy_classes()
+    N = len(cgys)
+    for i in range(N):
+      for j in range(N):
+        x = reduce(add, [len(cgys[k]) * chis[i][k] * chis[j][k].conjugate() for k in range(N)])
+        if i==j:
+            assert x == len(G)
+        else:
+            assert x == 0
+
 
 
 
 def dixon_irr(G):
-    print(G)
+    #print(G)
 
     m = 1
     for g in G:
         k = g.order()
         m = lcm(m, k)
-    print("m =", m)
+    #print("m =", m)
 
-    for p in all_primes(2*len(G)):
+    for p in all_primes(10*len(G)):
         if p <= 2*(len(G)**0.5):
             continue
         if (p-1)%m == 0:
             break
     else:
-        assert 0, "whoops, ran out of primes"
-    print("p =", p)
+        assert 0, "whoops, ran out of primes, call Euler"
+    #print("p =", p)
     assert p % len(G) != 0
 
     ring = FiniteField(p)
@@ -1736,16 +1746,21 @@ def dixon_irr(G):
         assert 0
 
     z = one*z
-    print("z =", z)
+    #print("z =", z)
     assert z**m == 1
 
 
     K = G.conjugacy_classes()
     N = len(K)
-    print("cgys:", N)
-    for cgy in K:
-        print(len(cgy), end=" ")
-    print()
+    print("dixon_irr: cgys =", N)
+    #for cgy in K:
+    #    print(len(cgy), end=" ")
+    #print()
+
+    lookup = {}
+    for i,cgy in enumerate(K):
+        for g in cgy:
+            lookup[g] = i
 
     rev = {}
     for i in range(N):
@@ -1759,20 +1774,34 @@ def dixon_irr(G):
             j = rev[~g]
         inv.append(j)
 
-    cmats = [numpy.zeros((N,N), dtype=int) for r in range(N)]
-    idxs = {K[t][0]:t for t in range(N)}
-    for r in range(N):
-     for s in range(N):
-        for x in K[r]:
-          for y in K[s]:
-            xy = x*y
-            t = idxs.get(xy)
-            if t is None:
-                continue
-            key = (r,s,t)
-            #matrix[key] = matrix.get(key, 0) + 1
-            cmats[r][s,t] += 1
+    if 0:
+        cmats = [numpy.zeros((N,N), dtype=int) for r in range(N)]
+        idxs = {K[t][0]:t for t in range(N)}
+        for r in range(N):
+          for s in range(N):
+            #print(".", end="", flush=True)
+            for x in K[r]:
+              for y in K[s]:
+                xy = x*y
+                t = idxs.get(xy)
+                if t is None: # TODO too slow !!
+                    continue
+                key = (r,s,t)
+                #matrix[key] = matrix.get(key, 0) + 1
+                cmats[r][s,t] += 1
+          #print()
 
+    mats = [numpy.zeros((N,N), dtype=int) for r in range(N)]
+    for r in range(N):
+      for t in range(N):
+        xy = K[t][0] # arbitrary choice
+        for x in K[r]:
+            y = (~x)*xy # remove inverse here ? HOTSPOT
+            s = lookup[y]
+            mats[r][s,t] += 1
+    #for (mat,cmat) in zip(mats, cmats):
+    #    assert numpy.all(mat==cmat)
+    cmats = mats
 
     cmats = [Matrix(ring, cmat) for cmat in cmats]
     for a in cmats:
@@ -1789,7 +1818,7 @@ def dixon_irr(G):
             best = evecs
 
     while len(best) < N:
-        print("best:", len(best))
+        #print("best:", len(best))
         dims = []
         basis = []
         for val,vecs,dim in best:
@@ -1869,20 +1898,15 @@ def dixon_irr(G):
         tchis.append(chi)
 
     tchis.sort( key = lambda chi : (int(chi[0]),str(chi)) )
-    for chi in tchis:
-        print(chi)
+    #for chi in tchis:
+    #    print(chi)
     assert len(G) == sum(int(chi[0])**2 for chi in tchis)
-
-    lookup = {}
-    for i,cgy in enumerate(K):
-        for g in cgy:
-            lookup[g] = i
 
     F = CyclotomicField()
     zero = F.zero()
     one = F.one()
     zeta = F.gen(m)
-    print(zeta)
+    #print(zeta)
     chis = []
     for tchi in tchis:
       d = int(tchi[0]) # _dimension
@@ -1890,14 +1914,21 @@ def dixon_irr(G):
       for i in range(N):
         cgy = K[i]
         x = cgy[0]
-        k = x.order()
+        #k = x.order()
+        xls = [G.identity]
+        g = x
+        while g != G.identity:
+            xls.append(g)
+            g = x*g
+        k = len(xls)
+        assert x.order() == k
         eta = zeta ** (m//k)
         #print("eta:", eta)
         value = zero
         for s in range(k):
-            u = reduce(add, [tchi[lookup[x**l]]/(z**(s*l*m//k)) for l in range(k)])
+            #u = reduce(add, [tchi[lookup[x**l]]/(z**(s*l*m//k)) for l in range(k)])
+            u = reduce(add, [tchi[lookup[xls[l]]]/(z**(s*l*m//k)) for l in range(k)]) # HOTSPOT
             u = int(u/k)
-            #print("\t", u)
             value += u * (eta ** s)
         chi.append(value)
       chis.append(chi)
