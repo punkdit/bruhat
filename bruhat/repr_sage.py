@@ -36,7 +36,7 @@ from bruhat.smap import SMap
 from bruhat import gset
 from bruhat.algebraic import Algebraic
 from bruhat.algebraic import Matrix as FMatrix
-from bruhat.util import cross, all_primes
+from bruhat.util import cross, gen_primes
 
 
 def colcat(col):
@@ -1719,7 +1719,8 @@ def dixon_irr(G):
         m = lcm(m, k)
     #print("m =", m)
 
-    for p in all_primes(10*len(G)):
+    #for p in all_primes(10*len(G)):
+    for p in gen_primes():
         if p <= 2*(len(G)**0.5):
             continue
         if (p-1)%m == 0:

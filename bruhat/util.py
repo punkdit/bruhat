@@ -322,6 +322,20 @@ def all_primes(n, ps=None):
     return ps
 
 
+def gen_primes():
+    ps = []
+    i = 2
+    while 1:
+        for p in ps:
+            if i%p == 0:
+                break
+        else:
+            ps.append(i)
+            yield i
+        i += 1
+
+
+
 def is_prime(n):
     for p in all_primes(n+1):
         if p==n:
@@ -412,6 +426,14 @@ def test():
             assert is_prime(p), (i, ps)
         #print(i, factorize(i))
 
+    ps = all_primes(100)
+    for p in gen_primes():
+        assert ps[0] == p
+        ps.pop(0)
+        if not ps:
+            break
+
+    print("OK\n")
 
 
 
