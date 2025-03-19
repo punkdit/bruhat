@@ -619,8 +619,9 @@ class Group(object):
                 if k in remain:
                     remain.remove(k)
                     cls.append(k)
+            cls.sort()
             clss.append(cls)
-        clss.sort(key = lambda cls:cls[0])
+        clss.sort(key = lambda cls:(len(cls), cls[0]))
         return clss
 
     @cache
