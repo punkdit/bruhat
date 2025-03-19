@@ -609,20 +609,25 @@ class Group(object):
     @cache
     def conjugacy_classes(G):
         remain = set(G)
-        clss = []
+        cgys = []
         while remain:
             g = iter(remain).__next__()
             remain.remove(g)
-            cls = [g]
+            cgy = [g]
             for h in G:
                 k = h*g*(~h)
                 if k in remain:
                     remain.remove(k)
-                    cls.append(k)
-            cls.sort()
-            clss.append(cls)
-        clss.sort(key = lambda cls:(len(cls), cls[0]))
-        return clss
+                    cgy.append(k)
+            cgy.sort()
+            cgys.append(cgy)
+        cgys.sort(key = lambda cgy:(len(cgy), cgy[0]))
+        cgy_lookup = {}
+        for (i,cgy) in enumerate(cgys):
+            for g in cgy:
+                cgy_lookup[g] = i
+        G.cgy_lookup = cgy_lookup
+        return cgys
 
     @cache
     def conjugacy_subgroups(G, Hs=None, sort=False, verbose=False):

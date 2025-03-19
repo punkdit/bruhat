@@ -64,7 +64,10 @@ class Char:
         self.name = name
 
     def __str__(self):
-        return "Char(%s)"%(self._chi,)
+        s = "Char(%s)"%(self._chi,)
+        s = s.replace(" + ", "+")
+        s = s.replace(" - ", "-")
+        return s
 
     def __eq__(self, other):
         assert self.G is other.G
@@ -104,6 +107,23 @@ class Char:
             u += len(cgys[i]) * self._chi[i] * other._chi[i].conjugate() 
         u /= len(self.G)
         return u
+
+    def induce(self, G):
+        ring = self.ring
+        H = self.G
+        chi = []
+        cgys = G.conjugacy_classes()
+        for cgy in cgys:
+            g = cgy[0]
+            value = ring.zero()
+            for x in G:
+                h = x*g*~x
+                if h in H:
+                    idx = H.cgy_lookup[h]
+                    value += self._chi[idx] 
+            value /= len(H)
+            chi.append(value)
+        return Char(G, chi)
 
 
 class Rep:
@@ -573,6 +593,9 @@ class Table:
     def __len__(self):
         return len(self.chis)
 
+    def __mul__(self, other):
+        return [chi.dot(other) for chi in self]
+
     def append(self, rep):
         assert isinstance(rep, Rep)
         chi = rep.chi
@@ -849,13 +872,13 @@ class Space:
         X.G = G
         return X
 
-    def get_parabolic(self, G, figure):
-        n = self.n
-        from bruhat.algebraic import parse, get_subgroup
-        figure = parse(figure).reshape(n,n)
-        H = get_subgroup(G, figure)
-        H = self.get_permrep(H)
-        return H
+#    def get_parabolic(self, G, figure):
+#        n = self.n
+#        from bruhat.algebraic import parse, get_subgroup
+#        figure = parse(figure).reshape(n,n)
+#        H = get_subgroup(G, figure)
+#        H = self.get_permrep(H)
+#        return H
 
 
 def dixon_irr(G):
@@ -900,7 +923,7 @@ def dixon_irr(G):
 
     K = G.conjugacy_classes()
     N = len(K)
-    print("dixon_irr: cgys =", N)
+    #print("dixon_irr: cgys =", N)
     #for cgy in K:
     #    print(len(cgy), end=" ")
     #print()
@@ -1183,8 +1206,6 @@ def burnside_irr(G):
 
 
 def test_rep():
-    print("test_rep()")
-
     A = Matrix(Rep.ring, [[1,1,1],[1,0,1],[0,0,1]])
     B = A.t
     C = A.solve(B)
@@ -1352,8 +1373,6 @@ def test_gram_schmidt():
 
 def test_induce():
 
-    print("\n\ntest_induce()")
-
     n = 3
     G = Group.symmetric(n)
     print(G)
@@ -1363,17 +1382,6 @@ def test_induce():
             break
     H = Group.generate([g])
 
-#    rep = Rep.fourier(H, 1)
-#    rep = rep.induce(G)
-#    print(rep)
-#    print(rep.chi)
-#    rep.dump()
-#
-#    fs = rep.hom(rep)
-#    print(len(fs))
-#    print(rep.is_irrep())
-
-    #return
     Rep.ring = QQ
 
     r0 = Rep.trivial(G)
@@ -2050,13 +2058,6 @@ def test_irr():
 
 
 
-
-    
-    
-        
-    
-
-
 def test_cuspidal(n=2, p=5):
 
     n = argv.get("n", n)
@@ -2295,6 +2296,38 @@ def test_cuspidal(n=2, p=5):
     return basis
 
 
+def test_cusp(n=2, p=5):
+
+    n = argv.get("n", n)
+    p = argv.get("p", p)
+
+    space = Space(n, p)
+    gl = Algebraic.GL(n,p)
+    gl1 = Algebraic.GL(1,p)
+    print("|GL(%d,%d)| = %d"%(n, p, len(gl)))
+
+    Rep.ring = CyclotomicField(p**n - 1)
+
+    torus = gl.get_torus()
+    assert len(torus) == p**n-1
+
+    G = space.get_permrep(gl)
+    Torus = space.get_permrep(torus)
+
+    table = dixon_irr(G)
+    #print(table)
+
+    for jdx in range(len(Torus)):
+        r = Rep.fourier(Torus, jdx)
+        #rG = r.induce(G)
+        #print(rG)
+        #print(table * rG.chi)
+
+        chiG = r.chi.induce(G)
+        #assert rG.chi == chiG
+        print(table * chiG)
+
+
 
 def test_monoidal():
 
@@ -2399,6 +2432,7 @@ class Levi:
 def test():
     test_rep()
     test_gram_schmidt()
+    test_induce()
     test_gl()
     test_cuspidal(2,3)
     test_irr()
