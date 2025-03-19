@@ -34,7 +34,7 @@ from bruhat.action import mulclose, mulclose_hom
 from bruhat.gset import Perm, Group, Coset
 from bruhat.smap import SMap
 from bruhat import gset
-from bruhat.algebraic import Algebraic
+from bruhat.algebraic import Algebraic, shortstr
 from bruhat.algebraic import Matrix as FMatrix
 from bruhat.util import cross, gen_primes
 
@@ -98,7 +98,7 @@ class Char:
         chi = [self._chi[i]*other._chi[i] for i in range(self.N)]
         return Char(self.G, chi)
 
-    def dot(self, other):
+    def dot(self, other): # HOTSPOT (why ??!?!!)
         assert self.G is other.G
         #u = ring.zero()
         cgys = self.cgys
@@ -2317,6 +2317,9 @@ def test_cusp(n=2, p=5):
     table = dixon_irr(G)
     #print(table)
 
+    print([row[0] for row in table])
+
+    rows = []
     for jdx in range(len(Torus)):
         r = Rep.fourier(Torus, jdx)
         #rG = r.induce(G)
@@ -2325,7 +2328,10 @@ def test_cusp(n=2, p=5):
 
         chiG = r.chi.induce(G)
         #assert rG.chi == chiG
-        print(table * chiG)
+        row = table * chiG
+        rows.append([int(str(c)) for c in row])
+
+    print( shortstr(rows) )
 
 
 
