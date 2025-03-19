@@ -54,51 +54,61 @@ def rowcat(row):
 
 class Char:
     def __init__(self, G, chi):
-        assert len(chi) == len(G)
-        self.n = len(chi)
+        #assert len(chi) == len(G)
+        cgys = G.conjugacy_classes()
+        assert len(chi) == len(cgys)
+        self.cgys = cgys
+        self.N = len(chi)
         self._chi = chi
         self.G = G
         self.ring = Rep.ring
         self.name = None
 
     def __str__(self):
-        G = self.G
-        items = []
-        for cls in G.conjugacy_classes():
-            i = G.lookup[cls[0]]
-            items.append(self._chi[i])
-        return "Char(%s)"%(items,)
+        #G = self.G
+        #items = []
+        #for cls in G.conjugacy_classes():
+        #    i = G.lookup[cls[0]]
+        #    items.append(self._chi[i])
+        return "Char(%s)"%(self._chi,)
 
     def __eq__(self, other):
         assert self.G is other.G
         return self._chi == other._chi
 
-    def __getitem__(self, g):
-        i = self.G.lookup[g]
+    def __len__(self):
+        return self.N
+
+    #def __getitem__(self, g):
+        #i = self.G.lookup[g]
+        #i = self.G.conjugacy_lookup[g]
+    def __getitem__(self, i):
+        assert type(i) is int
         return self._chi[i]
 
     def __add__(self, other):
         assert self.G is other.G
-        chi = [self._chi[i]+other._chi[i] for i in range(self.n)]
+        chi = [self._chi[i]+other._chi[i] for i in range(self.N)]
         return Char(self.G, chi)
 
     def __sub__(self, other):
         assert self.G is other.G
-        chi = [self._chi[i]-other._chi[i] for i in range(self.n)]
+        chi = [self._chi[i]-other._chi[i] for i in range(self.N)]
         return Char(self.G, chi)
 
     def __mul__(self, other):
         assert self.G is other.G
-        chi = [self._chi[i]*other._chi[i] for i in range(self.n)]
+        chi = [self._chi[i]*other._chi[i] for i in range(self.N)]
         return Char(self.G, chi)
 
-    def dot(other, self): # other <---- self
+    def dot(self, other):
         assert self.G is other.G
         #u = ring.zero()
+        cgys = self.cgys
         u = 0
-        for i in range(self.n):
-            u += self._chi[i].conjugate() * other._chi[i]
-        u /= self.n
+        for i in range(self.N):
+            u += len(cgys[i]) * self._chi[i] * other._chi[i].conjugate() 
+        u /= len(self.G)
         return u
 
 
@@ -112,7 +122,7 @@ class Rep:
         self.G = G
         self.rep = rep
         self.dim = dim
-        self.chi = Char(self.G, [rep[g].trace() for g in G])
+        self.chi = Char(self.G, [rep[K[0]].trace() for K in G.conjugacy_classes()])
 
     def __str__(self):
         extra = ", name=%r"%self.name if self.name else ""
@@ -629,7 +639,7 @@ class Table:
         
         r = self[0]
         G = r.G
-        rows = [[chi[g] for g in G] for chi in self]
+        rows = [chi._chi for chi in self]
         M = Matrix(r.ring, rows)
         #print(M)
         return M.rank()
@@ -737,7 +747,7 @@ class Basis:
         
         r = self[0]
         G = r.G
-        rows = [[r.chi[g] for g in G] for r in self]
+        rows = [r.chi._chi for r in self]
         M = Matrix(r.ring, rows)
         #print(M)
         return M.rank()
@@ -1686,13 +1696,14 @@ def test_irr():
 #    #return
 
     n = argv.get("n", 2)
-    p = argv.get("p", 7)
+    p = argv.get("p", 5)
     space = Space(n, p)
     gl = Algebraic.GL(n,p)
     G = space.get_permrep(gl)
     print(G)
 
     chis = dixon_irr(G)
+    chis = [Char(G, chi) for chi in chis]
     for chi in chis:
         print(chi)
 
@@ -1701,9 +1712,10 @@ def test_irr():
     N = len(cgys)
     for i in range(N):
       for j in range(N):
-        x = reduce(add, [len(cgys[k]) * chis[i][k] * chis[j][k].conjugate() for k in range(N)])
+        #x = reduce(add, [len(cgys[k]) * chis[i][k] * chis[j][k].conjugate() for k in range(N)])
+        x = chis[i].dot(chis[j])
         if i==j:
-            assert x == len(G)
+            assert x == 1
         else:
             assert x == 0
 
@@ -1719,7 +1731,6 @@ def dixon_irr(G):
         m = lcm(m, k)
     #print("m =", m)
 
-    #for p in all_primes(10*len(G)):
     for p in gen_primes():
         if p <= 2*(len(G)**0.5):
             continue
