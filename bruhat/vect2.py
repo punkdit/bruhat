@@ -65,7 +65,7 @@ class Matrix(object):
 
     def __eq__(self, other):
         assert self.tp == other.tp
-        return numpy.alltrue(self.A == other.A)
+        return numpy.all(self.A == other.A)
 
     def indexes(self):
         rows, cols = self.shape
@@ -300,7 +300,7 @@ class Cell1(Matrix):
             return self.__eq__(other) # <-------- return
         other = Cell1.promote(other)
         assert self.hom == other.hom
-        return numpy.alltrue(self.A == other.A)
+        return numpy.all(self.A == other.A)
 
     def __mul__(self, other):
         assert 0
@@ -581,7 +581,7 @@ class Cell2(Matrix):
     def __eq__(self, other):
         other = Cell2.promote(other)
         assert self.hom == other.hom
-        return numpy.alltrue(self.A == other.A)
+        return numpy.all(self.A == other.A)
 
     def __mul__(self, other):
         "(vertical) _composition of 2-morphism's"
@@ -1765,6 +1765,83 @@ def test_cobit():
 
     c = (cap2 << X).normalized * comul
     assert c == X
+
+
+def test_control_op():
+
+    #Cell2.strict = True
+    
+    ring = element.Z
+    rig = Rig(ring)
+    
+    zero = Cell0(rig, 0, "z")
+    one = Cell0(rig, 1, "i")
+    two = Cell0(rig, 2, "i+i")
+    
+    # Space's
+    O = rig.zero
+    I = rig.one
+    II = I+I
+
+    O_I = Lin.zero(O, I)
+    I_O = Lin.zero(I, O)
+    I_I = I.identity()
+    II_II = II.identity()
+    I_II = Lin(I, II, [[1,1]])
+    II_I = Lin(II, I, [[1],[1]])
+    X = Lin(II, II, [[0,1],[1,0]])
+    Z = Lin(II, II, [[1,0],[0,-1]])
+
+    l = Cell1(one, two, [[I,I]])
+    r = Cell1(two, one, [[I],[I]])
+
+    i = Cell1.identity(one)
+    ii = Cell1.identity(two)
+
+    # the bit
+    x = Cell1(one, one, [[II]])
+
+    cap = Cell2(i, x, [[I_II]])
+    cup = Cell2(x, i, [[II_I]])
+    assert cap*cup == Cell2(i, i, [[2*I_I]])
+
+    P0 = Lin(I+I, I+I, [[1,0],[0,0]])
+    assert P0*P0 == P0
+    P1 = Lin(I+I, I+I, [[0,0],[0,1]])
+    assert P1*P1 == P1
+
+    p0 = Cell2(x, x, [[P0]])
+    assert p0*p0 == p0
+    assert p0[0,0] == P0
+    p1 = Cell2(x, x, [[P1]])
+    assert p1*p1 == p1
+    
+    def tube(P0, P1):
+        p0 = Cell2(x, x, [[P0]])
+        p1 = Cell2(x, x, [[P1]])
+        p01 = p0 + p1
+        assert p01.shape == (2, 2)
+        c = l<<p01<<r
+        c = c.normalized
+        return c
+
+
+    SWAP = (x<<x)[0,0].get_swap()
+    swap = Cell2(x<<x, x<<x, [[SWAP]])
+
+    for U in [X, Z]:
+        op = cup << x << x
+        op = (tube(P0,P1)<<x) * op
+        op = ((l<<r)<<swap) * op
+        op = (tube(II_II,U) << x) * op
+        op = ((l<<r)<<swap) * op
+        op = (cap << x << x) * op
+    
+        ctrl = tube(II_II, U)
+        assert op.normalized[0,0] == ctrl.normalized[0,0]
+
+
+
 
 
 def test_all():
