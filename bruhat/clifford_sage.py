@@ -12,7 +12,8 @@ from functools import lru_cache
 cache = lru_cache(maxsize=None)
 
 from bruhat.solve import zeros2, identity2
-from bruhat.action import mulclose, mulclose_find
+from bruhat.action import mulclose, mulclose_find, mulclose_hom
+from bruhat.gset import Group, Perm
 from bruhat.argv import argv
 
 from sage.all_cmdline import FiniteField, CyclotomicField, latex, block_diagonal_matrix
@@ -619,6 +620,84 @@ def test_cocycle():
         rhs = cocyc(g*h, k) + cocyc(g, h)
         assert lhs%2 == rhs%2
         print("%s=%s"%(lhs%2,rhs%2), end=" ")
+
+
+def test_extension():
+
+    c2 = Clifford(2)
+    II = c2.I
+    XI = c2.X(0)
+    IX = c2.X(1)
+    ZI = c2.Z(0)
+    IZ = c2.Z(1)
+    SI = c2.S(0)
+    IS = c2.S(1)
+    HI = c2.H(0)
+    IH = c2.H(1)
+    CX01 = c2.CX(0, 1)
+    CX10 = c2.CX(1, 0)
+    CZ = c2.CZ()
+    SWAP = c2.SWAP(0, 1)
+
+    gen = [XI, IX, ZI, IZ, w4*II]
+    Pauli = mulclose(gen)
+    Pauli = list(Pauli)
+    assert len(Pauli) == 64
+
+    gen = [SI, IS, HI, IH, CZ]
+    lookup = {g:i for (i,g) in enumerate(Pauli)}
+    perms = []
+    for g in gen:
+        ig = g.inverse()
+        idxs = [lookup[ig*h*g] for h in Pauli]
+        perms.append(Perm(idxs))
+    #hom = mulclose_hom(gen, perms)
+    APs = Group.generate(perms)
+    assert len(APs) == 11520
+
+    SI, IS, HI, IH, CZ = perms
+    ZI = SI*SI
+    IZ = IS*IS
+    XI = HI*ZI*HI
+    IX = IH*IZ*IH
+
+    assert XI*ZI == ZI*XI # life without phases
+    A = Group.generate([XI, IX, ZI, IZ])
+    assert len(A) == 2**4
+
+    X = APs.action_subgroup(A)
+    return X
+    Sp = X.tgt
+    #proj = X.
+
+    send = X.send_perms # argh
+    proj = {}
+    for i,g in enumerate(src):
+        h = tgt[send[i]]
+        proj[g] = h
+    src, tgt = X.src, X.tgt
+    section = {}
+    for g in src:
+        section[proj[g]] = g
+    
+    cocycle = lambda g,h : section[g]*section[h]*~section[g*h]
+    
+    for trial in range(100):
+        g = choice(tgt)
+        h = choice(tgt)
+        u = cocycle(g, h)
+        assert proj[u].is_identity()
+        #print(u)
+        k = choice(tgt)
+        a, b = cocycle(g, h*k), cocycle(h,k)
+        b = section[g]*b*~section[g]
+        assert a*b == b*a
+        c, d = cocycle(g*h, k), cocycle(g, h)
+        assert c*d == d*c
+        print(int(a*b == c*d), end="")
+        assert a*b == c*d
+
+    print()
 
 
 def test_CCZ():
