@@ -70,7 +70,7 @@ class Char:
         return s
 
     def __eq__(self, other):
-        assert self.G is other.G
+        assert self.G is other.G # too strict...??
         return self._chi == other._chi
 
     def __len__(self):
@@ -568,6 +568,14 @@ class Table:
             else:
                 assert x == 0
 
+    def __eq__(self, other):
+        return self.chis == other.chis
+
+    def to_matrix(self):
+        ring = Rep.ring
+        rows = Matrix(ring, [[self[i][j] for j in range(self[0].N)] for i in range(len(self))])
+        return rows
+
     def __str__(self):
         if not len(self):
             return "Table([])"
@@ -831,8 +839,10 @@ class Space:
         self.n = n
         self.p = p
         shape = (p,)*n
-        space = [v for v in numpy.ndindex(shape) if sum(v)] # skip zero vector ?
-        assert len(space) == p**n - 1
+        #space = [v for v in numpy.ndindex(shape) if sum(v)] # skip zero vector ?
+        #assert len(space) == p**n - 1
+        space = [v for v in numpy.ndindex(shape)] # don't skip zero vector (for affine groups..)
+        assert len(space) == p**n
         space = [FMatrix(numpy.array(v).reshape(n,1), p) for v in space]
         lookup = dict((v, idx) for (idx, v) in enumerate(space))
         self.space = space
@@ -1007,6 +1017,8 @@ def dixon_irr(G):
         else:
             assert 0
         
+        #print(dims)
+
         for A in cmats:
             B = V*A*U
             b = B[i:i+dim, i:i+dim]
@@ -1016,8 +1028,9 @@ def dixon_irr(G):
             evecs = b.M.eigenvectors_right()
             if len(evecs) == dim:
                 break
+            #print("\t", len(evecs))
         else:
-            assert 0
+            assert 0 # XXX Pauli group break this
 
         best.pop(idx)
         for (val, vecs, dim) in evecs:
@@ -1199,7 +1212,6 @@ def burnside_irr(G):
     chis = Table([Char(G, chi) for chi in chis])
     return chis
         
-
 
 
 
@@ -1434,6 +1446,188 @@ def test_induce():
         f.check()
 
 
+def test_clifford_chars():
+    # check that ASp has same character table as clifford modulo phases.
+    
+    n = 4
+    p = 2
+    G = Algebraic.Sp(n, p)
+    print(len(G))
+
+    space = Space(n, p)
+    get_permrep = space.get_permrep
+
+    Sp = space.get_permrep(G)
+    lookup = space.lookup
+
+    gens = []
+    for i in range(n):
+        u = numpy.zeros((n, 1), dtype=int)
+        u[i,0] = 1
+        u = FMatrix(u)
+        idxs = [lookup[v+u] for v in space]
+        perm = gset.Perm(idxs)
+        gens.append(perm)
+    ASp = Group.generate(Sp.gens + gens)
+    assert len(ASp) == 11520 # the affine symplectic group ASp
+
+    table = dixon_irr(ASp)
+    #print(table)
+    table = (table.to_matrix())
+
+    # -----------------------------------
+    # build Pauli groups
+
+    ring = CyclotomicField(8)
+    w8 = ring.gens()[0]
+    w = w8**2
+    r2 = w8 + w8.conjugate()
+    ir2 = 1/r2
+    assert r2**2 == 2
+    assert 2*ir2**2 == 1
+
+    I = Matrix(ring, [[1,0],[0,1]])
+    wI = w*I
+    X = Matrix(ring, [[0,1],[1,0]])
+    Z = Matrix(ring, [[1,0],[0,-1]])
+    S = Matrix(ring, [[1,0],[0,w]])
+    H = Matrix(ring, [[ir2,ir2],[ir2,-ir2]])
+    CZ = Matrix(ring, [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,-1]])
+
+    Pauli1 = mulclose([wI, X, Z])
+    assert len(Pauli1) == 16
+
+    II = I@I
+    wII = w*II
+    XI = X@I
+    IX = I@X
+    ZI = Z@I
+    IZ = I@Z
+    HI = H@I
+    IH = I@H
+    SI = S@I
+    IS = I@S
+    
+    Pauli2 = mulclose([wII, XI, IX, ZI, IZ])
+    Pauli2 = list(Pauli2)
+    lookup = dict((g,i) for (i,g) in enumerate(Pauli2))
+    assert len(Pauli2) == 64
+
+    if 0:
+        perms = []
+        for g in Pauli2:
+            idxs = [lookup[h*g] for h in Pauli2]
+            perm = Perm(idxs)
+            perms.append(perm)
+        G = Group(perms)
+        print(G)
+    
+        table = dixon_irr(G) # XXX FAIL !!!!
+        print(table)
+
+    gen = [HI, IH, SI, IS, CZ]
+    #Cliff2 = mulclose([HI, IH, SI, IS, CZ], verbose=True)
+    #print(len(Cliff2))
+    perms = []
+    for g in gen:
+        ig = ~g
+        idxs = [lookup[ig*h*g] for h in Pauli2]
+        perm = Perm(idxs)
+        perms.append(perm)
+    APs = Group.generate(perms)
+    print(APs)
+
+    _table = dixon_irr(APs)
+    _table = (_table.to_matrix())
+
+    # re-order the columns by hand ...
+    m, n = _table.shape
+    idxs = list(range(n))
+    idxs[7], idxs[8] = idxs[8], idxs[7]
+    idxs[15], idxs[16] = idxs[16], idxs[15]
+    P = Matrix.get_perm(Rep.ring, idxs)
+    _table = _table*P
+
+    #print(table - _table)
+
+    assert table == _table, (table-_table)
+
+
+
+def test_clifford():
+
+    # -----------------------------------
+    # build Pauli groups
+
+    ring = CyclotomicField(8)
+    w8 = ring.gens()[0]
+    w = w8**2
+    r2 = w8 + w8.conjugate()
+    ir2 = 1/r2
+    assert r2**2 == 2
+    assert 2*ir2**2 == 1
+
+    I = Matrix(ring, [[1,0],[0,1]])
+    wI = w*I
+    X = Matrix(ring, [[0,1],[1,0]])
+    Z = Matrix(ring, [[1,0],[0,-1]])
+    S = Matrix(ring, [[1,0],[0,w]])
+    H = Matrix(ring, [[ir2,ir2],[ir2,-ir2]])
+    CZ = Matrix(ring, [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,-1]])
+
+    Pauli1 = mulclose([wI, X, Z])
+    assert len(Pauli1) == 16
+
+    II = I@I
+    wII = w*II
+    XI = X@I
+    IX = I@X
+    ZI = Z@I
+    IZ = I@Z
+    HI = H@I
+    IH = I@H
+    SI = S@I
+    IS = I@S
+    
+    Pauli2 = mulclose([wII, XI, IX, ZI, IZ])
+    Pauli2 = list(Pauli2)
+    lookup = dict((g,i) for (i,g) in enumerate(Pauli2))
+    assert len(Pauli2) == 64
+
+    if 0:
+        perms = []
+        for g in Pauli2:
+            idxs = [lookup[h*g] for h in Pauli2]
+            perm = Perm(idxs)
+            perms.append(perm)
+        G = Group(perms)
+        print(G)
+    
+        table = dixon_irr(G) # XXX FAIL !!!!
+        print(table)
+
+    gen = [HI, IH, SI, IS, CZ]
+    #Cliff2 = mulclose([HI, IH, SI, IS, CZ], verbose=True)
+    #print(len(Cliff2))
+    perms = []
+    for g in gen:
+        ig = ~g
+        idxs = [lookup[ig*h*g] for h in Pauli2]
+        perm = Perm(idxs)
+        perms.append(perm)
+    APs = Group.generate(perms)
+    print(APs)
+
+    hi, ih, si, _is, cz = perms
+    ii = hi*hi
+    assert ii.is_identity()
+    zi = si*si
+    iz = _is*_is
+    xi = hi*zi*hi
+    ix = ih*iz*ih
+
+    print(zi*xi == xi*zi)
+    print(si*xi == xi*si)
 
 
 def GL32():
@@ -1542,7 +1736,7 @@ def test_gl2():
             col[idx] = 1
             cols.append(col)
         M = Matrix(Rep.ring, cols).t
-        rep[X2.rep[g]] = M
+        rep[X2.rep[g]] = M # XXX
     rep = Rep(X2, rep, dim)
     print(rep)
     #rep.check()
@@ -1684,7 +1878,7 @@ def test_gl():
         rep[g] = M
     cnot = Rep(G, rep, G.rank)
     print(cnot)
-    return
+    #return
 
     H = G.child
     print(H)

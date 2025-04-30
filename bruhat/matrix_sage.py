@@ -100,7 +100,6 @@ class Matrix(object):
         s = s.replace(" 0 ", " . ")
         s = s.replace("[0 ", "[. ")
         s = s.replace(" 0]", " .]")
-        s = s.replace("0", ".")
         return s
     __repr__ = __str__
 
