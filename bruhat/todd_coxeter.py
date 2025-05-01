@@ -355,6 +355,17 @@ class Schreier(object):
         G = Group.generate(gens)
         return G
 
+    def get_gset(self, *arg, **kw):
+        from bruhat.gset import Perm, Group
+        perms = self.get_gens()
+        gens = []
+        for perm in perms:
+            idxs = [perm[i] for i in perm.items]
+            g = Perm(idxs)
+            gens.append(g)
+        G = Group.generate(gens, *arg, **kw)
+        return G
+
     def get_words(self, maxsize=None):
         #cosets = set([c for i, c in enumerate(self.labels) if i == c])
         ngens = self.ngens
