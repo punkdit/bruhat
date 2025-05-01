@@ -88,13 +88,17 @@ G := FactorGroup(Cliff2, Group(E(4)*ii));
 #od;
 #Print("\n");
 #
-#quit;
 
+RPauli2 := Group(xi, ix, zi, iz);; # Order 32
 Pauli2 := Group(wi, xi, ix, zi, iz);; # Order 64
 _Pauli2 := Group(E(8)*ii, xi, ix, zi, iz);; # Order 128
 
 Aut := AutomorphismGroup(Pauli2);
-Print(Order(Aut), "\n");
+Print("Aut(Pauli2):", StructureDescription(Aut), " ", Order(Aut), "\n");
+RAut := AutomorphismGroup(RPauli2);
+Print("Aut(RPauli2):", StructureDescription(RAut), " ", Order(RAut), "\n");
+
+quit;
 
 count := 0;
 g := E(4)*ii;

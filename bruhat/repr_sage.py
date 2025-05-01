@@ -6,7 +6,7 @@ practice representation_theory, induce / restrict, etc.
 good notes here:
 https://dec41.user.srcf.net/h/II_L/representation_theory/10
 
-see also: bruhat.cuspforms 
+see also: bruhat.cuspforms, bruhat.binary_platonic
 
 https://ncatlab.org/nlab/show/Gram-Schmidt+process#CategorifiedGramSchmidtProcess
 """
@@ -2624,25 +2624,6 @@ def test_monoidal():
 #
 #    #def induce(self, reps):
 #            
-
-
-def test_su2():
-    from bruhat.word import Gen, build
-    a, b, c = [Gen(c) for c in "abc"]
-    abc = a*b*c
-    graph = build([a, b, c], [a**4==abc, b**3==abc, c**2==abc])
-
-    G = graph.get_gset()
-    print(G)
-    table = dixon_irr(G)
-    print(table)
-
-    chi = table[3]
-    print(chi)
-    c = chi
-    for i in range(1,8):
-        print(i, [c.dot(a) for a in table])
-        c = chi*c
 
 
 def test():

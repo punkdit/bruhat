@@ -666,16 +666,13 @@ def test_extension():
     assert len(A) == 2**4
 
     X = APs.action_subgroup(A)
-    return X
-    Sp = X.tgt
-    #proj = X.
 
+    src, tgt = X.src, X.tgt
     send = X.send_perms # argh
     proj = {}
     for i,g in enumerate(src):
         h = tgt[send[i]]
         proj[g] = h
-    src, tgt = X.src, X.tgt
     section = {}
     for g in src:
         section[proj[g]] = g
@@ -698,6 +695,7 @@ def test_extension():
         assert a*b == c*d
 
     print()
+    return X
 
 
 def test_CCZ():
