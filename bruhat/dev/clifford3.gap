@@ -65,6 +65,22 @@ Assert(0, hi*si*si*hi*cz = cz*hi*is*si*is*si*hi);
 Assert(0, w8 in Cliff2);
 Assert(0, w8*cz*hi*cz = si*hi*cz*si*is*hi*si );
 
+
+# Cliff2 has SL(2,9) of order 720
+G := Cliff2;
+index := Order(G)/720;
+Print(index,"\n");
+#for H in LowIndexSubgroups( G, index ) do
+for H in ConjugacyClassesSubgroups(Cliff2) do
+    #Print(H, "\n");
+    H := Representative(H);
+    Print(Order(H), " ");
+    if Order(H)=720  then Print(StructureDescription(H),"\n"); fi;
+od;
+Print("\n");
+quit;
+
+
 #for g in Center(Cliff2) do Print(g, "\n"); od;
 
 #Print(Order(Center(Cliff2)), "\n");

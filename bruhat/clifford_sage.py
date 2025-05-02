@@ -145,6 +145,15 @@ class Matrix(object):
             rows.append(row)
         return Matrix(ring, rows)
 
+    def order(self):
+        g = self
+        j = 1
+        I = Matrix.identity(self.ring, self.shape[0])
+        while g != I:
+            g = self*g
+            j += 1
+        return j
+
     def inverse(self):
         M = self.M.inverse()
         return Matrix(self.ring, M)
@@ -644,6 +653,22 @@ def test_extension():
     Pauli = list(Pauli)
     assert len(Pauli) == 64
 
+    #gen = [SI, IS, CX01, CX10, CZ]
+    #gen = [SI, IS, HI, IH, CZ]
+    #G = mulclose(gen, verbose=True, maxsize=92160)
+    #print(len(G))
+    #return G
+    #found = {}
+    #for g in G:
+    #    j = g.order()
+    #    print(j, end=" ", flush=True)
+    #    found.setdefault(j,[]).append(g)
+    #counts = list(found.keys())
+    #counts.sort()
+    #print([len(found[j]) for j in counts])
+#
+#    return
+
     gen = [SI, IS, HI, IH, CZ]
     lookup = {g:i for (i,g) in enumerate(Pauli)}
     perms = []
@@ -654,6 +679,8 @@ def test_extension():
     #hom = mulclose_hom(gen, perms)
     APs = Group.generate(perms)
     assert len(APs) == 11520
+
+    #return
 
     SI, IS, HI, IH, CZ = perms
     ZI = SI*SI
