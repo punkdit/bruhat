@@ -462,6 +462,14 @@ class Group(object):
         G = Group(perms)
         return G
 
+    @classmethod
+    def from_table(cls, table):
+        n = len(table)
+        assert table.shape == (n,n)
+        perms = [Perm(row) for row in table]
+        G = Group(perms)
+        return G
+
     def regular_action(self):
         "the left _regular gset: the cayley action"
         lookup = self.lookup

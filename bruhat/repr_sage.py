@@ -1030,6 +1030,8 @@ def dixon_irr(G):
                 break
             #print("\t", len(evecs))
         else:
+            print("dixon_irr: FAIL")
+            return 
             assert 0 # XXX Pauli group break this
 
         best.pop(idx)
