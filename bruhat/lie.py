@@ -101,7 +101,7 @@ def test_sl2():
     #print(B3)
     #print(AB3)
     #print(repr_3d(a0, b0, c0, d0))
-    assert numpy.alltrue(AB3 == repr_3d(a0, b0, c0, d0))
+    assert numpy.all(AB3 == repr_3d(a0, b0, c0, d0))
 
 
 
@@ -709,7 +709,7 @@ def test_dimension():
         value = fn(*idx)
         result[idx] = value
     print(result)
-    assert numpy.alltrue(data == result)
+    assert numpy.all(data == result)
 
 
 def test_quaternion():
