@@ -470,6 +470,13 @@ class Group(object):
         G = Group(perms)
         return G
 
+    @classmethod
+    def from_concrete(cls, items):
+        items = list(items)
+        lookup = {item:i for (i,item) in enumerate(items)}
+        G = Group([Perm([lookup[item*jtem] for jtem in items]) for item in items])
+        return G
+
     def regular_action(self):
         "the left _regular gset: the cayley action"
         lookup = self.lookup
