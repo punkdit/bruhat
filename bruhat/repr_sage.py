@@ -955,34 +955,14 @@ def dixon_irr(G):
             j = rev[~g]
         inv.append(j)
 
-    if 0:
-        cmats = [numpy.zeros((N,N), dtype=int) for r in range(N)]
-        idxs = {K[t][0]:t for t in range(N)}
-        for r in range(N):
-          for s in range(N):
-            #print(".", end="", flush=True)
-            for x in K[r]:
-              for y in K[s]:
-                xy = x*y
-                t = idxs.get(xy)
-                if t is None: # TODO too slow !!
-                    continue
-                key = (r,s,t)
-                #matrix[key] = matrix.get(key, 0) + 1
-                cmats[r][s,t] += 1
-          #print()
-
-    mats = [numpy.zeros((N,N), dtype=int) for r in range(N)]
+    cmats = [numpy.zeros((N,N), dtype=int) for r in range(N)]
     for r in range(N):
       for t in range(N):
         xy = K[t][0] # arbitrary choice
         for x in K[r]:
             y = (~x)*xy # remove inverse here ? HOTSPOT
             s = lookup[y]
-            mats[r][s,t] += 1
-    #for (mat,cmat) in zip(mats, cmats):
-    #    assert numpy.all(mat==cmat)
-    cmats = mats
+            cmats[r][s,t] += 1
 
     cmats = [Matrix(ring, cmat) for cmat in cmats]
     for a in cmats:
@@ -991,12 +971,21 @@ def dixon_irr(G):
 
     best = None
     for A in cmats:
+        # list of (eigenvalue, eigenvectors, algebraic multiplicity)
         evecs = A.M.eigenvectors_right()
+        #print(A.shape)
+        #for item in evecs:
+            #print(len(item[1]), item[2], end=",")
+            #assert len(item[1]) == item[2]
+        #print()
+        #print(evecs)
         if best is None:
             best = evecs
         w = max([item[2] for item in best])
         if max([item[2] for item in evecs]) < w:
             best = evecs
+
+    #return
 
     while len(best) < N:
         #print("best:", len(best))
@@ -1028,7 +1017,7 @@ def dixon_irr(G):
             evecs = b.M.eigenvectors_right()
             if len(evecs) == dim:
                 break
-            #print("\t", len(evecs))
+            #print("\t", len(evecs), dim)
         else:
             print("dixon_irr: FAIL")
             return 
@@ -1596,7 +1585,7 @@ def test_clifford():
     lookup = dict((g,i) for (i,g) in enumerate(Pauli2))
     assert len(Pauli2) == 64
 
-    if 0:
+    if 1:
         perms = []
         for g in Pauli2:
             idxs = [lookup[h*g] for h in Pauli2]
@@ -1607,6 +1596,8 @@ def test_clifford():
     
         table = dixon_irr(G) # XXX FAIL !!!!
         print(table)
+
+        return
 
     gen = [HI, IH, SI, IS, CZ]
     #Cliff2 = mulclose([HI, IH, SI, IS, CZ], verbose=True)
@@ -2232,15 +2223,16 @@ def test_irr():
     table = burnside_irr(G)
     table.check_complete()
 
-    for G in [
-        Group.symmetric(m),
-        Group.dihedral(m),
-        Group.alternating(m),
-    ]:
-
-        table = dixon_irr(G)
-        table.check_complete()
-        #print(table)
+    for m in [3,4,5]:
+        for G in [
+            Group.symmetric(m),
+            Group.dihedral(m),
+            Group.alternating(m),
+        ]:
+    
+            table = dixon_irr(G)
+            table.check_complete()
+            print(table)
 
     n = argv.get("n", 2)
     p = argv.get("p", 5)
