@@ -891,6 +891,184 @@ class Space:
 #        return H
 
 
+def simultaneous_diag(cmats):
+
+    assert cmats
+    A = cmats[0]
+    N = len(A)
+    ring = A.ring
+    for a in cmats:
+      for b in cmats:
+        assert a*b==b*a
+
+    #cmats = mulclose(cmats)
+
+    best = None
+    for A in cmats:
+        # list of (eigenvalue, eigenvectors, algebraic multiplicity)
+        evecs = A.M.eigenvectors_right()
+        #print(A.shape)
+        #for item in evecs:
+        #    print(len(item[1]), item[2], end=" // ")
+        #    #assert len(item[1]) == item[2]
+        #print()
+        #print(evecs)
+        if best is None:
+            best = evecs
+        w = max([item[2] for item in best])
+        if max([item[2] for item in evecs]) < w:
+            best = evecs
+
+    #return
+
+    while len(best) < N:
+        #print("best:", len(best))
+        dims = []
+        basis = []
+        for val,vecs,dim in best:
+            dims.append(dim)
+            basis += vecs
+        U = Matrix.promote(ring, basis).t
+        #U = Matrix(ring, basis).t
+        V = U.pseudoinverse()
+
+        i = 0
+        for idx,dim in enumerate(dims):
+            if dim > 1:
+                break
+            i += 1
+        else:
+            assert 0
+        
+        #print(dims)
+
+        for A in cmats:
+            B = V*A*U
+            b = B[i:i+dim, i:i+dim]
+            assert b.shape == (dim,dim)
+            if b.is_zero():
+                continue
+            evecs = b.M.eigenvectors_right()
+            if len(evecs) == dim:
+                break
+            #print("\t", len(evecs), dim)
+        else:
+            #print("simultaneous_diag: FAIL")
+            return 
+            assert 0 # XXX Pauli group break this
+
+        best.pop(idx)
+        for (val, vecs, dim) in evecs:
+            #print(val, vecs, dim)
+            assert len(vecs)==dim==1
+            v = vecs[0]
+            u = [0]*N
+            for row in range(len(v)):
+                u[i+row] = v[row]
+            u = Matrix(ring, u).t
+            u = U*u
+            assert A*u == val*u
+            u = tuple(u.M[j,0] for j in range(N)) # UGRRRH!
+            best.append( (val, [u,], dim) )
+
+    omega = []
+    for (val, vecs, dim) in best:
+        assert dim==1
+        vec = vecs[0]
+        omega.append(vec)
+        vec = Matrix(ring, vec).t
+        assert vec.M[0,0] == 1
+
+        for A in cmats:
+            u = A*vec
+            val = u.M[0,0]
+            assert u == val*vec
+        #assert A*vec == val*vec
+    return omega
+
+
+def simultaneous_diag_hard(cmats):
+
+    # XXX SLOW AND STUPID XXX
+
+    assert cmats
+    A = cmats[0]
+    N = len(A)
+    #print("N =", N)
+    ring = A.ring
+    for a in cmats:
+      for b in cmats:
+        assert a*b==b*a
+
+    #cmats = mulclose(cmats)
+
+    best = None
+    Vs = set()
+    for A in cmats:
+        # list of (eigenvalue, eigenvectors, algebraic multiplicity)
+        eright = A.M.eigenvectors_right()
+        for item in eright:
+            evalue, evecs, mult = item
+            V = Matrix(ring, evecs)
+            if not V.is_identity():
+                Vs.add(V)
+
+    M = None
+    for W in list(Vs):
+        if len(W)==1:
+            Vs.remove(W)
+            M = W if M is None else M.stack(W)
+
+    found = set()
+    Vs = list(Vs)
+    while 1:
+    #for trial in range(2):
+        #print(len(Vs))
+        n = len(Vs)
+        for i in range(n):
+          V1 = Vs[i]
+          for j in range(i+1, n):
+            V2 = Vs[j]
+            W = V1.intersect_rowspace(V2)
+            if len(W) == 0:
+                continue
+            if len(W) == 1:
+                if W in found:
+                    continue
+                M = W if M is None else M.stack(W)
+                found.add(W)
+                if M.rank() == N:
+                    break
+                continue
+            if len(W) < len(V1) and len(W) < len(V2):
+                Vs.append(W)
+          if M is not None and M.rank() == N:
+            break
+        if M is not None and M.rank() == N:
+          break
+        Vs = Vs[n:]
+
+    if M.rank() < N:
+        print("simultaneous_diag_hard: FAIL")
+        return None
+
+    #print("found:")
+    #print(M, M.shape)
+    #print(M.rank())
+
+    omega = []
+    for vec in M:
+        vec = vec.t
+        for A in cmats:
+            uec = A*vec
+            val = uec.M[0,0] / vec.M[0,0]
+            assert val*vec == uec
+        omega.append([vec.M[i,0] for i in range(N)])
+
+    return omega
+
+
+
 def dixon_irr(G):
     #print(G)
 
@@ -965,91 +1143,13 @@ def dixon_irr(G):
             cmats[r][s,t] += 1
 
     cmats = [Matrix(ring, cmat) for cmat in cmats]
-    for a in cmats:
-      for b in cmats:
-        assert a*b==b*a
 
-    best = None
-    for A in cmats:
-        # list of (eigenvalue, eigenvectors, algebraic multiplicity)
-        evecs = A.M.eigenvectors_right()
-        #print(A.shape)
-        #for item in evecs:
-            #print(len(item[1]), item[2], end=",")
-            #assert len(item[1]) == item[2]
-        #print()
-        #print(evecs)
-        if best is None:
-            best = evecs
-        w = max([item[2] for item in best])
-        if max([item[2] for item in evecs]) < w:
-            best = evecs
+    omega = simultaneous_diag(cmats)
+    if omega is None:
+        omega = simultaneous_diag_hard(cmats)
 
-    #return
-
-    while len(best) < N:
-        #print("best:", len(best))
-        dims = []
-        basis = []
-        for val,vecs,dim in best:
-            dims.append(dim)
-            basis += vecs
-        U = Matrix.promote(ring, basis).t
-        #U = Matrix(ring, basis).t
-        V = U.pseudoinverse()
-
-        i = 0
-        for idx,dim in enumerate(dims):
-            if dim > 1:
-                break
-            i += 1
-        else:
-            assert 0
-        
-        #print(dims)
-
-        for A in cmats:
-            B = V*A*U
-            b = B[i:i+dim, i:i+dim]
-            assert b.shape == (dim,dim)
-            if b.is_zero():
-                continue
-            evecs = b.M.eigenvectors_right()
-            if len(evecs) == dim:
-                break
-            #print("\t", len(evecs), dim)
-        else:
-            print("dixon_irr: FAIL")
-            return 
-            assert 0 # XXX Pauli group break this
-
-        best.pop(idx)
-        for (val, vecs, dim) in evecs:
-            #print(val, vecs, dim)
-            assert len(vecs)==dim==1
-            v = vecs[0]
-            u = [0]*N
-            for row in range(len(v)):
-                u[i+row] = v[row]
-            u = Matrix(ring, u).t
-            u = U*u
-            assert A*u == val*u
-            u = tuple(u.M[j,0] for j in range(N)) # UGRRRH!
-            best.append( (val, [u,], dim) )
-
-    omega = []
-    for (val, vecs, dim) in best:
-        assert dim==1
-        vec = vecs[0]
-        omega.append(vec)
-        vec = Matrix(ring, vec).t
-        assert vec.M[0,0] == 1
-
-        for A in cmats:
-            u = A*vec
-            val = u.M[0,0]
-            assert u == val*vec
-        #assert A*vec == val*vec
+    if not omega:
+        return
 
     root = {}
     for u in range(p//2+1):
@@ -1544,6 +1644,58 @@ def test_clifford_chars():
     assert table == _table, (table-_table)
 
 
+def test_pauli():
+
+    # -----------------------------------
+    # build Pauli groups
+
+    ring = CyclotomicField(8)
+    w8 = ring.gens()[0]
+    w = w8**2
+    r2 = w8 + w8.conjugate()
+    ir2 = 1/r2
+    assert r2**2 == 2
+    assert 2*ir2**2 == 1
+
+    I = Matrix(ring, [[1,0],[0,1]])
+    wI = w*I
+    X = Matrix(ring, [[0,1],[1,0]])
+    Z = Matrix(ring, [[1,0],[0,-1]])
+    S = Matrix(ring, [[1,0],[0,w]])
+    H = Matrix(ring, [[ir2,ir2],[ir2,-ir2]])
+    CZ = Matrix(ring, [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,-1]])
+
+    Pauli1 = mulclose([wI, X, Z])
+    assert len(Pauli1) == 16
+
+    II = I@I
+    wII = w*II
+    XI = X@I
+    IX = I@X
+    ZI = Z@I
+    IZ = I@Z
+    HI = H@I
+    IH = I@H
+    SI = S@I
+    IS = I@S
+    
+    RPauli2 = mulclose([XI, IX, ZI, IZ])
+    RPauli2 = list(RPauli2)
+    lookup = dict((g,i) for (i,g) in enumerate(RPauli2))
+    assert len(RPauli2) == 32
+
+    perms = []
+    for g in RPauli2:
+        idxs = [lookup[h*g] for h in RPauli2]
+        perm = Perm(idxs)
+        perms.append(perm)
+    G = Group(perms)
+    print(G)
+
+    table = dixon_irr(G)
+    print(table)
+    table.check_complete()
+
 
 def test_clifford():
 
@@ -1584,20 +1736,6 @@ def test_clifford():
     Pauli2 = list(Pauli2)
     lookup = dict((g,i) for (i,g) in enumerate(Pauli2))
     assert len(Pauli2) == 64
-
-    if 1:
-        perms = []
-        for g in Pauli2:
-            idxs = [lookup[h*g] for h in Pauli2]
-            perm = Perm(idxs)
-            perms.append(perm)
-        G = Group(perms)
-        print(G)
-    
-        table = dixon_irr(G) # XXX FAIL !!!!
-        print(table)
-
-        return
 
     gen = [HI, IH, SI, IS, CZ]
     #Cliff2 = mulclose([HI, IH, SI, IS, CZ], verbose=True)

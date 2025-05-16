@@ -85,7 +85,7 @@ class Matrix(object):
     def __eq__(self, other):
         assert isinstance(other, Matrix)
         #assert self.ring == other.ring
-        assert self.shape == other.shape
+        #assert self.shape == other.shape
         return self.M == other.M
 
     def __hash__(self):
@@ -97,7 +97,7 @@ class Matrix(object):
         lines[-1] = lines[-1] + "]"
         lines[1:] = [" "+l for l in lines[1:]]
         s = '\n'.join(lines)
-        s = s.replace(" 0 ", " . ")
+        s = s.replace(" 0", " .")
         s = s.replace("[0 ", "[. ")
         s = s.replace(" 0]", " .]")
         return s
@@ -161,6 +161,7 @@ class Matrix(object):
         return Matrix(ring, M)
 
     def stack(self, other):
+        "concatenate rows of self & other"
         #assert self.ring == other.ring
         ring = unify(self.ring, other.ring)
         return Matrix(ring, self.M.stack(other.M))
@@ -291,6 +292,9 @@ class Matrix(object):
     def is_zero(self):
         return self == -self
 
+    def is_identity(self):
+        return self == Matrix.identity(self.ring, len(self))
+
     def rank(self):
         return self.M.rank()
 
@@ -307,14 +311,24 @@ class Matrix(object):
         return spaces
 
     def solve(self, other):
-        A = self.M.solve_right(other.M)
+        assert len(self) == len(other)
+        try:
+            A = self.M.solve_right(other.M)
+        except ValueError:
+            return None
         return Matrix(self.ring, A)
+
+    def row_reduce(self):
+        M = self.M.echelon_form()
+        return Matrix(self.ring, M)
 
     def cokernel(self):
         K = all_cmdline.kernel(self.M)
         B = K.basis()
         #print(K, type(K))
-        return Matrix(self.ring, B)
+        M = Matrix(self.ring, B)
+        # XXX fix empty M shape
+        return M
 
     def kernel(self):
         K = self.t.cokernel().t
@@ -324,6 +338,28 @@ class Matrix(object):
         m, n = self.shape
         u = sum(self.M[i,j] for i in range(m) for j in range(n))
         return u
+
+    def intersect_rowspace(self, other):
+        assert self.shape[1] == other.shape[1]
+        V1, V2 = self, other
+        V = V1.stack(-V2)
+        K = V.cokernel()
+        if len(K)==0:
+            return Matrix.zero(self.ring, 0, self.shape[1])
+        #print()
+        #print(V1, V1.shape)
+        #print(V2, V2.shape)
+        #print(K, K.shape)
+        W = K[:, :len(V1)]*V1
+        #u = V1.t.solve(W.t)
+        #assert u is not None
+        ##print("solve:", u.shape)
+        #u = V2.t.solve(W.t)
+        #assert u is not None
+        ##print("solve:", u.shape)
+        return W
+
+    
 
 
 def test():
