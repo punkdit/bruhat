@@ -167,6 +167,7 @@ class Matrix(object):
         return Matrix(ring, self.M.stack(other.M))
 
     def augment(self, other):
+        "concatenate cols of self & other"
         #assert self.ring == other.ring
         ring = unify(self.ring, other.ring)
         return Matrix(ring, self.M.augment(other.M))
