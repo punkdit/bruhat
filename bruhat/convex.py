@@ -104,6 +104,20 @@ class Conv:
             #print(other, len(rels))
         return other
 
+    def _fail_quotient(self, *rels):
+        # argh, how to do this in one go?
+        u = None
+        for (l,r) in rels:
+            lr = l-r
+            op = lr@lr.d 
+            u = op if u is None else u.stack(op)
+        K = u.cokernel()
+        print("quotient:")
+        print(u)
+        print(K)
+        gens = [K*v for v in self.gens]
+        return Conv(gens)
+
 
 def test():
 
@@ -175,7 +189,60 @@ def test():
     other = space.quotient(*rels)
     assert other.dim == 8
 
+    # -------------------------------------------------------
 
+    space = Conv.free(6)
+    a, b, c, d, e, f = space
+
+    # construct an Octahedron == Bloch Octahedron
+    octa = space.quotient( 
+        (conv(a,b), conv(c,d)),
+        (conv(a,b), conv(e,f)),
+    )
+    assert octa.dim == 3
+
+    # tensor square of this is the separable states
+    N = 6
+    space = Conv.free(N*N)
+    lookup = {(i,j):space[i+N*j] for i in range(N) for j in range(N)}
+
+    rels = []
+    for i in range(N):
+        a, b, c, d, e, f = [lookup[i,j] for j in range(N)]
+        rels.append( (conv(a,b), conv(c,d)) )
+        rels.append( (conv(a,b), conv(e,f)) )
+
+        a, b, c, d, e, f = [lookup[j,i] for j in range(N)]
+        rels.append( (conv(a,b), conv(c,d)) )
+        rels.append( (conv(a,b), conv(e,f)) )
+
+    assert len(rels) == 24
+    other = space.quotient(*rels)
+    assert other.dim == 15
+
+    print(len(space.gens))
+    print(len(set(space.gens)))
+
+    # -------------------------------------------------
+
+    names = [(pm, a, b) for pm in (1,-1) for a in "XYZ" for b in "XYZ"]
+    print(names)
+    N = len(names)
+
+    space = Conv.free(N)
+    lookup = {name:space[i] for (i,name) in enumerate(names)}
+
+    mixed = []
+    for a in "XYZ":
+      for b in "XYZ":
+        l = lookup[(+1, a, b)]
+        r = lookup[(-1, a, b)]
+        mixed.append( conv(l,r) )
+    l = mixed[0]
+    rels = [(l,r) for r in mixed[1:]]
+
+    other = space.quotient(*rels)
+    print(other.dim)
 
 
 
