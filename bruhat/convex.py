@@ -68,12 +68,12 @@ class Conv:
     def __len__(self):
         return len(self.gens)
 
-    def __str__(self):
-        #s = str(self.gens)
+    def longstr(self):
         s = str(self.u)
-        #s = s.replace("\n", "")
-        #s = s.replace(" ", "")
         return "Conv(\n%s, dim=%d)"%(s, self.dim)
+
+    def __str__(self):
+        return "Conv(dim=%d)"%(self.dim)
 
     @property
     def dim(self):
@@ -88,6 +88,7 @@ class Conv:
         u = l-r
         uu = u@u.d       
         K = uu.cokernel()
+        #print("cokernel", K.shape)
         #print("_quotient1:")
         #print(K)
         #print(self)
@@ -95,29 +96,33 @@ class Conv:
         rels = [(K*l, K*r) for (l,r) in rels]
         return Conv(gens), rels
 
-    def quotient(self, *rels):
+    def slow_quotient(self, *rels):
         #print("\nquotient:")
         other = self
         rels = list(rels)
         while rels:
             rel = rels.pop(0)
             other, rels = other._quotient1(*rel, rels)
+            print("quotient1:", other.dim)
             #print(other, len(rels))
         return other
 
-    def _fail_quotient(self, *rels):
-        # argh, how to do this in one go?
-        u = None
+    def fast_quotient(self, *rels):
+        #print("fast_quotient:", self)
+        if not rels:
+            return self
+        rows = []
         for (l,r) in rels:
-            lr = l-r
-            op = lr@lr.d 
-            u = op if u is None else u.stack(op)
-        K = u.cokernel()
-        print("quotient:")
-        print(u)
-        print(K)
+            row = (l-r).t.M[0]
+            rows.append(row)
+        u = Matrix(rows)
+        #print("kernel:")
+        K = u.kernel().t
+        #print(K.shape)
         gens = [K*v for v in self.gens]
         return Conv(gens)
+
+    quotient = fast_quotient
 
 
 def test():
@@ -221,29 +226,6 @@ def test():
     other = space.quotient(*rels)
     assert other.dim == 15
 
-    print(len(space.gens))
-    print(len(set(space.gens)))
-
-    # -------------------------------------------------
-
-    names = [(pm, a, b) for pm in (1,-1) for a in "XYZ" for b in "XYZ"]
-    print(names)
-    N = len(names)
-
-    space = Conv.free(N)
-    lookup = {name:space[i] for (i,name) in enumerate(names)}
-
-    mixed = []
-    for a in "XYZ":
-      for b in "XYZ":
-        l = lookup[(+1, a, b)]
-        r = lookup[(-1, a, b)]
-        mixed.append( conv(l,r) )
-    l = mixed[0]
-    rels = [(l,r) for r in mixed[1:]]
-
-    other = space.quotient(*rels)
-    print(other.dim)
 
 
 def test_clifford():
@@ -396,41 +378,8 @@ def test_clifford():
         i, j, k, l = item
         rels.append((conv(space[i], space[k]), conv(space[j], space[l])))
 
-    print("quotient:")
     other = space.quotient(*rels)
-    print(other.dim)
-
-    #for g in G:
-    #    f = g.fixed()
-    #    print("fixed:", len(f), "order:", g.order())
-
-    return
-
-    ops = []
-    for i in range(n):
-        ops.append(X(i))
-        ops.append(Y(i))
-        ops.append(Z(i))
-
-    found = list(found)
-    for v in found:
-        for op in ops:
-            if op*v==v:
-                print("+1", end=" ")
-            elif op*v==-v:
-                print("-1", end=" ")
-            else:
-                print(" .", end=" ")
-        #print([int(op*v==v) for op in ops], end=" ") 
-        #print([int(op*v==-v) for op in ops]) 
-        #print(v.t)
-        print()
-    
-#    for v in found:
-#        print(v.t, [int(v==u) for u in found])
-#    for v in found:
-#        print(hash(v), end=" ")
-#    print()
+    assert other.dim == N**2-1
 
 
 
