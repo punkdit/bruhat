@@ -8,6 +8,7 @@ from sage.all_cmdline import ZZ, QQ
 #from bruhat.matrix_sage import Matrix
 from bruhat import matrix_sage
 from bruhat.argv import argv
+from bruhat.gset import mulclose, Perm, Group
 
 
 ring = QQ
@@ -243,6 +244,194 @@ def test():
 
     other = space.quotient(*rels)
     print(other.dim)
+
+
+def test_clifford():
+    from bruhat.clifford_sage import Clifford, K
+
+    n = argv.get("n", 1)
+
+    c = Clifford(n)
+    S, H, CX, CZ = c.S, c.H, c.CX, c.CZ
+    X, Y, Z = c.X, c.Y, c.Z
+    wI = c.w()
+    I = c.I
+
+    # use generators in SU(N)?
+    gen = []
+    for i in range(n):
+        #gen.append(wI*S(i))
+        gen.append(S(i))
+        #gen[-1].name = ("S",)
+        gen.append(H(i))
+        #gen[-1].name = ("H",)
+        for j in range(i+1, n):
+            gen.append(CZ(i,j))
+    #gen = [wI*S(0), wI*S(1), wI*wI*H(0), wI*wI*H(1), wI*CZ()]
+    for g in gen:
+        #print(g)
+        #assert g.determinant() == 1
+        assert g*g.d == I
+
+#    # for n=2 we get 46080 or 92160 depending on generators...
+#    G = mulclose(gen, verbose=True)
+#    print("|G| =", len(G))
+
+    N = 2**n
+
+    def canonical(v):
+        for i in range(N):
+            r = v.M[i,0]
+            if r:
+                break
+        else:
+            assert 0
+        v = (1/r)*v
+        return v
+
+
+    v = [0]*N
+    v[0] = 1
+    v = matrix_sage.Matrix(K, [v]).t
+#    stab = [g for g in G if canonical(g*v)==v]
+#    print("stab =", len(stab))
+#
+#    for g in stab:
+#        print(g)
+#    return
+
+    bdy = [v]
+    found = set(bdy)
+    while bdy:
+        _bdy = []
+        for v in bdy:
+          for g in gen:
+            gv = g*v
+            #gv = canonical(gv)
+            if gv in found:
+                continue
+            found.add(gv)
+            _bdy.append(gv)
+        bdy = _bdy
+        print(len(found), end=" ", flush=True)
+    print()
+
+    found = list(found)
+    items = set(canonical(v) for v in found)
+    items = list(items)
+
+    lookup = {v:i for (i,v) in enumerate(items)}
+
+    def getop(op):
+        idxs = []
+        for (i,v) in enumerate(items):
+            u = op*v
+            j = lookup[canonical(u)]
+            idxs.append(j)
+        return Perm(idxs)
+
+    pauli = []
+    for i in range(n):
+        pauli.append( getop(X(i)) )
+        pauli.append( getop(Y(i)) )
+        pauli.append( getop(Z(i)) )
+    G = Group.generate(pauli)
+    print("Pauli:", len(G))
+
+    M = len(items)
+    space = Conv.free(M)
+
+    if 0:
+        mixed = []
+        for i in range(M):
+            orbit = set(g[i] for g in G)
+            assert len(orbit) == N
+            v = reduce(add, [space[j] for j in orbit])
+            v = (one/N)*v
+            mixed.append(v)
+        l = mixed[0]
+        rels = [(l,r) for r in mixed[1:]]
+    
+        #space = space.quotient(*rels)
+        #print(space.dim)
+
+    op = getop(S(0))
+    perms = [getop(g) for g in gen]
+    #G = mulclose(perms, verbose=True)
+    #orbit = { g*op*~g for g in G }
+
+    bdy = [op]
+    orbit = set(bdy)
+    while bdy:
+        _bdy = []
+        for op in bdy:
+          for g in perms:
+            gop = g*op*~g
+            if gop not in orbit:
+                orbit.add(gop)
+                _bdy.append(gop)
+        bdy = _bdy
+
+    print("S ops:", len(orbit))
+
+    squares = set()
+    found = set()
+    for s in orbit:
+        assert s.order() == 4
+        for item in s.get_orbits():
+            item = tuple(item)
+            if len(item)!=4:
+                continue
+            i = item[0]
+            item = (i, s[i], s[s[i]], s[s[s[i]]])
+            #if item in found:
+            #    continue
+            squares.add(item)
+    print("squares:", len(squares))
+    rels = []
+    for item in squares:
+        if 0 in item:
+            print(item)
+
+        i, j, k, l = item
+        rels.append((conv(space[i], space[k]), conv(space[j], space[l])))
+
+    print("quotient:")
+    other = space.quotient(*rels)
+    print(other.dim)
+
+    #for g in G:
+    #    f = g.fixed()
+    #    print("fixed:", len(f), "order:", g.order())
+
+    return
+
+    ops = []
+    for i in range(n):
+        ops.append(X(i))
+        ops.append(Y(i))
+        ops.append(Z(i))
+
+    found = list(found)
+    for v in found:
+        for op in ops:
+            if op*v==v:
+                print("+1", end=" ")
+            elif op*v==-v:
+                print("-1", end=" ")
+            else:
+                print(" .", end=" ")
+        #print([int(op*v==v) for op in ops], end=" ") 
+        #print([int(op*v==-v) for op in ops]) 
+        #print(v.t)
+        print()
+    
+#    for v in found:
+#        print(v.t, [int(v==u) for u in found])
+#    for v in found:
+#        print(hash(v), end=" ")
+#    print()
+
 
 
 

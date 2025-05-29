@@ -299,6 +299,9 @@ class Matrix(object):
     def rank(self):
         return self.M.rank()
 
+    def determinant(self):
+        return self.M.determinant()
+
     def eigenvectors(self):
         evs = self.M.eigenvectors_right()
         spaces = []

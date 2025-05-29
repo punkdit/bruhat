@@ -168,7 +168,7 @@ class Perm(object):
     __invert__ = inverse
 
     def __getitem__(self, i):
-        return self.perm[i]
+        return int(self.perm[i])
 
     def __len__(self):
         return len(self.perm)
@@ -188,7 +188,7 @@ class Perm(object):
 
     def get_orbits(self):
         perm = self.perm
-        remain = set(i for i in perm)
+        remain = set(int(i) for i in perm)
         orbits = []
         while remain:
             i = iter(remain).__next__()

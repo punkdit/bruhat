@@ -11,13 +11,14 @@ from functools import reduce
 from functools import lru_cache
 cache = lru_cache(maxsize=None)
 
-from bruhat.solve import zeros2, identity2
-from bruhat.action import mulclose, mulclose_find, mulclose_hom
-from bruhat.gset import Group, Perm
-from bruhat.argv import argv
-
 from sage.all_cmdline import FiniteField, CyclotomicField, latex, block_diagonal_matrix
 from sage import all_cmdline 
+
+from bruhat.solve import zeros2, identity2
+from bruhat.action import mulclose, mulclose_find, mulclose_hom
+from bruhat.matrix_sage import Matrix
+from bruhat.gset import Group, Perm
+from bruhat.argv import argv
 
 K = CyclotomicField(8)
 w8 = K.gen()
@@ -51,132 +52,6 @@ def simplify_latex(self):
         s = latex(M)
     s = s.replace(r"\zeta_{8}^{2}", "i")
     return s
-
-
-
-class Matrix(object):
-    def __init__(self, ring, rows):
-        M = all_cmdline.Matrix(ring, rows)
-        M.set_immutable()
-        self.M = M
-        self.ring = ring
-        self.shape = (M.nrows(), M.ncols())
-
-    def __eq__(self, other):
-        assert isinstance(other, Matrix)
-        assert self.ring == other.ring
-        return self.M == other.M
-
-    def __hash__(self):
-        return hash(self.M)
-
-    def __str__(self):
-        lines = str(self.M).split("\n")
-        lines[0] = "[" + lines[0]
-        lines[-1] = lines[-1] + "]"
-        lines[1:] = [" "+l for l in lines[1:]]
-        return '\n'.join(lines)
-    __repr__ = __str__
-
-    def __mul__(self, other):
-        assert isinstance(other, Matrix)
-        assert self.ring == other.ring
-        assert self.shape[1] == other.shape[0], (
-            "cant multiply %sx%s by %sx%s"%(self.shape + other.shape))
-        M = self.M * other.M
-        return Matrix(self.ring, M)
-
-    def __add__(self, other):
-        assert isinstance(other, Matrix)
-        assert self.ring == other.ring
-        M = self.M + other.M
-        return Matrix(self.ring, M)
-
-    def __sub__(self, other):
-        assert isinstance(other, Matrix)
-        assert self.ring == other.ring
-        M = self.M - other.M
-        return Matrix(self.ring, M)
-
-    def __neg__(self):
-        M = -self.M
-        return Matrix(self.ring, M)
-
-    def __pow__(self, n):
-       assert n>=0
-       if n==0:
-           return Matrix.identity(self.ring, n)
-       return reduce(mul, [self]*n)
-
-    def __rmul__(self, r):
-        M = r*self.M
-        return Matrix(self.ring, M)
-
-    def __matmul__(self, other):
-        assert isinstance(other, Matrix)
-        assert self.ring == other.ring
-        M = self.M.tensor_product(other.M)
-        return Matrix(self.ring, M)
-    tensor_product = __matmul__
-
-    def direct_sum(self, other):
-        assert isinstance(other, Matrix)
-        assert self.ring == other.ring
-        #M = self.M.direct_sum(other.M)
-        M = block_diagonal_matrix(self.M, other.M)
-        return Matrix(self.ring, M)
-
-    def __getitem__(self, idx):
-        return self.M[idx]
-
-    def _latex_(self):
-        M = self.M
-        s = M._latex_()
-        if "zeta_" not in s:
-            return s
-        return simplify_latex(self)
-
-    @classmethod
-    def identity(cls, ring, n):
-        rows = []
-        for i in range(n):
-            row = [0]*n
-            row[i] = 1
-            rows.append(row)
-        return Matrix(ring, rows)
-
-    def order(self):
-        g = self
-        j = 1
-        I = Matrix.identity(self.ring, self.shape[0])
-        while g != I:
-            g = self*g
-            j += 1
-        return j
-
-    def inverse(self):
-        M = self.M.inverse()
-        return Matrix(self.ring, M)
-
-    def transpose(self):
-        M = self.M.transpose()
-        return Matrix(self.ring, M)
-
-    def is_diagonal(self):
-        M = self.M
-        return M.is_diagonal()
-        print(' '.join(dir(M)))
-        n = len(M) # XX
-        for i in range(n):
-          for j in range(n):
-            if i==j:
-                continue
-            if M[i,j] != 0:
-                return False
-        return True
-
-    def is_zero(self):
-        return self == -self
 
 
 class Coset(object):
@@ -273,6 +148,13 @@ class Clifford(object):
         X = Matrix(K, [[0, 1], [1,  0]])
         Xi = self.mkop(i, X)
         return Xi
+
+    @cache
+    def Y(self, i=0):
+        K = self.K
+        Y = Matrix(K, [[0, w4], [-w4,  0]])
+        Yi = self.mkop(i, Y)
+        return Yi
         
     @cache
     def H(self, i=0):
@@ -827,6 +709,7 @@ def test():
     test_clifford3()
     test_bruhat()
     #test_cocycle() # sloooow
+    test_CCZ()
 
 
 
