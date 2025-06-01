@@ -246,6 +246,8 @@ def test_clifford():
     assert HI*IX*HI == IX
     assert SWAP01 == CX01*CX10*CX01
 
+
+
 def test_clifford3():
     c3 = Clifford(3)
     wI = c3.w()
@@ -704,6 +706,32 @@ def test_CCZ():
     print(name)
 
 
+def test_su2():
+    K = CyclotomicField(8)
+    w = K.gen()
+    one = K.one()
+    w2 = w*w
+    r2 = w+w.conjugate()
+    ir2 = r2 / 2
+    
+    I = Matrix(K, [[1, 0], [0, 1]])
+    w2I = Matrix(K, [[w2, 0], [0, w2]])
+    S = Matrix(K, [[1, 0], [0, w2]])
+    X = Matrix(K, [[0, 1], [1, 0]])
+    Z = Matrix(K, [[1, 0], [0, -1]])
+    H = Matrix(K, [[ir2, ir2], [ir2, -ir2]])
+    
+    Pauli1 = mulclose([w2I, X, Z])
+    Cliff1 = mulclose([w2I, S, H])
+    
+    assert len(Pauli1) == 16
+    assert len(Cliff1) == 192
+
+    G = [g for g in Cliff1 if g.determinant() == 1]
+    print(len(G))
+
+
+    
 def test():
     test_clifford()
     test_clifford3()

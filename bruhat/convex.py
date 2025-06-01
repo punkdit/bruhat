@@ -3,7 +3,7 @@
 from operator import mul, matmul, add
 from functools import reduce
 
-from sage.all_cmdline import ZZ, QQ
+from sage.all import ZZ, QQ
 
 #from bruhat.matrix_sage import Matrix
 from bruhat import matrix_sage
@@ -58,7 +58,7 @@ class Conv:
         self.u = u
         shape = None
         for v in gens:
-            assert v.sum() == 0
+            #assert v.sum() == 0 
             assert shape is None or v.shape == shape
             shape = v.shape
 
@@ -123,6 +123,12 @@ class Conv:
         return Conv(gens)
 
     quotient = fast_quotient
+
+    def get_polyhedron(self):
+        from sage.all import Polyhedron
+        vs = [v.t.M[0] for v in self.gens]
+        p = Polyhedron(vertices=vs)
+        return p
 
 
 def test():
@@ -227,6 +233,18 @@ def test():
     assert other.dim == 15
 
 
+def canonical(v):
+    N = v.shape[0]
+    for i in range(N):
+        r = v.M[i,0]
+        if r:
+            break
+    else:
+        assert 0
+    v = (1/r)*v
+    return v
+
+
 
 def test_clifford():
     from bruhat.clifford_sage import Clifford, K
@@ -260,17 +278,6 @@ def test_clifford():
 #    print("|G| =", len(G))
 
     N = 2**n
-
-    def canonical(v):
-        for i in range(N):
-            r = v.M[i,0]
-            if r:
-                break
-        else:
-            assert 0
-        v = (1/r)*v
-        return v
-
 
     v = [0]*N
     v[0] = 1
@@ -382,6 +389,106 @@ def test_clifford():
     assert other.dim == N**2-1
 
 
+def get_clifford_hull(n, verbose=False):
+    "find convex stabilizer polytope using density matrices"
+
+    from bruhat.clifford_sage import Clifford, K, w4
+
+    c = Clifford(n)
+    S, H, CX, CZ = c.S, c.H, c.CX, c.CZ
+    X, Y, Z = c.X, c.Y, c.Z
+    wI = c.w()
+    I = c.I
+
+    gen = []
+    for i in range(n):
+        gen.append(S(i))
+        gen.append(H(i))
+        for j in range(i+1, n):
+            gen.append(CZ(i,j))
+    for g in gen:
+        assert g*g.d == I
+
+    #G = mulclose(gen)
+    #print(len(G))
+
+    N = 2**n
+    v = [0]*N
+    v[0] = 1
+    v = matrix_sage.Matrix(K, [v]).t
+
+#    orbit = set()
+#    for g in G:
+#        u = g*v
+#        u = canonical(u)
+#        orbit.add(u)
+#    print(len(orbit))
+
+    rho = v@v.d
+    #orbit = set([g*rho*~g for g in G])
+    #print(len(orbit))
+
+    pairs = [(g,~g) for g in gen]
+
+    bdy = [rho]
+    orbit = set(bdy)
+    while bdy:
+        _bdy = []
+        for rho in bdy:
+          #for g in gen:
+          for (g,ig) in pairs:
+            grho = g*rho*ig
+            if grho not in orbit:
+                orbit.add(grho)
+                _bdy.append(grho)
+        bdy = _bdy
+        if verbose:
+            print(len(orbit), end=" ", flush=True)
+    if verbose:
+        print()
+
+    M = (2**n)**2
+    zero = Matrix([0]*M)
+    verts = []
+    for rho in orbit:
+        #print(rho)
+        A = rho.real().coerce(QQ)
+        #print(A.shape, M)
+        A = A.reshape(1,M)
+        B = ((-w4)*rho.imag()).coerce(QQ).reshape(1,M)
+        A = A.stack(zero).reshape(1,2*M)
+        B = zero.stack(B).reshape(1,2*M)
+        v = A+B
+        verts.append(v.t)
+
+    u = reduce(add, verts)
+    u = (QQ.one()/len(verts)) * u
+    verts = [v-u for v in verts]
+
+    space = Conv(verts)
+    return space
+
+
+def test_orbit():
+
+    print("test_orbit")
+    n = argv.get("n", 1)
+    space = get_clifford_hull(n)
+    print(space)
+    p = space.get_polyhedron()
+
+    print(p)
+    #print(" ".join(dir(p)))
+    #print(p.Hrepresentation())
+    #print(p.face_lattice())
+    i = 0
+    while 1:
+        fs = p.faces(i)
+        print(i, len(fs))
+        if len(fs)==0:
+            break
+        i += 1
+    
 
 
 if __name__ == "__main__":

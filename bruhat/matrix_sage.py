@@ -282,6 +282,21 @@ class Matrix(object):
         name = tuple(name+".d" for name in reversed(self.name))
         return Matrix(self.ring, M, name)
 
+    def real(self):
+        ring = self.ring
+        M = self.M + self.M.conjugate()
+        M = (ring.one()/2)*M
+        return Matrix(self.ring, M)
+
+    def imag(self):
+        ring = self.ring
+        M = self.M - self.M.conjugate()
+        M = (ring.one()/2)*M
+        return Matrix(self.ring, M)
+
+    def coerce(self, ring):
+        return Matrix(ring, self.M)
+
     @property
     def d(self):
         return self.dagger()
