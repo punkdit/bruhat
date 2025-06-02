@@ -487,6 +487,7 @@ def test_orbit():
         print(i, len(fs))
         if len(fs)==0:
             break
+        del fs
         i += 1
     
 
