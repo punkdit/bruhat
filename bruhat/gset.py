@@ -204,6 +204,28 @@ class Perm(object):
             orbits.append(orbit)
         return orbits
 
+    def cycles(self):
+        remain = set(self.perm)
+        cycles = []
+        while remain:
+            item = iter(remain).__next__()
+            orbit = [item]
+            #print(type(self), type(item), "__mul__")
+            item1 = self[item]
+            while item1 != item:
+                orbit.append(item1)
+                item1 = self[item1]
+                assert len(orbit) <= self.rank
+            assert orbit
+            cycles.append(orbit)
+            n = len(remain)
+            for item in orbit:
+                remain.remove(item)
+            assert len(remain) < n
+        return cycles
+
+
+
 
 
 def compose(f, g):

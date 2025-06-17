@@ -5,10 +5,13 @@ from functools import reduce
 
 from sage.all import ZZ, QQ
 
+import numpy
+
 #from bruhat.matrix_sage import Matrix
 from bruhat import matrix_sage
 from bruhat.argv import argv
 from bruhat.gset import mulclose, Perm, Group
+from bruhat.solve import shortstr
 
 
 ring = QQ
@@ -488,7 +491,103 @@ def test_orbit():
         if len(fs)==0:
             break
         i += 1
+
+
+def get_autos(A, B):
+    m, n = A.shape
+    k, l = B.shape
+    assert l==n
+
+    from pynauty import Graph, autgrp
+    g = Graph(n+m+k) # bits + checks
+
+    for bit in range(n):
+        checks = [n+check for check in range(m) if A[check, bit]]
+        g.connect_vertex(bit, checks)
+
+    for check in range(m):
+        bits = [bit for bit in range(n) if A[check, bit]]
+        g.connect_vertex(n+check, bits)
+
+    for face in range(k):
+        idxs = [i for i in range(n) if B[face, i]]
+        g.connect_vertex(n+m+face, idxs)
+
+    g.set_vertex_coloring([set(range(n)), set(range(n, m+n)), set(range(m+n, m+n+k))])
+    aut = autgrp(g)
+
+    gen = aut[0]
+    print(aut[1])
+    assert aut[1] == int(aut[1]), str(aut[1])
+    N = int(aut[1])
+    items = list(range(n))
+    perms = []
+    for perm in gen:
+        perm = perm[:n]
+        #print(perm)
+        perm = Perm(perm)
+        perms.append(perm)
+    #print(gap_code(perms))
+    return N, perms
+
+
+
+
+def test_autos():
     
+    print("test_autos")
+    n = argv.get("n", 1)
+    space = get_clifford_hull(n)
+    print(space)
+
+    p = space.get_polyhedron()
+    print(p)
+
+    verts = p.faces(0)
+    edges = p.faces(1)
+    faces = p.faces(2)
+
+    print(len(verts))
+
+    #for v in verts:
+    v = verts[0]
+    e = edges[0]
+    #for name in dir(e):
+    #    print(name)
+
+    #print(e.ambient_Vrepresentation())
+
+    #return
+
+    verts = [v.vertices()[0] for v in verts]
+    edges = [set(e.vertices()) for e in edges]
+    faces = [set(f.vertices()) for f in faces]
+
+    lookup = {v:i for (i,v) in enumerate(verts)}
+
+    A = numpy.zeros((len(edges), len(verts)), dtype=int)
+    B = numpy.zeros((len(faces), len(verts)), dtype=int)
+
+    for idx,(v0,v1) in enumerate(edges):
+        A[idx, lookup[v0]] = 1
+        A[idx, lookup[v1]] = 1
+
+    for idx,f in enumerate(faces):
+        for v in f:
+            B[idx, lookup[v]] = 1
+
+    print(A.shape)
+    print(shortstr(A))
+    print()
+    print(shortstr(B))
+
+    #A = A.transpose()
+    N, perms = get_autos(A, B)
+
+    from bruhat.oeqc import gap_code
+    print(gap_code(perms))
+
+
 
 
 if __name__ == "__main__":
