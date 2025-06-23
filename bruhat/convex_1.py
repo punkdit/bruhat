@@ -51,7 +51,7 @@ def conv(a, b, r=one/2):
 #    for v in vs:
 
 
-class Convex:
+class Conv:
     def __init__(self, gens):
         self.gens = list(gens)
         # put gens in the columns of u:
@@ -73,10 +73,10 @@ class Convex:
 
     def longstr(self):
         s = str(self.u)
-        return "Convex(\n%s, dim=%d)"%(s, self.dim)
+        return "Conv(\n%s, dim=%d)"%(s, self.dim)
 
     def __str__(self):
-        return "Convex(dim=%d)"%(self.dim)
+        return "Conv(dim=%d)"%(self.dim)
 
     @property
     def dim(self):
@@ -85,7 +85,7 @@ class Convex:
     @classmethod
     def free(cls, n):
         vs = make_free(n)
-        return Convex(vs)
+        return Conv(vs)
 
     def _quotient1(self, l, r, rels):
         u = l-r
@@ -97,7 +97,7 @@ class Convex:
         #print(self)
         gens = [K*v for v in self.gens]
         rels = [(K*l, K*r) for (l,r) in rels]
-        return Convex(gens), rels
+        return Conv(gens), rels
 
     def slow_quotient(self, *rels):
         #print("\nquotient:")
@@ -123,7 +123,7 @@ class Convex:
         K = u.kernel().t
         #print(K.shape)
         gens = [K*v for v in self.gens]
-        return Convex(gens)
+        return Conv(gens)
 
     quotient = fast_quotient
 
@@ -164,7 +164,7 @@ def test():
 
     # -------------------------------------------------------
 
-    space = Convex.free(4)
+    space = Conv.free(4)
     assert space.dim == 3
 
     # now construct the square by imposing one relator
@@ -190,7 +190,7 @@ def test():
 
     # now we construct the tensor product of the square with
     # itself, giving an 8 dimensional conv space
-    space = Convex.free(16)
+    space = Conv.free(16)
     lookup = {(i,j):space[i+4*j] for i in range(4) for j in range(4)}
 
     rels = []
@@ -206,7 +206,7 @@ def test():
 
     # -------------------------------------------------------
 
-    space = Convex.free(6)
+    space = Conv.free(6)
     a, b, c, d, e, f = space
 
     # construct an Octahedron == Bloch Octahedron
@@ -218,7 +218,7 @@ def test():
 
     # tensor square of this is the separable states
     N = 6
-    space = Convex.free(N*N)
+    space = Conv.free(N*N)
     lookup = {(i,j):space[i+N*j] for i in range(N) for j in range(N)}
 
     rels = []
@@ -331,7 +331,7 @@ def test_clifford():
     print("Pauli:", len(G))
 
     M = len(items)
-    space = Convex.free(M)
+    space = Conv.free(M)
 
     if 0:
         mixed = []
@@ -468,7 +468,7 @@ def get_clifford_hull(n, verbose=False):
     u = (QQ.one()/len(verts)) * u
     verts = [v-u for v in verts]
 
-    space = Convex(verts)
+    space = Conv(verts)
     return space
 
 
@@ -478,37 +478,19 @@ def test_orbit():
     n = argv.get("n", 1)
     space = get_clifford_hull(n)
     print(space)
-    
-    assert n < 3, "too big.."
     p = space.get_polyhedron()
 
     print(p)
     #print(" ".join(dir(p)))
-
-    m = argv.get("m")
-    if m is not None:
-        fs = p.faces(m)
-        print(len(fs))
-        print(fs[0])
-        return
-
-    #return
-    #p = p*p
-
     #print(p.Hrepresentation())
     #print(p.face_lattice())
-    counts = []
-    total = -1
     i = 0
     while 1:
-        c = len(p.faces(i))
-        print(i, c)
-        total += ((-1)**i)*c
-        counts.append(c)
-        if c==0:
+        fs = p.faces(i)
+        print(i, len(fs))
+        if len(fs)==0:
             break
         i += 1
-<<<<<<< HEAD
 
 
 def get_autos(A, B):
@@ -552,9 +534,6 @@ def get_autos(A, B):
 
 
 def test_autos():
-=======
-    print("total:", total)
->>>>>>> c0721d70f92c29f295cf9adc3866a2b8b7420bf6
     
     print("test_autos")
     n = argv.get("n", 1)
