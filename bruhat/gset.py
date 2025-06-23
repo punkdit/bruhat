@@ -28,7 +28,7 @@ scalar = numpy.int64
 
 from bruhat.algebraic import Algebraic, Matrix
 from bruhat.util import factorial, cross, is_prime, choose
-from bruhat.action import mulclose
+from bruhat.action import mulclose, mulclose_hom
 from bruhat.equ import Equ
 from bruhat.argv import argv
 
@@ -762,6 +762,55 @@ class Group(object):
         cosets = list(cosets)
         cosets.sort()
         return cosets
+
+    def distribution(G):
+        dist = [[] for _ in range(len(G)+1)]
+        for g in G:
+            dist[g.order()].append(g)
+        return dist
+
+    def isomorphic(G, H):
+        "a not very clever search for a group isomorphism"
+        assert isinstance(H, Group)
+        if len(G) != len(H):
+            return
+
+        if G is H:
+            return {g:g for g in G}
+
+        if len(G) > 64:
+            assert 0, "too big i think ... ?!?"
+
+        left = G.distribution()
+        right = H.distribution()
+        l = [len(items) for items in left]
+        r = [len(items) for items in right]
+        if l != r:
+            return
+        #print(l)
+        #print(r)
+
+        pairs = [(g,h) for g in G for h in G]
+        pair = None
+        for (g,h) in pairs:
+            K = mulclose([g,h])
+            if len(K) < len(G):
+                continue
+            pair = (g,h)
+
+        if pair is None:
+            assert 0, "todo.. look for generating triples, etc."
+
+        lg, lh = pair
+        i,j = lg.order(), lh.order()
+        for rg in right[i]:
+          for rh in right[j]:
+            hom = mulclose_hom( [lg, lh], [rg, rh] )
+            #print(hom is not None, end=" ")
+            if hom is not None:
+                assert len(hom) == len(G)
+                return hom
+        
 
 
 class GSet(object):
@@ -1629,6 +1678,27 @@ def test_homology():
 #        print("cobetti %d ="%i, rank(d0) - nullity(d1)) # == 0
     
 
+def test_isomorphic():
+
+    Gs = [
+        Group.dihedral(6),
+        Group.alternating(4),
+        Group.symmetric(3) * Group.cyclic(2),
+        Group.cyclic(2) * Group.symmetric(3),
+        Group.cyclic(2) * Group.cyclic(3) * Group.cyclic(2),
+        Group.cyclic(3) * Group.cyclic(2) * Group.cyclic(2),
+    ]
+
+    N = len(Gs)
+    for i in range(N):
+      for j in range(i+1, N):
+        G,H = Gs[i], Gs[j]
+        iso = G.isomorphic(H)
+        assert (iso is not None) == ((i,j) in [(0,2), (0,3), (2,3), (4,5)])
+        assert (iso is not None) == (H.isomorphic(G) is not None)
+
+
+
 def main():
     G = Group.dihedral(4)
     G = Group.symmetric(4)
@@ -1677,11 +1747,12 @@ def test_orbits():
 
 
 def test():
+    test_isomorphic()
     #test_set()
-    test_gset()
-    test_subgroups()
-    test_homology()
-    test_orbits()
+    #test_gset()
+    #test_subgroups()
+    #test_homology()
+    #test_orbits()
 
     
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 
@@ -27,7 +27,7 @@ from functools import reduce
 from operator import mul
 
 import numpy
-from numpy import dot, alltrue, zeros, array, identity, kron, concatenate
+from numpy import dot, zeros, array, identity, kron, concatenate
 
 from bruhat.action import mulclose, mulclose_hom, Perm
 from bruhat.util import cross
@@ -70,7 +70,7 @@ class Vector(object):
 
     def __eq__(u, v):
         assert u.n == v.n
-        return alltrue(u.v == v.v)
+        return numpy.all(u.v == v.v)
 
     def __hash__(u):
         key = u.v.tobytes()
@@ -211,14 +211,14 @@ class Symplectic(object):
         n, A = A.n, A.A
         F = symplectic_form(n)
         B = dot(dot(A.transpose(), F), A) % 2
-        assert alltrue(B==F)
+        assert numpy.all(B==F)
 
     def __str__(self):
         return str(self.A)
 
     def __eq__(A, B):
         assert A.n == B.n
-        return numpy.alltrue(A.A==B.A)
+        return numpy.all(A.A==B.A)
 
     def __hash__(A):
         return hash(A.A.tobytes())

@@ -90,7 +90,7 @@ def mulclose_find(gen, names, tgt, verbose=False, maxsize=None):
 
 
 def mulclose_hom(gen1, gen2, verbose=False, maxsize=None):
-    "build a group hom from generators: gen1 -> gen2"
+    "build a group hom from generators: gen1 -> gen2. Bail out if there is none."
     hom = {}
     assert len(gen1) == len(gen2)
     for i in range(len(gen1)):
@@ -107,7 +107,9 @@ def mulclose_hom(gen1, gen2, verbose=False, maxsize=None):
                     hom[C1] = hom[A] * hom[B]
                     _bdy.append(C1)
                     if maxsize and len(els)>=maxsize:
-                        return list(els)
+                        return hom
+                elif hom[C1] != hom[A] * hom[B]:
+                    return None
         bdy = _bdy
     return hom 
 

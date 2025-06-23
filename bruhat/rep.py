@@ -164,7 +164,7 @@ class Rep(Element): # Object of the category
         send_perms = {}
         hom = Hom(V, V)
         for g in G:
-            ag = act[g]
+            ag = act(g)
             rg = Map([((ag[i], i), one) for i in gen], hom)
             #print(g, "--->")
             #print(rg)
@@ -210,7 +210,7 @@ def burnside(tp): # make it a method
             idx += 1
 
         act = G.left_action(cosets)
-        assert act.src is G
+        assert act.G is G
         act = act.rename(names, items)
         act.name = letter
         H.name = act.name
