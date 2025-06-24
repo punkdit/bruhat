@@ -13,6 +13,7 @@ from bruhat.argv import argv
 from bruhat.gset import mulclose, Perm, Group
 from bruhat.solve import shortstr
 
+from bruhat.clifford_sage import Clifford, K, w4
 
 ring = QQ
 one = ring.one()
@@ -250,7 +251,7 @@ def canonical(v):
 
 
 def test_clifford():
-    from bruhat.clifford_sage import Clifford, K
+    #from bruhat.clifford_sage import Clifford, K
 
     n = argv.get("n", 1)
 
@@ -392,10 +393,7 @@ def test_clifford():
     assert other.dim == N**2-1
 
 
-def get_clifford_hull(n, verbose=False):
-    "find convex stabilizer polytope using density matrices"
-
-    from bruhat.clifford_sage import Clifford, K, w4
+def get_clifford_states(n, verbose=False):
 
     c = Clifford(n)
     S, H, CX, CZ = c.S, c.H, c.CX, c.CZ
@@ -449,6 +447,13 @@ def get_clifford_hull(n, verbose=False):
             print(len(orbit), end=" ", flush=True)
     if verbose:
         print()
+    return orbit
+
+
+def get_clifford_hull(n, verbose=False):
+    "find convex stabilizer polytope using density matrices"
+
+    orbit = get_clifford_states(n, verbose)
 
     M = (2**n)**2
     zero = Matrix([0]*M)
@@ -470,6 +475,84 @@ def get_clifford_hull(n, verbose=False):
 
     space = Convex(verts)
     return space
+
+
+def test_positive():
+    # This is a disaster:
+    # the "positive" stabilizer codes are a quotient-polytope
+    # not a sub-polytope.
+
+    c = Clifford(1)
+    I, X, Y, Z = c.I, c.X(), c.Y(), c.Z()
+    #Y = X*Z # no use..
+
+    n = 3
+    
+    pauli = [I, X, Y, Z]
+    lookup = {}
+    gens = []
+
+    for idx in numpy.ndindex((4,)*n):
+        #lr = pauli[i]@pauli[j]
+        #lookup[lr] = "IXYZ"[i] + "IXYZ"[j]
+        #if i==j==0:
+            #continue
+        ops = [pauli[i] for i in idx]
+        op = reduce(matmul, ops)
+        name = ''.join("IXYZ"[i] for i in idx)
+        lookup[op] = name
+        if sum(idx):
+            gens.append(op)
+
+    print("gens:", len(gens))
+
+    orbit = get_clifford_states(n)
+    print("orbit:", len(orbit))
+
+    II = I@I
+
+    count = 0
+    keys = set()
+    for rho in orbit:
+        
+        ops = [op for op in gens if rho*op==rho]
+        found = len(ops)
+
+        if found < n:
+            continue
+
+        key = [lookup[op] for op in ops]
+        key.sort()
+        key = tuple(key)
+        if key not in keys:
+            print( ' '.join(key) )
+        else:
+            print("*")
+        #assert key not in keys
+        keys.add(key)
+
+        if found==2:
+            a,b = ops
+            #print(a*b == b*a)
+            #print(a*b in gens, -a*b in gens)
+            
+        if found==3:
+            a, b, c = ops
+            #print(a*b==b*a, a*c==c*a, b*c==c*b)
+        #assert found <= 3
+        count += 1
+
+        #print(found, end=' ')
+
+    #print(keys, len(keys))
+    #print()
+    print(count, "of", len(orbit))
+    print("keys:", len(keys))
+
+    assert( (X@X) * (Z@Z) == -(Y@Y) )
+    assert( (X@Y) * (Z@X) == -(Y@Z) )
+    assert( (X@Z) * (Z@Y) == -(Y@X) )
+        
 
 
 def test_orbit():
