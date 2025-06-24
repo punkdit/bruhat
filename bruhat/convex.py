@@ -508,7 +508,6 @@ def test_orbit():
         if c==0:
             break
         i += 1
-<<<<<<< HEAD
 
 
 def get_autos(A, B):
@@ -552,9 +551,6 @@ def get_autos(A, B):
 
 
 def test_autos():
-=======
-    print("total:", total)
->>>>>>> c0721d70f92c29f295cf9adc3866a2b8b7420bf6
     
     print("test_autos")
     n = argv.get("n", 1)
