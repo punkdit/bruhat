@@ -477,6 +477,57 @@ def get_clifford_hull(n, verbose=False):
     return space
 
 
+def test_stabilizer_states():
+    c = Clifford(1)
+    I, X, Y, Z = c.I, c.X(), c.Y(), c.Z()
+
+    n = 2
+    
+    pauli = [I, X, Y, Z]
+    lookup = {}
+    gens = []
+
+    II = I@I
+
+    for idx in numpy.ndindex((4,)*n):
+        #lr = pauli[i]@pauli[j]
+        #lookup[lr] = "IXYZ"[i] + "IXYZ"[j]
+        #if i==j==0:
+            #continue
+        ops = [pauli[i] for i in idx]
+        op = reduce(matmul, ops)
+        name = ''.join("IXYZ"[i] for i in idx)
+        lookup[op] = name
+        lookup[-op] = "-"+name
+        if sum(idx):
+            gens.append(op)
+            print(name, end=' ')
+    print()
+    print("gens:", len(gens))
+
+    found = set()
+    for a in gens:
+      for b in gens:
+        if a*b != b*a:
+            continue
+        if a==b:
+            continue
+        S = mulclose([a,b])
+        assert len(S) == 4
+        assert -II not in S
+        S = list(S)
+        S.sort(key = str)
+        S = tuple(S)
+        found.add(S)
+
+    print(len(found))
+
+    for S in found:
+        print(" ".join(lookup[op] for op in S))
+
+
+
+
 def test_positive():
     # This is a disaster:
     # the "positive" stabilizer codes are a quotient-polytope
