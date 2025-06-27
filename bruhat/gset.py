@@ -224,6 +224,22 @@ class Perm(object):
             assert len(remain) < n
         return cycles
 
+    def gap_fmt(perm):
+        cs = perm.cycles()
+        ss = []
+        for c in cs:
+            if len(c)==1:
+                continue
+            c = [int(i+1) for i in c]
+            ss.append(tuple(c))
+        return ''.join(str(s) for s in ss)
+
+
+def gap_code(perms):
+    s = [perm.gap_fmt() for perm in perms]
+    s = "Group(%s);"%(', '.join(s))
+    return s
+
 
 
 
@@ -791,7 +807,12 @@ class Group(object):
             dist[g.order()].append(g)
         return dist
 
-    def isomorphic(G, H):
+    def is_isomorphic(G, H):
+        hom = G.isomorphism(H)
+        return hom is not None
+    isomorphic = is_isomorphic
+
+    def isomorphism(G, H):
         "a not very clever search for a group isomorphism"
         assert isinstance(H, Group)
         if len(G) != len(H):
@@ -829,9 +850,12 @@ class Group(object):
           for rh in right[j]:
             hom = mulclose_hom( [lg, lh], [rg, rh] )
             #print(hom is not None, end=" ")
-            if hom is not None:
-                assert len(hom) == len(G)
-                return hom
+            if hom is None:
+                continue
+            assert len(hom) == len(G)
+            if len(set(hom.values())) < len(G):
+                return None
+            return hom
         
 
 

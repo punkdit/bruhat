@@ -15,9 +15,11 @@ from sage.all_cmdline import FiniteField, CyclotomicField, latex, block_diagonal
 from sage import all_cmdline 
 
 from bruhat.solve import zeros2, identity2
-from bruhat.action import mulclose, mulclose_find, mulclose_hom
+from bruhat.action import mulclose, mulclose_find, mulclose_hom, mulclose_names
 from bruhat.matrix_sage import Matrix
-from bruhat.gset import Group, Perm
+from bruhat.gset import Group, Perm, gap_code
+from bruhat.util import cross
+from bruhat.smap import SMap
 from bruhat.argv import argv
 
 K = CyclotomicField(8)
@@ -515,6 +517,207 @@ def test_cocycle():
         print("%s=%s"%(lhs%2,rhs%2), end=" ")
 
 
+def test_extension_1():
+
+    n = 1
+    c = Clifford(n)
+    I = c.I
+
+    gen = [w4*I, c.X(), c.Z()]
+    Pauli = mulclose(gen)
+    Pauli = list(Pauli)
+    assert len(Pauli) == 16
+
+    gen = [c.I, c.S(), c.H()]
+    names = "ISH"
+    Cliff = mulclose(gen)
+    assert len(Cliff) == 192
+
+    lookup = {g:i for (i,g) in enumerate(Pauli)}
+    perms = []
+    for g in gen:
+        ig = g.inverse()
+        idxs = [lookup[ig*h*g] for h in Pauli]
+        perm = Perm(idxs)
+        perms.append(perm)
+
+    #s = gap_code(perms)
+    #print(s)
+    # gap> G := Group((2, 5, 3, 15)(8, 10, 12, 13), 
+    # (2, 3)(4, 13)(5, 16)(6, 15)(8, 12)(10, 11));
+    # gap> StructureDescription(G);
+    # "S4"
+
+    #hom = mulclose_hom(gen, perms)
+    APs = Group.generate(perms)
+    assert len(APs) == 24
+
+    lookup = mulclose_names(perms, names)
+    lookup = {k:''.join(v) for (k,v) in lookup.items()}
+
+    S4 = Group.symmetric(4)
+    iso = S4.isomorphism(APs)
+    for g in iso:
+        h = iso[g]
+        name = lookup[h]
+        name = name.replace("SS", "Z")
+        name = name.replace("HZH", "X")
+        #print(g, "-->", name)
+
+    for trial in range(10):
+        iso = S4.isomorphism(APs)
+        for g in iso:
+          for h in iso:
+            assert iso[g*h] == iso[g]*iso[h]
+        assert len(set(iso.values())) == 24
+
+    a = Perm([1,0,3,2])
+    b = Perm([3,2,1,0])
+    assert a in S4
+    assert b in S4
+
+    H = Group.generate([a,b])
+    assert len(H) == 4
+    assert S4.is_subgroup(H)
+    assert S4.is_normal(H)
+
+    e = S4.identity
+    pairs = [(a,b) for a in S4 for b in S4]
+    for (a,b) in pairs:
+        if a*a!=e or b*b!=e or a*b == b*a:
+            continue
+        K = Group.generate([a,b])
+        if len(K) != 6:
+            continue
+        HK = set(h*k for h in H for k in K)
+        if len(HK) != 24:
+            continue
+
+        print(a)
+        print(b)
+
+        HK = [(h,k) for h in H for k in K]
+        for (h,k) in HK:
+          for (h1,k1) in HK:
+            assert h*k*h1*k1 == h*k*h1*~k*k*k1
+        break
+    else:
+        assert 0
+        
+    return
+
+    I, S, H = perms
+    Z = S*S
+    X = H*Z*H
+
+    assert X*Z == Z*X # life without phases
+    A = Group.generate([X, Z])
+    assert len(A) == 2**2
+
+    X = APs.action_subgroup(A)
+
+    # Z2xZ2 >--> APs==S_4 -->> Sp(2,2) == S_3
+    #   A   >-->   APs    -->>   tgt
+
+    src, tgt = X.src, X.tgt
+    send = X.send_perms # argh
+    proj = {}
+    for i,g in enumerate(src):
+        h = tgt[send[i]]
+        proj[g] = h
+
+    #print("section:")
+    section = {}
+    for g in src:
+        pg = proj[g]
+        if pg in section:
+            h = section[pg]
+            if len(lookup[g]) < len(lookup[h]):
+                section[pg] = g
+        else:
+            section[pg] = g
+        #print(proj[g], "-->", lookup[g])
+        # the proj is a 4-to-1 mapping
+
+    #   A   >-->   APs    -->>   tgt
+    #   4   >-->    24    -->>     6
+
+    #print("section:")
+    for k,v in section.items():
+        assert v in APs
+        #print(k, "-->", lookup[v])
+
+    assert len(X.tgt) == 6 # Sp(2,2) == GL(2,2) == S_3
+    #print(X.tgt, A, X.tgt is A)
+    
+    cocycle = lambda g,h : section[g]*section[h]*~section[g*h]
+
+    alookup = {"I":"I", "SS":"Z", "HSSH":"X", "SSHSSH":"XZ"}
+
+    for i,g in enumerate(tgt):
+      for j,h in enumerate(tgt):
+        u = cocycle(g, h)
+        #print("c(%s, %s) = %s" % (
+        #    lookup[section[g]], 
+        #    lookup[section[h]], 
+        #    alookup[lookup[u]]))
+
+    smap = SMap()
+    items = list(tgt)
+    items.sort()
+    for i,g in enumerate(items):
+      smap[0, 4+4*i] = lookup[section[g]]
+      smap[1, 4+4*i] = '----'
+      smap[2+i, 0] = lookup[section[g]]
+      smap[2+i, 3] = "|"
+      for j,h in enumerate(items):
+        u = cocycle(g, h)
+        s = alookup[lookup[u]]
+        smap[2+i,4+4*j] = s
+
+    print(smap)
+    
+    for g in tgt:
+      for h in tgt:
+        u = cocycle(g, h)
+        assert proj[u].is_identity()
+        #print(u)
+        k = choice(tgt)
+        a, b = cocycle(g, h*k), cocycle(h,k)
+        b = section[g]*b*~section[g]
+        assert a*b == b*a
+        c, d = cocycle(g*h, k), cocycle(g, h)
+        assert c*d == d*c
+        #print(int(a*b == c*d), end="")
+        assert a*b == c*d
+
+    print()
+
+    # dict'ify this
+    pairs = [(g,h)  for g in tgt for h in tgt]
+    cocycle = {(g,h) : cocycle(g,h) for (g,h) in pairs}
+
+    # phi: tgt --> A
+    N = len(tgt)
+    M = len(A)
+    print( "phi:", tgt, "-->", A )
+    count = 0
+    for orig in cross( (A,) * N ):
+        phi = {tgt[i]:orig[i] for i in range(N) }
+        dphi = {}
+        for (g,h) in pairs:
+            dphi[g,h] = section[g]*phi[h]*~section[g] * ~phi[g*h] * phi[g]
+        count += 1
+        if dphi!=cocycle:
+            continue
+        print("found phi:")
+        for i in range(N):
+            o = orig[i]
+            print("\t", lookup[section[tgt[i]]], "-->", alookup[lookup[o]])
+    assert count == M**N
+
+
+
 def test_extension():
 
     c2 = Clifford(2)
@@ -537,29 +740,20 @@ def test_extension():
     Pauli = list(Pauli)
     assert len(Pauli) == 64
 
-    #gen = [SI, IS, CX01, CX10, CZ]
-    #gen = [SI, IS, HI, IH, CZ]
-    #G = mulclose(gen, verbose=True, maxsize=92160)
-    #print(len(G))
-    #return G
-    #found = {}
-    #for g in G:
-    #    j = g.order()
-    #    print(j, end=" ", flush=True)
-    #    found.setdefault(j,[]).append(g)
-    #counts = list(found.keys())
-    #counts.sort()
-    #print([len(found[j]) for j in counts])
-#
-#    return
-
     gen = [SI, IS, HI, IH, CZ]
     lookup = {g:i for (i,g) in enumerate(Pauli)}
     perms = []
     for g in gen:
         ig = g.inverse()
         idxs = [lookup[ig*h*g] for h in Pauli]
-        perms.append(Perm(idxs))
+        perm = Perm(idxs)
+        perms.append(perm)
+
+    s = gap_code(perms)
+    print(s)
+
+    return
+
     #hom = mulclose_hom(gen, perms)
     APs = Group.generate(perms)
     assert len(APs) == 11520
