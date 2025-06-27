@@ -54,17 +54,21 @@ def conv(a, b, r=one/2):
 
 class Convex:
     def __init__(self, gens):
-        self.gens = list(gens)
+        gens = list(gens)
         # put gens in the columns of u:
+        lookup = {}
         u = None
         for v in gens:
+            lookup[v] = len(lookup)
             u = v if u is None else u.augment(v)
-        self.u = u
         shape = None
         for v in gens:
             #assert v.sum() == 0 
             assert shape is None or v.shape == shape
             shape = v.shape
+        self.u = u
+        self.gens = gens
+        self.lookup = lookup
 
     def __getitem__(self, idx):
         return self.gens[idx]
@@ -133,6 +137,12 @@ class Convex:
         vs = [v.t.M[0] for v in self.gens]
         p = Polyhedron(vertices=vs)
         return p
+
+    def get_idxs(self, face):
+        verts = face.ambient_Vrepresentation()
+        verts = [Matrix(v).t for v in verts]
+        idxs = [self.lookup[v] for v in verts]
+        return idxs
 
 
 def test():
@@ -418,16 +428,7 @@ def get_clifford_states(n, verbose=False):
     v[0] = 1
     v = matrix_sage.Matrix(K, [v]).t
 
-#    orbit = set()
-#    for g in G:
-#        u = g*v
-#        u = canonical(u)
-#        orbit.add(u)
-#    print(len(orbit))
-
     rho = v@v.d
-    #orbit = set([g*rho*~g for g in G])
-    #print(len(orbit))
 
     pairs = [(g,~g) for g in gen]
 
@@ -447,13 +448,27 @@ def get_clifford_states(n, verbose=False):
             print(len(orbit), end=" ", flush=True)
     if verbose:
         print()
-    return orbit
+
+    orbit = list(orbit)
+    orbit.sort(key = str)
+    lookup = {rho:i for (i,rho) in enumerate(orbit)}
+
+    perms = []
+    for g,ig in pairs:
+        perm = Perm([lookup[g*rho*ig] for rho in orbit])
+        print(perm)
+        perms.append(perm)
+
+    #G = Group.generate(perms)
+    #print(len(G))
+
+    return orbit, perms
 
 
 def get_clifford_hull(n, verbose=False):
     "find convex stabilizer polytope using density matrices"
 
-    orbit = get_clifford_states(n, verbose)
+    orbit, perms = get_clifford_states(n, verbose)
 
     M = (2**n)**2
     zero = Matrix([0]*M)
@@ -474,6 +489,7 @@ def get_clifford_hull(n, verbose=False):
     verts = [v-u for v in verts]
 
     space = Convex(verts)
+    space.perms = perms
     return space
 
 
@@ -619,6 +635,61 @@ def test_orbit():
     print(p)
     #print(" ".join(dir(p)))
 
+    for dim in [0,1,2,3]:
+        faces = p.faces(dim)
+        N = len(faces)
+        print("dim %d, N=%d" % (dim, N))
+        items = []
+        for face in faces:
+            idxs = space.get_idxs(face)
+            #idxs = set(idxs)
+            idxs.sort()
+            idxs = tuple(idxs)
+            items.append(idxs)
+        #print(items)
+        lookup = {item:idx for (idx,item) in enumerate(items)}
+        perms = []
+        for g in space.perms:
+            idxs = []
+            for item in items:
+                jtem = [g[i] for i in item]
+                jtem.sort()
+                jtem = tuple(jtem)
+                idxs.append(lookup[jtem])
+            perms.append( Perm(idxs) )
+
+        orbits = []
+        remain = set(range(N))
+        while remain:
+            i = remain.pop()
+            orbit = {i}
+            bdy = list(orbit)
+            while bdy:
+                _bdy = []
+                for g in perms:
+                    for i in bdy:
+                        j = g[i]
+                        if j not in orbit:
+                            orbit.add(j)
+                            _bdy.append(j)
+                            remain.remove(j)
+                bdy = _bdy
+            orbits.append(orbit)
+        orbits.sort(key = len)
+        print("orbits:", [len(orbit) for orbit in orbits])
+        assert sum([len(orbit) for orbit in orbits]) == N
+        #for orbit in orbits:
+        #    print("orbit:", len(orbit))
+        #print()
+
+    return
+
+    for i in range(N):
+        v = vs[i]
+        print(v.t)
+        print(space.gens[idx].t)
+        print()
+
     m = argv.get("m")
     if m is not None:
         fs = p.faces(m)
@@ -626,7 +697,8 @@ def test_orbit():
         print(fs[0])
         return
 
-    #return
+    return
+
     #p = p*p
 
     #print(p.Hrepresentation())

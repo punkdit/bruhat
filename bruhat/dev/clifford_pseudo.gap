@@ -74,15 +74,19 @@ center := Group(w8);
 
 G := FactorGroup(Cliff2, Group(E(8)*ii));
 
-index := Order(G)/720;
-Print(index,"\n");
+#index := Order(G)/720;
+index := 30;
+
+Print("index := ", index,"\n");
 for H in LowIndexSubgroups( G, index ) do
     #Print(H, "\n");
     #H := Representative(H);
-    Print(Order(H), " ");
-    if Order(H)=1152  then Print(StructureDescription(H),"\n"); fi;
+    Print(Order(H), " ", StructureDescription(H), "\n");
+    #if Order(H)=1152  then Print(StructureDescription(H),"\n"); fi;
 od;
 Print("\n");
+
+#quit;
 
 #quit;
 #
@@ -181,8 +185,15 @@ Cliff3 := Group(sii, isi, iis, hii, ihi, iih, wii, icz, czi);; # Order 743178240
 Pauli3 := Group(wii, xii, ixi, iix, zii, izi, iiz);; # Order 256
 _Pauli3 := Group(E(8)*iii, xii, ixi, iix, zii, izi, iiz);; # Order 512
 
-G := FactorGroup(Cliff3, Group(E(4)*iii)); # no subgroup found
+#G := FactorGroup(Cliff3, Group(E(4)*iii)); # no subgroup found
+
+Print("FactorGroup:\n");
+
 G := FactorGroup(Cliff3, Group(E(8)*iii)); # no subgroup found
+
+Print("|G| = ", Order(G), "\n");
+
+quit;
 
 G := SemidirectProduct(Sp(6,2), GF(2)^6); # has subgroup Sp(6,2)=GO(7,2)
 
