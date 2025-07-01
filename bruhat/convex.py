@@ -493,6 +493,47 @@ def get_clifford_hull(n, verbose=False):
     return space
 
 
+def test_fixed():
+    n = 2
+
+    c = Clifford(n)
+    S, H, CX, CZ = c.S, c.H, c.CX, c.CZ
+    X, Y, Z = c.X, c.Y, c.Z
+    wI = c.w()
+    I = c.I
+
+    gen = []
+    for i in range(n):
+        gen.append(S(i))
+        gen.append(H(i))
+        for j in range(i+1, n):
+            gen.append(CZ(i,j))
+
+
+    N = 2**n
+    def get(idx):
+        v = [0]*N
+        v[idx] = 1
+        v = matrix_sage.Matrix(K, [v]).t
+        return v
+
+    v = get(0) + get(1) + get(2)
+    rho = v@v.d
+
+    g = CZ(0,1)
+    assert g*rho*~g == rho
+
+    G = mulclose(gen, verbose=True)
+    count = 0
+    for g in G:
+        grho = g*rho*~g
+        if grho == rho:
+            count += 1
+
+    print("stab:", count)
+
+
+
 def test_stabilizer_states():
     c = Clifford(1)
     I, X, Y, Z = c.I, c.X(), c.Y(), c.Z()
@@ -635,7 +676,8 @@ def test_orbit():
     print(p)
     #print(" ".join(dir(p)))
 
-    for dim in [0,1,2,3]:
+    #for dim in [0,1,2,3]:
+    for dim in [4]:
         faces = p.faces(dim)
         N = len(faces)
         print("dim %d, N=%d" % (dim, N))

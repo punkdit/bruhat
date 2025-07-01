@@ -746,6 +746,18 @@ class Group(object):
                 return False
         return True
 
+    def is_cyclic(G):
+        for g in G:
+            if G == Group.generate([g]):
+                return True
+        return False
+
+    def cyclic_generator(G):
+        for g in G:
+            if G == Group.generate([g]):
+                return g
+        assert 0, "not cyclic"
+
     def intersect(G, H):
         G = set(G.lookup.keys())
         H = set(H.lookup.keys())
