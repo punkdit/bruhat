@@ -403,7 +403,7 @@ def test_clifford():
     assert other.dim == N**2-1
 
 
-def get_clifford_states(n, verbose=False):
+def get_clifford_states(n, local=False, verbose=False):
 
     c = Clifford(n)
     S, H, CX, CZ = c.S, c.H, c.CX, c.CZ
@@ -415,8 +415,9 @@ def get_clifford_states(n, verbose=False):
     for i in range(n):
         gen.append(S(i))
         gen.append(H(i))
-        for j in range(i+1, n):
-            gen.append(CZ(i,j))
+        if not local:
+            for j in range(i+1, n):
+                gen.append(CZ(i,j))
     for g in gen:
         assert g*g.d == I
 
@@ -456,7 +457,7 @@ def get_clifford_states(n, verbose=False):
     perms = []
     for g,ig in pairs:
         perm = Perm([lookup[g*rho*ig] for rho in orbit])
-        print(perm)
+        #print(perm)
         perms.append(perm)
 
     #G = Group.generate(perms)
@@ -465,10 +466,10 @@ def get_clifford_states(n, verbose=False):
     return orbit, perms
 
 
-def get_clifford_hull(n, verbose=False):
+def get_clifford_hull(n, local=False, verbose=False):
     "find convex stabilizer polytope using density matrices"
 
-    orbit, perms = get_clifford_states(n, verbose)
+    orbit, perms = get_clifford_states(n, local, verbose)
 
     M = (2**n)**2
     zero = Matrix([0]*M)

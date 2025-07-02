@@ -390,6 +390,9 @@ class Group(object):
     def __ne__(self, other):
         return self.canonical != other.canonical
 
+    def __lt__(self, other):
+        return self.canonical < other.canonical
+
     def __hash__(self):
         return self._hash
 
