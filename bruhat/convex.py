@@ -403,7 +403,7 @@ def test_clifford():
     assert other.dim == N**2-1
 
 
-def get_clifford_states(n, local=False, verbose=False):
+def get_clifford_gens(n, local=False):
 
     c = Clifford(n)
     S, H, CX, CZ = c.S, c.H, c.CX, c.CZ
@@ -423,6 +423,13 @@ def get_clifford_states(n, local=False, verbose=False):
 
     #G = mulclose(gen)
     #print(len(G))
+
+    return gen
+
+
+
+def get_clifford_states(n, local=False, verbose=False):
+    gen = get_clifford_gens(n, local)
 
     N = 2**n
     v = [0]*N
@@ -852,6 +859,26 @@ def test_autos():
 
     from bruhat.oeqc import gap_code
     print(gap_code(perms))
+
+
+def test_real_cliff():
+
+    for n in [1,2]:
+        gen = get_clifford_gens(n)
+
+        G = mulclose(gen, verbose=True)
+
+        G = set( g@g.d for g in G )
+
+        print("|PCliff| = ", len(G))
+
+        RG = [g for g in G if g==g.conjugate()]
+        print("|RPCliff| = ", len(RG))
+
+        print("factor =", len(G)//len(RG))
+
+        #return
+        
 
 
 

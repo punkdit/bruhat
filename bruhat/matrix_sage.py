@@ -252,6 +252,10 @@ class Matrix(object):
         M = (ring.one()/2)*M
         return Matrix(self.ring, M)
 
+    def conjugate(self):
+        M = self.M.conjugate()
+        return Matrix(self.ring, M)
+
     def imag(self):
         ring = self.ring
         M = self.M - self.M.conjugate()
