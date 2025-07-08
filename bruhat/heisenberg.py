@@ -630,6 +630,31 @@ def main():
         assert len(mulclose(found)) == 6 # hmmm
     
 
+def test_gap():
+    from bruhat.matrix import Matrix
+
+    p = 3
+    N = 4
+
+    print("p =", p, "N =", N)
+
+    A = identity(N, dtype=int)
+    gen = []
+
+    for i in range(1,N-1):
+        B = A.copy()
+        B[0,i] = 1
+        gen.append(Matrix(B, p))
+        B = A.copy()
+        B[i,N-1] = 1
+        gen.append(Matrix(B, p))
+
+    G = mulclose(gen)
+    print(len(G))
+
+    s = "G := Group(%s);" % (','.join(g.gap_str() for g in gen))
+    print(s)
+
 
 if __name__ == "__main__":
 

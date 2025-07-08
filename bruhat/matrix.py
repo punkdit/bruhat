@@ -145,6 +145,38 @@ class Matrix(object):
     def sum(self):
         return self.A.sum()
 
+    def gap_str(A):
+        p = A.p
+        for a in range(1,p):
+            gen = set((a**j)%p for j in range(1,p))
+            if len(gen)==p-1:
+                break
+        else:
+            assert 0
+        def getpow(j):
+            #print("getpow", j, end=" ")
+            for i in range(1,p+1):
+                if (a**i)%p==j:
+                    #print(i)
+                    return i
+            assert 0
+        m, n = A.shape
+        matrix = []
+        for row in A:
+            line = []
+            for x in row:
+                if x==0:
+                    s = '0*Z(%s)'%(A.p,)
+                else:
+                    s = 'Z(%s)^%s'%(A.p, getpow(x))
+                line.append(s)
+            line = "[%s]"%(','.join(line))
+            matrix.append(line)
+        matrix = "[%s]"%(','.join(matrix))
+        return str(matrix)
+
+
+
 
 def test():
     M = Matrix([[1,1,0],[0,1,0]])
