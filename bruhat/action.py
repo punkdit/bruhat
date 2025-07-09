@@ -97,8 +97,8 @@ def mulclose_hom(gen1, gen2, verbose=False, maxsize=None):
         hom[gen1[i]] = gen2[i]
     bdy = list(gen1)
     while bdy:
-        #if verbose:
-        #    print "mulclose:", len(hom)
+        if verbose:
+            print(len(hom), end=" ", flush=True)
         _bdy = []
         for A in gen1:
             for B in bdy:
@@ -111,6 +111,8 @@ def mulclose_hom(gen1, gen2, verbose=False, maxsize=None):
                 elif hom[C1] != hom[A] * hom[B]:
                     return None
         bdy = _bdy
+    if verbose:
+        print()
     return hom 
 
 
