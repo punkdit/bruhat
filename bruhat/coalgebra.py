@@ -351,26 +351,31 @@ class Hopf:
             assert lhs == rhs
 
         # hopf algebra
+        #for v in vs:
+        #    print()
+        #    print("v =", v)
+        #    print("antipode(v) =", antipode(v))
         antipode.test(vs)
 
         lhs = mul * (antipode @ I) * comul
         mid = unit * counit
         rhs = mul * (I @ antipode) * comul
         for u in vs:
-            print()
-            print("u =", u)
-            print("comul(u) =", comul(u))
+            #print()
+            #print("u =", u)
+            #print("comul(u) =", comul(u))
+            #print("counit(u) =", counit(u))
             m = mid.call(u)
             l = lhs.call(u)
             r = rhs.call(u)
-            print("mid:", m)
-            print("lhs:", l)
-            print("rhs:", r)
+            #print("mid:", m)
+            #print("lhs:", l)
+            #print("rhs:", r)
             assert l==m
             assert r==m
 
 
-        print("Hopf.test: OK")
+        #print("Hopf.test: OK")
 
 
 def all_bits(n, m):
@@ -530,11 +535,14 @@ def test():
 
     def antipode(v):
         coeffs = {}
-        for k in v:
-            k = tuple(reversed(k))
-            r = (-1)**len(k)
-            coeffs[k] = v[k]*r
+        for k, in v:
+            k1 = ''.join(reversed(k))
+            r = (-1)**len(k1)
+            coeffs[k1,] = v[k]*r
         return Vector(coeffs)
+
+
+
     antipode = OpLin(antipode, (1,1))
 
     hopf = Hopf(
