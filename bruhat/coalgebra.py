@@ -25,24 +25,42 @@ def mktuple(k):
     return (k,)
 
 
+def unify(a_shape, b_shape):
+    if a_shape is None:
+        return b_shape
+    if b_shape is None:
+        return a_shape
+    if a_shape == b_shape:
+        return a_shape
+    assert 0, (a_shape, b_shape)
+
+
 class Vector:
     """
         A dict with int values (the scalar coeffs),
         and keys are n-tuples (tensors) of hashable data (stuff)
     """
-    def __init__(self, coeffs={}):
+    def __init__(self, coeffs={}, shape=None):
         coeffs = {mktuple(k):int(v)
             for (k,v) in coeffs.items() if int(v)}
         keys = list(coeffs.keys())
         keys.sort()
         self.keys = keys
-        shape = None
         for k in keys:
             if shape is None:
                 shape = len(k)
             assert len(k)==shape
         self._hash = hash(tuple((k,coeffs[k]) for k in keys))
         self.coeffs = coeffs
+        self.shape = shape
+
+    @classmethod
+    def promote(cls, item):
+        if isinstance(item, Vector):
+            return item
+        if type(item) is int:
+            return Vector({ () : item }, 0)
+        assert 0
 
     def __str__(self):
         return "Vector(%s)"%(self.coeffs,)
@@ -59,24 +77,31 @@ class Vector:
         return self.coeffs[k]
 
     def __eq__(self, other):
-        if other==0:
-            return self.coeffs == {}
+        #if other==0:
+        #    return self.coeffs == {}
+        other = Vector.promote(other)
         return self.coeffs==other.coeffs
 
     def __hash__(self):
         return self._hash
 
     def __add__(self, other):
+        other = Vector.promote(other)
+        assert isinstance(other, Vector), (self, other)
+        shape = unify(self.shape, other.shape)
         coeffs = dict(self.coeffs)
         for (k,v) in other.coeffs.items():
             coeffs[k] = coeffs.get(k,0) + v
-        return Vector(coeffs)
+        return Vector(coeffs, shape)
 
     def __sub__(self, other):
+        other = Vector.promote(other)
+        assert isinstance(other, Vector), other
+        shape = unify(self.shape, other.shape)
         coeffs = dict(self.coeffs)
         for (k,v) in other.coeffs.items():
             coeffs[k] = coeffs.get(k,0) - v
-        return Vector(coeffs)
+        return Vector(coeffs, shape)
 
     def __neg__(self):
         return (-1)*self
@@ -126,17 +151,21 @@ class Lin:
         assert len(shape) == 2
         self.shape = shape # (m,n): m <--- n
 
-    def __call__(self, *vecs):
+    def apply(self, *vecs):
         m, n = self.shape
         assert len(vecs) == n
         assert 0, "abstract base class"
 
-    def call(self, v): # or use __mul__ ???
+    def __call__(self, v): 
+        "linearly extend apply "
+        v = Vector.promote(v)
+        assert isinstance(v, Vector)
         m, n = self.shape
+        unify(v.shape, n)
         u = Vector()
         for k in v:
             assert len(k) == n
-            u = u + v[k]*self(*[Vector({ki:1}) for ki in k])
+            u = u + v[k]*self.apply(*[Vector({ki:1}) for ki in k])
         return u
 
     def __mul__(self, other):
@@ -150,12 +179,12 @@ class Lin:
         # assert some multi-linearity...
         m, n = self.shape
         for arg in cross([vs]*n):
-            u = self(*arg)
+            u = self.apply(*arg)
             for i in range(n):
                 barg = list(arg)
                 r = randint(-5,5)
                 barg[i] = r*barg[i]
-                assert self(*barg) == r*u
+                assert self.apply(*barg) == r*u
         # XX test additivity.. v+w .. 
 
 
@@ -165,7 +194,7 @@ class ILin(Lin):
     def __init__(self, m=1):
         Lin.__init__(self, (m,m))
 
-    def __call__(self, *vecs):
+    def apply(self, *vecs):
         m, n = self.shape
         assert len(vecs) == n
         #print("__call__", list(vecs))
@@ -188,10 +217,10 @@ class PermLin(Lin):
         Lin.__init__(self, (m,m))
         self.perm = perm
 
-    def __call__(self, *vecs):
+    def apply(self, *vecs):
         m, n = self.shape
         assert len(vecs) == n
-        #print("__call__", list(vecs))
+        #print("call", list(vecs))
         perm = self.perm
         vecs = [vecs[i] for i in perm]
         v = reduce(matmul, vecs)
@@ -204,7 +233,7 @@ class OpLin(Lin):
         Lin.__init__(self, shape)
         self.op = op
 
-    def __call__(self, *vecs):
+    def apply(self, *vecs):
         m, n = self.shape
         assert len(vecs) == n
         return self.op(*vecs)
@@ -217,16 +246,16 @@ class TensorLin(Lin):
         Lin.__init__(self, (m,n))
         self.ops = (aop, bop)
 
-    def __call__(self, *vecs):
+    def apply(self, *vecs):
         m, n = self.shape
         assert len(vecs) == n
         aop, bop = self.ops
         a = vecs[:aop.shape[1]]
         b = vecs[aop.shape[1]:]
-        a, b = aop(*a) , bop(*b)
+        a, b = aop.apply(*a) , bop.apply(*b)
         assert isinstance(a, (int, Vector)), (aop, a)
         assert isinstance(b, (int, Vector)), (bop, b)
-        #print("TensorLin.__call__", a, b)
+        #print("TensorLin.apply", a, b)
         return a@b
 
 
@@ -236,15 +265,15 @@ class ComposeLin(Lin):
         Lin.__init__(self, (aop.shape[0], bop.shape[1]))
         self.ops = (aop, bop)
 
-    def __call__(self, *vecs):
+    def apply(self, *vecs):
         m, n = self.shape
         assert len(vecs) == n
         aop, bop = self.ops
-        v = bop(*vecs)
+        v = bop.apply(*vecs)
         if type(v) is int:
-            v = v*aop()
+            v = v*aop(1)
         else:
-            v = aop.call(v)
+            v = aop(v)
         return v
 
 
@@ -263,21 +292,22 @@ class Algebra:
         unit.test(vs)
         mul.test(vs)
         # _unital
-        ident = unit()
+        ident = unit(1)
+        m = mul.apply
         for u in vs:
-            assert mul(ident, u) == u
-            assert mul(u, ident) == u
+            assert m(ident, u) == u
+            assert m(u, ident) == u
         # assoc
         for u in vs:
           for v in vs:
            for w in vs:
-            lhs = mul(mul(u,v), w)
-            rhs = mul(u, mul(v, w))
+            lhs = m(m(u,v), w)
+            rhs = m(u, m(v, w))
             assert lhs == rhs
         if comm:
             for u in vs:
              for v in vs:
-                assert mul(u,v) == mul(v,u)
+                assert m(u,v) == m(v,u)
 
 
 class Coalgebra:
@@ -298,13 +328,13 @@ class Coalgebra:
         for v in vs:
             m = comul(v)
             # _counital
-            u = (I@counit).call(m)
+            u = (I@counit)(m)
             assert u==v
-            u = (counit@I).call(m)
+            u = (counit@I)(m)
             assert u==v
             # coassoc
-            mmi = (comul@I).call(m)
-            imm = (I@comul).call(m)
+            mmi = (comul@I)(m)
+            imm = (I@comul)(m)
             assert mmi==imm
 
             #if cocomm:
@@ -337,17 +367,17 @@ class Hopf:
         # bialgebra
         for u in vs:
           for v in vs:
-            assert counit( mul(u,v) ) == counit(u)*counit(v)
-        assert counit(unit()) == 1
-        assert comul(unit()) == unit()@unit()
+            assert counit( mul(u@v) ) == counit(u)@counit(v)
+        assert counit(unit(1)) == 1
+        assert comul(unit(1)) == unit(1)@unit(1)
 
         I = ILin()
         S = PermLin([0,2,1,3])
         lin = (mul@mul)*S*(comul@comul)
         for u in vs:
           for v in vs:
-            lhs = comul(mul(u,v))
-            rhs = lin(u,v)
+            lhs = comul(mul(u@v))
+            rhs = lin(u@v)
             assert lhs == rhs
 
         # hopf algebra
@@ -365,9 +395,9 @@ class Hopf:
             #print("u =", u)
             #print("comul(u) =", comul(u))
             #print("counit(u) =", counit(u))
-            m = mid.call(u)
-            l = lhs.call(u)
-            r = rhs.call(u)
+            m = mid(u)
+            l = lhs(u)
+            r = rhs(u)
             #print("mid:", m)
             #print("lhs:", l)
             #print("rhs:", r)
@@ -427,9 +457,14 @@ def test():
     assert a@b == Vector( {("a","b"):1} )
     assert a@(b+2*c) == Vector( {("a","b"):1, ("a","c"):2} )
 
+    assert Vector.promote(27) == Vector({():27}, 0)
+    assert 3*Vector.promote(2) == 6*Vector.promote(1)
+
     # ----------------------------------------------
     # the word Algebra
     unit = OpLin(lambda : Vector({'':1}), (1,0))
+    assert unit(2) == 2*unit(1)
+
     def mul(u, v):
         coeffs = {}
         for k, in u:
@@ -442,8 +477,8 @@ def test():
     vs = [vector(s) for s in 'ab a c ac bc abc abbc'.split()]
     ab,a,c,ac,bc,abc,abbc = vs
 
-    assert mul(ab+a, c-bc) == -abbc + ac
-    assert mul(unit(), ab+a) == ab+a
+    assert mul.apply(ab+a, c-bc) == -abbc + ac
+    assert mul.apply(unit(1), ab+a) == ab+a
                 
     algebra = Algebra(unit, mul)
 
@@ -454,7 +489,7 @@ def test():
 
     for u in vs:
       for v in vs:
-        lhs, rhs = mul(u,v) , mul.call(u@v)
+        lhs, rhs = mul.apply(u,v) , mul(u@v)
         assert lhs == rhs, (lhs, rhs)
 
     # ----------------------------------------------
@@ -493,12 +528,13 @@ def test():
     mul = OpLin(mul, (1,2))
 
     cd = vector('cd')
-    assert mul(ab, cd) == Vector(
+    assert mul.apply(ab, cd) == Vector(
         {'abcd': 1, 'acbd': 1, 'acdb': 1, 
         'cabd': 1, 'cadb': 1, 'cdab': 1})
 
     aaa = vector('aaa')
-    assert mul(a,aaa) == 4*vector('aaaa')
+    assert mul.apply(a,aaa) == 4*vector('aaaa')
+    assert mul(a@aaa) == mul.apply(a,aaa) 
 
     algebra = Algebra(unit, mul)
     algebra.test([a,ab,a-cd], True)
@@ -521,7 +557,7 @@ def test():
     counit = OpLin(counit, (0,1))
 
     assert counit(a) == 0
-    assert counit(2*unit()+a) == 2
+    assert counit(2*unit(1)+a) == 2
 
     assert comul(abc) == Vector(
         {('', 'abc'): 1, 
