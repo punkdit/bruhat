@@ -172,7 +172,8 @@ cdef class Fraction:
         return "%s/%s"%(top, bot)
 
     def __repr__(self):
-        return "Fraction(%s, %s)"%(self.top, self.bot)
+        #return "Fraction(%s, %s)"%(self.top, self.bot)
+        return str(self)
 
     def __add__(_self, _other):
         cdef Fraction self, other
@@ -468,5 +469,6 @@ class IntegerRing(Type):
         return a
 Z = IntegerRing()
 
+Integer = int
 
 

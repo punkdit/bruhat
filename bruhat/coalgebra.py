@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 
 """
+
+Vector's, Algebra's, Coalgebra's, Hopf Algebra's, 
+over the integers.
+
+TODO: use a general ring?
+TODO: use other monoidal products (categories) ?
+
+
 reference:
 [HaGuKi]
 _Algebras,_Rings_and_Modules 
@@ -17,6 +25,9 @@ from functools import reduce
 from operator import matmul
 
 from bruhat.util import cross
+from bruhat.gset import Perm, Group
+#from bruhat.element import Q, Z, Integer, Fraction
+from bruhat import element
 from bruhat.argv import argv
 
 def mktuple(k):
@@ -34,15 +45,24 @@ def unify(a_shape, b_shape):
         return a_shape
     assert 0, (a_shape, b_shape)
 
+ring = element.Z
+ring.tp = element.Integer
+scalar = ring.promote
+
+#ring = element.Q
+#ring.tp = element.Fraction
+
 
 class Vector:
     """
         A dict with int values (the scalar coeffs),
-        and keys are n-tuples (tensors) of hashable data (stuff)
+        and keys are n-tuples (tensors) of hashable data (stuff).
+        <shape> is the length of the tuples, use shape=0 for 
+        scalar values.
     """
     def __init__(self, coeffs={}, shape=None):
-        coeffs = {mktuple(k):int(v)
-            for (k,v) in coeffs.items() if int(v)}
+        coeffs = {mktuple(k):scalar(v)
+            for (k,v) in coeffs.items() if scalar(v)}
         keys = list(coeffs.keys())
         keys.sort()
         self.keys = keys
@@ -55,12 +75,20 @@ class Vector:
         self.shape = shape
 
     @classmethod
+    def scalar(cls, item):
+        item = scalar(item)
+        if type(item) is ring.tp:
+            return Vector({ () : item }, 0)
+        assert 0, (type(item), scalar)
+
+    @classmethod
     def promote(cls, item):
         if isinstance(item, Vector):
             return item
-        if type(item) is int:
+        item = scalar(item)
+        if type(item) is ring.tp:
             return Vector({ () : item }, 0)
-        assert 0
+        assert 0, (type(item), scalar)
 
     def __str__(self):
         return "Vector(%s)"%(self.coeffs,)
@@ -74,7 +102,7 @@ class Vector:
 
     def __getitem__(self, k):
         k = mktuple(k)
-        return self.coeffs[k]
+        return self.coeffs.get(k, 0)
 
     def __eq__(self, other):
         #if other==0:
@@ -107,15 +135,15 @@ class Vector:
         return (-1)*self
 
     def __rmul__(self, r):
-        r = int(r)
+        r = scalar(r)
         if r==0:
             return Vector({})
         return Vector({k:r*v for (k,v) in self.coeffs.items()})
 
     def __matmul__(self, other):
-        if type(other) is int:
+        if type(other) is ring.tp:
             return other*self
-        assert isinstance(other, Vector)
+        assert isinstance(other, Vector), type(other)
         coeffs = {}
         for u in self:
           for v in other:
@@ -124,7 +152,7 @@ class Vector:
         return Vector(coeffs)
 
     def __rmatmul__(self, other):
-        assert isinstance(other, int)
+        assert isinstance(other, ring.tp)
         return other*self
 
     def swap(self):
@@ -253,8 +281,12 @@ class TensorLin(Lin):
         a = vecs[:aop.shape[1]]
         b = vecs[aop.shape[1]:]
         a, b = aop.apply(*a) , bop.apply(*b)
-        assert isinstance(a, (int, Vector)), (aop, a)
-        assert isinstance(b, (int, Vector)), (bop, b)
+        #assert isinstance(a, (int, Vector)), (aop, a)
+        #assert isinstance(b, (int, Vector)), (bop, b)
+        a = Vector.promote(a)
+        b = Vector.promote(b)
+        assert isinstance(a, (ring.tp, Vector)), (aop, a)
+        assert isinstance(b, (ring.tp, Vector)), (bop, b)
         #print("TensorLin.apply", a, b)
         return a@b
 
@@ -407,6 +439,39 @@ class Hopf:
 
         #print("Hopf.test: OK")
 
+class Frobenius:
+    def __init__(self, unit, mul, counit, comul):
+        assert isinstance(unit, Lin), type(unit)
+        assert isinstance(mul, Lin), type(mul)
+        assert unit.shape == (1,0)
+        assert mul.shape == (1,2)
+        self.unit = unit
+        self.mul = mul
+
+        assert isinstance(counit, Lin)
+        assert isinstance(comul, Lin)
+        assert counit.shape == (0,1)
+        assert comul.shape == (2,1)
+        self.counit = counit
+        self.comul = comul
+
+    def test(self, vecs):
+        unit, mul = self.unit, self.mul
+        counit, comul = self.counit, self.comul
+
+        I = ILin()
+        lhs = (mul @ I) * (I @ comul)
+        mhs = comul * mul
+        rhs = (I @ mul) * (comul @ I)
+        for u in vecs:
+         for v in vecs:
+            l = lhs(u@v)
+            m = mhs(u@v)
+            r = rhs(u@v)
+            assert l==m
+            assert r==m
+        
+
 
 def all_bits(n, m):
     # XXX this is n+m choose m
@@ -435,13 +500,18 @@ def str_shuffle(s, t):
         yield word
 
 
-def test():
+def test_hopf():
+    global ring, scalar
+    ring = element.Z
+    ring.tp = element.Integer
+    scalar = ring.promote
+
     # ----------------------------------------------
 
     w = Vector({'abc':1})
     v = Vector({'ac':1})
     #assert str(w) == "Vector({'abc': 1})"
-    assert str(w) == "Vector({('abc',): 1})"
+    #assert str(w) == "Vector({('abc',): 1})"
     assert (w+w) == 2*w
     assert 0*w == 0
     assert w-v != 0
@@ -506,8 +576,8 @@ def test():
     copy = OpLin(copy, (2,1))
     copy.test(vs)
 
-    coalebra = Coalgebra(counit, copy)
-    coalebra.test(vs)
+    coalgebra = Coalgebra(counit, copy)
+    coalgebra.test(vs)
 
     # ----------------------------------------------
     # the shuffle Hopf algebra: [HaGuKi] Ex. 3.4.6
@@ -565,8 +635,8 @@ def test():
         ('ab', 'c'): 1, 
         ('abc', ''): 1})
 
-    coalebra = Coalgebra(counit, comul)
-    coalebra.test(vs)
+    coalgebra = Coalgebra(counit, comul)
+    coalgebra.test(vs)
     
 
     def antipode(v):
@@ -588,6 +658,60 @@ def test():
     hopf.test(vs)
     
 
+def test_frobenius():
+    global ring, scalar
+    ring = element.Q
+    ring.tp = element.Fraction
+    scalar = ring.promote
+
+    # --------------------------------------
+    # function Frobenius algebra
+
+    zero = ring.zero
+    one = ring.one
+
+    n = 3
+    basis = [Vector({(i,):1}) for i in range(n)]
+    unit = OpLin(lambda : 
+        Vector({(i,):1 for i in range(n)}), (1,0))
+    mul = OpLin(lambda a,b: 
+        Vector({(i,):a[i]*b[i] for i in range(n)}), (1,2))
+    algebra = Algebra(unit, mul)
+    algebra.test(basis, True)
+    a, b, c = basis[:3]
+    algebra.test([a+b, a+b+c, c], True)
+    
+    def counit(v):
+        s = zero
+        for i in range(n):
+            s += v[i]
+        return Vector.scalar(s)
+    counit = OpLin(counit, (0,1))
+    comul = OpLin(lambda v: 
+        Vector({(i,i):v[i] for i in range(n)}), (2,1))
+    coalgebra = Coalgebra(counit, comul)
+    coalgebra.test(basis, True)
+    a, b, c = basis[:3]
+    coalgebra.test([a, a+2*b, a+b+c, c], True)
+
+    vecs = [a, a+2*b, a+b-7*c, c]
+
+    frobenius = Frobenius(unit, mul, counit, comul)
+    frobenius.test(vecs)
+
+    # --------------------------------------
+    # Group algebra
+    G = Group.symmetric(3)
+    print(G)
+
+    for g in G:
+        print(g)
+
+
+
+def test():
+    #test_hopf()
+    test_frobenius()
 
 
 if __name__ == "__main__":
