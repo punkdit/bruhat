@@ -5,7 +5,8 @@
 Vector's, Algebra's, Coalgebra's, Hopf Algebra's, 
 over the integers.
 
-TODO: use a general ring?
+see also: hopf.py for previous ideas...
+
 TODO: use other monoidal products (categories) ?
 
 
@@ -471,6 +472,42 @@ class Frobenius:
             assert l==m
             assert r==m
         
+    @classmethod
+    def function(cls, keys):
+        # --------------------------------------
+        # function Frobenius algebra
+    
+        zero = ring.zero
+        one = ring.one
+    
+        keys = [mktuple(key) for key in keys]
+        basis = [Vector({key:1}) for key in keys]
+        unit = OpLin(lambda : 
+            Vector({key:1 for key in keys}), (1,0))
+        mul = OpLin(lambda a,b: 
+            Vector({key:a[key]*b[key] for key in keys}), (1,2))
+    
+        #algebra = Algebra(unit, mul)
+        #algebra.test(basis, True)
+        #a, b, c = basis[:3]
+        #algebra.test([a+b, a+b+c, c], True)
+        
+        def counit(v):
+            s = zero
+            for key in keys:
+                s += v[key]
+            return Vector.scalar(s)
+        counit = OpLin(counit, (0,1))
+        comul = OpLin(lambda v: 
+            Vector({key+key:v[key] for key in keys}), (2,1))
+        #coalgebra = Coalgebra(counit, comul)
+        #coalgebra.test(basis, True)
+        #coalgebra.test([a, a+2*b, a+b+c, c], True)
+        frobenius = Frobenius(unit, mul, counit, comul)
+        frobenius.basis = basis
+        return frobenius
+
+
 
 
 def all_bits(n, m):
@@ -667,45 +704,43 @@ def test_frobenius():
     # --------------------------------------
     # function Frobenius algebra
 
-    zero = ring.zero
-    one = ring.one
+    keys = [(i,) for i in range(3)]
+    frobenius = Frobenius.function(keys)
 
-    n = 3
-    basis = [Vector({(i,):1}) for i in range(n)]
-    unit = OpLin(lambda : 
-        Vector({(i,):1 for i in range(n)}), (1,0))
-    mul = OpLin(lambda a,b: 
-        Vector({(i,):a[i]*b[i] for i in range(n)}), (1,2))
-    algebra = Algebra(unit, mul)
-    algebra.test(basis, True)
-    a, b, c = basis[:3]
-    algebra.test([a+b, a+b+c, c], True)
-    
-    def counit(v):
-        s = zero
-        for i in range(n):
-            s += v[i]
-        return Vector.scalar(s)
-    counit = OpLin(counit, (0,1))
-    comul = OpLin(lambda v: 
-        Vector({(i,i):v[i] for i in range(n)}), (2,1))
-    coalgebra = Coalgebra(counit, comul)
-    coalgebra.test(basis, True)
-    a, b, c = basis[:3]
-    coalgebra.test([a, a+2*b, a+b+c, c], True)
-
+    a, b, c = frobenius.basis[:3]
     vecs = [a, a+2*b, a+b-7*c, c]
-
-    frobenius = Frobenius(unit, mul, counit, comul)
+    algebra = Algebra(frobenius.unit, frobenius.mul)
+    algebra.test(vecs, True)
+    coalgebra = Coalgebra(frobenius.counit, frobenius.comul)
+    coalgebra.test(vecs, True)
     frobenius.test(vecs)
 
     # --------------------------------------
-    # Group algebra
+    # Group Hopf algebra
+
     G = Group.symmetric(3)
     print(G)
+    #for g in G:
+    #    print(g)
 
-    for g in G:
-        print(g)
+    i = G.identity
+    unit = OpLin(lambda : Vector({(i,):1}), (1,0))
+    def mul(a, b):
+        coeffs = {}
+        for g, in a:
+          for h, in b:
+            gh = g*h
+            coeffs[gh] = coeffs.get(gh, 0) + a[g]*b[h]
+        return Vector(coeffs)
+    mul = OpLin(mul, (1,2))
+    algebra = Algebra(unit, mul)
+
+    frobenius = Frobenius.function(G)
+    a, b, c = frobenius.basis[:3]
+    vecs = [a, a+2*b, a+b-7*c, c]
+    frobenius.test(vecs)
+
+    algebra.test(vecs)
 
 
 
