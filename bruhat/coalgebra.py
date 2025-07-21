@@ -265,6 +265,8 @@ class OpLin(Lin):
     def apply(self, *vecs):
         m, n = self.shape
         assert len(vecs) == n
+        for v in vecs:
+            assert isinstance(v, Vector)
         return self.op(*vecs)
 
 
@@ -702,7 +704,7 @@ def test_frobenius():
     scalar = ring.promote
 
     # --------------------------------------
-    # function Frobenius algebra
+    # function Frobenius algebra: k^X
 
     keys = [(i,) for i in range(3)]
     frobenius = Frobenius.function(keys)
@@ -715,16 +717,26 @@ def test_frobenius():
     coalgebra.test(vecs, True)
     frobenius.test(vecs)
 
+    del vecs
+
     # --------------------------------------
-    # Group Hopf algebra
+    # Group Frobenius algebra: green spiders
 
     G = Group.symmetric(3)
     print(G)
     #for g in G:
     #    print(g)
 
-    i = G.identity
-    unit = OpLin(lambda : Vector({(i,):1}), (1,0))
+    green = Frobenius.function(G)
+    a, b, c = green.basis[:3]
+    vecs = [a, a+2*b, a+b-7*c, c]
+    frobenius.test(vecs)
+
+    # Group Hopf algebra
+    print("Group Hopf algebra")
+
+
+    unit = OpLin(lambda : Vector({(G.identity,):1}), (1,0))
     def mul(a, b):
         coeffs = {}
         for g, in a:
@@ -735,12 +747,38 @@ def test_frobenius():
     mul = OpLin(mul, (1,2))
     algebra = Algebra(unit, mul)
 
-    frobenius = Frobenius.function(G)
-    a, b, c = frobenius.basis[:3]
-    vecs = [a, a+2*b, a+b-7*c, c]
-    frobenius.test(vecs)
-
     algebra.test(vecs)
+
+    counit = OpLin(lambda v: v[G.identity], (0,1))
+    counit.test(vecs)
+    def comul(v):
+        coeffs = {}
+        for g, in v:
+          for h in G:
+            # g = hk
+            k = (~h)*g
+            key = (h,k)
+            coeffs[key] = coeffs.get(key, 0) + v[g]
+        return Vector(coeffs)
+    comul = OpLin(comul, (2,1))
+
+    coalgebra = Coalgebra(counit, comul)
+    coalgebra.test(vecs)
+
+    red = Frobenius(unit, mul, counit, comul)
+    red.test(vecs)
+
+    def antipode(v):
+        coeffs = {}
+        for g, in v:
+            coeffs[~g] = v[g]
+        return Vector(coeffs)
+    antipode = OpLin(antipode, (1,1))
+
+    hopf = Hopf(green.unit, green.mul, red.counit, red.comul,
+        antipode)
+    hopf.test(vecs)
+            
 
 
 
