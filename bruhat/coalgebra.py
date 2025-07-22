@@ -21,7 +21,7 @@ V. V. Kirichenko
 """
 
 import numpy
-from random import randint
+from random import randint, choice
 from functools import reduce
 from operator import matmul
 
@@ -204,10 +204,18 @@ class Lin:
     def __matmul__(self, other):
         return TensorLin(self, other)
 
-    def test(self, vs):
+    def eq(self, other, vecs):
+        assert self.shape == other.shape
+        for v in vecs:
+            #print(v, self(v), other(v))
+            if self(v) != other(v):
+                return False
+        return True
+
+    def test(self, vecs):
         # assert some multi-linearity...
         m, n = self.shape
-        for arg in cross([vs]*n):
+        for arg in cross([vecs]*n):
             u = self.apply(*arg)
             for i in range(n):
                 barg = list(arg)
@@ -322,26 +330,26 @@ class Algebra:
         self.unit = unit
         self.mul = mul
 
-    def test(self, vs, comm=False):
+    def test(self, vecs, comm=False):
         unit, mul = self.unit, self.mul
-        unit.test(vs)
-        mul.test(vs)
+        unit.test(vecs)
+        mul.test(vecs)
         # _unital
         ident = unit(1)
         m = mul.apply
-        for u in vs:
+        for u in vecs:
             assert m(ident, u) == u
             assert m(u, ident) == u
         # assoc
-        for u in vs:
-          for v in vs:
-           for w in vs:
+        for u in vecs:
+          for v in vecs:
+           for w in vecs:
             lhs = m(m(u,v), w)
             rhs = m(u, m(v, w))
             assert lhs == rhs
         if comm:
-            for u in vs:
-             for v in vs:
+            for u in vecs:
+             for v in vecs:
                 assert m(u,v) == m(v,u)
 
 
@@ -354,13 +362,13 @@ class Coalgebra:
         self.counit = counit
         self.comul = comul
 
-    def test(self, vs, cocomm=False):
+    def test(self, vecs, cocomm=False):
         counit, comul = self.counit, self.comul
-        counit.test(vs)
-        comul.test(vs)
+        counit.test(vecs)
+        comul.test(vecs)
         I = ILin()
 
-        for v in vs:
+        for v in vecs:
             m = comul(v)
             # _counital
             u = (I@counit)(m)
@@ -394,14 +402,14 @@ class Hopf:
         assert antipode.shape == (1,1)
         self.antipode = antipode
 
-    def test(self, vs):
+    def test(self, vecs):
         unit, mul = self.unit, self.mul
         counit, comul = self.counit, self.comul
         antipode = self.antipode
 
         # bialgebra
-        for u in vs:
-          for v in vs:
+        for u in vecs:
+          for v in vecs:
             assert counit( mul(u@v) ) == counit(u)@counit(v)
         assert counit(unit(1)) == 1
         assert comul(unit(1)) == unit(1)@unit(1)
@@ -409,23 +417,23 @@ class Hopf:
         I = ILin()
         S = PermLin([0,2,1,3])
         lin = (mul@mul)*S*(comul@comul)
-        for u in vs:
-          for v in vs:
+        for u in vecs:
+          for v in vecs:
             lhs = comul(mul(u@v))
             rhs = lin(u@v)
             assert lhs == rhs
 
         # hopf algebra
-        #for v in vs:
+        #for v in vecs:
         #    print()
         #    print("v =", v)
         #    print("antipode(v) =", antipode(v))
-        antipode.test(vs)
+        antipode.test(vecs)
 
         lhs = mul * (antipode @ I) * comul
         mid = unit * counit
         rhs = mul * (I @ antipode) * comul
-        for u in vs:
+        for u in vecs:
             #print()
             #print("u =", u)
             #print("comul(u) =", comul(u))
@@ -722,19 +730,26 @@ def test_frobenius():
     # --------------------------------------
     # Group Frobenius algebra: green spiders
 
-    G = Group.symmetric(3)
+    #G = Group.symmetric(3)
+    G = Group.cyclic(2)
     print(G)
     #for g in G:
     #    print(g)
 
     green = Frobenius.function(G)
-    a, b, c = green.basis[:3]
-    vecs = [a, a+2*b, a+b-7*c, c]
+    #a, b, c = green.basis[:3]
+    #vecs = [a, a+2*b, a+b-7*c, c]
+    basis = green.basis
+    vecs = []
+    while len(vecs) < 4:
+        v = randint(-2,2)*choice(basis)
+        for _ in range(randint(1,3)):
+            v += randint(-2,2)*choice(basis)
+        vecs.append(v)
     frobenius.test(vecs)
 
     # Group Hopf algebra
     print("Group Hopf algebra")
-
 
     unit = OpLin(lambda : Vector({(G.identity,):1}), (1,0))
     def mul(a, b):
@@ -746,7 +761,6 @@ def test_frobenius():
         return Vector(coeffs)
     mul = OpLin(mul, (1,2))
     algebra = Algebra(unit, mul)
-
     algebra.test(vecs)
 
     counit = OpLin(lambda v: v[G.identity], (0,1))
@@ -779,6 +793,24 @@ def test_frobenius():
         antipode)
     hopf.test(vecs)
             
+    hopf = Hopf(red.unit, red.mul, green.counit, green.comul,
+        antipode)
+    hopf.test(vecs)
+            
+
+    lhs = red.counit*red.mul
+    rhs = green.counit*green.mul
+
+    vecs = [u@v for u in basis for v in basis]
+    print( lhs.eq(rhs, vecs) )
+
+    e = G.identity
+    j = [g for g in G if g != e][0]
+
+    e = Vector({e:1})
+    j = Vector({j:1})
+
+    print(red.mul(j@j) == e)
 
 
 
