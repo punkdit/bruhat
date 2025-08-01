@@ -2758,6 +2758,123 @@ def test_monoidal():
 #            
 
 
+def partitions(n, top=None):
+    # https://oeis.org/A000041
+    assert type(n) is int
+    assert n>=0
+
+    if top is None:
+        top = n
+
+    if n==0:
+        if top>=0:
+            yield []
+        return
+    elif n==1:
+        if top>=1:
+            yield [(0,)]
+        return
+    elif n==2:
+        if top>=2:
+            yield [(0, 1)]
+        if top>=1:
+            yield [(0,), (1,)]
+        return
+
+    items = list(range(n))
+    j = n-1
+    while j >= 0:
+
+        tail = tuple(range(j, n))
+        if len(tail) > top:
+            break
+
+        for head in partitions(j, n-j):
+            yield head + [tail]
+
+        j -= 1
+
+
+assert [len(list(partitions(n))) for n in range(8)] == [1,1,2,3,5,7,11,15]
+
+
+
+def test_mackey():
+    Rep.ring = QQ
+
+    n = 4
+    G = Group.symmetric(n)
+    Hs = []
+    items = list(partitions(n))
+    for parts in items:
+
+        perms = []
+        for g in G:
+            for part in parts:
+                part = set(part)
+                if set(g[i] for i in part) != part:
+                    break
+            else:
+                perms.append(g)
+        H = Group(perms)
+        H.do_check()
+
+        print(parts)
+        print("\t", H)
+
+        Hs.append(H)
+
+    #reps = list(reversed(reps))
+
+    Hs = list(reversed(Hs))
+
+    # bubble sort ... yikes
+    N = len(Hs)
+    done = False
+    while not done:
+        done = True
+        for i in range(N):
+          for j in range(i+1, N):
+            l, r = Hs[i], Hs[j]
+            if r.is_subgroup(l):
+                Hs[i], Hs[j] = Hs[j], Hs[i]
+                #print("swap", i, j)
+                done = False
+                break
+
+    reps = []
+    for H in Hs:
+        rep = Rep.permutation(G, H)
+        print(rep)
+        reps.append(rep)
+
+        v = Rep.trivial(H)
+        v = v.induce(G)
+        assert v==rep # too strong ?
+        assert v.chi == rep.chi
+
+    if argv.fast:
+        basis = Table(reps)
+    else:
+        basis = Basis(reps)
+
+    show = basis.show
+    show()
+
+    basis.reduce()
+    show()
+
+    for rep in basis:
+        print(rep)
+
+
+#    for H in Hs:
+#      for K in Hs:
+#        for rep in reps:
+#            lhs = re
+
+
+
 def test():
     test_rep()
     test_gram_schmidt()
