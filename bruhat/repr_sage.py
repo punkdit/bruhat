@@ -126,6 +126,7 @@ class Char:
         return Char(G, chi)
 
 
+
 class Rep:
     #ring = CyclotomicField()
     ring = QQ
@@ -435,6 +436,27 @@ class Rep:
         basis.reduce()
         return basis
     
+    def project(self, chi):
+        #print("project", self)
+        G = self.G
+        cgys = G.conjugacy_classes()
+        P = Matrix.zero(self.ring, self.dim, self.dim)
+        #print(P)
+        #for g in G:
+        for (i,cgy) in enumerate(cgys):
+            u = chi[i]
+            for g in cgy:
+                r = u * self.rep[~g]
+                P = P + r
+        ring = self.ring
+        assert len(cgys[0]) == 1
+        u = ring.one() * chi[0]
+        P = (u/len(G)) * P
+        return P
+        
+
+
+
 
 class Hom:
     "intertwiner of Rep's"
@@ -2799,7 +2821,45 @@ assert [len(list(partitions(n))) for n in range(8)] == [1,1,2,3,5,7,11,15]
 
 
 
-def test_mackey():
+def grind_irreps(G):
+    Hs = G.conjugacy_subgroups()
+    print(Hs)
+
+    # bubble sort
+    N = len(Hs)
+    done = False
+    while not done:
+        done = True
+        for i in range(N):
+          for j in range(i+1, N):
+            l, r = Hs[i], Hs[j]
+            if r.is_subgroup(l):
+                Hs[i], Hs[j] = Hs[j], Hs[i]
+                print("bubble swap", i, j)
+                done = False
+                break
+
+    reps = []
+    for H in Hs:
+        rep = Rep.permutation(G, H)
+        print(rep)
+        reps.append(rep)
+
+        v = Rep.trivial(H)
+        v = v.induce(G)
+        assert v==rep # too strong ?
+        assert v.chi == rep.chi
+
+    if argv.fast:
+        basis = Table(reps)
+    else:
+        basis = Basis(reps)
+
+    basis.reduce()
+    return basis
+
+
+def test_grind():
     Rep.ring = QQ
 
     n = 4
@@ -2868,11 +2928,35 @@ def test_mackey():
         print(rep)
 
 
-#    for H in Hs:
-#      for K in Hs:
-#        for rep in reps:
-#            lhs = re
 
+def test_project():
+    
+    Rep.ring = CyclotomicField()
+
+    G = Group.alternating(4)
+    #from bruhat.gset import GL
+    #G = GL() # 168
+    print(G)
+
+    #reps = grind_irreps(G)
+
+    rep = Rep.regular(G)
+    print(rep)
+
+    table = dixon_irr(G)
+    print(table)
+
+    for chi in table:
+        #print(chi, end=' ')
+        P = rep.project(chi)
+        assert P*P == P
+        assert P.rank() == chi[0]**2
+        #print(P*P == P, end=' ')
+        #print(P.rank())
+
+
+#def test_frobenius():
+#def test_mackey():
 
 
 def test():
