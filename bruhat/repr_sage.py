@@ -187,7 +187,7 @@ class Rep:
         for f in self.hom(other):
             if f.is_iso():
                 return True
-        return False # ???
+        assert 0, "i am not smart enough yet, need to search all homs...?"
 
     @classmethod
     def regular(cls, G):
@@ -297,6 +297,11 @@ class Rep:
         chi = self.chi
         r = chi.dot(chi)
         return r==1
+
+    def transport(self, H, send):
+        "restrict along a group hom, send:H-->G"
+        rep = {h:self.rep[send[h]] for h in H}
+        return Rep(H, rep, self.dim)
 
     def restrict(self, H):
         rep = {h:self.rep[h] for h in H}
@@ -2821,9 +2826,10 @@ assert [len(list(partitions(n))) for n in range(8)] == [1,1,2,3,5,7,11,15]
 
 
 
+
 def grind_irreps(G):
     Hs = G.conjugacy_subgroups()
-    print(Hs)
+    #print(Hs)
 
     # bubble sort
     N = len(Hs)
@@ -2842,7 +2848,7 @@ def grind_irreps(G):
     reps = []
     for H in Hs:
         rep = Rep.permutation(G, H)
-        print(rep)
+        #print(rep)
         reps.append(rep)
 
         v = Rep.trivial(H)
@@ -2859,6 +2865,20 @@ def grind_irreps(G):
     return basis
 
 
+def subgroup_partition(G, parts):
+
+    perms = []
+    for g in G:
+        for part in parts:
+            part = set(part)
+            if set(g[i] for i in part) != part:
+                break
+        else:
+            perms.append(g)
+    H = Group(perms)
+    return H
+
+
 def test_grind():
     Rep.ring = QQ
 
@@ -2867,16 +2887,7 @@ def test_grind():
     Hs = []
     items = list(partitions(n))
     for parts in items:
-
-        perms = []
-        for g in G:
-            for part in parts:
-                part = set(part)
-                if set(g[i] for i in part) != part:
-                    break
-            else:
-                perms.append(g)
-        H = Group(perms)
+        H = subgroup_partition(G, parts)
         H.do_check()
 
         print(parts)
@@ -2957,6 +2968,91 @@ def test_project():
 
 #def test_frobenius():
 #def test_mackey():
+
+def test_crackpot():
+
+    n = 5
+    a, b = 3, 2
+
+    G = Group.symmetric(n)
+
+    parts = [(0,1,2), (3,4)]
+    H = subgroup_partition(G, parts)
+    print(H)
+
+    parts = [(0,), (1,2,3,4)]
+    K = subgroup_partition(G, parts)
+    print(K)
+
+    X0 = G.action_subgroup(H)
+    X1 = G.action_subgroup(K)
+
+    X = X0*X1
+    orbits = X.get_orbits()
+    assert len(orbits) == 2
+
+    basis = grind_irreps(H)
+    basis.show()
+
+    L0 = subgroup_partition(H, [(0,), (1,2), (), (3,4)])
+    L1 = subgroup_partition(H, [(), (0,1,2), (3,), (4,)])
+
+    relabel = Perm([1,2,3,0,4])
+    relabel.do_check()
+    send = {g:relabel*g*~relabel for g in L1}
+    #print(send)
+    # send: L1 >---> K
+    for g in L1:
+        print(g, "-->", send[g])
+        assert send[g] in K
+        for h in L1:
+            assert send[g]*send[h] == send[g*h]
+    K1 = Group([send[g] for g in L1])
+    # send: L1 ---> K1
+
+    #print("K:")
+    #for g in K:
+    #    print(g)
+
+    # send: K1--->L1
+    send = {v:k for (k,v) in send.items()}
+    for g in K1:
+        assert g in send
+        assert send[g] in L1
+
+    #print(L1.perms)
+
+    for rep in basis:
+        ind = rep.induce(G)
+        print()
+        print(rep, "-->")
+        print("\t", ind)
+        lhs = ind.restrict(K)
+        print("\t", lhs, "lhs")
+
+        r0 = rep.restrict(L0)
+        print("\t", r0)
+
+        assert K.is_subgroup(L0)
+        r0 = r0.induce(K)
+        print("\t", r0, "rhs[0]")
+
+        r1 = rep.restrict(L1)
+        print("\t", r1)
+
+        r1 = r1.transport(K1, send)
+        print("\t", r1)
+        
+        assert K.is_subgroup(K1)
+        r1 = r1.induce(K)
+        print("\t", r1, "rhs[1]")
+
+        rhs = r0+r1
+        print("\t", rhs, "rhs")
+
+        assert lhs.chi == rhs.chi
+
+
 
 
 def test():
