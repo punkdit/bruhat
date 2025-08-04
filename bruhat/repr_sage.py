@@ -8,7 +8,7 @@ https://dec41.user.srcf.net/h/II_L/representation_theory/10
 
 see also: bruhat.cuspforms, bruhat.binary_platonic
 
-https://ncatlab.org/nlab/show/Gram-Schmidt+process#CategorifiedGramSchmidtProcess
+categorified gram-schmidt process
 """
 
 from math import lcm
@@ -182,12 +182,13 @@ class Rep:
         return self.rep == other.rep
 
     def is_iso(self, other):
-        if self.chi != other.chi:
-            return False
-        for f in self.hom(other):
-            if f.is_iso():
-                return True
-        assert 0, "i am not smart enough yet, need to search all homs...?"
+        return self.chi == other.chi
+        #if self.chi != other.chi:
+        #    return False
+        #for f in self.hom(other):
+        #    if f.is_iso():
+        #        return True
+        #assert 0, "i am not smart enough yet, need to search all homs...?"
 
     @classmethod
     def regular(cls, G):
@@ -721,7 +722,7 @@ class Table:
 
 
 
-# https://ncatlab.org/nlab/show/Gram-Schmidt+process#CategorifiedGramSchmidtProcess
+# categorified gram-schmidt process (see nlab)
 class Basis:
     "categorified Character Table"
     def __init__(self, reps, verbose=True):
@@ -2966,10 +2967,17 @@ def test_project():
         #print(P.rank())
 
 
-#def test_frobenius():
-#def test_mackey():
-
 def test_crackpot():
+    """
+    Here we induce irreps along
+    H=S_3xS_2 >---> G=S_5
+    and then restrict :
+    G=S_5 <----< K=S_1xS_4
+    this decomposes (using Mackey theorem)
+    as a direct sum over double cosets.
+    See Zelevinsky PSH-algebras (1981), 
+    Dolan's "crackpot matrices", etc.
+    """
 
     n = 5
     a, b = 3, 2
@@ -3050,7 +3058,145 @@ def test_crackpot():
         rhs = r0+r1
         print("\t", rhs, "rhs")
 
-        assert lhs.chi == rhs.chi
+        assert lhs.is_iso(rhs)
+        assert lhs == rhs # equality on-the-nose !
+
+
+def test_psh_algebra():
+
+    n = 4
+    nn = 2*n
+    G = Group.coxeter_bc(n)
+    assert G.rank == nn
+
+    items = set(list(range(nn)))
+
+    # i don't think this is the right parabolic subgroup to use...
+    # but this is what Zelevinsky uses (see section 7.1 in his book).
+    def subgroup_partition(a, b):
+        # [ a+ b+ ][ a- b- ]
+        left = set(list(range(a)) + list(range(n, n+a)))
+        right = set(list(range(a, a+b)) + list(range(n+a, n+a+b)))
+
+        assert left^right == items
+        assert left&right == set()
+
+        perms = []
+        for g in G:
+            gleft = set(g[i] for i in left)
+            gright = set(g[i] for i in right)
+            if left==gleft and right==gright:
+                perms.append(g)
+        H = Group(perms)
+        return H
+    
+    Hs = []
+    for a in range(1, n):
+        b = n-a
+        H = subgroup_partition(a, b)
+        H.do_check()
+        assert G.is_subgroup(H)
+        print(a, b, ":", len(G) // len(H))
+        Hs.append(H)
+
+    H, K = Hs[0], Hs[1]
+
+    X = G.action_subgroup(H)
+    Y = G.action_subgroup(K)
+
+    XY = X*X
+    orbits = XY.get_orbits()
+    print("orbits:", len(orbits))
+    #assert len(orbits) == 2
+
+    
+
+
+def test_coxeter():
+
+    n = 4
+    nn = 2*n
+    G = Group.coxeter_bc(n)
+    assert G.rank == nn
+    assert len(G.gens) == n
+
+    print(G)
+
+    items = set(list(range(nn)))
+
+    def subgroup_partition(a, b):
+        assert a+b+1 == n
+        l = G.gens[:a]
+        r = G.gens[a+1:]
+        #L = Group.generate(l)
+        #R = Group.generate(r)
+        H = Group.generate(l+r)
+        return H
+    
+    Hs = []
+    for a in range(n):
+        b = n-a-1
+        H = subgroup_partition(a, b)
+        H.do_check()
+        assert G.is_subgroup(H)
+        print(a, b, ":", len(G) // len(H))
+        Hs.append(H)
+    print()
+
+    H, K = Hs[1], Hs[2]
+
+
+    return
+
+    for H in Hs:
+      for K in Hs:
+        X = G.action_subgroup(H)
+        Y = G.action_subgroup(K)
+    
+        XY = X*Y
+        orbits = XY.get_orbits()
+        print(len(orbits), end=" ", flush=True)
+        #assert len(orbits) == 2
+      print()
+
+
+def test_coxeter_A():
+    
+    n = 4
+    G = Group.symmetric(n+1)
+    assert G.rank == n+1
+    assert len(G.gens) == n
+
+    print(G)
+
+    def subgroup_partition(a, b):
+        assert a+b+1 == n
+        l = G.gens[:a]
+        r = G.gens[a+1:]
+        H = Group.generate(l+r)
+        return H
+    
+    Hs = []
+    for a in range(n):
+        b = n-a-1
+        H = subgroup_partition(a, b)
+        H.do_check()
+        assert G.is_subgroup(H)
+        print(a, b, ":", len(G) // len(H))
+        Hs.append(H)
+    print()
+
+    for H in Hs:
+      for K in Hs:
+        X = G.action_subgroup(H)
+        Y = G.action_subgroup(K)
+    
+        XY = X*Y
+        orbits = XY.get_orbits()
+        print(len(orbits), end=" ", flush=True)
+        #assert len(orbits) == 2
+      print()
+
 
 
 
@@ -3062,6 +3208,7 @@ def test():
     test_gl()
     test_cuspidal(2,3)
     test_irr()
+    test_crackpot()
 
 
 if __name__ == "__main__":
