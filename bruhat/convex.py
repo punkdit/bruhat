@@ -593,16 +593,16 @@ def test_stabilizer_states():
 
 
 
-def test_positive():
-    # This is a disaster:
-    # the "positive" stabilizer codes are a quotient-polytope
-    # not a sub-polytope.
+def test_bundle():
 
     c = Clifford(1)
     I, X, Y, Z = c.I, c.X(), c.Y(), c.Z()
     #Y = X*Z # no use..
+    assert( (X@X) * (Z@Z) == -(Y@Y) )
+    assert( (X@Y) * (Z@X) == -(Y@Z) )
+    assert( (X@Z) * (Z@Y) == -(Y@X) )
 
-    n = 3
+    n = 2
     
     pauli = [I, X, Y, Z]
     lookup = {}
@@ -617,65 +617,69 @@ def test_positive():
         op = reduce(matmul, ops)
         name = ''.join("IXYZ"[i] for i in idx)
         lookup[op] = name
+        lookup[-op] = "-"+name
+        #lookup[w4*op] = "i"+name
+        #lookup[-w4*op] = "-i"+name
         if sum(idx):
             gens.append(op)
 
     print("gens:", len(gens))
 
-    orbit = get_clifford_states(n)
+    orbit, perms = get_clifford_states(n)
     print("orbit:", len(orbit))
 
+    G = mulclose(gens)
     II = I@I
 
-    count = 0
-    keys = set()
-    for rho in orbit:
-        
-        ops = [op for op in gens if rho*op==rho]
-        found = len(ops)
+    def mkpoint(ops):
+        assert len(ops)==3
+        point = [lookup[op] for op in ops]
+        point.sort(key = lambda s:(-s.count("I"),s.count("-"),s))
+        point = tuple(point)
+        return point
 
-        if found < n:
-            continue
+    total_space = set()
+    for i, rho in enumerate(orbit):
+        ops = [op for op in G if rho*op==rho]
+        ops.remove(II)
 
-        key = [lookup[op] for op in ops]
-        key.sort()
-        key = tuple(key)
-        if key not in keys:
-            print( ' '.join(key) )
-        else:
-            print("*")
-        #assert key not in keys
-        keys.add(key)
+        a, b, c = ops
+        assert a*b == c
+        assert a*c == b # etc
 
-        if found==2:
-            a,b = ops
-            #print(a*b == b*a)
-            #print(a*b in gens, -a*b in gens)
+        fiber = []
+        for i in [-1, 1]:
+          for j in [-1, 1]:
+            other = [i*a, j*b, i*j*c]
+            point = mkpoint(other)
+            fiber.append(point)
+        assert len(fiber) == 4
+        fiber.sort(key = lambda p:(str(p).count("-"), p))
+        fiber = tuple(fiber)
+        total_space.add(fiber)
+
+        point = mkpoint(ops)
+        name = ','.join(point)
+        print("|%s>"%name, end=" ")
+    print()
+
+    found = list(set(total_space))
+    print(len(found))
+    for fiber in total_space:
+        #print(fiber)
+        for i,point in enumerate(fiber):
+            name = ','.join(point)
+            print(r"\ket{%s}"%name, end=" & " if i<3 else r" \\")
+        print()
             
-        if found==3:
-            a, b, c = ops
-            #print(a*b==b*a, a*c==c*a, b*c==c*b)
-        #assert found <= 3
-        count += 1
 
-        #print(found, end=' ')
-
-    #print(keys, len(keys))
-    #print()
-    print(count, "of", len(orbit))
-    print("keys:", len(keys))
-
-    assert( (X@X) * (Z@Z) == -(Y@Y) )
-    assert( (X@Y) * (Z@X) == -(Y@Z) )
-    assert( (X@Z) * (Z@Y) == -(Y@X) )
         
+def test_hull():
 
-
-def test_orbit():
-
-    print("test_orbit")
+    print("test_hull")
     n = argv.get("n", 1)
-    space = get_clifford_hull(n)
+    local = argv.get("local", False)
+    space = get_clifford_hull(n, local=local)
     print(space)
     
     assert n < 3, "too big.."
@@ -684,8 +688,27 @@ def test_orbit():
     print(p)
     #print(" ".join(dir(p)))
 
-    #for dim in [0,1,2,3]:
-    for dim in [4]:
+    for dim in range(6,16):
+        faces = p.faces(dim)
+        N = len(faces)
+        print("dim %d, N=%d" % (dim, N))
+
+
+def test_orbit():
+
+    print("test_orbit")
+    n = argv.get("n", 1)
+    local = argv.get("local", False)
+    space = get_clifford_hull(n, local=local)
+    print(space)
+    
+    assert n < 3, "too big.."
+    p = space.get_polyhedron()
+
+    print(p)
+    #print(" ".join(dir(p)))
+
+    for dim in [0,1,2,3,4,5]:
         faces = p.faces(dim)
         N = len(faces)
         print("dim %d, N=%d" % (dim, N))
