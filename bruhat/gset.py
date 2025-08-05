@@ -1798,11 +1798,14 @@ def test_orbits():
     for n in range(2, 7):
         G = fn(n)
         X = G.i
-        print("n=%s, |G|=%d |X|=%d"%(n, len(G), X.rank), end=":\t")
+        H = [g for g in G if g[0]==0]
+        print("n=%s |G|=%d |X|=%d"%(n, len(G), X.rank), end=":\t")
+        Y = None
         for k in range(1, n+1):
-            Xs = [X]*k
-            Y = reduce(mul, Xs)
+            Y = X*Y if Y is not None else X
             print(len(Y.get_orbits()), end=" ", flush=True)
+            if Y.rank > 40000:
+                break
         print()
     print("done")
 
