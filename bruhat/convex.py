@@ -501,6 +501,24 @@ def get_clifford_hull(n, local=False, verbose=False):
     return space
 
 
+def test_CZ_state():
+
+    n = 2
+    gens = get_clifford_gens(n)
+
+    G = mulclose(gens, verbose=True, maxsize=None)
+    print(len(G))
+
+    v = Matrix([1,1,1,0]).t
+    for g in G:
+        if g*v != v:
+            continue
+        #print('.', end='', flush=True)
+        print(g, g==~g)
+    print()
+
+
+
 def test_fixed():
     n = 2
 
@@ -688,7 +706,7 @@ def test_hull():
     print(p)
     #print(" ".join(dir(p)))
 
-    for dim in range(6,16):
+    for dim in range(16):
         faces = p.faces(dim)
         N = len(faces)
         print("dim %d, N=%d" % (dim, N))
