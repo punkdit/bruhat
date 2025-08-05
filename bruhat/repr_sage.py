@@ -3112,9 +3112,47 @@ def test_psh_algebra():
     
 
 
-def test_coxeter():
-
+def test_coxeter_A():
+    
     n = 4
+    G = Group.symmetric(n+1)
+    assert G.rank == n+1
+    assert len(G.gens) == n
+
+    print(G)
+
+    def subgroup_partition(a, b):
+        assert a+b+1 == n
+        l = G.gens[:a]
+        r = G.gens[a+1:]
+        H = Group.generate(l+r)
+        return H
+    
+    Hs = []
+    for a in range(n):
+        b = n-a-1
+        H = subgroup_partition(a, b)
+        H.do_check()
+        assert G.is_subgroup(H)
+        print(a, b, ":", len(G) // len(H))
+        Hs.append(H)
+    print()
+
+    for H in Hs:
+      for K in Hs:
+        X = G.action_subgroup(H)
+        Y = G.action_subgroup(K)
+    
+        XY = X*Y
+        orbits = XY.get_orbits()
+        print(len(orbits), end=" ", flush=True)
+        #assert len(orbits) == 2
+      print()
+
+
+def test_coxeter_BC():
+
+    n = argv.get("n", 3)
     nn = 2*n
     G = Group.coxeter_bc(n)
     assert G.rank == nn
@@ -3145,46 +3183,7 @@ def test_coxeter():
 
     H, K = Hs[1], Hs[2]
 
-
-    return
-
-    for H in Hs:
-      for K in Hs:
-        X = G.action_subgroup(H)
-        Y = G.action_subgroup(K)
-    
-        XY = X*Y
-        orbits = XY.get_orbits()
-        print(len(orbits), end=" ", flush=True)
-        #assert len(orbits) == 2
-      print()
-
-
-def test_coxeter_A():
-    
-    n = 4
-    G = Group.symmetric(n+1)
-    assert G.rank == n+1
-    assert len(G.gens) == n
-
-    print(G)
-
-    def subgroup_partition(a, b):
-        assert a+b+1 == n
-        l = G.gens[:a]
-        r = G.gens[a+1:]
-        H = Group.generate(l+r)
-        return H
-    
-    Hs = []
-    for a in range(n):
-        b = n-a-1
-        H = subgroup_partition(a, b)
-        H.do_check()
-        assert G.is_subgroup(H)
-        print(a, b, ":", len(G) // len(H))
-        Hs.append(H)
-    print()
+    #return
 
     for H in Hs:
       for K in Hs:

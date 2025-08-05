@@ -1795,11 +1795,15 @@ def main():
 def test_orbits():
     meth = argv.get("meth", "symmetric")
     fn = getattr(Group, meth)
-    for n in range(2, 7):
+    n1 = 7
+    if meth != "symmetric":
+        n1 = 6
+    for n in range(2, n1):
         G = fn(n)
         X = G.i
         H = [g for g in G if g[0]==0]
-        print("n=%s |G|=%d |X|=%d"%(n, len(G), X.rank), end=":\t")
+        print("n=%s |G|=%d |H|=%d |X|=%d:"%(n, len(G), len(H), X.rank))
+        print("\t\t\t\t", end="")
         Y = None
         for k in range(1, n+1):
             Y = X*Y if Y is not None else X
