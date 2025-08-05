@@ -1797,8 +1797,8 @@ def test_orbits():
     fn = getattr(Group, meth)
     for n in range(2, 7):
         G = fn(n)
-        print("n=%s, |G|=%d"%(n, len(G)), end=":\t")
         X = G.i
+        print("n=%s, |G|=%d |X|=%d"%(n, len(G), X.rank), end=":\t")
         for k in range(1, n+1):
             Xs = [X]*k
             Y = reduce(mul, Xs)
