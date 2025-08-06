@@ -646,6 +646,25 @@ def test_bundle():
     orbit, perms = get_clifford_states(n)
     print("orbit:", len(orbit))
 
+    orbit = list(orbit)
+    values = set()
+    send = {}
+    N = len(orbit)
+    for i in range(N):
+      #for j in range(i, N):
+      for j in range(N):
+        v = (orbit[i]*orbit[j]).trace()
+        values.add(v)
+        send.setdefault(v, []).append((i,j))
+    print(len(values))
+    values = list(values)
+    values.sort()
+    print(values)
+    for v in values:
+        j = len(send[v])
+        print(v, j, j/60)
+    return
+
     G = mulclose(gens)
     II = I@I
 
