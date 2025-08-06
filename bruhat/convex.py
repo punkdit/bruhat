@@ -610,6 +610,87 @@ def test_stabilizer_states():
 
 
 
+def test_bruhat():
+
+    n = 2
+    
+    orbit, perms = get_clifford_states(n)
+    print("orbit:", len(orbit))
+
+    orbit = list(orbit)
+    values = set()
+    send = {}
+    N = len(orbit)
+    for i in range(N):
+      #for j in range(i, N):
+      for j in range(N):
+        v = (orbit[i]*orbit[j]).trace()
+        values.add(v)
+        send.setdefault(v, []).append((i,j))
+    print(len(values))
+    values = list(values)
+    values.sort()
+    print(values)
+    for v in values:
+        j = len(send[v])
+        print(v, j, j/60)
+
+
+def test_density():
+
+    n = argv.get("n", 3)
+    k = argv.get("k", 0)
+    assert 0<=k<=n
+    N = 2**n
+    gen = get_clifford_gens(n)
+
+    v = [0]*N
+    v[0] = 1
+    v = Matrix(v).t
+    rho = v.d @ v
+
+    rho = numpy.zeros((N,N), dtype=int)
+    for i in range(2**k):
+        rho[i,i] = 1
+    rho = matrix_sage.Matrix(K, rho)
+    rho = (one / (2**k)) * rho
+    assert rho.trace() == 1
+
+    print("orbit:", end=' ')
+    bdy = [rho]
+    orbit = set(bdy)
+    while bdy:
+        _bdy = []
+        for sho in bdy:
+          for g in gen:
+            tho = (~g)*sho*g
+            if tho not in orbit:
+                orbit.add(tho)
+                _bdy.append(tho)
+        bdy = _bdy
+        print(len(orbit), end=" ", flush=True)
+    print()
+
+    print("total orbit size:", len(orbit))
+    
+    orbit = list(orbit)
+    values = set()
+    send = {}
+    N = len(orbit)
+    i = 0
+    for j in range(N):
+        v = (orbit[i]*orbit[j]).trace()
+        values.add(v)
+        send.setdefault(v, []).append((i,j))
+    values = list(values)
+    values.sort(key = lambda v:-eval(str(v)))
+    print("overlap:", values)
+    for v in values:
+        j = len(send[v])
+        #assert j%N == 0
+        print(v, "\t", j)
+
+
 
 def test_bundle():
 
@@ -645,25 +726,6 @@ def test_bundle():
 
     orbit, perms = get_clifford_states(n)
     print("orbit:", len(orbit))
-
-    orbit = list(orbit)
-    values = set()
-    send = {}
-    N = len(orbit)
-    for i in range(N):
-      #for j in range(i, N):
-      for j in range(N):
-        v = (orbit[i]*orbit[j]).trace()
-        values.add(v)
-        send.setdefault(v, []).append((i,j))
-    print(len(values))
-    values = list(values)
-    values.sort()
-    print(values)
-    for v in values:
-        j = len(send[v])
-        print(v, j, j/60)
-    return
 
     G = mulclose(gens)
     II = I@I
