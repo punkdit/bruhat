@@ -11,6 +11,7 @@ import numpy
 from bruhat import matrix_sage
 from bruhat.argv import argv
 from bruhat.gset import mulclose, Perm, Group
+from bruhat.action import mulclose_names
 from bruhat.solve import shortstr
 
 from bruhat.clifford_sage import Clifford, K, w4
@@ -138,9 +139,13 @@ class Convex:
         p = Polyhedron(vertices=vs)
         return p
 
-    def get_idxs(self, face):
+    def get_verts(self, face):
         verts = face.ambient_Vrepresentation()
         verts = [Matrix(v).t for v in verts]
+        return verts
+
+    def get_idxs(self, face):
+        verts = self.get_verts(face)
         idxs = [self.lookup[v] for v in verts]
         return idxs
 
@@ -427,9 +432,31 @@ def get_clifford_gens(n, local=False):
     return gen
 
 
+def get_pauli_gens(n):
+
+    c = Clifford(n)
+    X, Y, Z = c.X, c.Y, c.Z
+    I = c.I
+
+    gen = []
+    for i in range(n):
+        gen.append(X(i))
+        gen.append(Y(i))
+        gen.append(Z(i))
+    for g in gen:
+        assert g*g.d == I
+
+    #G = mulclose(gen)
+    #print(len(G))
+
+    return gen
+
+
+
 
 def get_clifford_states(n, local=False, verbose=False):
-    gen = get_clifford_gens(n, local)
+    cliff_gen = get_clifford_gens(n, local)
+    pauli_gen = get_pauli_gens(n)
 
     N = 2**n
     v = [0]*N
@@ -438,7 +465,7 @@ def get_clifford_states(n, local=False, verbose=False):
 
     rho = v@v.d
 
-    pairs = [(g,~g) for g in gen]
+    pairs = [(g,~g) for g in cliff_gen]
 
     bdy = [rho]
     orbit = set(bdy)
@@ -464,19 +491,23 @@ def get_clifford_states(n, local=False, verbose=False):
     perms = []
     for g,ig in pairs:
         perm = Perm([lookup[g*rho*ig] for rho in orbit])
-        #print(perm)
         perms.append(perm)
+
+    pauli = []
+    for g in pauli_gen:
+        perm = Perm([lookup[g*rho*~g] for rho in orbit])
+        pauli.append(perm)
 
     #G = Group.generate(perms)
     #print(len(G))
 
-    return orbit, perms
+    return orbit, perms, pauli
 
 
 def get_clifford_hull(n, local=False, verbose=False):
     "find convex stabilizer polytope using density matrices"
 
-    orbit, perms = get_clifford_states(n, local, verbose)
+    orbit, perms, pauli = get_clifford_states(n, local, verbose)
 
     M = (2**n)**2
     zero = Matrix([0]*M)
@@ -497,7 +528,8 @@ def get_clifford_hull(n, local=False, verbose=False):
     verts = [v-u for v in verts]
 
     space = Convex(verts)
-    space.perms = perms
+    space.perms = perms # Clifford gens
+    space.pauli = pauli # Pauli gens
     return space
 
 
@@ -614,7 +646,7 @@ def test_bruhat():
 
     n = 2
     
-    orbit, perms = get_clifford_states(n)
+    orbit, perms, pauli = get_clifford_states(n)
     print("orbit:", len(orbit))
 
     orbit = list(orbit)
@@ -803,7 +835,7 @@ def test_bundle():
 
     print("gens:", len(gens))
 
-    orbit, perms = get_clifford_states(n)
+    orbit, perms, pauli = get_clifford_states(n)
     print("orbit:", len(orbit))
 
     G = mulclose(gens)
@@ -847,7 +879,10 @@ def test_bundle():
         #print(fiber)
         for i,point in enumerate(fiber):
             name = ','.join(point)
-            print(r"\ket{%s}"%name, end=" & " if i<3 else r" \\")
+            if argv.latex:
+                print(r"\ket{%s}"%name, end=" & " if i<3 else r" \\")
+            else:
+                print(("|%s>"%name).ljust(13), end=" ")
         print()
             
 
@@ -872,6 +907,96 @@ def test_hull():
         print("dim %d, N=%d" % (dim, N))
 
 
+def test_faces():
+    print("test_faces")
+    n = argv.get("n", 2)
+    local = argv.get("local", False)
+    space = get_clifford_hull(n, local=local)
+    print(space)
+    print("perms:", len(space.perms))
+
+    #G = mulclose(space.perms) # 11520
+    #print(len(G))
+
+    names = []
+    for i in range(n):
+        names.append("X%d"%i)
+        names.append("Y%d"%i)
+        names.append("Z%d"%i)
+    pauli = mulclose_names(space.pauli, names)
+    identity = Perm(list(range(space.perms[0].rank)))
+    assert identity in pauli
+    pauli[identity] = ()
+    print(len(pauli)) # projective pauli group
+
+    #return
+    
+    assert n < 3, "too big.."
+    p = space.get_polyhedron()
+
+    print(p)
+    #print(" ".join(dir(p)))
+
+    found = []
+    #for dim in [0,1,2,3]:
+    for dim in [3]:
+        faces = p.faces(dim)
+        N = len(faces)
+        print("dim %d, N=%d" % (dim, N))
+        items = []
+        for face in faces:
+            idxs = space.get_idxs(face)
+            if len(idxs) != 6:
+                continue
+            found.append(idxs)
+
+    print("found:", len(found))
+
+    lookup = {
+        "" : "II",
+        "I" : "II",
+        "X0" : "XI",
+        "Y0" : "YI",
+        "Z0" : "ZI",
+        "X1" : "IX",
+        "Y1" : "IY",
+        "Z1" : "IZ",
+        "X0*X1" : "XX",
+        "Y0*X1" : "YX",
+        "Z0*X1" : "ZX",
+        "X0*Y1" : "XY",
+        "Y0*Y1" : "YY",
+        "Z0*Y1" : "ZY",
+        "X0*Z1" : "XZ",
+        "Y0*Z1" : "YZ",
+        "Z0*Z1" : "ZZ",
+    }
+
+    stabs = set()
+    for idxs in found:
+        #print(idxs)
+        #idxs = set(idxs)
+        ops = []
+        for op in pauli:
+            #jdxs = set(op[i] for i in idxs)
+            jdxs = [op[i] for i in idxs]
+            if jdxs == idxs:
+                name = '*'.join(pauli[op]) or "I"
+                ops.append(lookup.get(name, name))
+        ops.sort()
+        #assert len(ops) == 8
+        name = ",".join(ops)
+        stabs.add(name)
+        #for g in space.pauli:
+        #    print("\t", [g[i] for i in idxs])
+    stabs = list(stabs)
+    stabs.sort()
+    for stab in stabs:
+        print(stab)
+    
+
+
+
 def test_orbit():
 
     print("test_orbit")
@@ -886,7 +1011,7 @@ def test_orbit():
     print(p)
     #print(" ".join(dir(p)))
 
-    for dim in [0,1,2,3,4,5]:
+    for dim in [0,1,2,3]:
         faces = p.faces(dim)
         N = len(faces)
         print("dim %d, N=%d" % (dim, N))
@@ -897,7 +1022,7 @@ def test_orbit():
             idxs.sort()
             idxs = tuple(idxs)
             items.append(idxs)
-        #print(items)
+        print("6's:", len([item for item in items if len(item)==6]))
         lookup = {item:idx for (idx,item) in enumerate(items)}
         perms = []
         for g in space.perms:
@@ -929,9 +1054,6 @@ def test_orbit():
         orbits.sort(key = len)
         print("orbits:", [len(orbit) for orbit in orbits])
         assert sum([len(orbit) for orbit in orbits]) == N
-        #for orbit in orbits:
-        #    print("orbit:", len(orbit))
-        #print()
 
     return
 
