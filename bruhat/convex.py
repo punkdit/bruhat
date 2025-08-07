@@ -636,10 +636,8 @@ def test_bruhat():
         print(v, j, j/60)
 
 
-def test_density():
+def get_clifford_orbit(n, k):
 
-    n = argv.get("n", 3)
-    k = argv.get("k", 0)
     assert 0<=k<=n
     N = 2**n
     gen = get_clifford_gens(n)
@@ -670,6 +668,16 @@ def test_density():
         bdy = _bdy
         print(len(orbit), end=" ", flush=True)
     print()
+    return orbit
+
+
+
+def test_density():
+
+    n = argv.get("n", 3)
+    k = argv.get("k", 0)
+
+    orbit = get_clifford_orbit(n, k)
 
     print("total orbit size:", len(orbit))
     
@@ -691,27 +699,98 @@ def test_density():
         print(v, "\t", j)
 
 
+def test_density_bundle():
+
+    c = Clifford(1)
+    I, X, Y, Z = c.I, c.X(), c.Y(), c.Z()
+    pauli = [I, X, Y, Z]
+
+    assert( (X@X) * (Z@Z) == -(Y@Y) )
+    assert( (X@Y) * (Z@X) == -(Y@Z) )
+    assert( (X@Z) * (Z@Y) == -(Y@X) )
+
+    k = argv.get("k", 0)
+    n = argv.get("n", 2)
+    N = 2**n
+    
+    lookup = {}
+    gens = []
+    for idx in numpy.ndindex((4,)*n):
+        ops = [pauli[i] for i in idx]
+        op = reduce(matmul, ops)
+        name = ''.join("IXYZ"[i] for i in idx)
+        lookup[op] = name
+        lookup[-op] = "-"+name
+        #lookup[w4*op] = "i"+name
+        #lookup[-w4*op] = "-i"+name
+        if sum(idx):
+            gens.append(op)
+
+    print("gens:", len(gens))
+
+    orbit = get_clifford_orbit(n, k)
+    print("orbit:", len(orbit))
+
+    G = mulclose(gens)
+    In = reduce(matmul, [I]*n)
+
+    def mkpoint(ops):
+        point = [lookup[op] for op in ops]
+        point.sort(key = lambda s:(-s.count("I"),s.count("-"),s))
+        point = tuple(point)
+        return point
+
+    total_space = {} # base point to fiber
+    for i, rho in enumerate(orbit):
+        ops = [op for op in G if rho*op==rho]
+        ops.remove(In)
+
+        assert len(ops) == N-1
+
+        base = [lookup[op].replace("-", "") for op in ops]
+        base.sort()
+        key = tuple(base)
+
+        point = mkpoint(ops)
+        total_space.setdefault(key, []).append(ops)
+
+#        name = ','.join(point)
+#        print("|%s>"%name, end=" ")
+#    print()
+
+    print(len(total_space))
+
+    bases = list(total_space.keys())
+    bases.sort(key = lambda base : (-str(base).count("I"), str(base)))
+    for row,base in enumerate(bases):
+        fiber = total_space[base]
+        fiber = [mkpoint(ops) for ops in fiber]
+        fiber.sort(key = lambda p:(str(p).count("-"), p))
+        for i,point in enumerate(fiber):
+            name = ','.join(point)
+            #print(r"\ket{%s}"%name, end=" & " if i<N-1 else r" \\")
+            print("%4s"%row, "|%s>"%name)
+            break
+
+            
+
 
 def test_bundle():
 
     c = Clifford(1)
     I, X, Y, Z = c.I, c.X(), c.Y(), c.Z()
-    #Y = X*Z # no use..
+    pauli = [I, X, Y, Z]
+
     assert( (X@X) * (Z@Z) == -(Y@Y) )
     assert( (X@Y) * (Z@X) == -(Y@Z) )
     assert( (X@Z) * (Z@Y) == -(Y@X) )
 
-    n = 2
+    n = argv.get("n", 2)
+    assert n<=2
     
-    pauli = [I, X, Y, Z]
     lookup = {}
     gens = []
-
     for idx in numpy.ndindex((4,)*n):
-        #lr = pauli[i]@pauli[j]
-        #lookup[lr] = "IXYZ"[i] + "IXYZ"[j]
-        #if i==j==0:
-            #continue
         ops = [pauli[i] for i in idx]
         op = reduce(matmul, ops)
         name = ''.join("IXYZ"[i] for i in idx)
