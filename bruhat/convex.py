@@ -54,7 +54,10 @@ def conv(a, b, r=one/2):
 
 
 class Convex:
-    def __init__(self, gens):
+    def __init__(self, gens, rhos=None):
+        if rhos is None:
+            rhos = gens
+        assert len(gens) == len(rhos)
         gens = list(gens)
         # put gens in the columns of u:
         lookup = {}
@@ -69,6 +72,7 @@ class Convex:
             shape = v.shape
         self.u = u
         self.gens = gens
+        self.rhos = list(rhos)
         self.lookup = lookup
 
     def __getitem__(self, idx):
@@ -509,6 +513,8 @@ def get_clifford_hull(n, local=False, verbose=False):
 
     orbit, perms, pauli = get_clifford_states(n, local, verbose)
 
+    orbit = list(orbit)
+
     M = (2**n)**2
     zero = Matrix([0]*M)
     verts = []
@@ -527,7 +533,7 @@ def get_clifford_hull(n, local=False, verbose=False):
     u = (QQ.one()/len(verts)) * u
     verts = [v-u for v in verts]
 
-    space = Convex(verts)
+    space = Convex(verts, orbit)
     space.perms = perms # Clifford gens
     space.pauli = pauli # Pauli gens
     return space
