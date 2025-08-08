@@ -123,6 +123,7 @@ class Matrix(object):
         #M = self.M.direct_sum(other.M)
         M = block_diagonal_matrix(self.M, other.M)
         return Matrix(ring, M)
+    __lshift__ = direct_sum
 
     def stack(self, other):
         "concatenate rows of self & other"

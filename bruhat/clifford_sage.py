@@ -803,6 +803,73 @@ def test_extension():
     return X
 
 
+def test_CH():
+    "how to make a CH gate from a CCX (toffoli?)"
+    # FAIL
+
+    n = 3
+    c = Clifford(n)
+
+    gens = [c.S(i) for i in range(n)] + [c.H(i) for i in range(n)]
+    #G = mulclose(gens, verbose=True)
+    #print(len(G))
+
+    I = Matrix.identity(K, 2)
+    II = Matrix.identity(K, 4)
+
+    CH = I << Clifford(1).H(0)
+    print(CH, CH.determinant())
+
+    CCX = II << I << Clifford(1).X(0)
+    print(CCX)
+
+    v0 = Matrix(K, [1,0])
+    C1 = mulclose([Clifford(1).S(), Clifford(1).H()])
+    ms = set()
+    for g in C1:
+        ms.add(v0*g)
+    assert len(ms) == 48
+
+    ps = [m.d for m in ms]
+
+    ms = [m@II for m in ms]
+    ps = [p@II for p in ps]
+    print(ms[0].shape)
+
+    su = [g for g in C1 if g.determinant() == 1]
+    print("SU(1):", len(su))
+    ops = [II@g for g in su]
+
+    lhs = (v0@II)*CCX
+    prep = v0.d@II
+    for g0 in su:
+     print(".", end="", flush=True)
+     for g1 in su:
+      gg = g0@g1
+      for g2 in su:
+        ggg = gg@g2
+        op = lhs*ggg*prep
+        #assert op.shape == CH.shape
+        if op==CH:
+            print("found")
+            return
+
+    return
+
+    for m in ms:
+      print(".", end="", flush=True)
+      for p in ps:
+        for g in ops:
+            #gg = (m<<II)*CCX*(p<<II)
+            gg = m*CCX*g*p
+            #assert gg.shape == CH.shape, gg.shape
+            if gg==CH:
+                print("found")
+                return
+
+
+
+
 def test_CCZ():
 
     I = Clifford(1).I
