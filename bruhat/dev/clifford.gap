@@ -65,18 +65,18 @@ for g in Center(Cliff2) do Print(g, "\n"); od;
 Print(Order(Center(Cliff2)), "\n");
 #Print(IsomorphismGroups(Center(Cliff2), Group([[E(8)]])), "\n"); # yes
 center := Group(w8);
-#aff_sy := FactorGroup(Cliff2, Center(Cliff2));
-aff_sy := FactorGroup(Cliff2, center);
-Print(StructureDescription(aff_sy), "\n");
+#PCliff2 := FactorGroup(Cliff2, Center(Cliff2));
+PCliff2 := FactorGroup(Cliff2, center);
+Print(StructureDescription(PCliff2), "\n");
 
 ASp := SemidirectProduct(Sp(4,2), GF(2)^4);
 Print(StructureDescription(ASp), "\n");
 
-Print(IsomorphismGroups(aff_sy, ASp), "\n");
+Print(IsomorphismGroups(PCliff2, ASp), "\n");
 
-# aff_sy is isomorphic to ASp group constructed in heisenberg.py
+# PCliff2 is isomorphic to ASp group constructed in heisenberg.py
 
-quit;
+#quit;
 
 Pauli2 := Group(wi, xi, ix, zi, iz);; # Order 64
 
@@ -99,19 +99,19 @@ Print(Order(G1), "\n");
 #Print(Order(Pauli2), "\n");
 #Print(IsomorphismGroups(G1, Sp(4,2)), "\n"); # yes !
 
-quit;
+#quit;
 
 
-# Works:
-for U in Cliff2 do
-    found := false;;
-    #Udag := Inverse(U);
-    #Print("found? ");
-    for g in Pauli2 do
-        if (U*g*Inverse(U)*Inverse(g) in Pauli2)  then found:=true; break; fi;
-    od;
-    if not found then Print("Not found\n"); fi;
-od;
+## Works:
+#for U in Cliff2 do
+#    found := false;;
+#    #Udag := Inverse(U);
+#    #Print("found? ");
+#    for g in Pauli2 do
+#        if (U*g*Inverse(U)*Inverse(g) in Pauli2)  then found:=true; break; fi;
+#    od;
+#    if not found then Print("Not found\n"); fi;
+#od;
 
 a := [
     [0, 1, 0, 0],
@@ -190,6 +190,9 @@ Tofolli := [
 
 
 Cliff3 := Group(sii, isi, iis, hii, ihi, iih, wii, icz, czi);; # Order 743178240
+
+quit;
+
 Pauli3 := Group(wii, xii, ixi, iix, zii, izi, iiz);; # Order 256
 
 # Print(Order(Pauli3), "\n");;

@@ -1298,8 +1298,11 @@ def test_real_cliff():
 def test_double_cosets():
     from bruhat.matrix_sage import CyclotomicField, Matrix
 
+    n = argv.get("n", 2)
+    k = argv.get("k", 0)
+
     # -----------------------------------
-    # build Pauli groups
+    # build Pauli group
 
     ring = CyclotomicField(8)
     w8 = ring.gens()[0]
@@ -1317,7 +1320,6 @@ def test_double_cosets():
     H = Matrix(ring, [[ir2,ir2],[ir2,-ir2]])
     CZ = Matrix(ring, [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,-1]])
 
-    n = argv.get("n", 2)
     gen = []
     for i in range(n):
         for op in [X,Z,wI]:
@@ -1343,12 +1345,14 @@ def test_double_cosets():
     gen = perms
 
     stab = []
-    for i in range(n):
+    for i in range(n-k):
         op = [I]*n
         op[i] = X
         stab.append(reduce(matmul, op))
     stab = mulclose(stab)
     stab = [lookup[g] for g in stab]
+
+    del lookup
 
     def mkpoint(stab):
         stab = list(stab)
@@ -1357,29 +1361,45 @@ def test_double_cosets():
         return stab
 
     stab = mkpoint(stab)
-    orbit = {stab}
-    bdy = list(orbit)
+    codes = {stab}
+    bdy = list(codes)
     while bdy:
         _bdy = []
         for g in gen:
             for p in bdy:
                 q = mkpoint([g[i] for i in p])
-                if q in orbit:
+                if q in codes:
                     continue
-                orbit.add(q)
+                codes.add(q)
                 _bdy.append(q)
         bdy = _bdy
     if n==2:
-        assert len(orbit) == 60
-    print("stabilizer states:", len(orbit))
-    N = len(orbit)
+        assert len(codes) == 60
+    print("codes:", len(codes))
+    codes = list(codes)
+    codes.sort()
+    lookup = {c:idx for (idx,c) in enumerate(codes)}
+    N = len(codes)
 
-    pairs = {(p,q) for p in orbit for q in orbit}
-    print("pairs:", len(pairs))
+    #pairs = {(p,q) for p in codes for q in codes}
+    #print("pairs:", len(pairs))
+    mask = numpy.zeros((N,N), dtype=numpy.uint8)
+    mask[:] = 1
 
-    orbits = []
-    while pairs:
-        pair = iter(pairs).__next__()
+    #orbits = []
+    row = col = 0
+    #while pairs:
+    counts = []
+    while 1:
+        #pair = iter(pairs).__next__()
+        while row<N and mask[row,col] == 0:
+            col += 1
+            if col==N:
+                row += 1
+                col = 0
+        if row==N:
+            break
+        pair = codes[row], codes[col]
         orbit = {pair}
         bdy = list(orbit)
         while bdy:
@@ -1393,15 +1413,151 @@ def test_double_cosets():
                     orbit.add((p1,q1))
                     _bdy.append((p1,q1))
             bdy = _bdy
-        orbits.append(orbit)
-        assert orbit.issubset(pairs)
-        pairs.difference_update(orbit)
+        #orbits.append(orbit)
+        #assert orbit.issubset(pairs)
+        #pairs.difference_update(orbit)
+        for (p,q) in orbit:
+            i,j = lookup[p], lookup[q]
+            assert mask[i,j]
+            mask[i,j] = 0
         k = len(orbit)
         assert k%N == 0
         print("orbit:", k//N)
+        counts.append(k//N)
 
-    orbits.sort(key=len)
-    print([len(o)//N for o in orbits], len(orbits))
+    #orbits.sort(key=len)
+    #print([len(o)//N for o in orbits], len(orbits))
+    counts.sort()
+    print(counts, len(counts))
+
+
+def test_hecke(): # another version of test_double_cosets
+    from bruhat.matrix_sage import CyclotomicField, Matrix
+
+    n = argv.get("n", 2)
+    k = argv.get("k", 0)
+
+    # -----------------------------------
+    # build Pauli group
+
+    ring = CyclotomicField(8)
+    w8 = ring.gens()[0]
+    w = w8**2
+    r2 = w8 + w8.conjugate()
+    ir2 = 1/r2
+    assert r2**2 == 2
+    assert 2*ir2**2 == 1
+
+    I = Matrix(ring, [[1,0],[0,1]])
+    wI = w*I
+    X = Matrix(ring, [[0,1],[1,0]])
+    Z = Matrix(ring, [[1,0],[0,-1]])
+    S = Matrix(ring, [[1,0],[0,w]])
+    H = Matrix(ring, [[ir2,ir2],[ir2,-ir2]])
+    CZ = Matrix(ring, [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,-1]])
+
+    gen = []
+    for i in range(n):
+        for op in [X,Z,wI]:
+            g = [I]*n
+            g[i] = op
+            gen.append(reduce(matmul, g))
+    
+    Pauli = mulclose(gen)
+    Pauli = list(Pauli)
+    lookup = dict((g,i) for (i,g) in enumerate(Pauli))
+    print("Pauli:", len(Pauli))
+    assert len(Pauli) == 4**(n+1)
+
+    #gen = [HI, IH, SI, IS, CZ]
+    gen = get_clifford_gens(n)
+
+    perms = []
+    for g in gen:
+        ig = ~g
+        idxs = [lookup[ig*h*g] for h in Pauli]
+        perm = Perm(idxs)
+        perms.append(perm)
+    gen = perms
+
+    stab = []
+    for i in range(n-k):
+        op = [I]*n
+        op[i] = X
+        stab.append(reduce(matmul, op))
+    stab = mulclose(stab)
+    stab = [lookup[g] for g in stab]
+
+    del lookup
+
+    def mkpoint(stab):
+        stab = list(stab)
+        stab.sort()
+        stab = tuple(stab)
+        return stab
+
+    stab = mkpoint(stab)
+    codes = {stab}
+    bdy = list(codes)
+    while bdy:
+        _bdy = []
+        for g in gen:
+            for p in bdy:
+                q = mkpoint([g[i] for i in p])
+                if q in codes:
+                    continue
+                codes.add(q)
+                _bdy.append(q)
+        bdy = _bdy
+    if n==2 and k==0:
+        assert len(codes) == 60
+    print("codes:", len(codes))
+    codes = list(codes)
+    codes.sort()
+    lookup = {c:idx for (idx,c) in enumerate(codes)}
+    N = len(codes)
+
+    mask = numpy.zeros((N,N), dtype=numpy.uint8)
+    mask[:] = 1
+
+    row = col = 0
+    counts = []
+    while 1:
+        while row<N and mask[row,col] == 0:
+            col += 1
+            if col==N:
+                row += 1
+                col = 0
+        if row==N:
+            break
+        pair = codes[row], codes[col]
+        bdy = [(row,col)]
+        count = 1
+        while bdy:
+            if argv.verbose:
+                print("%d:%d"%(count,len(bdy)), end=" ", flush=True)
+            _bdy = []
+            while bdy:
+                i,j = bdy.pop()
+                p, q = codes[i], codes[j]
+                for g in gen:
+                    p1 = mkpoint([g[i] for i in p])
+                    q1 = mkpoint([g[i] for i in q])
+                    i,j = lookup[p1], lookup[q1]
+                    if mask[i,j]:
+                        _bdy.append((i,j))
+                        mask[i,j] = 0
+                        count += 1
+            bdy = _bdy
+        if argv.verbose:
+            print()
+        print("orbit:", count//N)
+        counts.append(count//N)
+
+    #orbits.sort(key=len)
+    #print([len(o)//N for o in orbits], len(orbits))
+    counts.sort()
+    print(counts, len(counts))
 
 
 
