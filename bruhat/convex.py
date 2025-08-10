@@ -1469,7 +1469,6 @@ def test_hecke(): # another version of test_double_cosets
     print("Pauli:", len(Pauli))
     assert len(Pauli) == 4**(n+1)
 
-    #gen = [HI, IH, SI, IS, CZ]
     gen = get_clifford_gens(n)
 
     perms = []
@@ -1512,11 +1511,26 @@ def test_hecke(): # another version of test_double_cosets
     if n==2 and k==0:
         assert len(codes) == 60
     print("codes:", len(codes))
+    print()
     codes = list(codes)
     codes.sort()
     lookup = {c:idx for (idx,c) in enumerate(codes)}
-    N = len(codes)
 
+    perms = []
+    for g in gen:
+        perm = []
+        for (i,c) in enumerate(codes):
+            j = lookup[mkpoint([g[k] for k in c])]
+            perm.append(j)
+        perm = Perm(perm)
+        perms.append(perm)
+    gen = perms
+
+    find_double_cosets(gen)
+
+
+def find_double_cosets(gen):
+    N = gen[0].rank
     mask = numpy.zeros((N,N), dtype=numpy.uint8)
     mask[:] = 1
 
@@ -1530,7 +1544,6 @@ def test_hecke(): # another version of test_double_cosets
                 col = 0
         if row==N:
             break
-        pair = codes[row], codes[col]
         bdy = [(row,col)]
         count = 1
         while bdy:
@@ -1538,12 +1551,9 @@ def test_hecke(): # another version of test_double_cosets
                 print("%d:%d"%(count,len(bdy)), end=" ", flush=True)
             _bdy = []
             while bdy:
-                i,j = bdy.pop()
-                p, q = codes[i], codes[j]
+                i0,j0 = bdy.pop()
                 for g in gen:
-                    p1 = mkpoint([g[i] for i in p])
-                    q1 = mkpoint([g[i] for i in q])
-                    i,j = lookup[p1], lookup[q1]
+                    i,j = g[i0], g[j0]
                     if mask[i,j]:
                         _bdy.append((i,j))
                         mask[i,j] = 0
@@ -1554,8 +1564,6 @@ def test_hecke(): # another version of test_double_cosets
         print("orbit:", count//N)
         counts.append(count//N)
 
-    #orbits.sort(key=len)
-    #print([len(o)//N for o in orbits], len(orbits))
     counts.sort()
     print(counts, len(counts))
 
