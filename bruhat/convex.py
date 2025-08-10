@@ -913,6 +913,92 @@ def test_hull():
         print("dim %d, N=%d" % (dim, N))
 
 
+def render_hull(): # FAIL
+
+    print("render_hull")
+    n = argv.get("n", 2)
+    local = argv.get("local", False)
+    space = get_clifford_hull(n, local=local)
+    print(space)
+
+    #p = space.get_polyhedron()
+    #faces = p.faces(0)
+    #print(len(faces))
+
+    N = 2**n
+    shape = (N, N, 2)
+    points = []
+    for rho in space.rhos:
+        #print(rho)
+        A = numpy.zeros(shape, dtype=float)
+        #print(type(rho.M), rho.M[0,0])
+        for i in range(N):
+         for j in range(N):
+            a = rho.M[i,j]
+            z = complex(a)
+            A[i,j,0] = z.real
+            A[i,j,1] = z.imag
+        A = A.reshape(N*N*2)
+        #print(A)
+        points.append(A)
+    M = N*N*2
+    print(M)
+
+    from math import sin, pi
+
+#    u = numpy.zeros((M,))
+#    #u[:M//2] = 1
+#    #u[M//2:] = -1/4
+#    for i in range(M):
+#        u[i] = sin(2*pi*i/M)
+#
+#    v = numpy.zeros((M,))
+#    #v[0::3] = 1
+#    #v[1::3] = -1
+#    #v[2::3] = 1/3
+#    for i in range(M):
+#        v[i] = sin(3*2*pi*i/M)
+
+    # subtract center
+    u = points[0]
+    for p in points[1:]:
+        u = u+p
+    u = (1/len(points))*u
+    points = [p-u for p in points]
+
+    #u = points[7]
+    #v = points[12] + points[44]
+
+    # fail
+
+    from huygens.namespace import Canvas, path
+
+    cvs = Canvas()
+
+    J = len(points)
+    u = points[0]+points[1]
+    for i in range(2, J):
+      for j in range(i+1, J):
+        v = points[i]  + points[j]
+
+        fg = Canvas()
+    
+        r = 3
+        for p in points:
+            x = r*p.dot(u)
+            y = r*p.dot(v)
+            fg.fill(path.circle(x, y, 0.1))
+
+        bb = fg.get_bound_box()
+        fg.stroke(path.rect(bb.llx, bb.lly, bb.width, bb.height))
+
+        cvs.insert(2*j*r, 2*i*r, fg)
+        #cvs.translate(2*bb.width, 0)
+
+    #cvs.writePDFfile("stabilizer_states")
+    
+
+
 def test_faces():
     print("test_faces")
     n = argv.get("n", 2)
@@ -1209,6 +1295,115 @@ def test_real_cliff():
         #return
         
 
+def test_double_cosets():
+    from bruhat.matrix_sage import CyclotomicField, Matrix
+
+    # -----------------------------------
+    # build Pauli groups
+
+    ring = CyclotomicField(8)
+    w8 = ring.gens()[0]
+    w = w8**2
+    r2 = w8 + w8.conjugate()
+    ir2 = 1/r2
+    assert r2**2 == 2
+    assert 2*ir2**2 == 1
+
+    I = Matrix(ring, [[1,0],[0,1]])
+    wI = w*I
+    X = Matrix(ring, [[0,1],[1,0]])
+    Z = Matrix(ring, [[1,0],[0,-1]])
+    S = Matrix(ring, [[1,0],[0,w]])
+    H = Matrix(ring, [[ir2,ir2],[ir2,-ir2]])
+    CZ = Matrix(ring, [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,-1]])
+
+    n = argv.get("n", 2)
+    gen = []
+    for i in range(n):
+        for op in [X,Z,wI]:
+            g = [I]*n
+            g[i] = op
+            gen.append(reduce(matmul, g))
+    
+    Pauli = mulclose(gen)
+    Pauli = list(Pauli)
+    lookup = dict((g,i) for (i,g) in enumerate(Pauli))
+    print("Pauli:", len(Pauli))
+    assert len(Pauli) == 4**(n+1)
+
+    #gen = [HI, IH, SI, IS, CZ]
+    gen = get_clifford_gens(n)
+
+    perms = []
+    for g in gen:
+        ig = ~g
+        idxs = [lookup[ig*h*g] for h in Pauli]
+        perm = Perm(idxs)
+        perms.append(perm)
+    gen = perms
+
+    stab = []
+    for i in range(n):
+        op = [I]*n
+        op[i] = X
+        stab.append(reduce(matmul, op))
+    stab = mulclose(stab)
+    stab = [lookup[g] for g in stab]
+
+    def mkpoint(stab):
+        stab = list(stab)
+        stab.sort()
+        stab = tuple(stab)
+        return stab
+
+    stab = mkpoint(stab)
+    orbit = {stab}
+    bdy = list(orbit)
+    while bdy:
+        _bdy = []
+        for g in gen:
+            for p in bdy:
+                q = mkpoint([g[i] for i in p])
+                if q in orbit:
+                    continue
+                orbit.add(q)
+                _bdy.append(q)
+        bdy = _bdy
+    if n==2:
+        assert len(orbit) == 60
+    print("stabilizer states:", len(orbit))
+    N = len(orbit)
+
+    pairs = {(p,q) for p in orbit for q in orbit}
+    print("pairs:", len(pairs))
+
+    orbits = []
+    while pairs:
+        pair = iter(pairs).__next__()
+        orbit = {pair}
+        bdy = list(orbit)
+        while bdy:
+            _bdy = []
+            for g in gen:
+                for (p,q) in bdy:
+                    p1 = mkpoint([g[i] for i in p])
+                    q1 = mkpoint([g[i] for i in q])
+                    if (p1,q1) in orbit:
+                        continue
+                    orbit.add((p1,q1))
+                    _bdy.append((p1,q1))
+            bdy = _bdy
+        orbits.append(orbit)
+        assert orbit.issubset(pairs)
+        pairs.difference_update(orbit)
+        k = len(orbit)
+        assert k%N == 0
+        print("orbit:", k//N)
+
+    orbits.sort(key=len)
+    print([len(o)//N for o in orbits], len(orbits))
+
+
 
 
 
@@ -1238,7 +1433,4 @@ if __name__ == "__main__":
 
     t = time() - start_time
     print("OK! finished in %.3f seconds\n"%t)
-
-
-
 
