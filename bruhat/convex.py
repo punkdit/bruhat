@@ -1630,13 +1630,11 @@ def test_flags():
 
 def big_double_cosets(gen):
     # try to do find_double_cosets without the big mask array
-    
     N = gen[0].rank
 
     remain = set(range(N)) # rows
     counts = []
     while remain:
-        #row = iter(remain).__next__()
         row = remain.pop()
 
         # now find the orbit of (row,0)
@@ -1659,8 +1657,6 @@ def big_double_cosets(gen):
                         remain.remove(tgt[0])
                         count += 1
             bdy = _bdy
-            #print(bdy)
-            #assert len(bdy) < 100
         if argv.verbose:
             print()
         print("[%s]" % count, end="", flush=True)
@@ -1670,8 +1666,6 @@ def big_double_cosets(gen):
     counts.sort()
     print("orbits:", counts, len(counts))
     assert sum(counts) == N
-
-
 
 
 
