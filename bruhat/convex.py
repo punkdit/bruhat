@@ -1505,6 +1505,49 @@ def test_hecke():
     find_double_cosets(gen)
 
 
+def find_double_cosets(gen):
+    N = gen[0].rank
+    mask = numpy.zeros((N,N), dtype=numpy.uint8)
+    mask[:] = 1
+
+    row = col = 0
+    counts = []
+    while 1:
+        while row<N and mask[row,col] == 0:
+            col += 1
+            if col==N:
+                row += 1
+                col = 0
+        if row==N:
+            break
+        bdy = [(row,col)]
+        count = 1
+        while bdy:
+            if argv.verbose:
+                print("%d:%d"%(count,len(bdy)), end=" ", flush=True)
+            _bdy = []
+            while bdy:
+                i0,j0 = bdy.pop()
+                for g in gen:
+                    i,j = g[i0], g[j0]
+                    if mask[i,j]:
+                        _bdy.append((i,j))
+                        mask[i,j] = 0
+                        count += 1
+            bdy = _bdy
+        if argv.verbose:
+            print()
+        print("[%s]" % (count//N), end="", flush=True)
+        counts.append(count//N)
+    print()
+
+    counts.sort()
+    print("orbits:", counts, len(counts))
+    assert sum(counts) == N
+
+
+
+
 def test_flags(): 
 
     n = argv.get("n", 2)
@@ -1582,48 +1625,52 @@ def test_flags():
         perms.append(perm)
     gen = perms
 
-    find_double_cosets(gen)
+    big_double_cosets(gen)
 
 
-def find_double_cosets(gen):
+def big_double_cosets(gen):
+    # try to do find_double_cosets without the big mask array
+    
     N = gen[0].rank
-    mask = numpy.zeros((N,N), dtype=numpy.uint8)
-    mask[:] = 1
 
-    row = col = 0
+    remain = set(range(N)) # rows
     counts = []
-    while 1:
-        while row<N and mask[row,col] == 0:
-            col += 1
-            if col==N:
-                row += 1
-                col = 0
-        if row==N:
-            break
-        bdy = [(row,col)]
+    while remain:
+        #row = iter(remain).__next__()
+        row = remain.pop()
+
+        # now find the orbit of (row,0)
+        bdy = [(row,0)]
+        found = set(bdy)
         count = 1
         while bdy:
             if argv.verbose:
-                print("%d:%d"%(count,len(bdy)), end=" ", flush=True)
+                print("%d:%d"%(len(found),len(bdy)), end=" ", flush=True)
             _bdy = []
             while bdy:
-                i0,j0 = bdy.pop()
+                i,j = bdy.pop()
                 for g in gen:
-                    i,j = g[i0], g[j0]
-                    if mask[i,j]:
-                        _bdy.append((i,j))
-                        mask[i,j] = 0
+                    tgt = g[i], g[j]
+                    if tgt in found:
+                        continue
+                    found.add(tgt)
+                    _bdy.append(tgt)
+                    if tgt[1] == 0:
+                        remain.remove(tgt[0])
                         count += 1
             bdy = _bdy
+            #print(bdy)
+            #assert len(bdy) < 100
         if argv.verbose:
             print()
-        print("[%s]" % (count//N), end="", flush=True)
-        counts.append(count//N)
+        print("[%s]" % count, end="", flush=True)
+        counts.append(count)
     print()
 
     counts.sort()
     print("orbits:", counts, len(counts))
     assert sum(counts) == N
+
 
 
 
