@@ -1431,38 +1431,12 @@ def test_double_cosets():
     print(counts, len(counts))
 
 
-def test_hecke(): # another version of test_double_cosets
-    from bruhat.matrix_sage import CyclotomicField, Matrix
-
+# a faster version of test_double_cosets:
+def test_hecke(): 
     n = argv.get("n", 2)
     k = argv.get("k", 0)
 
-    # -----------------------------------
-    # build Pauli group
-
-    ring = CyclotomicField(8)
-    w8 = ring.gens()[0]
-    w = w8**2
-    r2 = w8 + w8.conjugate()
-    ir2 = 1/r2
-    assert r2**2 == 2
-    assert 2*ir2**2 == 1
-
-    I = Matrix(ring, [[1,0],[0,1]])
-    wI = w*I
-    X = Matrix(ring, [[0,1],[1,0]])
-    Z = Matrix(ring, [[1,0],[0,-1]])
-    S = Matrix(ring, [[1,0],[0,w]])
-    H = Matrix(ring, [[ir2,ir2],[ir2,-ir2]])
-    CZ = Matrix(ring, [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,-1]])
-
-    gen = []
-    for i in range(n):
-        for op in [X,Z,wI]:
-            g = [I]*n
-            g[i] = op
-            gen.append(reduce(matmul, g))
-    
+    gen = get_pauli_gens(n)
     Pauli = mulclose(gen)
     Pauli = list(Pauli)
     lookup = dict((g,i) for (i,g) in enumerate(Pauli))
@@ -1479,6 +1453,8 @@ def test_hecke(): # another version of test_double_cosets
         perms.append(perm)
     gen = perms
 
+    I = Clifford(1).I
+    X = Clifford(1).X()
     stab = []
     for i in range(n-k):
         op = [I]*n
@@ -1529,6 +1505,86 @@ def test_hecke(): # another version of test_double_cosets
     find_double_cosets(gen)
 
 
+def test_flags(): 
+
+    n = argv.get("n", 2)
+    k = argv.get("k", 0)
+
+    gen = get_pauli_gens(n)
+    Pauli = mulclose(gen)
+    Pauli = list(Pauli)
+    lookup = dict((g,i) for (i,g) in enumerate(Pauli))
+    print("Pauli:", len(Pauli))
+    assert len(Pauli) == 4**(n+1)
+
+    gen = get_clifford_gens(n)
+
+    perms = []
+    for g in gen:
+        ig = ~g
+        idxs = [lookup[ig*h*g] for h in Pauli]
+        perm = Perm(idxs)
+        perms.append(perm)
+    gen = perms
+
+    def mkpoint(stab):
+        stab = list(stab)
+        stab.sort()
+        stab = tuple(stab)
+        return stab
+
+    def get_stab(n, k):
+        I = Clifford(1).I
+        X = Clifford(1).X()
+        stab = []
+        for i in range(n-k):
+            op = [I]*n
+            op[i] = X
+            stab.append(reduce(matmul, op))
+        stab = mulclose(stab)
+        stab = [lookup[g] for g in stab]
+        stab = mkpoint(stab)
+        return stab
+
+
+    ks = list(range(n))
+    flag = tuple(get_stab(n, k) for k in ks)
+    del lookup
+
+    flags = {flag}
+    bdy = list(flags)
+    while bdy:
+        _bdy = []
+        for g in gen:
+            for flag in bdy:
+                glag = tuple(mkpoint([g[i] for i in code]) for code in flag)
+                if glag in flags:
+                    continue
+                flags.add(glag)
+                _bdy.append(glag)
+        bdy = _bdy
+    print("flags:", len(flags))
+    print()
+    if n==0:
+        assert len(flags) == 180
+    flags = list(flags)
+    flags.sort()
+    lookup = {c:idx for (idx,c) in enumerate(flags)}
+
+    perms = []
+    for g in gen:
+        perm = []
+        for (i,flag) in enumerate(flags):
+            glag = tuple(mkpoint([g[i] for i in code]) for code in flag)
+            j = lookup[glag]
+            perm.append(j)
+        perm = Perm(perm)
+        perms.append(perm)
+    gen = perms
+
+    find_double_cosets(gen)
+
+
 def find_double_cosets(gen):
     N = gen[0].rank
     mask = numpy.zeros((N,N), dtype=numpy.uint8)
@@ -1561,11 +1617,13 @@ def find_double_cosets(gen):
             bdy = _bdy
         if argv.verbose:
             print()
-        print("orbit:", count//N)
+        print("[%s]" % (count//N), end="", flush=True)
         counts.append(count//N)
+    print()
 
     counts.sort()
-    print(counts, len(counts))
+    print("orbits:", counts, len(counts))
+    assert sum(counts) == N
 
 
 
