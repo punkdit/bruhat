@@ -347,17 +347,25 @@ def test_M24():
 
 def main():
 
+    name = argv.get("name", "S6")
+
     #test()
 
     #tom = load_tom("L2(7)")
     #tom = load_tom("M12")
-    tom = load_tom("U3(3)");
+    tom = load_tom(name)
     print(tom)
 
-    E = tom["E"]
-    F = tom["F"]
-    print("E*E", tom.get_desc(E*E))
-    print("F*F", tom.get_desc(F*F))
+    #E = tom["E"]
+    #F = tom["F"]
+    #print("E*E =", tom.get_desc(E*E))
+    #print("F*F =", tom.get_desc(F*F))
+
+    #ops = [tom[c] for c in "ADEIK"]
+    ops = "ADEIK"
+    for a in ops:
+      for b in ops:
+        print("%s*%s ="%(a,b), tom.get_desc(tom[a]*tom[b]))
 
     tom.dump_maximal()
 
