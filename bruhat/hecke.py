@@ -256,6 +256,8 @@ def get_flags(Pauli, gen, n, ks):
     assert Pauli[0].shape == (2**n, 2**n)
     assert gen[0].shape == (2**n, 2**n)
 
+    print("get_flags", n, ks, end=" ... ", flush=True)
+
     lookup = dict((g,i) for (i,g) in enumerate(Pauli))
     perms = []
     for g in gen:
@@ -314,6 +316,9 @@ def get_flags(Pauli, gen, n, ks):
         perm = Perm(perm)
         perms.append(perm)
     gen = perms
+
+    print(gen[0].rank)
+
     return gen
 
 
@@ -403,7 +408,51 @@ def get_hecke(lgen, rgen):
     return len(counts)
 
 
+def get_operators(lgen, rgen):
+    "generate all hecke operators"
+    assert len(lgen) == len(rgen)
+    M = lgen[0].rank # rows
+    N = rgen[0].rank # cols
+
+    pairs = list(zip(lgen, rgen))
+
+    remain = set(range(M)) # rows
+    counts = []
+    while remain:
+        row = remain.pop()
+
+        # now find the orbit of (row,0)
+        bdy = [(row,0)]
+        found = set(bdy)
+        op = numpy.zeros((M, N), dtype=int)
+        op[row, 0] = 1
+        count = 1
+        while bdy:
+            if argv.verbose:
+                print("%d:%d"%(len(found),len(bdy)), end=" ", flush=True)
+            _bdy = []
+            while bdy:
+                i,j = bdy.pop()
+                for l,r in pairs:
+                    tgt = l[i], r[j]
+                    if tgt in found:
+                        continue
+                    op[tgt] = 1
+                    found.add(tgt)
+                    _bdy.append(tgt)
+                    if tgt[1] == 0:
+                        remain.remove(tgt[0])
+                        count += 1
+            bdy = _bdy
+        if argv.verbose:
+            print()
+        #print("[%s]" % count, end="", flush=True)
+        yield op
+
+
+
 def get_hecke_injections(lgen, rgen):
+    "this counts (i believe/hope) a single entry in the table of marks"
     assert len(lgen) == len(rgen)
     M = lgen[0].rank # rows
     N = rgen[0].rank # cols
@@ -448,7 +497,7 @@ def get_hecke_injections(lgen, rgen):
 
 def test_hecke():
 
-    G = Group.symmetric(4)
+    G = Group.alternating(5)
     gens = G.gens
 
     #get_hecke(G.gens, G.gens)
@@ -501,6 +550,13 @@ def test_flags():
             [2], [1], [0],
             [1,2], [0,2], [0,1],
             [0,1,2]]
+    elif n==4:
+        flags = [
+            [],
+            [3], [2], [1], [0],
+            [2,3], [1,3], [0,3], [1,2], [0,2], [0,1],
+            [1,2,3], [0,2,3], [0,1,3], [0,1,2],
+            [0,1,2,3]]
     else:
         assert 0
 
@@ -514,13 +570,32 @@ def test_flags():
 
     genss = [get_flags(Pauli, cgens, n, flag) for flag in flags]
 
+    fn = argv.get("fn", "get_hecke")
+    fn = eval(fn)
+
     for l in genss:
       for r in genss:
-        c = get_hecke(l, r)
+        c = fn(l, r)
+        #c = get_hecke(l, r)
         #c = get_hecke_injections(l, r)
         print("%3s"%(c or '.'), end=' ', flush=True)
       print()
 
+    print()
+
+    if n>2:
+        return
+
+    gens = genss[-1]
+    total = None
+    for op in get_operators(gens, gens):
+        #print(shortstr(op))
+        #print(op.sum(0)[0], op.sum(1)[0])
+        total = op if total is None else (total + op)
+    #print(total)
+    rhs = numpy.zeros(total.shape, dtype=int)
+    rhs[:] = 1
+    assert numpy.all(total == rhs)
 
 
 
