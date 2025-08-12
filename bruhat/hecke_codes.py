@@ -2,6 +2,9 @@
 
 """
 build dual containing codes (self-dual CSS) from hecke operators
+
+renamed from hecke.py
+
 """
 
 

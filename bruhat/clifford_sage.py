@@ -200,6 +200,52 @@ class Clifford(object):
         return HH*CZ*HH*CZ*HH*CZ
 
 
+
+def get_clifford_gens(n, local=False):
+
+    c = Clifford(n)
+    S, H, CX, CZ = c.S, c.H, c.CX, c.CZ
+    X, Y, Z = c.X, c.Y, c.Z
+    wI = c.w()
+    I = c.I
+
+    gen = []
+    for i in range(n):
+        gen.append(S(i))
+        gen.append(H(i))
+        if not local:
+            for j in range(i+1, n):
+                gen.append(CZ(i,j))
+    for g in gen:
+        assert g*g.d == I
+
+    #G = mulclose(gen)
+    #print(len(G))
+
+    return gen
+
+
+def get_pauli_gens(n):
+
+    c = Clifford(n)
+    X, Y, Z = c.X, c.Y, c.Z
+    I = c.I
+
+    gen = []
+    for i in range(n):
+        gen.append(X(i))
+        gen.append(Y(i))
+        gen.append(Z(i))
+    for g in gen:
+        assert g*g.d == I
+
+    #G = mulclose(gen)
+    #print(len(G))
+
+    return gen
+
+
+
 def test_clifford():
 
     c2 = Clifford(2)
