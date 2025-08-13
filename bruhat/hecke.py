@@ -16,7 +16,7 @@ import numpy
 
 from bruhat import matrix_sage
 from bruhat.argv import argv
-from bruhat.gset import mulclose, Perm, Group
+from bruhat.gset import mulclose, Perm, Group, GL
 from bruhat.action import mulclose_names
 from bruhat.solve import shortstr
 
@@ -497,12 +497,19 @@ def get_hecke_injections(lgen, rgen):
 
 def test_hecke():
 
-    G = Group.alternating(5)
+    from bruhat.repr_sage import GL32
+
+    #G = Group.alternating(5)
+    #G = GL(3,2)
+    G = GL32()
+
     gens = G.gens
 
     #get_hecke(G.gens, G.gens)
 
-    Hs = G.conjugacy_subgroups()
+    #Hs = G.conjugacy_subgroups()
+    Hs = list(reversed(G.parabolics))
+
     Xs = [G.action_subgroup(H) for H in Hs]
     tgts = []
     for X in Xs:
