@@ -19,6 +19,8 @@ from bruhat.argv import argv
 from bruhat.gset import mulclose, Perm, Group, GL
 from bruhat.action import mulclose_names
 from bruhat.solve import shortstr
+from bruhat.util import all_subsets
+from bruhat.tom import Tom
 
 from bruhat.matrix_sage import CyclotomicField, Matrix
 from bruhat.clifford_sage import Clifford, K, w4, get_pauli_gens, get_clifford_gens
@@ -494,9 +496,15 @@ def get_hecke_injections(lgen, rgen):
     return len(counts)
 
 
+class Builder:
+    "incrementally build parts of the Tom for a group"
+    def __init__(self, G):
+        self.G = G
+        self.gens = G.gens
+        Xs = []
 
-def test_hecke():
 
+def test_hecke_GL32():
     from bruhat.repr_sage import GL32
 
     #G = Group.alternating(5)
@@ -509,15 +517,62 @@ def test_hecke():
 
     #Hs = G.conjugacy_subgroups()
     Hs = list(reversed(G.parabolics))
+    Hs.append(Group([G.identity]))
+
+#    for H in Hs:
+#        print(H)
+#        if len(H) != 8:
+#            continue
+#        for h in H:
+#            print(h)
+    print(Hs)
 
     Xs = [G.action_subgroup(H) for H in Hs]
+
+    dump_tom(G, Xs)
+
+
+
+def test_hecke():
+
+    n = 4
+    G = Group.coxeter_bc(n)
+    #G = Group.coxeter_d(n) # FAIL
+
+    #n = 5
+    #G = Group.symmetric(n)
+
+    #Hs = G.conjugacy_subgroups()
+    gens = G.gens
+    print(G, "gens:", len(gens))
+
+    Hs = []
+    for idxs in all_subsets(len(G.gens)):
+        if len(idxs)==0:
+            Hs.append(Group([G.identity]))
+            continue
+
+        H = Group.generate([gens[i] for i in idxs])
+        for J in Hs:
+            if G.is_conjugate_subgroup(H, J):
+                break
+        else:
+            Hs.append(H)
+
+    Hs.sort(key = len, reverse=True)
+    print(Hs)
+    Xs = [G.action_subgroup(H) for H in Hs]
+    dump_tom(G, Xs)
+
+
+def dump_tom(G, Xs):
     tgts = []
     for X in Xs:
         lgens = []
         lookup = X.src.lookup
         #print(X.send_perms)
         Xgens = []
-        for g in gens:
+        for g in G.gens:
             i = lookup[g]
             j = X.send_perms[i]
             g = X.tgt[j]
@@ -533,15 +588,33 @@ def test_hecke():
         print("%2s"%c, end=" ")
       print()
 
+    rows = []
+
     print()
     print("table of marks:")
     for i in range(N):
+      row = []
       for j in range(N):
         lgens = tgts[i]
         rgens = tgts[j]
         c = get_hecke_injections(lgens, rgens)
+        row.append(c)
         print("%2s"%(c or '.'), end=" ")
       print()
+      rows.append(row)
+
+    #return
+
+    tom = Tom(rows)
+    print(tom)
+    ops = tom.names
+    for a in ops:
+        row = tom[a]
+        for b in ops:
+            print("%s*%s=%s"%(a,b,tom.get_desc(tom[a]*tom[b])), end=" ")
+        print()
+
+
 
 
 def test_flags(): 

@@ -183,6 +183,7 @@ def get_letter(i, post=0):
 
 class Tom:
     def __init__(self, rows, names=None):
+        rows = numpy.array(rows)
         self.rows = rows
         N = len(rows)
         if names is None:
@@ -226,7 +227,7 @@ class Tom:
         items = items.copy()
         desc = []
         for i in range(N):
-            assert items.min() >= 0
+            assert items.min() >= 0, items
             if items[i] == 0:
                 continue
             #print(items, "i=", i)
@@ -237,6 +238,7 @@ class Tom:
             items -= j*row
             s = "%d*%s"%(j, names[i]) if j>1 else names[i]
             desc.append(s)
+        assert items.sum() == 0
         return "+".join(desc)
 
     def dump_maximal(self):

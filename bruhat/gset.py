@@ -728,6 +728,17 @@ class Group(object):
         perms = [g*h*gi for h in G]
         return Group(perms)
 
+    def is_conjugate_subgroup(G, H, J):
+        if len(H) != len(J):
+            return
+        for g in G:
+            gi = ~g
+            perms = [g*h*gi for h in H]
+            K = Group(perms)
+            if K==J:
+                return True
+        return False
+
     def is_normal(G, H):
         for g in G:
             if H.conjugate(g) != H:
