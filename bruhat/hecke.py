@@ -21,6 +21,7 @@ from bruhat.action import mulclose_names
 from bruhat.solve import shortstr
 from bruhat.util import all_subsets
 from bruhat.tom import Tom
+from bruhat.todd_coxeter import Schreier
 
 from bruhat.matrix_sage import CyclotomicField, Matrix
 from bruhat.clifford_sage import Clifford, K, w4, get_pauli_gens, get_clifford_gens
@@ -535,9 +536,33 @@ def test_hecke_GL32():
 
 def test_hecke():
 
-    n = 4
-    G = Group.coxeter_bc(n)
+    #n = 4
+    #G = Group.coxeter_bc(n)
     #G = Group.coxeter_d(n) # FAIL
+
+    #s = Schreier.make_D(n)
+    #s = Schreier.make_F(); n=4
+
+    #H_3 = Schreier.make_reflection(3, {(0,1):5, (1,2):3}); n=3
+
+    if 0:
+        H_4 = Schreier.make_reflection(4, {(0,1):5, (1,2):3, (2,3):3}); n=4
+        s = H_4 # order 14400
+
+    s = Schreier.make_reflection(2, {(0,1):16})
+
+    print(len(s))
+    #G = s.get_group()
+    #print(G)
+    #perms = G.gens
+    perms = s.get_gens()
+    print("gens:", len(perms))
+    N = perms[0].n
+    gens = [Perm([g[i] for i in range(N)]) for g in perms]
+    print("gens:", len(gens))
+    G = Group.generate(gens, verbose=True)
+    #G = object()
+    #G.gens = gens
 
     #n = 5
     #G = Group.symmetric(n)
@@ -547,12 +572,14 @@ def test_hecke():
     print(G, "gens:", len(gens))
 
     Hs = []
+    #Hs = G.conjugacy_subgroups()
     for idxs in all_subsets(len(G.gens)):
         if len(idxs)==0:
-            Hs.append(Group([G.identity]))
-            continue
+            #Hs.append(Group([G.identity]))
+            H = Group([G.identity])
+        else:
+            H = Group.generate([gens[i] for i in idxs])
 
-        H = Group.generate([gens[i] for i in idxs])
         for J in Hs:
             if G.is_conjugate_subgroup(H, J):
                 break
@@ -561,22 +588,31 @@ def test_hecke():
 
     Hs.sort(key = len, reverse=True)
     print(Hs)
-    Xs = [G.action_subgroup(H) for H in Hs]
+    Xs = []
+    for H in Hs:
+        X = G.gset_subgroup(H)
+        print(X)
+        Xs.append(X)
+
     dump_tom(G, Xs)
 
 
 def dump_tom(G, Xs):
     tgts = []
     for X in Xs:
-        lgens = []
-        lookup = X.src.lookup
-        #print(X.send_perms)
-        Xgens = []
-        for g in G.gens:
-            i = lookup[g]
-            j = X.send_perms[i]
-            g = X.tgt[j]
-            Xgens.append(g)
+
+        if isinstance(X, Group):
+            Xgens = X.gens
+        else:
+            lgens = []
+            lookup = X.src.lookup
+            #print(X.send_perms)
+            Xgens = []
+            for g in G.gens:
+                i = lookup[g]
+                j = X.send_perms[i]
+                g = X.tgt[j]
+                Xgens.append(g)
         tgts.append(Xgens)
 
     N = len(Xs)

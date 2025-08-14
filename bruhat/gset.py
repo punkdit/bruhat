@@ -310,10 +310,10 @@ class Group(object):
         actions of some abstract group on a concrete group. There is not much
         to distinguish these two kinds of group apart from your imagination.
     """
-    def __init__(self, perms=None, gen=None, items=None):
+    def __init__(self, perms=None, gen=None, items=None, verbose=False):
         if perms is None:
             assert gen is not None
-            perms = list(mulclose(gen))
+            perms = list(mulclose(gen, verbose=verbose))
         else:
             perms = list(perms)
         #perms.sort()
@@ -348,7 +348,7 @@ class Group(object):
             assert g.inverse() * g == self.identity
 
     @classmethod
-    def generate(cls, gens):
+    def generate(cls, gens, verbose=False):
         return cls(None, gens)
 
     @cache
@@ -814,6 +814,35 @@ class Group(object):
         H = Group(perms)
         send_perms = [H.lookup[perm] for perm in all_perms]
         return GSet(G, H, send_perms)
+
+    def gset_subgroup(G, H):
+        assert isinstance(H, Group)
+        assert H.rank == G.rank
+        assert G.is_subgroup(H)
+        H0 = H
+        H = Coset(H)
+        cosets = set([H])
+        remain = set(G)
+        remain.difference_update(H)
+        while remain:
+            g = iter(remain).__next__()
+            remain.remove(g)
+            gH = H.left_mul(g)
+            cosets.add(gH)
+            remain.difference_update(gH)
+        assert len(cosets) * len(H) == len(G)
+        cosets = list(cosets)
+        cosets.sort()
+        assert cosets == G.left_cosets(H0)
+        lookup = dict((gH, idx) for (idx, gH) in enumerate(cosets))
+        gens = []
+        for h in G.gens:
+            perm = Perm([lookup[gH.left_mul(h)] for gH in cosets])
+            gens.append(perm)
+        #H = Group(perms)
+        #send_perms = [H.lookup[perm] for perm in all_perms]
+        #return GSet(G, H, send_perms)
+        return Group.generate(gens)
 
     def left_cosets(G, H):
         assert isinstance(H, Group)

@@ -209,14 +209,15 @@ class Tom:
         names = self.names
         N = len(rows)
         smap = SMap()
+        dx = 4
         for j in range(N):
-            smap[0,3*j] = "%3s"%names[j]
-            smap[j+1,3*N+2] = names[j]
+            smap[0,dx*j] = "%4s"%names[j]
+            smap[j+1,dx*N+2] = names[j]
         for i,row in enumerate(rows):
             for j,c in enumerate(row):
                 if j<i:
                     continue
-                smap[i+1,3*j] = "%3s"%(c if c else ".")
+                smap[i+1,dx*j] = "%4s"%(c if c else ".")
         return str(smap)
 
     def get_desc(self, items):
