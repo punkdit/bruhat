@@ -220,26 +220,31 @@ class Tom:
                 smap[i+1,dx*j] = "%4s"%(c if c else ".")
         return str(smap)
 
-    def get_desc(self, items):
+    def get_desc(self, vec):
         rows = self.rows
         names = self.names
         N = len(rows)
-        assert len(items) == N
-        items = items.copy()
+        assert len(vec) == N
+        vec = vec.copy()
         desc = []
         for i in range(N):
-            assert items.min() >= 0, items
-            if items[i] == 0:
+            #assert vec.min() >= 0, vec
+            if vec.min() < 0:
+                return None
+            if vec[i] == 0:
                 continue
-            #print(items, "i=", i)
-            n = items[i]
+            #print(vec, "i=", i)
+            n = vec[i]
             row = rows[i]
-            assert n % row[i] == 0
+            if n % row[i] != 0:
+                return None
             j = n//row[i]
-            items -= j*row
+            vec -= j*row
             s = "%d*%s"%(j, names[i]) if j>1 else names[i]
             desc.append(s)
-        assert items.sum() == 0
+        #assert vec.sum() == 0
+        if vec.sum() != 0:
+            return None
         return "+".join(desc)
 
     def dump_maximal(self):

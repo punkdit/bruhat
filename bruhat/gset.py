@@ -366,6 +366,9 @@ class Group(object):
 #    def identity(self):
 #        return Perm(list(range(self.rank)))
 
+    def rankstr(self):
+        return "Group(order=%s, rank=%s)"%(self.n, self.rank)
+
     def __str__(self):
         #return "Group(order=%s, rank=%s)"%(self.n, self.rank)
         return "Group(order=%s)"%(self.n,)
@@ -815,7 +818,7 @@ class Group(object):
         send_perms = [H.lookup[perm] for perm in all_perms]
         return GSet(G, H, send_perms)
 
-    def gset_subgroup(G, H):
+    def act_subgroup(G, H):
         assert isinstance(H, Group)
         assert H.rank == G.rank
         assert G.is_subgroup(H)

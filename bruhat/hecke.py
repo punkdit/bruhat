@@ -22,6 +22,7 @@ from bruhat.solve import shortstr
 from bruhat.util import all_subsets
 from bruhat.tom import Tom
 from bruhat.todd_coxeter import Schreier
+from bruhat.repr_sage import GL32
 
 from bruhat.matrix_sage import CyclotomicField, Matrix
 from bruhat.clifford_sage import Clifford, K, w4, get_pauli_gens, get_clifford_gens
@@ -328,6 +329,7 @@ def get_flags(Pauli, gen, n, ks):
 
 def big_double_cosets(gen):
     # find_double_cosets without the big mask array
+    assert isinstance(gen, list)
     N = gen[0].rank
 
     remain = set(range(N)) # rows
@@ -368,6 +370,8 @@ def big_double_cosets(gen):
 
 def get_hecke(lgen, rgen):
     assert len(lgen) == len(rgen)
+    assert isinstance(lgen, list)
+    assert isinstance(rgen, list)
     M = lgen[0].rank # rows
     N = rgen[0].rank # cols
 
@@ -414,6 +418,8 @@ def get_hecke(lgen, rgen):
 def get_operators(lgen, rgen):
     "generate all hecke operators"
     assert len(lgen) == len(rgen)
+    assert isinstance(lgen, list)
+    assert isinstance(rgen, list)
     M = lgen[0].rank # rows
     N = rgen[0].rank # cols
 
@@ -453,10 +459,60 @@ def get_operators(lgen, rgen):
         yield op
 
 
+def get_product(lgen, rgen):
+    assert len(lgen) == len(rgen)
+    assert isinstance(lgen, list)
+    assert isinstance(rgen, list)
+    M = lgen[0].rank # rows
+    N = rgen[0].rank # cols
+
+    gen = list(zip(lgen, rgen))
+
+    remain = set(range(M)) # rows
+    counts = []
+    while remain:
+        row = remain.pop()
+
+        # now find the orbit of (row,0)
+        bdy = [(row,0)]
+        found = set(bdy)
+        op = numpy.zeros((M, N), dtype=int)
+        op[row, 0] = 1
+        count = 1
+        while bdy:
+            if argv.verbose:
+                print("%d:%d"%(len(found),len(bdy)), end=" ", flush=True)
+            _bdy = []
+            while bdy:
+                i,j = bdy.pop()
+                for l,r in gen:
+                    tgt = l[i], r[j]
+                    if tgt in found:
+                        continue
+                    op[tgt] = 1
+                    found.add(tgt)
+                    _bdy.append(tgt)
+                    if tgt[1] == 0:
+                        remain.remove(tgt[0])
+                        count += 1
+            bdy = _bdy
+        if argv.verbose:
+            print()
+        #print("[%s]" % count, end="", flush=True)
+        #yield op
+        found = list(found)
+        found.sort()
+        lookup = {v:i for i,v in enumerate(found)}
+        perms = [Perm([lookup[l[i],r[j]] for (i,j) in found]) for l,r in gen]
+        G = Group(None, perms)
+        yield G
+
 
 def get_hecke_injections(lgen, rgen):
     "this counts (i believe/hope) a single entry in the table of marks"
     assert len(lgen) == len(rgen)
+    assert isinstance(lgen, list)
+    assert isinstance(rgen, list)
     M = lgen[0].rank # rows
     N = rgen[0].rank # cols
 
@@ -497,16 +553,7 @@ def get_hecke_injections(lgen, rgen):
     return len(counts)
 
 
-class Builder:
-    "incrementally build parts of the Tom for a group"
-    def __init__(self, G):
-        self.G = G
-        self.gens = G.gens
-        Xs = []
-
-
 def test_hecke_GL32():
-    from bruhat.repr_sage import GL32
 
     #G = Group.alternating(5)
     #G = GL(3,2)
@@ -533,64 +580,233 @@ def test_hecke_GL32():
     dump_tom(G, Xs)
 
 
+class Builder:
+    "incrementally _build parts of the Tom for a group"
+    def __init__(self, G):
+        self.G = G
+        self.gens = G.gens
+        e = G.identity
+        G0 = Group([e], [e for g in self.gens])
+        Xs = [G.act_subgroup(H) for H in [G, G0]]
+        self.Xs = Xs
+
+    def __getitem__(self, idx):
+        return self.Xs[idx]
+
+    def __len__(self):
+        return len(self.Xs)
+
+    def add(self, X):
+        assert isinstance(X, Group)
+        Xs = self.Xs
+        #print("Builder.add", [Y.rank for Y in Xs])
+        for Y in Xs:
+            if Y.rank != X.rank:
+                continue
+            #print("\t", Y.rank, "?")
+            a = get_hecke_injections(X.gens, Y.gens)
+            if not a:
+                continue
+            #print("\t", a)
+            b = get_hecke_injections(Y.gens, X.gens)
+            #print("\t", b)
+            if b:
+                return
+
+        idx = 0
+        while idx < len(Xs):
+            if X.rank <= Xs[idx].rank:
+                Xs.insert(idx, X)
+                return
+            idx += 1
+        else:
+            assert 0, X.rank
+        #Xs.append(X)
+
+    def get_product(self, i, j):
+        lgens = self[i].gens
+        rgens = self[j].gens
+        for X in get_product(lgens, rgens):
+            #self.insert(X)
+            yield X
+
+    def get_tom(self, names=None):
+
+        N = len(self)
+#        for i in range(N):
+#            G = self[i]
+#            print(G, G.rank)
+#
+#        for i in range(N):
+#          for j in range(N):
+#            lgens = self[i].gens
+#            rgens = self[j].gens
+#            c = get_hecke(lgens, rgens)
+#            print("%2s"%c, end=" ")
+#          print()
+    
+        rows = []
+    
+        print()
+        print("table of marks:")
+        for i in range(N):
+          row = []
+          for j in range(N):
+            lgens = self[i].gens
+            rgens = self[j].gens
+            c = get_hecke_injections(lgens, rgens)
+            row.append(c)
+            print("%3s"%(c or '.'), end=" ")
+          print()
+          rows.append(row)
+    
+        tom = Tom(rows, names)
+        return tom
+
+    def find_missing(self):
+        tom = self.get_tom()
+        ops = tom.names
+        for i,a in enumerate(ops):
+            for j,b in enumerate(ops):
+                vec = tom[a]*tom[b]
+                desc = tom.get_desc(vec)
+                if desc is None:
+                    return (i,j)
+
+    def check(self):
+        tom = self.get_tom()
+        #print(tom)
+        ops = tom.names
+        for a in ops:
+            row = tom[a]
+            for b in ops:
+                desc = tom.get_desc(tom[a]*tom[b])
+                assert desc is not None
+                #print("%s*%s=%s"%(a,b,desc), end=" ")
+            #print()
+
+    def dump(self, names=None):
+        tom = self.get_tom(names)
+        print()
+        print(tom)
+        print()
+        ops = tom.names
+        N = len(ops)
+        for i in range(N):
+            for j in range(i,N):
+                a, b = ops[i], ops[j]
+                vec = tom[a]*tom[b]
+                desc = tom.get_desc(vec)
+                print("%s*%s=%s"%(a,b,desc), end=" ")
+            print()
+
+
+
+def test_tom():
+
+    G = GL32()
+
+    builder = Builder(G)
+    builder.check()
+
+    for H in G.parabolics:
+        X = G.act_subgroup(H)
+        #print(X.rankstr())
+        if X.rank != 21:
+            continue
+
+        builder.add(X)
+        #builder.check()
+
+        builder.get_tom()
+
+        idx = builder.find_missing()
+        print("missing:", idx)
+        if idx is None:
+            continue
+
+        Xs = list(builder.get_product(*idx))
+        for X in Xs:
+            #print("add", X.rankstr())
+            builder.add(X)
+            builder.get_tom()
+            print()
+
+        builder.check()
+
+        #break
+    #names = "N P L F PPP PP LL LPP x".split()
+    names = None
+    builder.dump(names)
+        
+
+
 
 def test_hecke():
 
     #n = 4
     #G = Group.coxeter_bc(n)
-    #G = Group.coxeter_d(n) # FAIL
-
-    #s = Schreier.make_D(n)
-    #s = Schreier.make_F(); n=4
-
-    #H_3 = Schreier.make_reflection(3, {(0,1):5, (1,2):3}); n=3
 
     if 0:
+        #s = Schreier.make_D(n)
+        #s = Schreier.make_F(); n=4
+    
+        #H_3 = Schreier.make_reflection(3, {(0,1):5, (1,2):3}); n=3
+
         H_4 = Schreier.make_reflection(4, {(0,1):5, (1,2):3, (2,3):3}); n=4
-        s = H_4 # order 14400
+        #s = H_4 # order 14400
 
-    s = Schreier.make_reflection(2, {(0,1):16})
+        s = Schreier.make_reflection(2, {(0,1):16})
+    
+        print(len(s))
+        #G = s.get_group()
+        #print(G)
+        #perms = G.gens
+        perms = s.get_gens()
+        print("gens:", len(perms))
+        N = perms[0].n
+        gens = [Perm([g[i] for i in range(N)]) for g in perms]
+        print("gens:", len(gens))
+        G = Group.generate(gens, verbose=True)
+        #G = object()
+        #G.gens = gens
 
-    print(len(s))
-    #G = s.get_group()
-    #print(G)
-    #perms = G.gens
-    perms = s.get_gens()
-    print("gens:", len(perms))
-    N = perms[0].n
-    gens = [Perm([g[i] for i in range(N)]) for g in perms]
-    print("gens:", len(gens))
-    G = Group.generate(gens, verbose=True)
-    #G = object()
-    #G.gens = gens
-
-    #n = 5
     #G = Group.symmetric(n)
 
-    #Hs = G.conjugacy_subgroups()
+    #G = Group.alternating(6)
+    G = GL32()
+
     gens = G.gens
-    print(G, "gens:", len(gens))
+    n = len(gens)
+    print(G, "gens:", n)
+    assert n < 10
 
-    Hs = []
-    #Hs = G.conjugacy_subgroups()
-    for idxs in all_subsets(len(G.gens)):
-        if len(idxs)==0:
-            #Hs.append(Group([G.identity]))
-            H = Group([G.identity])
-        else:
-            H = Group.generate([gens[i] for i in idxs])
-
-        for J in Hs:
-            if G.is_conjugate_subgroup(H, J):
-                break
-        else:
-            Hs.append(H)
+    if 0:
+        Hs = G.conjugacy_subgroups()
+    elif 1:
+        Hs = list(G.parabolics)
+        Hs.append(Group([G.identity]))
+    else:
+    
+        Hs = []
+        for idxs in all_subsets(len(G.gens)):
+            if len(idxs)==0:
+                #Hs.append(Group([G.identity]))
+                H = Group([G.identity])
+            else:
+                H = Group.generate([gens[i] for i in idxs])
+    
+            for J in Hs:
+                if G.is_conjugate_subgroup(H, J):
+                    break
+            else:
+                Hs.append(H)
 
     Hs.sort(key = len, reverse=True)
-    print(Hs)
+    print("Hs:", Hs)
     Xs = []
     for H in Hs:
-        X = G.gset_subgroup(H)
+        X = G.act_subgroup(H)
         print(X)
         Xs.append(X)
 
