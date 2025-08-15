@@ -322,13 +322,13 @@ class Group(object):
             self.gens = perms
         self.rank = int(self.gens[0].rank)
         self.identity = Perm(list(range(self.rank)))
+        self.perms = perms
         if not perms:
             return # <---------------- keep only gens <------ 
         assert perms
         canonical = list(perms)
         canonical.sort()
         self.canonical = canonical
-        self.perms = perms
         self.n = len(self.perms)
         self.lookup = dict((perm, idx) for (idx, perm) in enumerate(self.perms))
         if items is None:
@@ -821,7 +821,7 @@ class Group(object):
         send_perms = [H.lookup[perm] for perm in all_perms]
         return GSet(G, H, send_perms)
 
-    def act_subgroup(G, H):
+    def act_subgroup(G, H, build=False):
         assert isinstance(H, Group)
         assert H.rank == G.rank
         assert G.is_subgroup(H)
@@ -848,7 +848,7 @@ class Group(object):
         #H = Group(perms)
         #send_perms = [H.lookup[perm] for perm in all_perms]
         #return GSet(G, H, send_perms)
-        return Group.generate(gens)
+        return Group(gens=gens, build=build)
 
     def left_cosets(G, H):
         assert isinstance(H, Group)

@@ -712,13 +712,17 @@ def dump_tom(G, Xs):
 
 class Builder:
     "Incrementally _build parts of the table of marks (TOM) for a group"
-    def __init__(self, G):
-        self.G = G
-        self.gens = G.gens
-        e = G.identity
-        G0 = Group([e], [e for g in self.gens])
-        Xs = [G.act_subgroup(H) for H in [G, G0]]
-        self.Xs = Xs
+#    def __init__(self, G):
+#        self.G = G
+#        self.gens = G.gens
+#        e = G.identity
+#        G0 = Group([e], [e for g in self.gens])
+#        Xs = [G.act_subgroup(H) for H in [G, G0]]
+#        self.Xs = Xs
+
+    def __init__(self, ngens):
+        self.ngens = ngens # number of gens
+        self.Xs = []
 
     def __getitem__(self, idx):
         return self.Xs[idx]
@@ -728,6 +732,7 @@ class Builder:
 
     def __contains__(self, X):
         assert isinstance(X, Group)
+        assert len(X.gens) == self.ngens
         Xs = self.Xs
         #print("Builder.add", [Y.rank for Y in Xs])
         for Y in Xs:
@@ -746,6 +751,7 @@ class Builder:
 
     def add(self, X):
         assert isinstance(X, Group)
+        assert len(X.gens) == self.ngens
         Xs = self.Xs
         if X in self:
             return
@@ -756,9 +762,7 @@ class Builder:
                 Xs.insert(idx, X)
                 return
             idx += 1
-        else:
-            assert 0, X.rank
-        #Xs.append(X)
+        Xs.append(X)
 
     def get_product(self, i, j):
         lgens = self[i].gens
@@ -767,25 +771,29 @@ class Builder:
             #self.insert(X)
             yield X
 
-    def get_tom(self, names=None):
+    def get_tom(self, names=None, hecke=False, augment=True):
 
         N = len(self)
-#        for i in range(N):
-#            G = self[i]
-#            print(G, G.rank)
-#
-#        for i in range(N):
-#          for j in range(N):
-#            lgens = self[i].gens
-#            rgens = self[j].gens
-#            c = count_hecke(lgens, rgens)
-#            print("%2s"%c, end=" ")
-#          print()
+
+        print()
+        print("get_tom():")
+        if hecke:
+            print("hecke:")
+            for i in range(N):
+              for j in range(N):
+                lgens = self[i].gens
+                rgens = self[j].gens
+                c = count_hecke(lgens, rgens)
+                print("%2s"%c, end=" ")
+              print()
     
         rows = []
+
+        if not N:
+            return Tom(rows, names)
     
-        print()
-        print("table of marks:")
+        #print([self[i].rank for i in range(N)])
+        print("hecke injections:")
         for i in range(N):
           row = []
           for j in range(N):
@@ -793,9 +801,17 @@ class Builder:
             rgens = self[j].gens
             c = count_hecke_injections(lgens, rgens)
             row.append(c)
-            print("%3s"%(c or '.'), end=" ")
-          print()
+          if augment:
+            row.append(self[i].rank)
+          print(' '.join("%3s"%(c or '.') for c in row))
           rows.append(row)
+        #if self[j].rank > c:
+        if augment:
+            row = [0]*(N+1)
+            row[-1] = self[j].rank
+            rows.append(row)
+            print(' '.join("%3s"%(c or '.') for c in row))
+        #print(rows)
     
         tom = Tom(rows, names)
         return tom
@@ -841,16 +857,16 @@ class Builder:
 
 def test_builder():
 
-    G = GL32()
+    #G = GL32()
+    G = Group.symmetric(4)
+    n = len(G.gens)
 
-    builder = Builder(G)
+    builder = Builder(n)
     builder.check()
 
-    for H in G.parabolics:
+    Hs = G.conjugacy_subgroups()
+    for H in Hs:
         X = G.act_subgroup(H)
-        #print(X.rankstr())
-        if X.rank != 21:
-            continue
 
         builder.add(X)
         #builder.check()
@@ -869,12 +885,17 @@ def test_builder():
             builder.get_tom()
             print()
 
-        builder.check()
 
         #break
+
+    builder.check()
+
     #names = "N P L F PPP PP LL LPP x".split()
     names = None
-    builder.dump(names)
+    #builder.dump(names)
+
+    #for X in builder:
+    #    print(len(G) // X.rank, X.rank)
         
 
 def test_flags(): 
@@ -943,16 +964,16 @@ def test_flags():
     if n>2:
         return
 
-    G = mulclose(cliff_gens, verbose=True)
-    G = list(G)
-    G.sort(key = str)
-    print(len(G))
+    #G = mulclose(cliff_gens, verbose=True)
+    #G = list(G)
+    #G.sort(key = str)
+    #print(len(G))
 
-    lookup = {g:i for (i,g) in enumerate(G)}
-    gens = [Perm([lookup[gen*g] for g in G]) for gen in cliff_gens]
-    G = Group(gens=gens, verbose=True)
+    #lookup = {g:i for (i,g) in enumerate(G)}
+    #gens = [Perm([lookup[gen*g] for g in G]) for gen in cliff_gens]
+    #G = Group(gens=gens, verbose=True) # XXX
 
-    builder = Builder(G)
+    builder = Builder(len(gens))
     builder.check()
 
     for X in Xs:
@@ -974,6 +995,11 @@ def test_flags():
             builder.get_tom()
             print()
 
+    for X in builder.get_product(3,3):
+        print("add", X.rank)
+        builder.add(X)
+
+    builder.get_tom(hecke=True)
 
         #break
     #names = "N P L F PPP PP LL LPP x".split()
