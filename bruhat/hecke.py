@@ -940,7 +940,7 @@ def test_flags():
     rhs[:] = 1
     assert numpy.all(total == rhs)
 
-    if n>1:
+    if n>2:
         return
 
     G = mulclose(cliff_gens, verbose=True)
@@ -950,7 +950,7 @@ def test_flags():
 
     lookup = {g:i for (i,g) in enumerate(G)}
     gens = [Perm([lookup[gen*g] for g in G]) for gen in cliff_gens]
-    G = Group(gens=gens)
+    G = Group(gens=gens, verbose=True)
 
     builder = Builder(G)
     builder.check()
@@ -974,10 +974,10 @@ def test_flags():
             builder.get_tom()
             print()
 
-        builder.check()
 
         #break
     #names = "N P L F PPP PP LL LPP x".split()
+    builder.check()
     names = None
     builder.dump(names)
         
