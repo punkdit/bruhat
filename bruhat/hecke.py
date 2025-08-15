@@ -368,7 +368,7 @@ def big_double_cosets(gen):
     assert sum(counts) == N
 
 
-def get_hecke(lgen, rgen):
+def count_hecke(lgen, rgen):
     assert len(lgen) == len(rgen)
     assert isinstance(lgen, list)
     assert isinstance(rgen, list)
@@ -508,7 +508,7 @@ def get_product(lgen, rgen):
         yield G
 
 
-def get_hecke_injections(lgen, rgen):
+def count_hecke_injections(lgen, rgen, max_count=None):
     "this counts (i believe/hope) a single entry in the table of marks"
     assert len(lgen) == len(rgen)
     assert isinstance(lgen, list)
@@ -550,6 +550,8 @@ def get_hecke_injections(lgen, rgen):
         #print("[%s]" % count, end="", flush=True)
         if count == 1:
             counts.append(count)
+            if max_count:
+                return 1
     return len(counts)
 
 
@@ -561,7 +563,7 @@ def test_hecke_GL32():
 
     gens = G.gens
 
-    #get_hecke(G.gens, G.gens)
+    #count_hecke(G.gens, G.gens)
 
     #Hs = G.conjugacy_subgroups()
     Hs = list(reversed(G.parabolics))
@@ -578,167 +580,6 @@ def test_hecke_GL32():
     Xs = [G.action_subgroup(H) for H in Hs]
 
     dump_tom(G, Xs)
-
-
-class Builder:
-    "incrementally _build parts of the Tom for a group"
-    def __init__(self, G):
-        self.G = G
-        self.gens = G.gens
-        e = G.identity
-        G0 = Group([e], [e for g in self.gens])
-        Xs = [G.act_subgroup(H) for H in [G, G0]]
-        self.Xs = Xs
-
-    def __getitem__(self, idx):
-        return self.Xs[idx]
-
-    def __len__(self):
-        return len(self.Xs)
-
-    def add(self, X):
-        assert isinstance(X, Group)
-        Xs = self.Xs
-        #print("Builder.add", [Y.rank for Y in Xs])
-        for Y in Xs:
-            if Y.rank != X.rank:
-                continue
-            #print("\t", Y.rank, "?")
-            a = get_hecke_injections(X.gens, Y.gens)
-            if not a:
-                continue
-            #print("\t", a)
-            b = get_hecke_injections(Y.gens, X.gens)
-            #print("\t", b)
-            if b:
-                return
-
-        idx = 0
-        while idx < len(Xs):
-            if X.rank <= Xs[idx].rank:
-                Xs.insert(idx, X)
-                return
-            idx += 1
-        else:
-            assert 0, X.rank
-        #Xs.append(X)
-
-    def get_product(self, i, j):
-        lgens = self[i].gens
-        rgens = self[j].gens
-        for X in get_product(lgens, rgens):
-            #self.insert(X)
-            yield X
-
-    def get_tom(self, names=None):
-
-        N = len(self)
-#        for i in range(N):
-#            G = self[i]
-#            print(G, G.rank)
-#
-#        for i in range(N):
-#          for j in range(N):
-#            lgens = self[i].gens
-#            rgens = self[j].gens
-#            c = get_hecke(lgens, rgens)
-#            print("%2s"%c, end=" ")
-#          print()
-    
-        rows = []
-    
-        print()
-        print("table of marks:")
-        for i in range(N):
-          row = []
-          for j in range(N):
-            lgens = self[i].gens
-            rgens = self[j].gens
-            c = get_hecke_injections(lgens, rgens)
-            row.append(c)
-            print("%3s"%(c or '.'), end=" ")
-          print()
-          rows.append(row)
-    
-        tom = Tom(rows, names)
-        return tom
-
-    def find_missing(self):
-        tom = self.get_tom()
-        ops = tom.names
-        for i,a in enumerate(ops):
-            for j,b in enumerate(ops):
-                vec = tom[a]*tom[b]
-                desc = tom.get_desc(vec)
-                if desc is None:
-                    return (i,j)
-
-    def check(self):
-        tom = self.get_tom()
-        #print(tom)
-        ops = tom.names
-        for a in ops:
-            row = tom[a]
-            for b in ops:
-                desc = tom.get_desc(tom[a]*tom[b])
-                assert desc is not None
-                #print("%s*%s=%s"%(a,b,desc), end=" ")
-            #print()
-
-    def dump(self, names=None):
-        tom = self.get_tom(names)
-        print()
-        print(tom)
-        print()
-        ops = tom.names
-        N = len(ops)
-        for i in range(N):
-            for j in range(i,N):
-                a, b = ops[i], ops[j]
-                vec = tom[a]*tom[b]
-                desc = tom.get_desc(vec)
-                print("%s*%s=%s"%(a,b,desc), end=" ")
-            print()
-
-
-
-def test_tom():
-
-    G = GL32()
-
-    builder = Builder(G)
-    builder.check()
-
-    for H in G.parabolics:
-        X = G.act_subgroup(H)
-        #print(X.rankstr())
-        if X.rank != 21:
-            continue
-
-        builder.add(X)
-        #builder.check()
-
-        builder.get_tom()
-
-        idx = builder.find_missing()
-        print("missing:", idx)
-        if idx is None:
-            continue
-
-        Xs = list(builder.get_product(*idx))
-        for X in Xs:
-            #print("add", X.rankstr())
-            builder.add(X)
-            builder.get_tom()
-            print()
-
-        builder.check()
-
-        #break
-    #names = "N P L F PPP PP LL LPP x".split()
-    names = None
-    builder.dump(names)
-        
 
 
 
@@ -836,7 +677,7 @@ def dump_tom(G, Xs):
       for j in range(N):
         lgens = tgts[i]
         rgens = tgts[j]
-        c = get_hecke(lgens, rgens)
+        c = count_hecke(lgens, rgens)
         print("%2s"%c, end=" ")
       print()
 
@@ -849,7 +690,7 @@ def dump_tom(G, Xs):
       for j in range(N):
         lgens = tgts[i]
         rgens = tgts[j]
-        c = get_hecke_injections(lgens, rgens)
+        c = count_hecke_injections(lgens, rgens)
         row.append(c)
         print("%2s"%(c or '.'), end=" ")
       print()
@@ -868,6 +709,173 @@ def dump_tom(G, Xs):
 
 
 
+
+class Builder:
+    "Incrementally _build parts of the table of marks (TOM) for a group"
+    def __init__(self, G):
+        self.G = G
+        self.gens = G.gens
+        e = G.identity
+        G0 = Group([e], [e for g in self.gens])
+        Xs = [G.act_subgroup(H) for H in [G, G0]]
+        self.Xs = Xs
+
+    def __getitem__(self, idx):
+        return self.Xs[idx]
+
+    def __len__(self):
+        return len(self.Xs)
+
+    def __contains__(self, X):
+        assert isinstance(X, Group)
+        Xs = self.Xs
+        #print("Builder.add", [Y.rank for Y in Xs])
+        for Y in Xs:
+            if Y.rank != X.rank:
+                continue
+            #print("\t", Y.rank, "?")
+            a = X.count_hecke_injections(Y, max_count=1)
+            if not a:
+                continue
+            #print("\t", a)
+            b = Y.count_hecke_injections(X, max_count=1)
+            #print("\t", b)
+            if b:
+                return True
+        return False
+
+    def add(self, X):
+        assert isinstance(X, Group)
+        Xs = self.Xs
+        if X in self:
+            return
+
+        idx = 0
+        while idx < len(Xs):
+            if X.rank <= Xs[idx].rank:
+                Xs.insert(idx, X)
+                return
+            idx += 1
+        else:
+            assert 0, X.rank
+        #Xs.append(X)
+
+    def get_product(self, i, j):
+        lgens = self[i].gens
+        rgens = self[j].gens
+        for X in get_product(lgens, rgens):
+            #self.insert(X)
+            yield X
+
+    def get_tom(self, names=None):
+
+        N = len(self)
+#        for i in range(N):
+#            G = self[i]
+#            print(G, G.rank)
+#
+#        for i in range(N):
+#          for j in range(N):
+#            lgens = self[i].gens
+#            rgens = self[j].gens
+#            c = count_hecke(lgens, rgens)
+#            print("%2s"%c, end=" ")
+#          print()
+    
+        rows = []
+    
+        print()
+        print("table of marks:")
+        for i in range(N):
+          row = []
+          for j in range(N):
+            lgens = self[i].gens
+            rgens = self[j].gens
+            c = count_hecke_injections(lgens, rgens)
+            row.append(c)
+            print("%3s"%(c or '.'), end=" ")
+          print()
+          rows.append(row)
+    
+        tom = Tom(rows, names)
+        return tom
+
+    def find_missing(self):
+        tom = self.get_tom()
+        ops = tom.names
+        for i,a in enumerate(ops):
+            for j,b in enumerate(ops):
+                vec = tom[a]*tom[b]
+                desc = tom.get_desc(vec)
+                if desc is None:
+                    return (i,j)
+
+    def check(self):
+        tom = self.get_tom()
+        #print(tom)
+        ops = tom.names
+        for a in ops:
+            row = tom[a]
+            for b in ops:
+                desc = tom.get_desc(tom[a]*tom[b])
+                assert desc is not None
+                #print("%s*%s=%s"%(a,b,desc), end=" ")
+            #print()
+
+    def dump(self, names=None):
+        tom = self.get_tom(names)
+        print()
+        print(tom)
+        print()
+        ops = tom.names
+        N = len(ops)
+        for i in range(N):
+            for j in range(i,N):
+                a, b = ops[i], ops[j]
+                vec = tom[a]*tom[b]
+                desc = tom.get_desc(vec)
+                print("%s*%s=%s"%(a,b,desc), end=" ")
+            print()
+
+
+
+def test_builder():
+
+    G = GL32()
+
+    builder = Builder(G)
+    builder.check()
+
+    for H in G.parabolics:
+        X = G.act_subgroup(H)
+        #print(X.rankstr())
+        if X.rank != 21:
+            continue
+
+        builder.add(X)
+        #builder.check()
+
+        builder.get_tom()
+
+        idx = builder.find_missing()
+        print("missing:", idx)
+        if idx is None:
+            continue
+
+        Xs = list(builder.get_product(*idx))
+        for X in Xs:
+            #print("add", X.rankstr())
+            builder.add(X)
+            builder.get_tom()
+            print()
+
+        builder.check()
+
+        #break
+    #names = "N P L F PPP PP LL LPP x".split()
+    names = None
+    builder.dump(names)
+        
 
 def test_flags(): 
 
@@ -898,22 +906,25 @@ def test_flags():
     assert len(Pauli) == 4**(n+1)
     print("Pauli:", len(Pauli))
 
-    cgens = get_clifford_gens(n)
+    cliff_gens = get_clifford_gens(n)
 
-    genss = [get_flags(Pauli, cgens, n, flag) for flag in flags]
+    genss = [get_flags(Pauli, cliff_gens, n, flag) for flag in flags]
+    Xs = [Group(gens=gens, build=False) for gens in genss]
 
-    fn = argv.get("fn", "get_hecke")
-    fn = eval(fn)
+    method = argv.get("meth", "count_hecke")
 
-    for l in genss:
-      for r in genss:
-        c = fn(l, r)
-        #c = get_hecke(l, r)
-        #c = get_hecke_injections(l, r)
+    for X in Xs:
+      for Y in Xs:
+        f = getattr(X, method)
+        c = f(Y)
         print("%3s"%(c or '.'), end=' ', flush=True)
       print()
 
     print()
+
+#    builder = Builder()
+#    for X in Xs:
+#        builder.add(X)
 
     if n>2:
         return
@@ -929,6 +940,47 @@ def test_flags():
     rhs[:] = 1
     assert numpy.all(total == rhs)
 
+    if n>1:
+        return
+
+    G = mulclose(cliff_gens, verbose=True)
+    G = list(G)
+    G.sort(key = str)
+    print(len(G))
+
+    lookup = {g:i for (i,g) in enumerate(G)}
+    gens = [Perm([lookup[gen*g] for g in G]) for gen in cliff_gens]
+    G = Group(gens=gens)
+
+    builder = Builder(G)
+    builder.check()
+
+    for X in Xs:
+
+        builder.add(X)
+        #builder.check()
+
+        builder.get_tom()
+
+        idx = builder.find_missing()
+        print("missing:", idx)
+        if idx is None:
+            continue
+
+        Xs = list(builder.get_product(*idx))
+        for X in Xs:
+            #print("add", X.rankstr())
+            builder.add(X)
+            builder.get_tom()
+            print()
+
+        builder.check()
+
+        #break
+    #names = "N P L F PPP PP LL LPP x".split()
+    names = None
+    builder.dump(names)
+        
 
 
 if __name__ == "__main__":
