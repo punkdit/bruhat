@@ -500,11 +500,13 @@ def get_product(lgen, rgen):
             print()
         #print("[%s]" % count, end="", flush=True)
         #yield op
+        del bdy, _bdy
         found = list(found)
         found.sort()
         lookup = {v:i for i,v in enumerate(found)}
         perms = [Perm([lookup[l[i],r[j]] for (i,j) in found]) for l,r in gen]
         G = Group(None, perms)
+        del found
         yield G
 
 
@@ -723,6 +725,7 @@ class Builder:
     def __init__(self, ngens):
         self.ngens = ngens # number of gens
         self.Xs = []
+        self.cache = {}
 
     def __getitem__(self, idx):
         return self.Xs[idx]
@@ -763,6 +766,7 @@ class Builder:
                 return
             idx += 1
         Xs.append(X)
+        print("Builder.add:", X.rank)
 
     def get_product(self, i, j):
         lgens = self[i].gens
@@ -770,6 +774,16 @@ class Builder:
         for X in get_product(lgens, rgens):
             #self.insert(X)
             yield X
+
+    def count_hecke_injections(self, i, j):
+        l, r = self[i], self[j]
+        key = (id(l),id(r))
+        cache = self.cache
+        if key in cache:
+            return cache[key]
+        c = count_hecke_injections(l.gens, r.gens)
+        cache[key] = c
+        return c
 
     def get_tom(self, names=None, hecke=False, augment=True):
 
@@ -797,9 +811,7 @@ class Builder:
         for i in range(N):
           row = []
           for j in range(N):
-            lgens = self[i].gens
-            rgens = self[j].gens
-            c = count_hecke_injections(lgens, rgens)
+            c = self.count_hecke_injections(i, j)
             row.append(c)
           if augment:
             row.append(self[i].rank)
@@ -934,44 +946,30 @@ def test_flags():
 
     method = argv.get("meth", "count_hecke")
 
-    for X in Xs:
-      for Y in Xs:
-        f = getattr(X, method)
-        c = f(Y)
-        print("%3s"%(c or '.'), end=' ', flush=True)
-      print()
+    if n < 3:
+        for X in Xs:
+          for Y in Xs:
+            f = getattr(X, method)
+            c = f(Y)
+            print("%3s"%(c or '.'), end=' ', flush=True)
+          print()
+    
+        print()
 
-    print()
+    #if n>2:
+    #    return
 
-#    builder = Builder()
-#    for X in Xs:
-#        builder.add(X)
-
-    if n>2:
-        return
-
-    gens = genss[-1]
-    total = None
-    for op in get_operators(gens, gens):
-        #print(shortstr(op))
-        #print(op.sum(0)[0], op.sum(1)[0])
-        total = op if total is None else (total + op)
-    #print(total)
-    rhs = numpy.zeros(total.shape, dtype=int)
-    rhs[:] = 1
-    assert numpy.all(total == rhs)
-
-    if n>2:
-        return
-
-    #G = mulclose(cliff_gens, verbose=True)
-    #G = list(G)
-    #G.sort(key = str)
-    #print(len(G))
-
-    #lookup = {g:i for (i,g) in enumerate(G)}
-    #gens = [Perm([lookup[gen*g] for g in G]) for gen in cliff_gens]
-    #G = Group(gens=gens, verbose=True) # XXX
+    if n < 3:
+        gens = genss[-1]
+        total = None
+        for op in get_operators(gens, gens):
+            #print(shortstr(op))
+            #print(op.sum(0)[0], op.sum(1)[0])
+            total = op if total is None else (total + op)
+        #print(total)
+        rhs = numpy.zeros(total.shape, dtype=int)
+        rhs[:] = 1
+        assert numpy.all(total == rhs)
 
     builder = Builder(len(gens))
     builder.check()
@@ -979,7 +977,6 @@ def test_flags():
     for X in Xs:
 
         builder.add(X)
-        #builder.check()
 
         builder.get_tom()
 
@@ -988,18 +985,34 @@ def test_flags():
         if idx is None:
             continue
 
-        Xs = list(builder.get_product(*idx))
-        for X in Xs:
+        for X in builder.get_product(*idx):
             #print("add", X.rankstr())
             builder.add(X)
-            builder.get_tom()
+            #builder.get_tom()
+            #print()
+
+    #if n==2:
+    #    for X in builder.get_product(3,3):
+    #        print("add", X.rank)
+    #        builder.add(X)
+    for i in range(1, min(5, len(builder))):
+        for X in builder.get_product(i,i):
+            builder.add(X)
+
+    while 1:
+        idx = builder.find_missing()
+        print("missing:", idx)
+        if idx is None:
+            break
+
+        for X in builder.get_product(*idx):
+            print("add", X.rankstr())
+            builder.add(X)
+            #builder.get_tom()
             print()
 
-    for X in builder.get_product(3,3):
-        print("add", X.rank)
-        builder.add(X)
 
-    builder.get_tom(hecke=True)
+    #builder.get_tom(hecke=True)
 
         #break
     #names = "N P L F PPP PP LL LPP x".split()
