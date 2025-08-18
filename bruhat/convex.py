@@ -2,6 +2,7 @@
 
 from operator import mul, matmul, add
 from functools import reduce
+from math import sin, cos, pi
 
 from sage.all import ZZ, QQ
 
@@ -492,6 +493,101 @@ def get_clifford_hull(n, local=False, verbose=False):
     space.perms = perms # Clifford gens
     space.pauli = pauli # Pauli gens
     return space
+
+
+def test_pcliff():
+    n = 2
+
+    orbit, perms, pauli = get_clifford_states(n)
+    N = len(orbit)
+    assert N == 60
+    #for gen in perms:
+    #    print(gen)
+    PCliff = mulclose(perms, verbose=True)
+    assert len(PCliff) == 11520
+
+    Pauli = mulclose(pauli)
+
+    fibers = []
+    remain = list(range(N))
+    exclude = set()
+    while remain:
+        i = remain[0]
+        fiber = {g[i] for g in Pauli}
+        fiber = list(fiber)
+        fiber.sort()
+        fibers.append(fiber)
+        #print(fiber)
+        for i in fiber:
+            remain.remove(i)
+        for i in fiber:
+          for j in fiber:
+            exclude.add((i,j))
+    print(fibers, len(fibers))
+
+    twelves = []
+    found = set()
+    for g in PCliff:
+        i = g.order()
+        if i==12:
+            twelves.append(g)
+        if i not in found:
+            #print(i)
+            found.add(i)
+
+    print("twelves:", len(twelves))
+    found = set()
+    for g in twelves:
+        orbits = g.get_orbits()
+        if len(orbits) == 5:
+            print("found!")
+        counts = [len(o) for o in orbits]
+        counts.sort()
+        counts = tuple(counts)
+        found.add(counts)
+        #for o in orbits:
+        #    print("\t", o, len(o))
+    print(found)
+
+    g = twelves[0]
+    orbits = g.get_orbits()
+    orbits.sort(key = len)
+    print(orbits)
+
+    edges = []
+    for i in range(N):
+        for j in range(i+1,N):
+            if (i,j) not in exclude:
+                edges.append((i,j))
+
+    print(len(edges))
+
+    from huygens.namespace import Canvas, path, grey, st_thick
+
+    cvs = Canvas()
+
+    Rs = [1,2,3,4,5,6,7,8]
+    coords = {}
+    for i,R in enumerate(Rs):
+        orbit = orbits[i]
+        n = len(orbit)
+        for j,idx in enumerate(orbit):
+            theta = 2*pi*j/n
+            x, y = R*sin(theta), R*cos(theta)
+            coords[idx] = (x,y)
+
+    for (i,j) in edges:
+        x0, y0 = coords[i]
+        x1, y1 = coords[j]
+        cvs.stroke(path.line(x0, y0, x1, y1), st_thick+[grey])
+
+    for idx in range(N):
+        x, y = coords[idx]
+        cvs.fill(path.circle(x, y, 0.05), [])
+        
+
+    cvs.writePDFfile("stabilizer_states")
+
 
 
 def test_CZ_state():
@@ -1047,7 +1143,7 @@ def test_faces():
 def test_orbit():
 
     print("test_orbit")
-    n = argv.get("n", 1)
+    n = argv.get("n", 2)
     local = argv.get("local", False)
     space = get_clifford_hull(n, local=local)
     print(space)
@@ -1058,7 +1154,14 @@ def test_orbit():
     print(p)
     #print(" ".join(dir(p)))
 
-    for dim in [0,1,2,3]:
+    dims = [0,1,2,3]
+    dim = argv.get("dim")
+    if dim is not None:
+        dims = [dim]
+
+    print("dims =", dims)
+
+    for dim in dims:
         faces = p.faces(dim)
         N = len(faces)
         print("dim %d, N=%d" % (dim, N))
