@@ -814,6 +814,73 @@ def test_frobenius():
 
 
 
+def test_eulerian():
+    from bruhat.qpoly import Poincare, Poly, Z
+    
+    ring = Z
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+    q = Poly("q", ring)
+
+
+    poincare = Poincare(ring, q)
+    A = poincare.A
+
+    #print(A(2))
+    #print(poincare.qfactorial(4))
+    qfactorial = poincare.qfactorial
+
+    get = lambda p, q=2 : p.substitute((('q',q),))
+
+    #for n in range(5):
+    #    print("[%s]_2 = %s" % (n, get(qfactorial(n))))
+    #return
+
+    def qchoose(n, k, q=2):
+        assert 0<=n
+        assert 0<=k<=n
+        top = qfactorial(n)
+        bot = qfactorial(k) * qfactorial(n-k)
+        top = get(top, q)
+        bot = get(bot, q)
+        assert top % bot == 0
+        return top // bot
+
+#    for n in range(0, 5):
+#      for k in range(0, n+1):
+#        print(qchoose(n, k), end=' ')
+#      print()
+
+
+    N = 5
+    for total in range(N):
+     print()
+     print("total =", total)
+     for i in range(N):
+      for j in range(N):
+        if i+j != total:
+            continue
+        print()
+        print("i=%d, j=%d"%(i,j))
+        print("LHS =")
+        #print("a%d%d("%(i,j), end=" ")
+        for k in range(0, i+j+1):
+            s = qchoose(i+j, k)
+            s = str(s)+"*" if s>1 else ""
+            print("%sa%d%d*x%d%d"%(s, i,j,k, i+j-k), end = " + ")
+        print(" ")
+
+        print("RHS =")
+        for k in range(i+1):
+          for l in range(j+1):
+            s = qchoose(i, k)*qchoose(j,l)
+            s = str(s)+"*" if s>1 else ""
+            print("%sa%d%d*a%d%d*x%d%d"%(s,k,l,i-k,j-l,k+l,i+j-k-l), end=' + ')
+        print()
+    
+
+
+
 def test():
     #test_hopf()
     test_frobenius()
