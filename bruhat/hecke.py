@@ -759,6 +759,7 @@ class Builder:
         if X in self:
             return
 
+        print("Builder.add:", X.rank)
         idx = 0
         while idx < len(Xs):
             if X.rank <= Xs[idx].rank:
@@ -766,7 +767,6 @@ class Builder:
                 return
             idx += 1
         Xs.append(X)
-        print("Builder.add:", X.rank)
 
     def get_product(self, i, j):
         lgens = self[i].gens
@@ -784,6 +784,17 @@ class Builder:
         c = count_hecke_injections(l.gens, r.gens)
         cache[key] = c
         return c
+
+    def get_hecke(self):
+        N = len(self)
+        print("hecke:")
+        for i in range(N):
+          for j in range(N):
+            lgens = self[i].gens
+            rgens = self[j].gens
+            c = count_hecke(lgens, rgens)
+            print("%2s"%c, end=" ")
+          print()
 
     def get_tom(self, names=None, hecke=False, augment=True):
 
@@ -864,6 +875,14 @@ class Builder:
                 desc = tom.get_desc(vec)
                 print("%s*%s=%s"%(a,b,desc), end=" ")
             print()
+
+    def build(self):
+        while 1:
+            idx = self.find_missing()
+            if idx is None:
+                break
+            for X in self.get_product(*idx):
+                self.add(X)
 
 
 

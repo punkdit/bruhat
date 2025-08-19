@@ -87,6 +87,17 @@ class Perm(object):
         items.sort()
         assert items == list(range(self.rank))
 
+    @classmethod
+    def from_cycles(cls, N, cycles):
+        perm = list(range(N))
+        for cycle in cycles:
+            assert cycle
+            n = len(cycle)
+            for i in range(n):
+                perm[cycle[i]] = cycle[(i+1)%n]
+        assert set(perm) == set(range(N))
+        return cls(perm)
+
     @property
     def identity(self):
         return Perm(list(range(self.rank)))
@@ -323,6 +334,7 @@ class Group(object):
         self.rank = int(self.gens[0].rank)
         self.identity = Perm(list(range(self.rank)))
         self.perms = perms
+        self.n = None
         if not perms:
             return # <---------------- keep only gens <------ 
         assert perms
@@ -373,8 +385,8 @@ class Group(object):
         return "Group(order=%s, rank=%s)"%(self.n, self.rank)
 
     def __str__(self):
-        #return "Group(order=%s, rank=%s)"%(self.n, self.rank)
-        return "Group(order=%s)"%(self.n,)
+        return "Group(order=%s, rank=%s)"%(self.n, self.rank)
+        #return "Group(order=%s)"%(self.n,)
     __repr__ = __str__
 
     def longstr(self):
@@ -839,7 +851,7 @@ class Group(object):
         assert len(cosets) * len(H) == len(G)
         cosets = list(cosets)
         cosets.sort()
-        assert cosets == G.left_cosets(H0)
+        #assert cosets == G.left_cosets(H0)
         lookup = dict((gH, idx) for (idx, gH) in enumerate(cosets))
         gens = []
         for h in G.gens:
@@ -848,6 +860,41 @@ class Group(object):
         #H = Group(perms)
         #send_perms = [H.lookup[perm] for perm in all_perms]
         #return GSet(G, H, send_perms)
+        return Group(gens=gens, build=build)
+
+    def left_action(G, H, build=False):
+        gens = G.gens
+        #print(len(gens))
+        H = Coset(H)
+        found = set([H])
+        bdy = list(found)
+        while bdy:
+            i = len(found)
+            _bdy = []
+            for g in gens:
+                for H in bdy:
+                    h = H[0]
+                    gh = g*h
+                    for H1 in found:
+                        if gh in H1:
+                            break
+                    else:
+                        H1 = Coset([g*h for h in H])
+                        assert H1 not in found
+                        found.add(H1)
+                        _bdy.append(H1)
+                        #print("*", end="")
+            bdy = _bdy
+            #print("%s:%s"%(len(found), len(bdy)), end=" ", flush=True)
+        #print()
+        assert len(found) == len(G)//len(H)
+        cosets = list(found)
+        cosets.sort()
+        lookup = dict((gH, idx) for (idx, gH) in enumerate(cosets))
+        gens = []
+        for h in G.gens:
+            perm = Perm([lookup[gH.left_mul(h)] for gH in cosets])
+            gens.append(perm)
         return Group(gens=gens, build=build)
 
     def left_cosets(G, H):

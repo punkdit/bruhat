@@ -3,6 +3,7 @@
 from operator import mul, matmul, add
 from functools import reduce
 from math import sin, cos, pi
+from os import popen
 
 from sage.all import ZZ, QQ
 
@@ -11,7 +12,7 @@ import numpy
 #from bruhat.matrix_sage import Matrix
 from bruhat import matrix_sage
 from bruhat.argv import argv
-from bruhat.gset import mulclose, Perm, Group
+from bruhat.gset import mulclose, Perm, Group, gap_code
 from bruhat.action import mulclose_names
 from bruhat.solve import shortstr
 
@@ -503,14 +504,77 @@ def test_gap():
     assert N == 60
     #for gen in gens:
     #    print(gen)
+
     #PCliff = mulclose(gens, verbose=True)
-    #assert len(PCliff) == 11520
+    PCliff = Group.generate(gens, verbose=True)
+    assert len(PCliff) == 11520
+    print(PCliff)
 
     items = []
     for g in gens:
         item = g.gap_fmt()
         items.append(item)
-    print("G := Group(%s);"%(','.join(items)))
+
+    f = open("/tmp/bruhat_convex.gap", "w")
+    print('SizeScreen([1000,1000]);;', file=f);
+    gapstr = "Group(%s)"%(','.join(items))
+
+    #from bruhat.tom import load_tom
+    #tom = load_tom(gapstr=gapstr)
+    #print(tom)
+    #return
+
+    print('G := Group(%s);;'%(','.join(items)), file=f)
+    print('Hs := MaximalSubgroupClassReps(G);;', file=f)
+    print('for H in Hs do Print(H, ";\\n"); od;', file=f)
+    f.close()
+
+    Xs = []
+    X = PCliff.left_action(PCliff)
+    Xs.append(X)
+
+    data = popen("gap --norepl /tmp/bruhat_convex.gap").read()
+    #open("gapdump.out", "w").write(data)
+    lines = data.split("\n")
+    for line in lines:
+        line = line.strip()
+        if not line.startswith("Group"):
+            continue
+        #print(line)
+        line = line.replace(" ", "")
+        END = ")]);"
+        START = "Group([("
+        assert line.endswith(END)
+        assert line.startswith(START)
+        line = line[len(START):-len(END)]
+        cycs = line.split("),(")
+        cycs = [cyc.split(")(") for cyc in cycs]
+        cycs = [[tuple(int(i)-1 for i in c.split(","))
+            for c in cyc] for cyc in cycs]
+        hens = [Perm.from_cycles(N, cyc) for cyc in cycs]
+        #print(cycs[0])
+        #print(hens[0])
+        H = Group.generate(hens)
+
+        X = PCliff.left_action(H)
+        print(H, X, len(X.gens))
+
+        Xs.append(X)
+
+    from bruhat.hecke import Builder
+    builder = Builder(len(PCliff.gens))
+    for X in Xs:
+        builder.add(X)
+
+    builder.get_hecke()
+
+    #builder.build()
+    builder.get_tom()
+    #builder.dump()
+
+
+
+    
 
 
 def test_pcliff():
@@ -1366,7 +1430,6 @@ def test_autos():
     #A = A.transpose()
     N, perms = get_autos(A, B)
 
-    from bruhat.oeqc import gap_code
     print(gap_code(perms))
 
 
