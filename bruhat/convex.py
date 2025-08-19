@@ -495,6 +495,24 @@ def get_clifford_hull(n, local=False, verbose=False):
     return space
 
 
+def test_gap():
+    n = 2
+
+    orbit, gens, pauli = get_clifford_states(n)
+    N = len(orbit)
+    assert N == 60
+    #for gen in gens:
+    #    print(gen)
+    #PCliff = mulclose(gens, verbose=True)
+    #assert len(PCliff) == 11520
+
+    items = []
+    for g in gens:
+        item = g.gap_fmt()
+        items.append(item)
+    print("G := Group(%s);"%(','.join(items)))
+
+
 def test_pcliff():
     n = 2
 
@@ -552,12 +570,27 @@ def test_pcliff():
     g = twelves[0]
     orbits = g.get_orbits()
     orbits.sort(key = len)
-    print(orbits)
+
+    _orbits = []
+    idx = 0
+    for o in orbits:
+        i = o[idx%len(o)]
+        #idx += 7
+        p = [i]
+        while g[i] not in p:
+            p.append(g[i])
+            i = g[i]
+        print(o, p)
+        #for j in o[1:]:
+        #    assert g[i] == j
+        #    i = j
+        _orbits.append(p)
+    orbits = _orbits
 
     edges = []
     for i in range(N):
         for j in range(i+1,N):
-            if (i,j) not in exclude:
+            if (i,j) in exclude:
                 edges.append((i,j))
 
     print(len(edges))
@@ -566,15 +599,18 @@ def test_pcliff():
 
     cvs = Canvas()
 
-    Rs = [1,2,3,4,5,6,7,8]
+    Rs = [0.5,1,1.5,2.0,3,5,7,9]
+    #Rs = [1,2,3,4,5,6,7,8]
+    dtheta = 0.
     coords = {}
     for i,R in enumerate(Rs):
         orbit = orbits[i]
         n = len(orbit)
         for j,idx in enumerate(orbit):
-            theta = 2*pi*j/n
+            theta = 2*pi*j/n + dtheta
             x, y = R*sin(theta), R*cos(theta)
             coords[idx] = (x,y)
+        dtheta += pi/n
 
     for (i,j) in edges:
         x0, y0 = coords[i]
