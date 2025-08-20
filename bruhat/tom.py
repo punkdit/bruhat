@@ -198,8 +198,9 @@ class Tom:
         return '\n'.join(lines)
 
     def __getitem__(self, key):
-        i = self.names.index(key)
-        return self.rows[i]
+        if type(key) is str:
+            key = self.names.index(key)
+        return self.rows[key]
 
     def __len__(self):
         return len(self.rows)
@@ -220,7 +221,7 @@ class Tom:
                 smap[i+1,dx*j] = "%4s"%(c if c else ".")
         return str(smap)
 
-    def get_desc(self, vec):
+    def get_desc(self, vec, verbose=False):
         rows = self.rows
         names = self.names
         N = len(rows)
@@ -240,7 +241,8 @@ class Tom:
                 return None
             j = n//row[i]
             vec -= j*row
-            s = "%d*%s"%(j, names[i]) if j>1 else names[i]
+            n = "%s(%d)"%(names[i], self[i,-1]) if verbose else names[i]
+            s = "%d*%s"%(j, n) if j>1 else n
             desc.append(s)
         #assert vec.sum() == 0
         if vec.sum() != 0:
@@ -289,6 +291,25 @@ class Tom:
             assert count%div == 0
         print()
         print(total)
+
+    def tabulate(self, rows, cols, verbose=False):
+        smap = SMap()
+        w = 2+max([len(self.get_desc(self[l]*self[r], verbose)) for l in rows for r in cols])
+        for i,l in enumerate(rows):
+          for j,r in enumerate(cols):
+            item = self.get_desc(self[l]*self[r], verbose)
+            smap[i+2, 4+w*j] = item
+        for j,r in enumerate(cols):
+            smap[0, 4+w*j] = r
+            smap[1, 4+w*j] = "-"*w
+        for i,l in enumerate(rows):
+            smap[i+2, 0] = l
+            smap[i+2, 2] = "|"
+        smap[0,0] = "*"
+        smap[1,0] = "----"
+        smap[0,2] = "|"
+        return str(smap)
+
 
 
 def test():

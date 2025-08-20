@@ -15,6 +15,7 @@ from bruhat.argv import argv
 from bruhat.gset import mulclose, Perm, Group, gap_code
 from bruhat.action import mulclose_names
 from bruhat.solve import shortstr
+from bruhat.smap import SMap
 
 from bruhat.clifford_sage import Clifford, K, w4, get_clifford_gens, get_pauli_gens
 
@@ -573,9 +574,182 @@ def test_gap():
     #builder.dump()
 
 
+def test_tom():
+    n = 2
 
+    orbit, gens, pauli = get_clifford_states(n)
+    N = len(orbit)
+    assert N == 60
+    #for gen in gens:
+    #    print(gen)
+    #print(orbit[0])
+    #print(pauli[0])
+    #print(len(pauli))
+
+    if 0:
+        #PCliff = mulclose(gens, verbose=True)
+        PCliff = Group.generate(gens, verbose=True)
+        assert len(PCliff) == 11520
+        print(PCliff)
+
+    items = []
+    for g in gens:
+        item = g.gap_fmt()
+        items.append(item)
+
+
+    from bruhat.tom import load_tom
+    gapstr = "Group(%s)"%(','.join(items))
+    #print(gapstr)
+    tom = load_tom(gapstr=gapstr)
+    print("tom:", len(tom))
+
+    n = len(tom)
+    names = tom.names
+
+    def dump(count):
+        print("%d:"%count, end=' ')
+        total = 0
+        for i in range(n):
+            if tom[i, n-1] == count:
+                print(names[i], end='')
+                total += 1
+        print("", total)
+
+    dump(6) # C D  <--- colour / mutant-colour
+    dump(15) # H I <--- fiber / mutant-fiber
+    dump(30) # M N O P Q R S T U V
+    dump(60) # c d e f g h i j k l m n 
+    #dump(180) 
+    #dump(11520 // 12)
+
+    # colours(6) fibers(15) octahedra(30) vertices(60)
+    #    D <------> H  <-----> M  <--------> e, f
+    #    C <------> I  <-----> O  <<<-- mutant
+
+    # e(60) <---> U(30)
+    # f(60) <---> T(30)
+
+    # Argh, the outer automorpism of PCliff(2) doesn't seem to swap the 
+    # colours ?!?!? just swaps e & f structure ???!? check this.. XXX
+
+    """
+
+    * | M                        O
+    ------------------------------------------------------
+    I | C_1(90)+J_4(360)         O(30)+a_2(180)+z_2(240)
+    H | M(30)+X_2(180)+y_2(240)  C_1(90)+J_4(360)
     
+    * | e                        f
+    ------------------------------------------------------
+    I | q_1(180)+U_5(720)        i_1(180)+T_5(720)
+    H | e(60)+Y_3(360)+n_4(480)  f(60)+m_3(360)+n_4(480)
+    
+    * | e                  f
+    ------------------------------------------
+    C | S_3(360)           o_3(360)
+    D | R_1(120)+f_2(240)  T_1(120)+f_2(240)
+    
+    * | I            H
+    ------------------------------
+    C | P(30)+c(60)  x(90)
+    D | D_1(90)      N(30)+d(60)
 
+
+    How do the 30's relate to the 15's ?
+    * | H                          I
+    ----------------------------------------------------------
+    N | N(30)+2*a_1(120)+L_2(180)  D_1(90)+b_4(360)
+    P | x(90)+a_4(360)             P(30)+2*b_1(120)+M_2(180)
+    M | M(30)+X_2(180)+y_2(240)    C_1(90)+J_4(360)
+    O | C_1(90)+J_4(360)           O(30)+a_2(180)+z_2(240)
+    S | S(30)+w_1(180)+y_2(240)    E_1(90)+a_4(360)
+    V | F_1(90)+b_4(360)           V(30)+w_1(180)+z_2(240)
+    Q | s(90)+e_3(360)             Q(30)+u_1(180)+r_2(240)
+    R | r(90)+j_3(360)             R(30)+s_1(180)+u_2(240)
+    T | y(90)+v_3(360)             T(30)+y_1(180)+r_2(240)
+    U | B_1(90)+t_3(360)           U(30)+A_2(180)+u_2(240)
+
+    # these are the 30's
+    N*N = 2*N(30)+4*a_1(120)+b_4(360)
+    P*P = 2*P(30)+4*b_1(120)+a_4(360)
+    M*M = 2*M(30)+2*X_2(180)+2*y_2(240) <--- Octahedron ?
+    O*O = 2*O(30)+2*a_2(180)+2*z_2(240) <--- Octahedron ?
+    S*S = 2*S(30)+2*y_2(240)+a_4(360)
+    V*V = 2*V(30)+2*z_2(240)+b_4(360)
+    Q*Q = 2*Q(30)+Q_4(360)+x_4(480)
+    R*R = 2*R(30)+N_4(360)+z_4(480)
+    T*T = 2*T(30)+d_4(360)+x_4(480)
+    U*U = 2*U(30)+c_4(360)+z_4(480)
+
+    Octahedron * Octahedron = 2*Octahedron + 180 + ...
+
+    # these are the 60's
+    c*c = c(60)+b_1(120)+3*M_2(180)+6*a_4(360)+k_6(720)
+    d*d = d(60)+a_1(120)+3*L_2(180)+6*b_4(360)+k_6(720)
+    e*e = e(60)+q_1(180)+I_6(720)+e_6(720)+G_8(1920) # <------- vertex !
+    f*f = f(60)+i_1(180)+l_5(720)+A_6(720)+G_8(1920) # <------- vertex !
+    g*g = 4*g(60)+4*z_4(480)+x_7(1440)
+    h*h = 4*h(60)+8*z_2(240)+2*k_6(720)
+    i*i = 4*i(60)+8*y_2(240)+2*k_6(720)
+    l*l = 4*l(60)+4*x_4(480)+w_7(1440)
+    j*j = 4*j(60)+2*A_7(960)+A_8(1440)
+    k*k = 4*k(60)+2*A_7(960)+t_7(1440)
+    m*m = 4*m(60)+2*i_6(720)+2*A_7(960)
+    n*n = 4*n(60)+2*g_6(720)+2*A_7(960)
+
+    two vertices make an edge (or a vertex)
+    there are 90 internal edges and 2*360+960=1680 external edges (1770 total)
+    so the oriented edges: 180 internal, 2*720 + 1920 external: structure "e" or "f" above
+
+    How do the vertices relate to the 6's ?
+    * | C                        D
+    ------------------------------------------------------
+    e | S_3(360)                 R_1(120)+f_2(240)
+    f | o_3(360)                 T_1(120)+f_2(240)
+
+
+    * | H                        I
+    ------------------------------------------------------
+    e | e(60)+Y_3(360)+n_4(480)  q_1(180)+U_5(720)
+    f | f(60)+m_3(360)+n_4(480)  i_1(180)+T_5(720)
+
+    * | H                       I
+    ----------------------------------------------------
+    H | H(15)+F_1(90)+a_1(120)  b(45)+w_1(180)
+    I | b(45)+w_1(180)          I(15)+E_1(90)+b_1(120)
+
+    """
+
+    for s in "MNOPQRSTUV":
+        print("%s*%s ="%(s,s), tom.get_desc(tom[s]*tom[s], True))
+    for s in "cdefghijklmn":
+        print("%s*%s ="%(s,s), tom.get_desc(tom[s]*tom[s], True))
+    #return
+
+    #for l in "CD":
+    #  for r in "HI":
+    #    print("%s*%s ="%(l,r), tom.get_desc(tom[l] * tom[r]) )
+
+    tabulate = tom.tabulate
+
+    print(tabulate("MNOPQRSTUV", "HI", True))
+    print()
+    
+    print(tabulate("cdefghijklmn", "CD", True))
+    print()
+    
+    #print(tabulate("MNOPQRSTUV", "cdefghijklmn"))
+    #print()
+
+    for i in [tom.names.index(c) for c in "HI"]:
+        assert tom[i,i] == 1 # um..
+
+    print(tabulate("HI", "HI", True))
+    print()
+
+    return tom
+    
 
 def test_pcliff():
     n = 2
@@ -618,6 +792,11 @@ def test_pcliff():
             found.add(i)
 
     print("twelves:", len(twelves))
+    #for g in twelves:
+    #    for h in [g**i for i in range(12)]:
+    #        print(h.order() == 12) # 4 of these
+    #    break
+
     found = set()
     for g in twelves:
         orbits = g.get_orbits()
