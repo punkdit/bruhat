@@ -13,7 +13,7 @@ import numpy
 from bruhat import matrix_sage
 from bruhat.argv import argv
 from bruhat.gset import mulclose, Perm, Group, gap_code
-from bruhat.action import mulclose_names
+from bruhat.action import mulclose_names, mulclose_hom
 from bruhat.solve import shortstr
 from bruhat.smap import SMap
 
@@ -519,13 +519,15 @@ def test_gap():
     f = open("/tmp/bruhat_convex.gap", "w")
     print('SizeScreen([1000,1000]);;', file=f);
     gapstr = "Group(%s)"%(','.join(items))
+    print(gapstr)
+    return
 
     #from bruhat.tom import load_tom
     #tom = load_tom(gapstr=gapstr)
     #print(tom)
     #return
 
-    print('G := Group(%s);;'%(','.join(items)), file=f)
+    print('G := %s;;'%gapstr, file=f)
     print('Hs := MaximalSubgroupClassReps(G);;', file=f)
     print('for H in Hs do Print(H, ";\\n"); od;', file=f)
     f.close()
@@ -586,11 +588,49 @@ def test_tom():
     #print(pauli[0])
     #print(len(pauli))
 
-    if 0:
+    if 1:
         #PCliff = mulclose(gens, verbose=True)
         PCliff = Group.generate(gens, verbose=True)
         assert len(PCliff) == 11520
         print(PCliff)
+
+    # outer automorphisms of PCliff (from gap)
+    cycs = """
+1,7,40,29,17)(2,5,45,32,15)(3,33,39,50,41)(4,26,57,48,58)(6,37,23,20,12)(8,59,22,14,11)(9,27,43,60,38)(10,36,42,51,44)(13,49,34,21,53)(16,46,25,24,56)(18,47,28,30,55)(19,52,35,31,54
+1,21,15,10,16,32)(2,30,14,9,13,23)(3,19,22,12,24,17)(4,18,29,11,31,20)(5,25,33)(6,35,27)(7,28,36,8,34,26)(37,58,59,44,40,41)(38,45)(39,42,57)(46,56,48,52,53,50)(47,54,60)(49,55,51
+3,9)(4,10)(5,7)(6,8)(14,15)(17,20)(21,24)(25,28)(30,31)(34,35)(38,58)(39,57)(41,44)(42,43)(48,60)(50,51)(53,54)(55,56
+    """.strip().split()
+    cycs = [cyc.split(")(") for cyc in cycs]
+    cycs = [[tuple(int(i)-1 for i in c.split(",")) for c in cyc] for cyc in cycs]
+    hens = [Perm.from_cycles(N, cyc) for cyc in cycs]
+    print(hens)
+
+    auto = Group.generate(hens, verbose=True)
+    print(len(auto))
+#    for a in auto:
+#        if a in PCliff:
+#            continue
+#        #if a.order() != 2:
+#        #    continue
+#        ia = ~a
+#        for g in PCliff:
+#            if a*g*ia not in PCliff:
+#                print("FOUND:", a)
+#
+#    return
+
+#    hom = mulclose_hom(gens, iens)
+#    assert hom is not None
+#    print(len(hom))
+#    src = set(hom.keys())
+#    tgt = set(hom.values())
+#
+#    print(src==tgt)
+#    #for g in src:
+#    #    print(int(hom[g] in src), end='')
+#    #print()
+#
+#    return
 
     items = []
     for g in gens:
