@@ -513,7 +513,7 @@ def test_gap():
 
     items = []
     for g in gens:
-        item = g.gap_fmt()
+        item = g.gapstr()
         items.append(item)
 
     f = open("/tmp/bruhat_convex.gap", "w")
@@ -576,6 +576,28 @@ def test_gap():
     #builder.dump()
 
 
+def test_outer():
+
+    from bruhat.algebraic import Algebraic, get_permrep
+    G = Algebraic.Sp(4)
+    print(len(G))
+
+    G = get_permrep(G)
+    print(G)
+    N = G.rank
+
+    from bruhat.gap import Gap
+    gap = Gap()
+    #_G = gap.define(G)
+    auto = gap.AutomorphismGroup(G)
+    auto = gap.to_group(N, auto) # FAIL XXX
+    print(len(auto))
+
+    tom = gap.tom(G)
+
+    print("tom:", len(tom))
+
+
 def test_tom():
     n = 2
 
@@ -588,64 +610,54 @@ def test_tom():
     #print(pauli[0])
     #print(len(pauli))
 
-    if 1:
-        #PCliff = mulclose(gens, verbose=True)
-        PCliff = Group.generate(gens, verbose=True)
-        assert len(PCliff) == 11520
-        print(PCliff)
+    #PCliff = mulclose(gens, verbose=True)
+    PCliff = Group.generate(gens, verbose=True)
+    assert len(PCliff) == 11520
+    print(PCliff)
 
-    # outer automorphisms of PCliff (from gap)
-    cycs = """
-1,7,40,29,17)(2,5,45,32,15)(3,33,39,50,41)(4,26,57,48,58)(6,37,23,20,12)(8,59,22,14,11)(9,27,43,60,38)(10,36,42,51,44)(13,49,34,21,53)(16,46,25,24,56)(18,47,28,30,55)(19,52,35,31,54
-1,21,15,10,16,32)(2,30,14,9,13,23)(3,19,22,12,24,17)(4,18,29,11,31,20)(5,25,33)(6,35,27)(7,28,36,8,34,26)(37,58,59,44,40,41)(38,45)(39,42,57)(46,56,48,52,53,50)(47,54,60)(49,55,51
-3,9)(4,10)(5,7)(6,8)(14,15)(17,20)(21,24)(25,28)(30,31)(34,35)(38,58)(39,57)(41,44)(42,43)(48,60)(50,51)(53,54)(55,56
-    """.strip().split()
-    cycs = [cyc.split(")(") for cyc in cycs]
-    cycs = [[tuple(int(i)-1 for i in c.split(",")) for c in cyc] for cyc in cycs]
-    hens = [Perm.from_cycles(N, cyc) for cyc in cycs]
-    print(hens)
+    #PCliff = Group(gens=gens)
 
-    auto = Group.generate(hens, verbose=True)
+    from bruhat.gap import Gap
+    gap = Gap()
+    #_PCliff = gap.define(PCliff)
+    auto = gap.AutomorphismGroup(PCliff)
+    auto = gap.to_group(N, auto)
     print(len(auto))
-#    for a in auto:
-#        if a in PCliff:
-#            continue
-#        #if a.order() != 2:
-#        #    continue
-#        ia = ~a
-#        for g in PCliff:
-#            if a*g*ia not in PCliff:
-#                print("FOUND:", a)
-#
-#    return
 
-#    hom = mulclose_hom(gens, iens)
-#    assert hom is not None
-#    print(len(hom))
-#    src = set(hom.keys())
-#    tgt = set(hom.values())
-#
-#    print(src==tgt)
-#    #for g in src:
-#    #    print(int(hom[g] in src), end='')
-#    #print()
-#
-#    return
+    tom = gap.tom(PCliff)
 
-    items = []
-    for g in gens:
-        item = g.gap_fmt()
-        items.append(item)
-
-
-    from bruhat.tom import load_tom
-    gapstr = "Group(%s)"%(','.join(items))
-    #print(gapstr)
-    tom = load_tom(gapstr=gapstr)
     print("tom:", len(tom))
 
     n = len(tom)
     names = tom.names
+
+    #Gap.DEBUG = True
+    He = tom.get_stabilizer(N, "C")
+    print(He)
+
+    Hf = tom.get_stabilizer(N, "D")
+    print(Hf)
+
+    assert gap.IsConjugate(PCliff, He, Hf, get=True) == "false"
+
+    for g in auto:
+        if g in PCliff:
+            continue
+        #if g.order() != 2:
+        #    continue
+
+        He1 = He.conjugate(g)
+        if He1 == He:
+            continue
+        #_He1 = gap.define(He1)
+        #_Hf = gap.define(Hf)
+        #_PCliff = gap.define(PCliff)
+        if gap.IsConjugate(PCliff, He1, Hf, get=True) == "true":
+            print("T",end='',flush=True)
+        else:
+            print("_", end='', flush=True)
+
+    return
 
     def dump(count):
         print("%d:"%count, end=' ')

@@ -12,6 +12,7 @@ import re
 
 from bruhat.argv import argv
 
+
 PROMPT = "gap> "
 
 # https://superuser.com/a/1657976
@@ -30,39 +31,166 @@ def escape_ansi(line):
     return line
 
 
-class Gap(object):
-    def __init__(self):
+class Ref:
+    idx = 0
+    def __init__(self, ref=None):
+        if ref is None:
+            ref = "v%d"%Ref.idx
+            Ref.idx += 1
+        self.ref = ref
+    def __str__(self):
+        return self.ref
+    gapstr = __str__
+
+    def to_group(self):
+        gap = Gap.the_gap
+        
+        
+
+
+class Gap:
+    the_gap = None # Singleton
+    DEBUG = False
+
+    def __new__(cls):
+        if cls.the_gap is not None:
+            return cls.the_gap
+        gap = object.__new__(cls)
+        gap.init()
+        cls.the_gap = gap
+        return gap
+
+    def init(self):
         self.proc = Popen("gap", bufsize=0, stdin=PIPE, stdout=PIPE)
         sleep(0.1)
         #print(dir(proc.stdout))
         #print(proc.stdout.read(20))
         self.buf = ""
         self.pos = 0
+        self.debug = open("gap_debug.dump", "w")
+        self.expect()
 
-    def read_nb(self):
+    def read_nb(self, raw=False):
         proc = self.proc
         data = bytes()
         while select.select([proc.stdout],[],[],0)[0]!=[]:   
             data += proc.stdout.read(1)
         data = data.decode("utf-8")
-        data = escape_ansi(data)
+        self.debug.write(data)
+        if not raw:
+            data = escape_ansi(data)
+        #assert "Error" not in data # XXX read stderr XXX
         self.buf += data
 
     def send(self, data):
         proc = self.proc
+        if self.DEBUG:
+            print("Gap.send(%r)"%data)
         data = data + "\n"
+        self.debug.write(data)
         data = data.encode("utf-8")
         proc.stdin.write(data)
 
-    def expect(self, s):
+    def expect(self, s=PROMPT, raw=False):
         while s not in self.buf[self.pos:]:
-            self.read_nb()
+            self.read_nb(raw)
             sleep(0.001)
 
+        if self.DEBUG:
+            print("Gap.expect: buf=%r"%self.buf[self.pos:])
         pos = self.pos + self.buf[self.pos:].index(s)
         data = self.buf[self.pos : pos]
         self.pos = pos + len(s)
+        if self.DEBUG:
+            print("Gap.expect: return %r"%data)
         return data
+
+    def define(self, item, ref=None):
+        item = to_gap(item)
+        ref = Ref(ref)
+        assert not item.endswith(";")
+        s = "%s := %s;;"%(ref, item)
+        self.send(s)
+        s = self.expect()
+        return ref
+
+    def __getattr__(self, name):
+        return Method(self, name)
+
+    def length(self, item):
+        value = self.Length(item, get=True)
+        return int(value)
+
+    def iterate(self, item):
+        item = to_gap(item)
+        n = self.length(item)
+        for i in range(n):
+            s = "%s[%d];"%(item, i+1)
+            self.send(s)
+            yield self.expect()
+
+    def tom(self, ref):
+        self.SizeScreen([1000,1000])
+        ref = self.TableOfMarks(ref)
+        data = self.Display(ref, get=True, raw=True)
+        from bruhat.tom import parse_tom
+        tom = parse_tom(data)
+        tom.gapref = ref
+        return tom
+
+    def to_group(gap, N, ref):
+        from bruhat.gset import Group, Perm
+        if N is None:
+            assert 0, "arggghh"
+            orbit = gap.OrbitPerms(ref, 1)
+            N = gap.Maximum(orbit, get=True)
+            N = int(N)
+            print("N =", N)
+        gens = gap.GeneratorsOfGroup(ref)
+        perms = []
+        for gapstr in gap.iterate(gens):
+            perm = Perm.from_gapstr(N, gapstr)
+            perms.append(perm)
+        #G = Group.generate(perms, verbose=True)
+        G = Group(None, perms)
+        return G
+
+
+
+class Method:
+    def __init__(self, gap, name):
+        self.gap = gap
+        self.name = name
+    def __call__(self, *args, ref=None, get=False, raw=False):
+        args = [to_gap(arg) for arg in args]
+        gapstr = "%s(%s)"%(self.name, ','.join(args))
+        if get:
+            gapstr = "%s;"%gapstr
+        else:
+            ref = Ref(ref)
+            gapstr = "%s := %s;;"%(ref, gapstr)
+        gap = self.gap
+        gap.send(gapstr)
+        s = gap.expect(raw=raw)
+        if get:
+            return s
+        else:
+            return ref
+
+
+def to_gap(item):
+    if type(item) is str:
+        return item
+    if type(item) is int:
+        return str(item)
+    if hasattr(item, "gapstr"):
+        return item.gapstr()
+    if hasattr(item, "gapref"):
+        return str(item.gapref)
+    if isinstance(item, list):
+        return "[%s]"%(','.join(to_gap(i) for i in item)) # <-- recurse
+    assert 0, "what's this: %r ?"%item
+
 
 example_Irr = """\
 [ Character( CharacterTable( <pc group of size 28 with 3 generators> ),
@@ -184,7 +312,6 @@ if __name__ == "__main__":
     if cmd:
         
         gap = Gap()
-        gap.expect(PROMPT)
         
         #gap.send("G:=SmallGroup(28,1);")
     
@@ -192,11 +319,11 @@ if __name__ == "__main__":
             cmd += ";"
         gap.send(cmd)
         
-        s = gap.expect(PROMPT)
+        s = gap.expect()
         
         gap.send("Irr(G);")
         
-        s = gap.expect(PROMPT)
+        s = gap.expect()
         
         output = parse_Irr(s)
     

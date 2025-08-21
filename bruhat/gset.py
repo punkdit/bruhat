@@ -235,7 +235,7 @@ class Perm(object):
             assert len(remain) < n
         return cycles
 
-    def gap_fmt(perm):
+    def gapstr(perm):
         cs = perm.cycles()
         ss = []
         for c in cs:
@@ -245,9 +245,23 @@ class Perm(object):
             ss.append(tuple(c))
         return ''.join(str(s) for s in ss)
 
+    @classmethod
+    def from_gapstr(cls, N, s):
+        s = s.replace(" ", "")
+        s = s.replace("\n", "")
+        if s.startswith("^"):
+            s = s[1:]
+        assert s.startswith("("), repr(s)
+        assert s.endswith(")"), repr(s)
+        s = s[1:-1]
+        cycs = s.split(")(")
+        cycs = [tuple(int(i)-1 for i in c.split(",")) for c in cycs]
+        perm = cls.from_cycles(N, cycs)
+        return perm
+
 
 def gap_code(perms):
-    s = [perm.gap_fmt() for perm in perms]
+    s = [perm.gapstr() for perm in perms]
     s = "Group(%s);"%(', '.join(s))
     return s
 
@@ -323,13 +337,14 @@ class Group(object):
     """
     def __init__(self, perms=None, gens=None, items=None, verbose=False, build=True):
         if perms is None:
-            assert gens
-            assert isinstance(gens[0], Perm)
-            self.gens = list(gens)
             if build:
                 perms = list(mulclose(gens, verbose=verbose))
         else:
             perms = list(perms)
+        if gens is not None:
+            assert isinstance(gens[0], Perm)
+            self.gens = list(gens)
+        else:
             self.gens = perms
         self.rank = int(self.gens[0].rank)
         self.identity = Perm(list(range(self.rank)))
@@ -377,6 +392,19 @@ class Group(object):
                 self.gens = list(gens)
                 return self.gens
 
+    def gapstr(self):
+        assert len(self.gens) < len(self) or len(self.gens) < 10, len(self.gens)
+        s = [perm.gapstr() for perm in self.gens]
+        s = "Group(%s)"%(', '.join(s))
+        return s
+
+    #@classmethod
+    #def from_gapstr(cls, s):
+    #    cycss = []
+    #    i = 0
+    #    while i < len(s):
+            
+
 #    @property
 #    def identity(self):
 #        return Perm(list(range(self.rank)))
@@ -385,7 +413,7 @@ class Group(object):
         return "Group(order=%s, rank=%s)"%(self.n, self.rank)
 
     def __str__(self):
-        return "Group(order=%s, rank=%s)"%(self.n, self.rank)
+        return "Group(order=%s, rank=%s, gens=%d)"%(self.n, self.rank, len(self.gens))
         #return "Group(order=%s)"%(self.n,)
     __repr__ = __str__
 
@@ -744,7 +772,15 @@ class Group(object):
     def conjugate(G, g):
         gi = ~g
         perms = [g*h*gi for h in G]
-        return Group(perms)
+        gens = G.gens
+        if len(gens) < len(perms):
+            gens = [g*h*gi for h in gens]
+        else:
+            gens = None
+        #print("conjugate:", gens)
+        group = Group(perms, gens)
+        #print("conjugate:", group)
+        return group
 
     def is_conjugate_subgroup(G, H, J):
         if len(H) != len(J):

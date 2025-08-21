@@ -128,10 +128,12 @@ def load_tom(name="M11", gapstr=None):
     data = popen("gap --norepl /tmp/tmp.gap").read()
     #print(data)
     open("gapdump.out", "w").write(data)
+    return parse_tom(data)
+    
+def parse_tom(data):
     lines = data.split("\n")
     #print(data)
     #print(lines)
-    
     rows = []
     start = False
     end = False
@@ -309,6 +311,15 @@ class Tom:
         smap[1,0] = "----"
         smap[0,2] = "|"
         return str(smap)
+
+    def get_stabilizer(tom, N, name):
+        from bruhat.gap import Gap
+        gap = Gap()
+        idx = len(tom) - tom.names.index(name)
+        e = gap.RepresentativeTom(tom, idx)
+        e = gap.to_group(N, e)
+        return e
+
 
 
 
