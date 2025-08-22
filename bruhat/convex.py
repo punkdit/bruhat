@@ -17,7 +17,8 @@ from bruhat.action import mulclose_names, mulclose_hom
 from bruhat.solve import shortstr
 from bruhat.smap import SMap
 
-from bruhat.clifford_sage import Clifford, K, w4, get_clifford_gens, get_pauli_gens
+from bruhat.clifford_sage import (
+    Clifford, K, w4, r2, w8, get_clifford_gens, get_pauli_gens)
 
 ring = QQ
 one = ring.one()
@@ -416,8 +417,8 @@ def test_clifford():
 
 
 
-def get_clifford_states(n, local=False, verbose=False):
-    cliff_gen = get_clifford_gens(n, local)
+def get_clifford_states(n, local=False, verbose=False, name=False):
+    cliff_gen = get_clifford_gens(n, local, name)
     pauli_gen = get_pauli_gens(n)
 
     N = 2**n
@@ -463,13 +464,13 @@ def get_clifford_states(n, local=False, verbose=False):
     #G = Group.generate(perms)
     #print(len(G))
 
-    return orbit, perms, pauli
+    return orbit, perms, pauli, cliff_gen # arggghhh
 
 
 def get_clifford_hull(n, local=False, verbose=False):
     "find convex stabilizer polytope using density matrices"
 
-    orbit, perms, pauli = get_clifford_states(n, local, verbose)
+    orbit, perms, pauli, cliff_gen = get_clifford_states(n, local, verbose)
 
     orbit = list(orbit)
 
@@ -500,7 +501,7 @@ def get_clifford_hull(n, local=False, verbose=False):
 def test_gap():
     n = 2
 
-    orbit, gens, pauli = get_clifford_states(n)
+    orbit, gens, pauli, cliff_gen = get_clifford_states(n)
     N = len(orbit)
     assert N == 60
     #for gen in gens:
@@ -601,7 +602,7 @@ def test_outer():
 def test_tom():
     n = 2
 
-    orbit, gens, pauli = get_clifford_states(n)
+    orbit, gens, pauli, cliff_gen = get_clifford_states(n)
     N = len(orbit)
     assert N == 60
     #for gen in gens:
@@ -809,7 +810,7 @@ def test_tom():
 def test_pcliff():
     n = 2
 
-    orbit, perms, pauli = get_clifford_states(n)
+    orbit, perms, pauli, cliff_gen = get_clifford_states(n)
     N = len(orbit)
     assert N == 60
     #for gen in perms:
@@ -927,20 +928,149 @@ def test_pcliff():
 def test_CZ_state():
 
     n = 2
-    gens = get_clifford_gens(n)
+    #gens = get_clifford_gens(n, name=True)
+    orbit, perms, pauli, cliff_gen = get_clifford_states(n, name=True)
 
-    G = mulclose(gens, verbose=True, maxsize=None)
+    mat = lambda v : matrix_sage.Matrix(K,v)
+
+    v = mat([1,1,1,0]) # |CZ>
+    #v = mat([1,1-r2]) @ mat([1,+w4])  # unentangled
+    #v = mat([1,-w4,0,2*w4]) "D12" stabilizer
+    v = v.t
+
+    #return
+
+    #G = mulclose(cliff_gen, verbose=True, maxsize=None)
+    #print(len(G))
+
+    hom = mulclose_hom(cliff_gen, perms, verbose=True)
+    G = set(hom.keys())
     print(len(G))
 
-    v = Matrix([1,1,1,0]).t
+    stab = []
     for g in G:
         if g*v != v:
             continue
         #print('.', end='', flush=True)
-        print(g, g==~g)
+        #print(g, g==~g)
+        print(g.name)
+        stab.append(g)
     print()
+    print(len(stab))
+
+    perms = [hom[s] for s in stab]
+    #return perms
+
+    G = Group(perms)
+    #print(G.gapstr())
+    from bruhat.gap import Gap
+    gap = Gap()
+    print( gap.StructureDescription(G, get=True) )
+
+    R = stab[0]
+    for g in stab[1:]:
+        R = R+g
+    R = (one/len(stab))*R
+    print(R*R == R)
+    spaces = R.eigenvectors()
+    for (val, vecs, dim) in spaces:
+        if val != 1:
+            continue
+        print(vecs.t, dim)
 
 
+def test_edges():
+    print("test_edges")
+    n = argv.get("n", 2)
+
+    rhos, gens, pauli, cliff_gen = get_clifford_states(n)
+
+    N = gens[0].rank
+    verts = list(range(N))
+    pairs = {(p,q) for p in verts for q in verts}
+    print("pairs:", len(pairs))
+
+    orbits = []
+    while pairs:
+        pair = pairs.pop()
+        orbit = {pair}
+        bdy = list(orbit)
+        while bdy:
+            _bdy = []
+            for g in gens:
+              for (p,q) in bdy:
+                pair = (g[p], g[q])
+                if pair in orbit:
+                    continue
+                orbit.add(pair)
+                pairs.remove(pair)
+                _bdy.append(pair)
+            bdy = _bdy
+        orbit = list(orbit)
+        orbit.sort()
+        print("orbit:", orbit[0])
+        orbits.append(orbit)
+
+    G = mulclose(gens)
+    print(len(G))
+
+    evals = lambda rho : [s[0] for s in rho.eigenvectors()]
+
+    def purify(rho):
+        spaces = rho.eigenvectors()
+        for (val, vecs, dim) in spaces:
+            if val==0:
+                continue
+            #v = vecs[0, :]
+            for i in range(dim):
+                yield vecs[:, i].t
+
+    v = Matrix([1,1,1,0])
+    magic = v.t@v
+
+    i, j = orbits[2][0]
+    s, t = rhos[i], rhos[j]
+    for v in purify(s+t):
+        print("magic:", v)
+        break
+    magic = v.t@v
+    #print(magic)
+    #return v
+
+    rs = [(magic*rho).trace() for rho in rhos]
+    top = max(rs)
+    magic = [i for i in range(N) if rs[i]==top]
+    magic = tuple(magic)
+    print("magic idxs:", magic)
+
+
+    #print(len(orbits))
+    for o in orbits:
+        i, j = o[0]
+        s, t = rhos[i], rhos[j]
+        A = (s*t).trace()
+        print()
+        print("evals:", evals((one/2)*(s+t)))
+        print(p, A, len(o), len(o)//N)
+    
+        stab = []
+        for g in G:
+            gi, gj = g[i], g[j]
+            if gi==i and gj==j or gi==j and gj==i:
+                stab.append(g)
+        print("stab:", len(stab), len(G)//len(stab))
+        print("found magic idxs:", magic in o)
+
+#    for o in orbits:
+#        print(len(o))
+#        for (i,j) in o:
+#            if i!=0:
+#                continue
+#            print( "\t", evals(rhos[i]+rhos[j]) )
+
+
+    
+    
 
 def test_fixed():
     n = 2
@@ -1037,7 +1167,7 @@ def test_bruhat():
 
     n = 2
     
-    orbit, perms, pauli = get_clifford_states(n)
+    orbit, perms, pauli, cliff_gen = get_clifford_states(n)
     print("orbit:", len(orbit))
 
     orbit = list(orbit)
@@ -1226,7 +1356,7 @@ def test_bundle():
 
     print("gens:", len(gens))
 
-    orbit, perms, pauli = get_clifford_states(n)
+    orbit, perms, pauli, cliff_gen = get_clifford_states(n)
     print("orbit:", len(orbit))
 
     G = mulclose(gens)
@@ -1471,6 +1601,7 @@ def test_faces():
     for stab in stabs:
         print(stab)
     
+
 
 
 

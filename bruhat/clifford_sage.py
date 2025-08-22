@@ -201,7 +201,7 @@ class Clifford(object):
 
 
 
-def get_clifford_gens(n, local=False):
+def get_clifford_gens(n, local=False, name=False):
 
     c = Clifford(n)
     S, H, CX, CZ = c.S, c.H, c.CX, c.CZ
@@ -212,10 +212,16 @@ def get_clifford_gens(n, local=False):
     gen = []
     for i in range(n):
         gen.append(S(i))
+        if name:
+            gen[-1].name = ("S(%d)"%i,)
         gen.append(H(i))
+        if name:
+            gen[-1].name = ("H(%d)"%i,)
         if not local:
             for j in range(i+1, n):
                 gen.append(CZ(i,j))
+                if name:
+                    gen[-1].name = ("CZ(%d,%d)"%(i,j),)
     for g in gen:
         assert g*g.d == I
 

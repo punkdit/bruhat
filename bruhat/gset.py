@@ -393,8 +393,12 @@ class Group(object):
                 return self.gens
 
     def gapstr(self):
-        assert self.perms is None or len(self.gens) < len(self) or len(self.gens) < 10, len(self.gens)
-        s = [perm.gapstr() for perm in self.gens]
+        gens = self.gens
+        perms = self.perms
+        if perms is not None and len(gens) == len(perms):
+            gens = self.get_gens()
+        assert (perms is None or len(gens) < len(perms) or len(gens) < 10), "um.."
+        s = [perm.gapstr() for perm in gens]
         s = "Group(%s)"%(', '.join(s))
         return s
 
