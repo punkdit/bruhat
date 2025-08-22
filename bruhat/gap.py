@@ -23,9 +23,10 @@ def escape_ansi(line):
     re4 = re.compile(r'\x1b[\[\]A-Z\\^_@]')
     # re5: zero-width ASCII characters
     # see https://superuser.com/a/1388860
-    re5 = re.compile(r'[\x00-\x1f\x7f-\x9f\xad]+')
+    re5 = re.compile(r'[\x00-\x1f\x7f-\x9f\xad]+') # kills newlines
 
-    for r in [re1, re2, re3, re4, re5]:
+    for r in [re1, re2, re3, re4]:
+        assert r.sub("", "\n") == "\n", r
         line = r.sub('', line)
 
     return line
@@ -77,8 +78,8 @@ class Gap:
             data += proc.stdout.read(1)
         data = data.decode("utf-8")
         self.debug.write(data)
-        if not raw:
-            data = escape_ansi(data)
+        #if not raw:
+        data = escape_ansi(data)
         #assert "Error" not in data # XXX read stderr XXX
         self.buf += data
 
@@ -130,7 +131,7 @@ class Gap:
             yield self.expect()
 
     def tom(self, ref):
-        self.SizeScreen([1000,1000])
+        self.SizeScreen([10000,10000])
         ref = self.TableOfMarks(ref)
         data = self.Display(ref, get=True, raw=True)
         from bruhat.tom import parse_tom
@@ -172,10 +173,20 @@ class Method:
         gap = self.gap
         gap.send(gapstr)
         s = gap.expect(raw=raw)
-        if get:
-            return s
-        else:
+        if not get:
             return ref
+        rval = s.strip()
+        if rval == "false":
+            return False
+        if rval == "true":
+            return True
+        try:
+            rval = int(rval)
+            return rval
+        except:
+            pass
+        return rval
+            
 
 
 def to_gap(item):

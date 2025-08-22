@@ -638,26 +638,29 @@ def test_tom():
     Hf = tom.get_stabilizer(N, "D")
     print(Hf)
 
-    assert gap.IsConjugate(PCliff, He, Hf, get=True) == "false"
+    assert He != Hf
+    assert not gap.IsConjugate(PCliff, He, Hf, get=True)
 
-    for g in auto:
-        if g in PCliff:
-            continue
-        #if g.order() != 2:
-        #    continue
-
-        He1 = He.conjugate(g)
-        if He1 == He:
-            continue
-        #_He1 = gap.define(He1)
-        #_Hf = gap.define(Hf)
-        #_PCliff = gap.define(PCliff)
-        if gap.IsConjugate(PCliff, He1, Hf, get=True) == "true":
-            print("T",end='',flush=True)
-        else:
-            print("_", end='', flush=True)
-
-    return
+#    return
+#
+#    for g in auto:
+#        if g in PCliff:
+#            continue
+#        #if g.order() != 2:
+#        #    continue
+#
+#        He1 = He.conjugate(g)
+#        if He1 == He:
+#            continue
+#        #_He1 = gap.define(He1)
+#        #_Hf = gap.define(Hf)
+#        #_PCliff = gap.define(PCliff)
+#        if gap.IsConjugate(PCliff, He1, Hf, get=True) == "true":
+#            print("T",end='',flush=True)
+#        else:
+#            print("_", end='', flush=True)
+#
+#    return
 
     def dump(count):
         print("%d:"%count, end=' ')

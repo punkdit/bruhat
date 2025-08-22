@@ -147,6 +147,7 @@ def parse_tom(data):
             end = True
             continue
         #assert not end, "fix fix fix: see gapdump.out to parse"
+        assert line.count(":") == 1, repr(line)
         idx, data = line.split(":")
         idx = int(idx)-1
         assert 0 <= idx <= len(rows)
