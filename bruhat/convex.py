@@ -1815,6 +1815,40 @@ def test_real_cliff():
         print("factor =", len(G)//len(RG))
 
         #return
+
+def test_qutrit():
+    vs = [
+        (3,0,0,1,1,1,1,1,1,1,1,1),
+        (0,3,0,1,1,1,1,1,1,1,1,1),
+        (0,0,3,1,1,1,1,1,1,1,1,1),
+        (1,1,1,3,0,0,1,1,1,1,1,1),
+        (1,1,1,0,3,0,1,1,1,1,1,1),
+        (1,1,1,0,0,3,1,1,1,1,1,1),
+        (1,1,1,1,1,1,3,0,0,1,1,1),
+        (1,1,1,1,1,1,0,3,0,1,1,1),
+        (1,1,1,1,1,1,0,0,3,1,1,1),
+        (1,1,1,1,1,1,1,1,1,3,0,0),
+        (1,1,1,1,1,1,1,1,1,0,3,0),
+        (1,1,1,1,1,1,1,1,1,0,0,3),
+    ]
+
+    vs = [Matrix(v).t for v in vs]
+    v0 = (one/len(vs))*reduce(add, vs) 
+    vs = [v-v0 for v in vs]
+    space = Convex(vs)
+    assert space.dim == 8
+
+    p = space.get_polyhedron()
+
+    print(p)
+
+    found = []
+    for dim in range(9):
+        faces = p.faces(dim)
+        N = len(faces)
+        print("dim %d, N=%d" % (dim, N))
+
+
         
 
 if __name__ == "__main__":
