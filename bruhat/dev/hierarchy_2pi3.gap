@@ -15,18 +15,20 @@ r2 := Sqrt(2);;
 ir2 := 1/r2;;
 
 i := [[1, 0], [0, 1]];;
-w := [[E(4), 0], [0, E(4)]];;
+#w := [[E(4), 0], [0, E(4)]];;
 x := [[0, 1], [1, 0]];;
 z := [[1, 0], [0, -1]];;
 s := [[1, 0], [0, E(4)]];;
 h := [[ir2, ir2], [ir2, -ir2]];;
 
-A := [[1,0], [0, E(3)]];
-Print(Order(A), "\n");
+phase := E(3);
+W := [[1,0], [0, phase]];
+w := [[phase, 0], [0, phase]];
 
+Cliff1 := Group(w, s, h);;
+Pauli1 := Group(w, x, z);;
 
-Cliff1 := Group(w, s, h);; # Order 192
-Pauli1 := Group(w, x, z);; # Order 32
+Print(Order(W), "\n");
 
 for U in Cliff1 do
     found := false;;
@@ -55,7 +57,7 @@ in_fourth_level := function(U)
     local A;
     for g in Pauli1 do
         A := U*g*Inverse(U)*Inverse(g);
-        if in_third_level(U) then continue; fi;
+        if in_third_level(A) then continue; fi;
         return false; # no
     od;
     return true; # yes
@@ -66,7 +68,7 @@ in_fifth_level := function(U)
     local A;
     for g in Pauli1 do
         A := U*g*Inverse(U)*Inverse(g);
-        if in_fourth_level(U) then continue; fi;
+        if in_fourth_level(A) then continue; fi;
         return false; # no
     od;
     return true; # yes
@@ -77,16 +79,16 @@ in_sixth_level := function(U)
     local A;
     for g in Pauli1 do
         A := U*g*Inverse(U)*Inverse(g);
-        if in_fourth_level(U) then continue; fi;
+        if in_fourth_level(A) then continue; fi;
         return false; # no
     od;
     return true; # yes
 end;;
 
 
-Print("C3 ? ", in_third_level(A), "\n");
-Print("C4 ? ", in_fourth_level(A), "\n");
-Print("C5 ? ", in_fifth_level(A), "\n");
-Print("C6 ? ", in_sixth_level(A), "\n");
+Print("C3 ? ", in_third_level(W), "\n");
+Print("C4 ? ", in_fourth_level(W), "\n");
+Print("C5 ? ", in_fifth_level(W), "\n");
+Print("C6 ? ", in_sixth_level(W), "\n");
 
 
