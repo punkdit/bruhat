@@ -162,7 +162,10 @@ class Element(Type):
         if other is None:
             return NotImplemented
         a = tp.truediv(self, other)
-        assert a is not None, "%s//%s"%(self, other)
+        if a is None:
+            print(type(self.tp))
+            print("could not truediv %s:%s // %s:%s" % (self, self.tp, other, other.tp))
+            assert 0
         return a
 
     def __rtruediv__(self, other):
@@ -675,7 +678,7 @@ class PolynomialRing(Keyed, Ring):
         Ring of polynomials in one variable, over some other base ring.
     """
 
-    def __init__(self, base):
+    def __init__(self, base, name="x"):
         Keyed.__init__(self, base)
         Ring.__init__(self)
         self.base = base
@@ -683,6 +686,7 @@ class PolynomialRing(Keyed, Ring):
         one = self.base.one
         self.one = Polynomial({0:one}, self)
         self.x = Polynomial({1:one}, self)
+        self.name = name
 
     def __truediv__(self, mod):
         assert mod.tp == self
@@ -890,6 +894,7 @@ class Polynomial(Element):
         s = "+".join(terms) or "0"
         s = s.replace("+-", "-")
         s = s.replace("-1*", "-")
+        s = s.replace("x", self.tp.name)
         return s
 
     def __repr__(self):
