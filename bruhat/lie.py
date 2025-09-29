@@ -593,13 +593,13 @@ def test_plucker_flag():
     for k in range(1, n):
       for idxs in choose(N, k):
         V = U[:k, idxs]
-        #print(V)
+        print(V)
         a = determinant(V)
         if k==1:
             w[idxs[0]] = a
         else:
             w[idxs] = a
-        #print(idxs, a)
+        print(idxs, a)
 
     assert n==4
     p1 = w[0]
