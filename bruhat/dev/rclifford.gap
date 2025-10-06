@@ -23,24 +23,13 @@ s := [[1, 0], [0, E(4)]];;
 h := [[ir2, ir2], [ir2, -ir2]];;
 
 Phase  := Group(w8);;
-Cliff1 := Group(w, s, h);; # Order 192
 Pauli1 := Group(w, x, z);; # Order 16
 
-#A := FactorGroup(Cliff1, Phase);
-#A0 := SemidirectProduct(Sp(2,2), GF(2)^2);
-#Print(Order(A), " ", Order(A0), "\n");
-#Print(StructureDescription(A), " <-> ", StructureDescription(A0), "\n");
-#quit;
+Cliff1 := Group(s, h);; # Order 192
+RCliff1 := Group(z, h);; # Order 192
 
-for U in Cliff1 do
-    found := false;;
-    #Udag := Inverse(U);
-    #Print("found? ");
-    for g in Pauli1 do
-        if (U*g*Inverse(U)*Inverse(g) in Pauli1)  then found:=true; break; fi;
-    od;
-    Assert(0, found);
-od;
+Print("Cliff1: ", Order(Cliff1), " ", StructureDescription(Cliff1),  "\n");
+Print("RCliff1: ", Order(RCliff1),  " ", StructureDescription(RCliff1), "\n");
 
 xi := KroneckerProduct(x, i);;
 ix := KroneckerProduct(i, x);;
@@ -60,16 +49,15 @@ cz := [
     [0, 0, 1, 0],
     [0, 0, 0, -1]];;
 
-Cliff2 := Group(si, is, hi, ih, wi, cz);; # Order 92160
-RCliff2 := Group(zi, iz, hi, ih, wi, cz);; 
+Cliff2 := Group(si, is, hi, ih, cz);; # Order 92160
+RCliff2 := Group(zi, iz, hi, ih, cz);; 
 
-Print(Order(Cliff2), "\n");
-Print(Order(RCliff2), "\n");
+Print("Cliff2: ", Order(Cliff2), " ", StructureDescription(Cliff2), "\n");
+Print("RCliff2: ", Order(RCliff2),  " ", StructureDescription(RCliff2),"\n");
 
-
-ASp := SemidirectProduct(Sp(4,2), GF(2)^4);
-Print(Order(ASp), "\n");
-Print(StructureDescription(ASp), "\n");
+#ASp := SemidirectProduct(Sp(4,2), GF(2)^4);
+#Print(Order(ASp), "\n");
+#Print(StructureDescription(ASp), "\n");
 
 
 xii := KroneckerProduct(xi, i);;
@@ -94,12 +82,12 @@ icz := KroneckerProduct(i, cz);;
 czi := KroneckerProduct(cz, i);;
 
 
-Cliff3 := Group(sii, isi, iis, hii, ihi, iih, wii, icz, czi);; # Order 743178240
-RCliff3 := Group(zii, izi, iiz, hii, ihi, iih, wii, icz, czi);; # Order ?
+Cliff3 := Group(sii, isi, iis, hii, ihi, iih, icz, czi);; # Order 743178240
+RCliff3 := Group(zii, izi, iiz, hii, ihi, iih, icz, czi);; # Order ?
 
-Print("Cliff3:\n");
-Print(Order(Cliff3), "\n");
-Print(StructureDescription(Cliff3), "\n");
+#Print("Cliff3:\n");
+#Print(Order(Cliff3), "\n");
+#Print(StructureDescription(Cliff3), "\n");
 
 Print("RCliff3:\n");
 Print(Order(RCliff3), "\n");
