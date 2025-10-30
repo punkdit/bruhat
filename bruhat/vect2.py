@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 Kapranov-Voevodsky 2-vector spaces.
@@ -1229,7 +1229,7 @@ def test_frobenius():
     #A = Cell1.rand(m, n, name="A") # too slow
     S = lambda n, name : Space(ring, n, 0, name)
     A = Cell1(m, n, [[S(2, "A0"), S(1, "A1")], [S(0, "A2"), S(1, "A3")]])
-    #print(A.dimstr())
+    print(A.dimstr())
     make_frobenius(A)
 
 
