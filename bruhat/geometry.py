@@ -256,7 +256,7 @@ def main(key, index):
 
     #print("[[%d, %d, (%d,%d)]]"%(code.n, code.k, d_x, d_z))
 
-    code.bz_distance()
+    #code.bz_distance()
     print(code)
 
     if argv.show:
@@ -264,6 +264,10 @@ def main(key, index):
         print(shortstr(Hx))
         print("Hz:")
         print(shortstr(Hz))
+        print("Lx:")
+        print(shortstr(code.Lx))
+        print("Lz:")
+        print(shortstr(code.Lz))
 
     #print("Hx", Hx.sum(0), Hx.sum(1))
     #print("Hz", Hz.sum(0), Hz.sum(1))
