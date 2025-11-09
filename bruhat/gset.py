@@ -385,6 +385,8 @@ class Group(object):
     def get_gens(self):
         perms = self.perms
         n = len(perms)
+        if n==1:
+            return []
         for count in range(1,n):
           for gens in choose(perms, count):
             G = mulclose(gens)
@@ -399,8 +401,17 @@ class Group(object):
             gens = self.get_gens()
         assert (perms is None or len(gens) < len(perms) or len(gens) < 10), "um.."
         s = [perm.gapstr() for perm in gens]
-        s = "Group(%s)"%(', '.join(s))
+        s = "Group(%s)"%(', '.join(s) or "()")
         return s
+
+    def structure_description(self):
+        from bruhat.gap import Gap
+        gap = Gap()
+        s = self.gapstr()
+        s = "StructureDescription(%s);"%s
+        gap.send(s)
+        desc = eval(gap.expect())
+        return desc
 
     #@classmethod
     #def from_gapstr(cls, s):
@@ -1856,6 +1867,28 @@ def test_subgroups():
     assert not G.is_simple()
 
     print("OK")
+
+
+def test_hecke():
+    from bruhat.gap import Gap
+    gap = Gap()
+    
+    n = argv.get("n", 6)
+
+    G = Group.symmetric(n)
+
+    print(G)
+
+    print("|H|\tcount")
+    for H in G.conjugacy_subgroups():
+        act = G.action_subgroup(H)
+        s = H.gapstr()
+        s = "StructureDescription(%s);"%s
+        #print(s)
+        gap.send(s)
+        desc = (eval(gap.expect()))
+        print(len(H), "\t", len(G)//len(H), desc)
+
 
 
 
