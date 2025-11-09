@@ -147,6 +147,11 @@ def main(n=3):
 
     assert eq((_r >> r_) , scalar )
 
+    print("gg_g")
+    print(gg_g)
+    print("g_gg")
+    print(g_gg)
+    print("rr_r")
     print(rr_r)
     print(r_)
 
