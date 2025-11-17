@@ -3565,7 +3565,7 @@ def test_sp():
     U1 = Cliff1.get_zip_uturn()
     print("Cliff1", len(Cliff1))
 
-    if p <= 5 and n < 4:
+    if p < 5 and n <= 4:
 
         count = 0
         mats = []
@@ -3575,7 +3575,8 @@ def test_sp():
             count += 1
             mats.append(H)
 
-    elif p == 5 and n==4:
+    #elif p == 5 and n==4:
+    else:
         orbit = set()
         for H in Cliff.qchoose(n):
             assert H == H.normal_form()
@@ -3596,22 +3597,22 @@ def test_sp():
         print()
         mats = list(orbit)
 
-    else:
-        mats = set()
-        for H0 in Cliff.qchoose(n):
-            assert H0 == H0.normal_form()
-            break
-        mats.add(H0)
-        while len(mats) < 1000:
-            H = H0
-            assert Cliff.is_isotropic(H)
-            for _ in range(2+len(mats)):
-                g = choice(Cliff.gen)
-                assert g.t*F*g == F
-                H = H*g
-                assert Cliff.is_isotropic(H), g
-            H = H.normal_form()
-            mats.add(H)
+#    else:
+#        mats = set()
+#        for H0 in Cliff.qchoose(n):
+#            assert H0 == H0.normal_form()
+#            break
+#        mats.add(H0)
+#        while len(mats) < 1000:
+#            H = H0
+#            assert Cliff.is_isotropic(H)
+#            for _ in range(2+len(mats)):
+#                g = choice(Cliff.gen)
+#                assert g.t*F*g == F
+#                H = H*g
+#                assert Cliff.is_isotropic(H), g
+#            H = H.normal_form()
+#            mats.add(H)
 
 
     I = Cliff1.I
