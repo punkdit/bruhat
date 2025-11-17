@@ -821,6 +821,8 @@ class Algebraic(object):
 
     @classmethod
     def Sp(cls, n, p=DEFAULT_P, **kw):
+        # See: https://arxiv.org/abs/2201.09155
+        # "Pairs of Generators for Matrix Groups. I Donald E. Taylor"
         gen = []
         assert n%2 == 0
 
@@ -881,9 +883,17 @@ class Algebraic(object):
             B[0, 0] = 1
             B[0, m] = 1
             B[n-2, m-1] = 1
-            B[n-1, m-1] = ifgen
+            B[n-1, m-1] = p-1
 
             gen = [Matrix(A, p), Matrix(B, p)]
+
+        fail = False
+        for g in gen:
+            if g.t*F*g != F:
+                print("not symplectic")
+                print(g)
+                fail = True
+        assert not fail
 
         G = Sp(gen, order_sp(n, p), p=p, invariant_form=F, **kw)
         return G
@@ -3550,7 +3560,7 @@ def test_sp():
 
     G0 = Algebraic
 
-    Cliff = Algebraic.Sp(2*N, p)
+    CliffN = Cliff = Algebraic.Sp(2*N, p)
     FN = Cliff.invariant_form
     UN = Cliff.get_zip_uturn()
     #print("Cliff(%d)"%(2*N), len(Cliff))
@@ -3628,9 +3638,12 @@ def test_sp():
         mats.add(H0)
         while len(mats) < 1000:
             H = H0
+            assert Cliff.is_isotropic(H)
             for _ in range(2+len(mats)):
                 g = choice(Cliff.gen)
-                H = H*g.t
+                assert g.t*FN*g == FN
+                H = H*g
+                assert Cliff.is_isotropic(H), g
             H = H.normal_form()
             mats.add(H)
 
@@ -3661,6 +3674,7 @@ def test_sp():
     while remain:
         print("remain:", len(remain), end=" ")
         H = remain.pop()
+        assert Cliff.is_isotropic(H)
         #orbit = {(H*g.t).normal_form() for g in LCliff}
         bdy = [H]
         orbit = set(bdy)
@@ -3681,7 +3695,8 @@ def test_sp():
         else:
             print()
             print("orbit:", len(orbit))
-        print()
+            print()
+            print()
         remain.difference_update(orbit)
     print()
     
