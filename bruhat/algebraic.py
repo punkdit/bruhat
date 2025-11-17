@@ -17,7 +17,7 @@ from random import randint, choice
 from functools import reduce
 from functools import reduce, lru_cache
 cache = lru_cache(maxsize=None)
-from operator import add, mul
+from operator import add, mul, lshift
 from math import prod
 
 import numpy
@@ -460,6 +460,7 @@ class Matrix(object):
         AB[:m,:n] = A
         AB[m:,n:] = B
         return Matrix(AB, self.p)
+    __lshift__ = direct_sum
 
 
 def test_matrix():
@@ -3540,6 +3541,107 @@ def test_ASp6():
 
     return orbit
 
+
+def test_sp():
+
+    p = argv.get("p", 2)
+    n = argv.get("n", 2)
+    N = 2*n
+
+    G0 = Algebraic
+
+    Cliff = Algebraic.Sp(2*N, p)
+    FN = Cliff.invariant_form
+    UN = Cliff.get_zip_uturn()
+    #print("Cliff(%d)"%(2*N), len(Cliff))
+
+    Cliff1 = Algebraic.Sp(2, p)
+    U1 = Cliff1.get_zip_uturn()
+    print("Cliff1", len(Cliff1))
+
+    Cliff_n = Algebraic.Sp(2*n, p)
+    Fn = Cliff_n.invariant_form
+    Un = Cliff_n.get_zip_uturn()
+    print("Cliff_n", len(Cliff_n))
+
+    #from qumba.symplectic import Symplectic
+    #space = Symplectic(4)
+    #op = sp
+    
+    print(FN)
+
+#    morphisms = set()
+#    I = Cliff_n.I
+#    for g in Cliff_n:
+#        #print(g)
+#        assert g.t*Fn*g == Fn
+#
+#        if 0:
+#            g = Un.t*g*Un # unzip
+#            g = g<<I
+#            g = UN*g*UN.t # zip
+#            assert g.t*FN*g == FN
+#            #print(g)
+#            g = g[:, :N].t
+#            assert Cliff.is_isotropic(g)
+#            g = g.normal_form()
+#            morphisms.add(g)
+#    
+#        g = Un.t*g*Un # unzip
+#        Ip = (p-1)*I
+#        #print(Ip)
+#        gp = (p-1)*g
+#        A = numpy.concatenate((gp.A, I.A), axis=1)
+#        g = Matrix(A, p)
+#        #print(g)
+#        g = g*UN.t # zip
+#        print(g*FN*g.t)
+#        assert Cliff.is_isotropic(g)
+#        g = g.normal_form()
+#        assert g not in morphisms
+#        morphisms.add(g)
+#
+#    print("morphisms:", len(morphisms))
+#
+#    return
+
+
+    count = 0
+    mats = []
+    for H in Cliff.qchoose(N):
+        assert H == H.normal_form()
+        #print(H)
+        count += 1
+        mats.append(H)
+    print("mats:", count)
+
+    I = Cliff1.I
+    print(I)
+
+    gen = []
+    for a in Cliff1.gen:
+        for i in range(N):
+            ops = [I]*N
+            ops[i] = a
+            op = reduce(lshift, ops)
+            op = UN*op*UN.t
+            #assert op in Cliff
+            gen.append(op)
+
+    LCliff = mulclose(gen)
+    print("LCliff:", len(LCliff))
+
+
+    orbits = []
+    remain = set(mats) 
+    #remain = set(morphisms)
+    while remain:
+        H = remain.pop()
+        orbit = {(H*g.t).normal_form() for g in LCliff}
+        remain.difference_update(orbit)
+        print(len(orbit), end=' ', flush=True)
+    print()
+    
 
 
 
