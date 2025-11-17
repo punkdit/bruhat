@@ -22,12 +22,15 @@ from math import prod
 
 import numpy
 
+from bruhat.argv import argv
 scalar = numpy.int64
-#scalar = numpy.int8 # CAREFUL !! only works for p < 11
+if argv.int8:
+    scalar = numpy.int8 # CAREFUL !! only works for p < 11
+
+print("bruhat.algebraic.scalar =", scalar)
 
 from bruhat.action import mulclose, mulclose_hom
 from bruhat.spec import isprime
-from bruhat.argv import argv
 from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse, intersect
 from bruhat.solve import zeros2, identity2, solve
 from bruhat.dev import geometry
@@ -3568,12 +3571,12 @@ def test_sp():
     if p < 5 and n <= 4:
 
         count = 0
-        mats = []
+        orbit = []
         for H in Cliff.qchoose(n):
             assert H == H.normal_form()
             #print(H)
             count += 1
-            mats.append(H)
+            orbit.append(H)
 
     #elif p == 5 and n==4:
     else:
@@ -3595,24 +3598,23 @@ def test_sp():
             bdy = _bdy
             print("[%d:%d]"%(len(orbit),len(bdy)), end='', flush=True)
         print()
-        mats = list(orbit)
 
 #    else:
-#        mats = set()
+#        orbit = set()
 #        for H0 in Cliff.qchoose(n):
 #            assert H0 == H0.normal_form()
 #            break
-#        mats.add(H0)
-#        while len(mats) < 1000:
+#        orbit.add(H0)
+#        while len(orbit) < 1000:
 #            H = H0
 #            assert Cliff.is_isotropic(H)
-#            for _ in range(2+len(mats)):
+#            for _ in range(2+len(orbit)):
 #                g = choice(Cliff.gen)
 #                assert g.t*F*g == F
 #                H = H*g
 #                assert Cliff.is_isotropic(H), g
 #            H = H.normal_form()
-#            mats.add(H)
+#            orbit.add(H)
 
 
     I = Cliff1.I
@@ -3630,11 +3632,11 @@ def test_sp():
     limit = argv.get("limit", None)
     verbose = argv.verbose
 
-    print("total:", len(mats))
+    print("total:", len(orbit))
 
     orbits = []
-    remain = set(mats) 
-    #remain = set(morphisms)
+    remain = set(orbit) 
+    del orbit
     while remain:
         if verbose:
             print("\t(%d)" % len(remain), end="")
@@ -3652,6 +3654,8 @@ def test_sp():
                         continue
                     _bdy.append(J)
                     orbit.add(J)
+                    if J in remain:
+                        remain.remove(J)
             bdy = _bdy
             if verbose:
                 print("[%d:%d]"%(len(orbit),len(bdy)), end='', flush=True)
@@ -3662,7 +3666,7 @@ def test_sp():
             if verbose:
                 print()
             print("orbit:", len(orbit))
-        remain.difference_update(orbit)
+        #remain.difference_update(orbit)
     print()
     
 
