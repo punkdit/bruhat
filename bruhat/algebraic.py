@@ -3556,83 +3556,30 @@ def test_sp():
 
     p = argv.get("p", 2)
     n = argv.get("n", 2)
-    N = 2*n
 
-    G0 = Algebraic
-
-    CliffN = Cliff = Algebraic.Sp(2*N, p)
-    FN = Cliff.invariant_form
-    UN = Cliff.get_zip_uturn()
-    #print("Cliff(%d)"%(2*N), len(Cliff))
+    Cliff = Cliff = Algebraic.Sp(2*n, p)
+    F = Cliff.invariant_form
+    U = Cliff.get_zip_uturn()
 
     Cliff1 = Algebraic.Sp(2, p)
     U1 = Cliff1.get_zip_uturn()
     print("Cliff1", len(Cliff1))
 
-    Cliff_n = Algebraic.Sp(2*n, p)
-    Fn = Cliff_n.invariant_form
-    Un = Cliff_n.get_zip_uturn()
-    print("Cliff_n", len(Cliff_n))
-
-    #from qumba.symplectic import Symplectic
-    #space = Symplectic(4)
-    #op = sp
-    
-    print(FN)
-
-#    morphisms = set()
-#    I = Cliff_n.I
-#    for g in Cliff_n:
-#        #print(g)
-#        assert g.t*Fn*g == Fn
-#
-#        if 0:
-#            g = Un.t*g*Un # unzip
-#            g = g<<I
-#            g = UN*g*UN.t # zip
-#            assert g.t*FN*g == FN
-#            #print(g)
-#            g = g[:, :N].t
-#            assert Cliff.is_isotropic(g)
-#            g = g.normal_form()
-#            morphisms.add(g)
-#    
-#        g = Un.t*g*Un # unzip
-#        Ip = (p-1)*I
-#        #print(Ip)
-#        gp = (p-1)*g
-#        A = numpy.concatenate((gp.A, I.A), axis=1)
-#        g = Matrix(A, p)
-#        #print(g)
-#        g = g*UN.t # zip
-#        print(g*FN*g.t)
-#        assert Cliff.is_isotropic(g)
-#        g = g.normal_form()
-#        assert g not in morphisms
-#        morphisms.add(g)
-#
-#    print("morphisms:", len(morphisms))
-#
-#    return
-
-    if p < 5:
+    if p <= 5:
 
         count = 0
         mats = []
-        for H in Cliff.qchoose(N):
+        for H in Cliff.qchoose(n):
             assert H == H.normal_form()
             #print(H)
             count += 1
             mats.append(H)
-            if len(mats)%128 == 0:
-                print(len(mats), end=' ', flush=True)
-            if len(mats)>128:
-                break
-        print()
+
+    #elif p == 5:
 
     else:
         mats = set()
-        for H0 in Cliff.qchoose(N):
+        for H0 in Cliff.qchoose(n):
             assert H0 == H0.normal_form()
             break
         mats.add(H0)
@@ -3641,38 +3588,36 @@ def test_sp():
             assert Cliff.is_isotropic(H)
             for _ in range(2+len(mats)):
                 g = choice(Cliff.gen)
-                assert g.t*FN*g == FN
+                assert g.t*F*g == F
                 H = H*g
                 assert Cliff.is_isotropic(H), g
             H = H.normal_form()
             mats.add(H)
 
-    print("mats:", len(mats))
 
     I = Cliff1.I
-    print(I)
-
     gen = []
     for a in Cliff1.gen:
-        for i in range(N):
-            ops = [I]*N
+        for i in range(n):
+            ops = [I]*n
             ops[i] = a
             op = reduce(lshift, ops)
-            op = UN*op*UN.t
+            op = U*op*U.t
             #assert op in Cliff
             gen.append(op)
+    print("LCliff:", len(Cliff1) ** n )
 
-    print("LCliff:", len(Cliff1) ** N )
-    #LCliff = mulclose(gen, verbose=True)
-    #print("LCliff:", len(LCliff))
+    limit = argv.get("limit", None)
+    verbose = argv.verbose
 
-    limit = argv.get("limit", 5000)
+    print("total:", len(mats))
 
     orbits = []
     remain = set(mats) 
     #remain = set(morphisms)
     while remain:
-        print("remain:", len(remain), end=" ")
+        if verbose:
+            print("\t(%d)" % len(remain), end="")
         H = remain.pop()
         assert Cliff.is_isotropic(H)
         #orbit = {(H*g.t).normal_form() for g in LCliff}
@@ -3688,15 +3633,15 @@ def test_sp():
                     _bdy.append(J)
                     orbit.add(J)
             bdy = _bdy
-            print("[%d:%d]"%(len(orbit),len(bdy)), end='', flush=True)
+            if verbose:
+                print("[%d:%d]"%(len(orbit),len(bdy)), end='', flush=True)
             if limit and len(orbit) > limit:
                 print("FAIL")
                 break
         else:
-            print()
+            if verbose:
+                print()
             print("orbit:", len(orbit))
-            print()
-            print()
         remain.difference_update(orbit)
     print()
     
