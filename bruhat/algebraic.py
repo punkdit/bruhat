@@ -3565,7 +3565,7 @@ def test_sp():
     U1 = Cliff1.get_zip_uturn()
     print("Cliff1", len(Cliff1))
 
-    if p <= 5:
+    if p <= 5 and n < 4:
 
         count = 0
         mats = []
@@ -3575,7 +3575,26 @@ def test_sp():
             count += 1
             mats.append(H)
 
-    #elif p == 5:
+    elif p == 5 and n==4:
+        orbit = set()
+        for H in Cliff.qchoose(n):
+            assert H == H.normal_form()
+            break
+        orbit.add(H)
+        bdy = list(orbit)
+        while bdy:
+            _bdy = []
+            for H in bdy:
+                for g in Cliff.gen:
+                    J = (H*g.t).normal_form()
+                    if J in orbit:
+                        continue
+                    _bdy.append(J)
+                    orbit.add(J)
+            bdy = _bdy
+            print("[%d:%d]"%(len(orbit),len(bdy)), end='', flush=True)
+        print()
+        mats = list(orbit)
 
     else:
         mats = set()
