@@ -3605,15 +3605,36 @@ def test_sp():
 #
 #    return
 
+    if p < 5:
 
-    count = 0
-    mats = []
-    for H in Cliff.qchoose(N):
-        assert H == H.normal_form()
-        #print(H)
-        count += 1
-        mats.append(H)
-    print("mats:", count)
+        count = 0
+        mats = []
+        for H in Cliff.qchoose(N):
+            assert H == H.normal_form()
+            #print(H)
+            count += 1
+            mats.append(H)
+            if len(mats)%128 == 0:
+                print(len(mats), end=' ', flush=True)
+            if len(mats)>128:
+                break
+        print()
+
+    else:
+        mats = set()
+        for H0 in Cliff.qchoose(N):
+            assert H0 == H0.normal_form()
+            break
+        mats.add(H0)
+        while len(mats) < 1000:
+            H = H0
+            for _ in range(2+len(mats)):
+                g = choice(Cliff.gen)
+                H = H*g.t
+            H = H.normal_form()
+            mats.add(H)
+
+    print("mats:", len(mats))
 
     I = Cliff1.I
     print(I)
@@ -3628,18 +3649,40 @@ def test_sp():
             #assert op in Cliff
             gen.append(op)
 
-    LCliff = mulclose(gen)
-    print("LCliff:", len(LCliff))
+    print("LCliff:", len(Cliff1) ** N )
+    #LCliff = mulclose(gen, verbose=True)
+    #print("LCliff:", len(LCliff))
 
+    limit = argv.get("limit", 5000)
 
     orbits = []
     remain = set(mats) 
     #remain = set(morphisms)
     while remain:
+        print("remain:", len(remain), end=" ")
         H = remain.pop()
-        orbit = {(H*g.t).normal_form() for g in LCliff}
+        #orbit = {(H*g.t).normal_form() for g in LCliff}
+        bdy = [H]
+        orbit = set(bdy)
+        while bdy:
+            _bdy = []
+            for H in bdy:
+                for g in gen:
+                    J = (H*g.t).normal_form()
+                    if J in orbit:
+                        continue
+                    _bdy.append(J)
+                    orbit.add(J)
+            bdy = _bdy
+            print("[%d:%d]"%(len(orbit),len(bdy)), end='', flush=True)
+            if limit and len(orbit) > limit:
+                print("FAIL")
+                break
+        else:
+            print()
+            print("orbit:", len(orbit))
+        print()
         remain.difference_update(orbit)
-        print(len(orbit), end=' ', flush=True)
     print()
     
 
