@@ -3689,7 +3689,7 @@ def sample_sp():
             assert H == H.normal_form()
             break
         assert Cliff.is_isotropic(H)
-        for _ in range(10):
+        for _ in range(argv.get("size", 10)):
             g = choice(Cliff.gen)
             #assert g.t*F*g == F
             H = H*g.t
