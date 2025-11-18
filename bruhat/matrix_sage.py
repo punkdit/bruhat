@@ -308,7 +308,7 @@ class Matrix(object):
 
     def row_reduce(self):
         M = self.M.echelon_form()
-        #print(self.M.echelon_form.__doc__)
+        print(self.M.echelon_form.__doc__)
         return Matrix(self.ring, M)
 
     def cokernel(self):

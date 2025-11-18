@@ -12,17 +12,73 @@ from math import prod
 
 import numpy
 
+from sage.all_cmdline import PolynomialRing, ZZ, factor
+from sage import all_cmdline as sage
 
 
-
+from bruhat.matrix_sage import Matrix as SMatrix
 from bruhat.algebraic import Algebraic
 from bruhat.action import mulclose
 from bruhat.argv import argv
 
+p = argv.get("p", 2)
+
+
+@cache
+def get_bits(n, arity=2):
+    bits = list(numpy.ndindex((arity,)*n))
+    assert len(bits) == arity**n
+    bits.sort(key = sum)
+    bits = tuple(bits)
+    return bits
+
+
+@cache
+def get_idxs(n):
+    idxss = []
+    for bits in get_bits(n):
+        idxs = tuple(i for (i,ii) in enumerate(bits) if ii==1)
+        idxss.append(idxs)
+    return tuple(idxss)
+
+
+
+def get_lower(H):
+    #print("get_lower")
+    #print(H.A)
+
+    ring = sage.GF(p)
+    H = SMatrix(ring, H)
+    #print(H)
+    m, nn = H.shape
+    n = nn//2
+
+    counts = []
+    for idxs in get_idxs(n):
+        A = numpy.zeros((2*len(idxs), nn))
+        I = numpy.array([[1,0],[0,1]])
+        for i,ii in enumerate(idxs):
+            A[2*i:2*i+2, 2*ii:2*ii+2] = I
+        A = SMatrix(ring, A)
+        A = A.intersect_rowspace(H)
+        A = A.to_numpy().astype(int)
+        #print(A, idxs, A.sum(1), end=' ')
+        for rank, i in enumerate(A.sum(1)):
+            if i==0:
+                break
+        else:
+            rank += 1
+        #print(rank)
+        #print(A, A.shape, A.sum(1))
+        counts.append(rank)
+        #print()
+    return counts
+
+
+
 
 def test_sp():
 
-    p = argv.get("p", 2)
     n = argv.get("n", 2)
 
     Cliff = Cliff = Algebraic.Sp(2*n, p)
@@ -130,7 +186,9 @@ def test_sp():
         else:
             if verbose:
                 print()
-            print("orbit:", len(orbit))
+            H = iter(orbit).__next__()
+            sig = get_lower(H*U)
+            print("orbit:", len(orbit), sig)
         #remain.difference_update(orbit)
     print()
     
@@ -204,7 +262,6 @@ def sample_sp():
 
 
 def test_qpoly():
-    from sage.all_cmdline import PolynomialRing, ZZ, factor
 
     R = PolynomialRing(ZZ, "q")
     q = R.gens()[0]
