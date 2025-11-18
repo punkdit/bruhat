@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 Algebraic groups: matrix groups over Z/pZ.
@@ -3669,6 +3669,118 @@ def test_sp():
         #remain.difference_update(orbit)
     print()
     
+
+
+def sample_sp():
+
+    p = argv.get("p", 2)
+    n = argv.get("n", 2)
+
+    Cliff = Cliff = Algebraic.Sp(2*n, p)
+    F = Cliff.invariant_form
+    U = Cliff.get_zip_uturn()
+
+    Cliff1 = Algebraic.Sp(2, p)
+    U1 = Cliff1.get_zip_uturn()
+    print("Cliff1", len(Cliff1))
+
+    def sample():
+        for H in Cliff.qchoose(n):
+            assert H == H.normal_form()
+            break
+        assert Cliff.is_isotropic(H)
+        for _ in range(10):
+            g = choice(Cliff.gen)
+            #assert g.t*F*g == F
+            H = H*g.t
+        H = H.normal_form()
+        assert Cliff.is_isotropic(H), g
+        return H
+
+    I = Cliff1.I
+    gen = []
+    for a in Cliff1.gen:
+        for i in range(n):
+            ops = [I]*n
+            ops[i] = a
+            op = reduce(lshift, ops)
+            op = U*op*U.t
+            #assert op in Cliff
+            gen.append(op)
+    #print("LCliff:", len(Cliff1) ** n )
+
+    limit = argv.get("limit", None)
+    verbose = argv.verbose
+
+    #while 1:
+    for _ in range(10):
+        H = sample()
+        bdy = [H]
+        orbit = set(bdy)
+        while bdy:
+            _bdy = []
+            for H in bdy:
+                for g in gen:
+                    J = (H*g.t).normal_form()
+                    if J in orbit:
+                        continue
+                    _bdy.append(J)
+                    orbit.add(J)
+            bdy = _bdy
+            if verbose:
+                print("[%d:%d]"%(len(orbit),len(bdy)), end='', flush=True)
+            if limit and len(orbit) > limit:
+                print("FAIL")
+                break
+        else:
+            if verbose:
+                print()
+            print("orbit:", len(orbit))
+
+
+def test_qpoly():
+    from sage.all_cmdline import PolynomialRing, ZZ, factor
+
+    R = PolynomialRing(ZZ, "q")
+    q = R.gens()[0]
+
+    cs = [int(i) for i in "11122222111"]
+    f = sum(j*q**i for (i,j) in enumerate(cs))
+    print("f =", f)
+    for p in [2,3,5,7]:
+        print("f(%d) = %s" % (p, f.subs(q=p)))
+    print()
+
+    v = 0
+    items = [
+        (1, (q+1)**4),
+        (6, (q+1)**3 * q * (q-1)),
+        (3, ((q-1)*(q)*(q+1))**2 ),
+        (4, (q-1)**2 * q * (q+1)**4),
+        (1, (q+1)**4 * q * (q-1)**3),
+        #(1, (q-2)*(q+1)**4 * q**3 * (q-1)**1),
+        (1, (q - 2) * (q - 1)**3 * q**3 * (q + 1)**3),
+        (3, (q+1)**4 * q**2 * (q-1)**3),
+    ]
+    for m,item in items:
+        v = v + m*item
+
+    for p in [2,3,5,7]:
+        print("p = %s"%p)
+        for m,item in items:
+            print("%10d"%item.subs(q=p), "\t%s" % factor(item))
+        print()
+
+    #print(v)
+    #print(factor(f-v))
+
+    poly = (q - 2) * (q - 1)**3 * q**3 * (q + 1)**3
+    print( poly )
+    print( poly / (q-2) )
+
+
+
+
 
 
 
