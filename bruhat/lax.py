@@ -21,7 +21,7 @@ from bruhat.algebraic import Algebraic, Matrix
 from bruhat.gset import mulclose, Perm, Group
 from bruhat.argv import argv
 from bruhat import solve as lin
-from bruhat.util import cross
+from bruhat.util import cross, choose
 
 p = argv.get("p", 2)
 
@@ -393,7 +393,9 @@ def graph_lc():
     #f.close()
 
 
-def quadratic_form():
+
+
+def quadratic_matrix(): # quadratic_form is much faster
 
     n = argv.get("n", 2)
     q = argv.get("q", 3)
@@ -452,6 +454,78 @@ def quadratic_form():
     orbits.sort(key=len)
     counts = [len(orbit) for orbit in orbits]
     print(counts, sum(counts))
+
+
+
+def quadratic_form():
+
+    n = argv.get("n", 2)
+    q = argv.get("q", 5)
+    p = n*(n+1)//2
+
+    K = sage.GF(q)
+    u, = K.gens()
+
+    if u==1:
+        elements = [K(i) for i in range(q)]
+    else:
+        elements = [K(0)] + [u**i for i in range(q-1)]
+    #print(elements, len(elements))
+
+    vs = ["x%d"%i for i in range(n)]
+    R = sage.PolynomialRing(K, vs)
+    vs = R.gens()
+
+    items = set()
+    idxs = [(i,j) for i in range(n) for j in range(i,n)]
+    assert len(idxs) == p
+    #print(idxs)
+
+    pairs = [(x,x) for x in vs]
+    for (x,y) in choose(vs, 2):
+        pairs.append( (x,y) )
+    terms = [a*b for (a,b) in pairs]
+
+    items = []
+    for idxs in numpy.ndindex((q,)*p):
+        F = sum( elements[idx]*term for (idx,term) in zip(idxs, terms) )
+        items.append(F)
+    print(len(items))
+
+    V = SMatrix(R, vs).t
+
+    G = sage.GL(n, K)
+    gens = []
+    for g in G.gens():
+        M = SMatrix(R, g)
+        MV = M*V
+        subs = {v:MV.M[i,0] for (i,v) in enumerate(vs)}
+        gens.append(subs)
+
+    orbits = []
+    remain = set(items)
+    while remain:
+        Q = remain.pop()
+        orbit = [Q]
+        bdy = [Q]
+        while bdy:
+            _bdy = []
+            for Q in bdy:
+                for replace in gens:
+                    R = Q.subs(replace)
+                    if R not in remain:
+                        continue
+                    _bdy.append(R)
+                    remain.remove(R)
+            bdy = _bdy
+            orbit += bdy
+            #print(len(orbit), len(remain))
+        orbits.append(orbit)
+
+    orbits.sort(key=len)
+    counts = [len(orbit) for orbit in orbits]
+    print(counts, sum(counts))
+
 
 
 
