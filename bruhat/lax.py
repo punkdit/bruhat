@@ -395,6 +395,57 @@ def graph_lc():
 
 
 
+def search_poly():
+
+    R = sage.PolynomialRing(sage.ZZ, 'q')
+    q = R.gens()[0]
+
+    vals = argv.vals
+    vals = tuple(2*v for v in vals)
+    print("vals =", vals)
+    qs = [3, 5, 7, 11][:len(vals)]
+
+    lookup = {}
+    for degree in range(8):
+        #print("degree", degree)
+        #items = range(-5, 6)
+        items = [-1, 0, 1]
+        for cs in cross( [items] * (1+degree) ):
+            if cs[-1] == 0:
+                continue
+            p = sum( c*q**i for (i,c) in enumerate(cs) )
+            key = tuple(p.subs(q=val) for val in qs)
+            if key == vals:
+                print(p, "=", str(sage.factor(p)).replace(" ", ""))
+                return
+            #lookup[key] = p
+            #print(key, end=" ")
+        #print()
+    
+    #if vals in lookup:
+    #    print("found:", lookup[vals])
+    #else:
+    #    print("not found")
+
+
+def interpolate():
+
+    R = sage.PolynomialRing(sage.QQ, 'q')
+    q = R.gens()[0]
+
+    vals = argv.vals
+    print("vals =", vals)
+    qs = [3, 5, 7, 11, 13][:len(vals)]
+
+    points = list(zip(qs, vals))
+    print(points)
+    p = R.lagrange_polynomial(points)
+    print(p, "=", sage.factor(p))
+
+
+
+
+
 def quadratic_matrix(): # quadratic_form is much faster
 
     n = argv.get("n", 2)
@@ -527,56 +578,75 @@ def quadratic_form():
     print(counts, sum(counts))
 
 
+def geometry():
 
+    n = argv.get("n", 2)
+    q = argv.get("q", 3)
+    p = n*(n+1)//2
 
-def search_poly():
+    K = sage.GF(q)
+    u, = K.gens()
 
-    R = sage.PolynomialRing(sage.ZZ, 'q')
-    q = R.gens()[0]
+    if u==1:
+        elements = [K(i) for i in range(q)]
+    else:
+        elements = [K(0)] + [u**i for i in range(q-1)]
+    #print(elements, len(elements))
 
-    vals = argv.vals
-    vals = tuple(2*v for v in vals)
-    print("vals =", vals)
-    qs = [3, 5, 7, 11][:len(vals)]
+    vs = ["x%d"%i for i in range(n)]
+    R = sage.PolynomialRing(K, vs)
+    vs = R.gens()
 
-    lookup = {}
-    for degree in range(8):
-        #print("degree", degree)
-        #items = range(-5, 6)
-        items = [-1, 0, 1]
-        for cs in cross( [items] * (1+degree) ):
-            if cs[-1] == 0:
-                continue
-            p = sum( c*q**i for (i,c) in enumerate(cs) )
-            key = tuple(p.subs(q=val) for val in qs)
-            if key == vals:
-                print(p, "=", str(sage.factor(p)).replace(" ", ""))
-                return
-            #lookup[key] = p
-            #print(key, end=" ")
-        #print()
-    
-    #if vals in lookup:
-    #    print("found:", lookup[vals])
-    #else:
-    #    print("not found")
+    items = set()
+    idxs = [(i,j) for i in range(n) for j in range(i,n)]
+    assert len(idxs) == p
+    #print(idxs)
 
+    pairs = [(x,x) for x in vs]
+    for (x,y) in choose(vs, 2):
+        pairs.append( (x,y) )
+    terms = [a*b for (a,b) in pairs]
 
-def interpolate():
+    items = []
+    for idxs in numpy.ndindex((q,)*p):
+        F = sum( elements[idx]*term for (idx,term) in zip(idxs, terms) )
+        items.append(F)
+    print(len(items))
 
-    R = sage.PolynomialRing(sage.QQ, 'q')
-    q = R.gens()[0]
+    nn = 2*n
+    G = sage.Sp(nn,K)
+    print(G)
+    print(len(G))
+    #print(dir(G))
+    F = G.invariant_form()
+    F = SMatrix(K, F)
 
-    vals = argv.vals
-    print("vals =", vals)
-    qs = [3, 5, 7, 11, 13][:len(vals)]
+    U = numpy.empty((nn,nn), dtype=object)
+    U[:] = K(0)
+    cols = [2*i for i in range(n)] + list(reversed([2*i+1 for i in range(n)]))
+    for i in range(nn):
+        U[i, cols[i]] = K(1)
+    U = SMatrix(K, U)
+    print(U)
 
-    points = list(zip(qs, vals))
-    print(points)
-    p = R.lagrange_polynomial(points)
-    print(p, "=", sage.factor(p))
-
-
+    B = SMatrix.identity(K, n)
+    print(B)
+    print()
+    for item in items:
+        diffs = [sage.derivative(item, v) for v in vs]
+        A = numpy.empty((n,n), dtype=object)
+        for i in range(n):
+            diff = sage.derivative(item, vs[i])
+            for j in range(n):
+                subs = {vs[k]:K(0) for k in range(n)}
+                subs[j] = K(1)
+                A[i,j] = diff.subs(subs)
+        A = SMatrix(K, A)
+        A = A.augment(B)
+        #print(A)
+        A = A*U
+        AFA = (A*F*A.t)
+        print("%20s"%item, AFA.is_zero())
 
 
 if __name__ == "__main__":
