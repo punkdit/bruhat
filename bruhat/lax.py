@@ -611,27 +611,27 @@ def geometry():
     for idxs in numpy.ndindex((q,)*p):
         F = sum( elements[idx]*term for (idx,term) in zip(idxs, terms) )
         items.append(F)
-    print(len(items))
+    assert len(items) == q**p
+    print("%d^%d = %d"%(q,p,q**p))
 
     nn = 2*n
     G = sage.Sp(nn,K)
-    print(G)
-    print(len(G))
+    #print(G)
+    print("|Sp(%d)| ="%nn, len(G))
     #print(dir(G))
     F = G.invariant_form()
     F = SMatrix(K, F)
 
+    # convert block order to u-turn order
     U = numpy.empty((nn,nn), dtype=object)
     U[:] = K(0)
-    cols = [2*i for i in range(n)] + list(reversed([2*i+1 for i in range(n)]))
+    cols = [i for i in range(n)] + list(reversed([n+i for i in range(n)]))
     for i in range(nn):
         U[i, cols[i]] = K(1)
     U = SMatrix(K, U)
-    print(U)
 
     B = SMatrix.identity(K, n)
-    print(B)
-    print()
+    found = set()
     for item in items:
         diffs = [sage.derivative(item, v) for v in vs]
         A = numpy.empty((n,n), dtype=object)
@@ -642,11 +642,17 @@ def geometry():
                 subs[j] = K(1)
                 A[i,j] = diff.subs(subs)
         A = SMatrix(K, A)
-        A = A.augment(B)
+        found.add(A)
+        #print(item, A*B.t == B*A.t )
+        assert A*B.t == B*A.t
+        A = B.augment(A)
+        assert A == A.row_reduce()
         #print(A)
-        A = A*U
+        A = A*U # convert block order to u-turn order
         AFA = (A*F*A.t)
-        print("%20s"%item, AFA.is_zero())
+        assert AFA.is_zero()
+
+    print(len(items), len(found))
 
 
 if __name__ == "__main__":
