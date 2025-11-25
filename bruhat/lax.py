@@ -190,7 +190,7 @@ def test_sp():
                 print()
             H = iter(orbit).__next__()
             sig = get_lower(H*U)
-            print("orbit:", len(orbit), sig)
+            print("orbit:", len(orbit), sig, flush=True)
         #remain.difference_update(orbit)
     print()
     
@@ -238,7 +238,8 @@ def sample_sp():
     verbose = argv.verbose
 
     #while 1:
-    for _ in range(10):
+    found = set()
+    for _ in range(argv.get("trials", 10)):
         H = sample()
         bdy = [H]
         orbit = set(bdy)
@@ -260,7 +261,13 @@ def sample_sp():
         else:
             if verbose:
                 print()
-            print("orbit:", len(orbit))
+            c = len(orbit)
+            if c in found:
+                print("/", end='', flush=True)
+            else:
+                print("\n(%d)" % c, end=' ', flush=True)
+                found.add(c)
+    print()
 
 
 def test_qpoly():
@@ -435,13 +442,45 @@ def interpolate():
 
     vals = argv.vals
     print("vals =", vals)
-    qs = [3, 5, 7, 11, 13][:len(vals)]
+
+    qs = argv.qs or [3, 5, 7, 11, 13]
+    qs = qs[:len(vals)]
 
     points = list(zip(qs, vals))
     print(points)
     p = R.lagrange_polynomial(points)
     print(p, "=", sage.factor(p))
 
+
+def find_poly():
+
+    vals = argv.vals
+    print("vals =", vals)
+
+    qs = [2,3,5,7,11,13][:len(vals)]
+
+    exps = range(5)
+    for i in exps:
+     for j in exps:
+      for k in exps:
+        items = tuple(((q-1)**i) * (q**j) * ((q+1)**k) for q in qs)
+        assert len(items) == len(vals)
+        if items == vals:
+            print(i,j,k)
+
+def tripartite():
+    q = argv.get("q", 2)
+    val = argv.get("val", 168)
+    
+    exps = range(6)
+    for i in exps:
+     for j in exps:
+      for k in exps:
+        if i>j or j>k:
+            continue
+        v = ((q-1)**j) * (q**i) * ((q+1)**k)
+        if v==val:
+            print((i,j,k), v)
 
 
 
