@@ -79,9 +79,10 @@ def get_lower(H):
 
 
 
-def test_sp():
+def sp_orbits():
 
     n = argv.get("n", 2)
+    m = argv.get("m", n)
 
     Cliff = Cliff = Algebraic.Sp(2*n, p)
     F = Cliff.invariant_form
@@ -95,7 +96,7 @@ def test_sp():
 
         count = 0
         orbit = []
-        for H in Cliff.qchoose(n):
+        for H in Cliff.qchoose(m):
             assert H == H.normal_form()
             #print(H)
             count += 1
@@ -104,7 +105,7 @@ def test_sp():
     #elif p == 5 and n==4:
     else:
         orbit = set()
-        for H in Cliff.qchoose(n):
+        for H in Cliff.qchoose(m):
             assert H == H.normal_form()
             break
         orbit.add(H)
@@ -196,6 +197,7 @@ def test_sp():
     print()
     print("total orbits =", count)
     
+test_sp = sp_orbits
 
 
 def sample_sp():
