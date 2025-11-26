@@ -157,9 +157,9 @@ def test_sp():
 
     print("total:", len(orbit))
 
-    orbits = []
     remain = set(orbit) 
     del orbit
+    count = 0
     while remain:
         if verbose:
             print("\t(%d)" % len(remain), end="")
@@ -191,8 +191,10 @@ def test_sp():
             H = iter(orbit).__next__()
             sig = get_lower(H*U)
             print("orbit:", len(orbit), sig, flush=True)
+            count += 1
         #remain.difference_update(orbit)
     print()
+    print("total orbits =", count)
     
 
 
@@ -471,8 +473,13 @@ def find_poly():
 def tripartite():
     q = argv.get("q", 2)
     val = argv.get("val", 168)
+    exp = argv.get("exp")
     
     p = lambda q : ((q-1)**j) * (q**i) * ((q+1)**k)
+    if exp is not None:
+        i,j,k = exp
+        print(exp, p(q))
+        return
     exps = range(15)
     for i in exps:
      for j in exps:
