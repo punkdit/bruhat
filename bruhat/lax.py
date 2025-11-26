@@ -472,15 +472,15 @@ def tripartite():
     q = argv.get("q", 2)
     val = argv.get("val", 168)
     
-    exps = range(6)
+    p = lambda q : ((q-1)**j) * (q**i) * ((q+1)**k)
+    exps = range(15)
     for i in exps:
      for j in exps:
       for k in exps:
-        if i>j or j>k:
-            continue
-        v = ((q-1)**j) * (q**i) * ((q+1)**k)
-        if v==val:
-            print((i,j,k), v)
+        #if i>j or j>k:
+        #    continue
+        if p(q)==val:
+            print((i,j,k), p(q), p(2))
 
 
 
