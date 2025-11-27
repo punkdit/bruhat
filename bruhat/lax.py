@@ -25,6 +25,10 @@ from bruhat.util import cross, choose
 
 p = argv.get("p", 2)
 
+if p>=11:
+    import bruhat
+    assert bruhat.algebraic.scalar is not numpy.int8
+
 
 @cache
 def get_bits(n, arity=2):
@@ -200,6 +204,20 @@ def sp_orbits():
 test_sp = sp_orbits
 
 
+def action(elements, items):
+    items = list(items)
+    items.sort(key=str)
+    lookup = {item:i for (i,item) in enumerate(items)}
+    perms = []
+    for g in elements:
+        perm = Perm([lookup[g*item] for item in items])
+        perms.append(perm)
+    G = Group(perms)
+    return G
+        
+
+
+
 def sp_stab():
 
     n = argv.get("n", 2)
@@ -219,6 +237,7 @@ def sp_stab():
         orbit = []
         for H in Cliff.qchoose(m):
             #assert H == H.normal_form()
+            assert Cliff.is_isotropic(H)
             #print(H)
             count += 1
             orbit.append(H)
@@ -236,6 +255,7 @@ def sp_stab():
             for H in bdy:
                 for g in Cliff.gen:
                     J = (H*g.t).normal_form()
+                    #assert Cliff.is_isotropic(J)
                     if J in orbit:
                         continue
                     _bdy.append(J)
@@ -246,14 +266,20 @@ def sp_stab():
 
     I = Cliff1.I
     gen = []
-    for a in Cliff1.gen:
-        for i in range(n):
+    factors = []
+    for i in range(n):
+        fgen = []
+        for a in Cliff1.gen: # uturn order
             ops = [I]*n
             ops[i] = a
-            op = reduce(lshift, ops)
-            op = U*op*U.t
+            op = reduce(lshift, ops) # this is zip order
+            op = U*op*U.t # convert to uturn order
             #assert op in Cliff
             gen.append(op)
+            fgen.append(op)
+        factor = mulclose(fgen)
+        assert len(factor) == (p-1)*p*(p+1) # SL(2,F_p)
+        factors.append(factor)
     print("LC:", len(Cliff1) ** n )
 
     N = len(Cliff1) ** n
@@ -262,21 +288,140 @@ def sp_stab():
 
     print("LC:", N)
 
-    print(len(orbit))
+    print("orbit:", len(orbit))
     found = set()
-    for H in orbit:
+    remain = set(orbit)
+    count = 0
+    while remain:
+        H = remain.pop()
+
         stab = []
         for g in LC:
             J = (H*g.t).normal_form()
+            #assert Cliff.is_isotropic(J)
+            if H==J:
+                stab.append(g)
+            if J in remain:
+                remain.remove(J)
+
+        G = cayley(stab)
+        s = G.structure_description().replace(" ", "")
+        key = "%s:%d"%(s,N//len(stab))
+
+        ss = []
+        for factor in factors:
+            stab = []
+            for g in factor:
+                J = (H*g.t).normal_form()
+                #assert Cliff.is_isotropic(J)
+                if H==J:
+                    stab.append(g)
+            G = cayley(stab)
+            s = G.structure_description().replace(" ", "")
+            ss.append(s)
+        key = key + "   " + "x".join(ss)
+
+        #if key in found:
+        #    continue
+        print(key)
+        found.add(key)
+        count += 1
+
+    print()
+    print("orbits:", count)
+        
+
+def sample_sp_stab():
+
+    n = argv.get("n", 2)
+    m = argv.get("m", n)
+
+    Cliff = Cliff = Algebraic.Sp(2*n, p)
+    F = Cliff.invariant_form
+    U = Cliff.get_zip_uturn()
+
+    Cliff1 = Algebraic.Sp(2, p)
+    U1 = Cliff1.get_zip_uturn()
+    print("Cliff1", len(Cliff1))
+
+    I = Cliff1.I
+    gen = []
+    factors = []
+    for i in range(n):
+        fgen = []
+        for a in Cliff1.gen: # uturn order
+            ops = [I]*n
+            ops[i] = a
+            op = reduce(lshift, ops) # this is zip order
+            op = U*op*U.t # convert to uturn order
+            #assert op in Cliff
+            gen.append(op)
+            fgen.append(op)
+        factor = mulclose(fgen)
+        assert len(factor) == (p-1)*p*(p+1) # SL(2,F_p)
+        factor = list(factor)
+        factor.sort(key=str)
+        factors.append(factor)
+    print("LC:", len(Cliff1) ** n )
+    print([len(f) for f in factors])
+    K = len(factors[0])
+
+    N = len(Cliff1) ** n
+    #LC = mulclose(gen, verbose=True)
+
+    LC = []
+    for idxs in numpy.ndindex((K,)*n):
+        g = reduce(mul, [factor[i] for (i,factor) in zip(idxs,factors)])
+        LC.append(g)
+    assert len(LC) == N
+    print("LC:", N)
+
+    def sample():
+        for H in Cliff.qchoose(m):
+            assert H == H.normal_form()
+            break
+        assert Cliff.is_isotropic(H)
+        for _ in range(argv.get("size", 100)):
+            g = choice(Cliff.gen)
+            #assert g.t*F*g == F
+            H = H*g.t
+        H = H.normal_form()
+        assert Cliff.is_isotropic(H), g
+        return H
+
+    found = set()
+    for _ in range(100):
+        H = sample()
+        stab = []
+        #for idxs in numpy.ndindex((K,)*n):
+        #    g = reduce(mul, [factor[i] for (i,factor) in zip(idxs,factors)])
+        for g in LC:
+            J = (H*g.t).normal_form()
+            #assert Cliff.is_isotropic(J)
             if H==J:
                 stab.append(g)
         G = cayley(stab)
         s = G.structure_description().replace(" ", "")
         key = "%s:%d"%(s,N//len(stab))
-        if key not in found:
-            print(key)
-            found.add(key)
-        #print(end=' ', flush=True)
+        if key in found:
+            print(".", flush=True, end="")
+            continue
+        print("\n"+key)
+        found.add(key)
+
+        ss = []
+        for factor in factors:
+            stab = []
+            for g in factor:
+                J = (H*g.t).normal_form()
+                #assert Cliff.is_isotropic(J)
+                if H==J:
+                    stab.append(g)
+            G = cayley(stab)
+            s = G.structure_description().replace(" ", "")
+            ss.append(s)
+        print("   ", "x".join(ss))
+
 
     print()
         

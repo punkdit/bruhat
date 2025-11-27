@@ -21,6 +21,7 @@ see also: relation.py
 from functools import reduce, cache
 from operator import add, mul
 from string import ascii_letters
+from random import shuffle
 
 import numpy
 from numpy import all as alltrue
@@ -387,28 +388,39 @@ class Group(object):
         n = len(perms)
         if n==1:
             return []
-        for count in range(1,n):
+        perms = list(perms)
+        shuffle(perms)
+        perms.remove(self.identity)
+        K = max(1, min(6, n-1))
+        trial = 0
+        for count in range(K, n):
           for gens in choose(perms, count):
             G = mulclose(gens)
             if len(G) == n:
                 self.gens = list(gens)
                 return self.gens
+            trial += 1
+            if trial > 1000:
+                print("bruhat.gset.get_gens: failed with %d gens, index =%d "%(count,len(self) // len(G)))
+        assert 0, len(perms)
 
-    def gapstr(self):
+    def gapstr(self, force=False):
         gens = self.gens
         perms = self.perms
         if perms is not None and len(gens) == len(perms):
             gens = self.get_gens()
-        assert (perms is None or len(gens) < len(perms) or len(gens) < 10), "um.."
+            assert (perms is None or len(gens) < len(perms) or len(gens) < 10), "um.."
         s = [perm.gapstr() for perm in gens]
         s = "Group(%s)"%(', '.join(s) or "()")
         return s
 
-    def structure_description(self):
+    def structure_description(self, *arg, **kw):
         from bruhat.gap import Gap
         gap = Gap()
-        s = self.gapstr()
+        s = self.gapstr(*arg, **kw)
         s = "StructureDescription(%s);"%s
+        #print("got %d gens"%len(self.gens), self.gens)
+        #print(repr(s))
         gap.send(s)
         desc = eval(gap.expect())
         return desc
