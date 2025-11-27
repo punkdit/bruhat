@@ -1115,6 +1115,26 @@ class Group(object):
         return len(counts)
 
 
+def cayley(elements):
+    "build the regular permutation representation"
+    elements = list(elements)
+    lookup = {}
+    for idx, e in enumerate(elements):
+        lookup[e] = idx
+    perms = []
+    for e in elements:
+        perm = []
+        for f in elements:
+            g = e*f
+            k = lookup[g]
+            perm.append(k)
+        perm = Perm(perm)
+        perms.append(perm)
+    G = Group(perms)
+    return G
+
+
+
 
 
 class GSet(object):

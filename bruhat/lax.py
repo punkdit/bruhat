@@ -18,7 +18,7 @@ from sage import all_cmdline as sage
 
 from bruhat.matrix_sage import Matrix as SMatrix
 from bruhat.algebraic import Algebraic, Matrix
-from bruhat.gset import mulclose, Perm, Group
+from bruhat.gset import mulclose, Perm, Group, cayley
 from bruhat.argv import argv
 from bruhat import solve as lin
 from bruhat.util import cross, choose
@@ -198,6 +198,83 @@ def sp_orbits():
     print("total orbits =", count)
     
 test_sp = sp_orbits
+
+
+def sp_stab():
+
+    n = argv.get("n", 2)
+    m = argv.get("m", n)
+
+    Cliff = Cliff = Algebraic.Sp(2*n, p)
+    F = Cliff.invariant_form
+    U = Cliff.get_zip_uturn()
+
+    Cliff1 = Algebraic.Sp(2, p)
+    U1 = Cliff1.get_zip_uturn()
+    print("Cliff1", len(Cliff1))
+
+    if p < 5 and n <= 4:
+
+        count = 0
+        orbit = []
+        for H in Cliff.qchoose(m):
+            assert H == H.normal_form()
+            #print(H)
+            count += 1
+            orbit.append(H)
+
+    #elif p == 5 and n==4:
+    else:
+        orbit = set()
+        for H in Cliff.qchoose(m):
+            assert H == H.normal_form()
+            break
+        orbit.add(H)
+        bdy = list(orbit)
+        while bdy:
+            _bdy = []
+            for H in bdy:
+                for g in Cliff.gen:
+                    J = (H*g.t).normal_form()
+                    if J in orbit:
+                        continue
+                    _bdy.append(J)
+                    orbit.add(J)
+            bdy = _bdy
+            print("[%d:%d]"%(len(orbit),len(bdy)), end='', flush=True)
+        print()
+
+    I = Cliff1.I
+    gen = []
+    for a in Cliff1.gen:
+        for i in range(n):
+            ops = [I]*n
+            ops[i] = a
+            op = reduce(lshift, ops)
+            op = U*op*U.t
+            #assert op in Cliff
+            gen.append(op)
+    print("LC:", len(Cliff1) ** n )
+
+    N = len(Cliff1) ** n
+    LC = mulclose(gen, verbose=True)
+    assert len(LC) == N
+
+    print("LC:", N)
+
+    print(len(orbit))
+    for H in orbit:
+        stab = []
+        for g in LC:
+            J = (H*g.t).normal_form()
+            if H==J:
+                stab.append(g)
+        G = cayley(stab)
+        s = G.structure_description().replace(" ", "")
+        print("%s:%d"%(s,N//len(stab)), end=' ', flush=True)
+
+    print()
+        
 
 
 def sample_sp():
