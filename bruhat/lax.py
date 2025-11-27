@@ -213,12 +213,12 @@ def sp_stab():
     U1 = Cliff1.get_zip_uturn()
     print("Cliff1", len(Cliff1))
 
-    if p < 5 and n <= 4:
+    if p < 3 and n <= 4:
 
         count = 0
         orbit = []
         for H in Cliff.qchoose(m):
-            assert H == H.normal_form()
+            #assert H == H.normal_form()
             #print(H)
             count += 1
             orbit.append(H)
@@ -263,6 +263,7 @@ def sp_stab():
     print("LC:", N)
 
     print(len(orbit))
+    found = set()
     for H in orbit:
         stab = []
         for g in LC:
@@ -271,7 +272,11 @@ def sp_stab():
                 stab.append(g)
         G = cayley(stab)
         s = G.structure_description().replace(" ", "")
-        print("%s:%d"%(s,N//len(stab)), end=' ', flush=True)
+        key = "%s:%d"%(s,N//len(stab))
+        if key not in found:
+            print(key)
+            found.add(key)
+        #print(end=' ', flush=True)
 
     print()
         
