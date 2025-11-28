@@ -386,6 +386,20 @@ def test_M24():
     print(tom)
 
 
+def test_sp():
+    tom = load_tom(gapstr="Sp(4,2)")
+    #print(tom)
+
+    LC = "S"
+    for a in "HI":
+        P = tom[a]
+        for b in "JKL":
+            LC = tom[b]
+            d = P*LC
+            print(a, b, "=", tom.get_desc(d))
+            
+
+
 def main():
 
     name = argv.get("name", "S6")

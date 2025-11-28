@@ -1044,7 +1044,7 @@ def test_sp():
     from bruhat.algebraic import Algebraic, Matrix
     from bruhat.gset import cayley, Group, GSet
 
-    n = 3
+    n = 2
     q = 2
     nn = 2*n
 
@@ -1100,6 +1100,12 @@ def test_sp():
         if jso.normal_form() == iso:
             parabolic.append(g)
     print(len(parabolic), N//len(parabolic))
+
+    H = set(parabolic)
+    for h in H:
+      for j in H:
+        assert j*h in H
+    print("yes", len(H))
 
     #G = cayley(G)
     #print(G)
