@@ -390,19 +390,21 @@ class Group(object):
             return []
         perms = list(perms)
         shuffle(perms)
-        perms.remove(self.identity)
-        K = max(1, min(6, n-1))
-        trial = 0
-        for count in range(K, n):
-          for gens in choose(perms, count):
+        gens = []
+        G = {self.identity}
+        while 1:
+            while perms:
+                g = perms.pop()
+                if g not in G:
+                    break
+            else:
+                assert 0
+            gens.append(g)
             G = mulclose(gens)
-            if len(G) == n:
-                self.gens = list(gens)
-                return self.gens
-            trial += 1
-            if trial > 1000:
-                print("bruhat.gset.get_gens: failed with %d gens, index =%d "%(count,len(self) // len(G)))
-        assert 0, len(perms)
+            if len(G) == len(self):
+                break
+        self.gens = gens
+        return gens
 
     def gapstr(self, force=False):
         gens = self.gens
@@ -422,7 +424,18 @@ class Group(object):
         #print("got %d gens"%len(self.gens), self.gens)
         #print(repr(s))
         gap.send(s)
-        desc = eval(gap.expect())
+        data = gap.expect()
+        if data.startswith(">"):
+            data = data[1:]
+        try:
+            desc = eval(data)
+        except:
+            print("sent:")
+            print(repr(s))
+            print("got:")
+            print(repr(data))
+            raise
+
         return desc
 
     #@classmethod
