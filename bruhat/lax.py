@@ -306,7 +306,7 @@ def sp_stab():
 
         G = cayley(stab)
         s = G.structure_description().replace(" ", "")
-        key = "%s:%d"%(s,N//len(stab))
+        key = "%5s %s"%(N//len(stab), s)
 
         ss = []
         for factor in factors:

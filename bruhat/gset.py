@@ -424,9 +424,10 @@ class Group(object):
         #print("got %d gens"%len(self.gens), self.gens)
         #print(repr(s))
         gap.send(s)
-        data = gap.expect()
-        if data.startswith(">"):
-            data = data[1:]
+        data = gap.expect().strip()
+        while data.startswith(">"):
+            data = data[1:].strip()
+
         try:
             desc = eval(data)
         except:
