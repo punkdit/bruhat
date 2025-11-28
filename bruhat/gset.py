@@ -584,10 +584,14 @@ class Group(object):
     def from_action(cls, G, X):
         lookup = dict((v, idx) for (idx, v) in enumerate(X))
         perms = []
+        hom = {}
         for g in G:
             perm = [lookup[g*v] for v in X]
-            perms.append(Perm(perm))
+            perm = Perm(perm)
+            perms.append(perm)
+            hom[g] = perm
         G = Group(perms)
+        G.hom = hom
         return G
 
     @classmethod
@@ -1147,6 +1151,7 @@ def cayley(elements):
     lookup = {}
     for idx, e in enumerate(elements):
         lookup[e] = idx
+    hom = {}
     perms = []
     for e in elements:
         perm = []
@@ -1156,7 +1161,9 @@ def cayley(elements):
             perm.append(k)
         perm = Perm(perm)
         perms.append(perm)
+        hom[e] = perm
     G = Group(perms)
+    G.hom = hom
     return G
 
 

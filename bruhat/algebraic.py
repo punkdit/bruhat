@@ -242,6 +242,8 @@ class Matrix(object):
     def __init__(self, A, p=DEFAULT_P, shape=None, name="?"):
         if type(A) == list or type(A) == tuple:
             A = numpy.array(A, dtype=scalar)
+        elif isinstance(A, Matrix):
+            A = A.A
         else:
             A = A.astype(scalar) # makes a copy
         if shape is not None:
@@ -358,6 +360,10 @@ class Matrix(object):
     def __rmul__(self, r):
         A = r*self.A
         return Matrix(A, self.p)
+
+    def hadamard(self, other):
+        assert isinstance(other, Matrix)
+        return Matrix(self.A*other.A, self.p)
 
     def __getitem__(self, idx):
         A = self.A[idx]

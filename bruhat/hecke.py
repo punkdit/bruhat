@@ -1038,7 +1038,105 @@ def test_flags():
     builder.check()
     names = None
     builder.dump(names)
-        
+
+
+def test_sp():
+    from bruhat.algebraic import Algebraic, Matrix
+    from bruhat.gset import cayley, Group, GSet
+
+    n = 3
+    q = 2
+    nn = 2*n
+
+    G = Algebraic.Sp(nn, q)
+    N = len(G)
+    print("Sp =", N)
+
+    U = G.get_zip_uturn()
+    #print(U)
+
+    def get_mask(mask):
+        mask = Matrix(mask)
+        mask = U*mask*U.t
+        #print("get_mask")
+        #print(mask)
+        H = []
+        for g in G:
+            if g.hadamard(mask) == g:
+                H.append(g)
+        return H
+
+    mask = numpy.zeros((nn,nn), dtype=int)
+    for i in range(n):
+        mask[2*i:2*i+2,2*i:2*i+2] = 1
+    print(mask)
+
+    levi = get_mask(mask)
+    print(N//len(levi))
+    print()
+
+    iso = numpy.zeros((n, nn), dtype=int)
+    for i in range(n):
+        iso[i,i] = 1
+    iso = Matrix(iso)
+    print(iso)
+    assert (G.is_isotropic(iso))
+
+#    for i in range(nn):
+#        mask[i,i:] = 1
+#    #mask[:nn-2, :] = 1
+#    #mask[:, 2:] = 1
+#    print(mask)
+#
+#    parabolic = get_mask(mask) # 15 
+#    print(N//len(parabolic))
+#
+#    print(set(parabolic) == set(levi))
+
+    parabolic = []
+    assert iso.normal_form() == iso
+    for g in G:
+        jso = iso*g.t
+        if jso.normal_form() == iso:
+            parabolic.append(g)
+    print(len(parabolic), N//len(parabolic))
+
+    #G = cayley(G)
+    #print(G)
+
+    V = []
+    for bits in numpy.ndindex((2,)*nn):
+        v = numpy.array(bits)
+        v.shape = (nn,1)
+        v = Matrix(v)
+        V.append(v)
+
+    v = V[0]
+    for g in G:
+        assert g*v in V
+
+    G = Group.from_action(G, V)
+    print(G)
+
+    hom = G.hom
+    H = Group([hom[g] for g in levi])
+    J = Group([hom[g] for g in parabolic])
+
+    X = G.action_subgroup(H)
+    Y = G.action_subgroup(J)
+
+    XY = X*Y
+    orbits = XY.get_orbits()
+    print(len(orbits)) # == 2
+
+
+#    return
+#
+#    H = cayley(levi)
+#    J = cayley(parabolic)
+#
+#    #c = H.count_hecke(J)
+
 
 
 if __name__ == "__main__":
