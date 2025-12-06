@@ -17,7 +17,7 @@ from sage import all_cmdline as sage
 
 
 from bruhat.matrix_sage import Matrix as SMatrix
-from bruhat.algebraic import Algebraic, Matrix
+from bruhat.algebraic import Algebraic, Matrix, qchoose
 from bruhat.gset import mulclose, Perm, Group, cayley
 from bruhat.argv import argv
 from bruhat import solve as lin
@@ -80,6 +80,115 @@ def get_lower(H):
         #print()
     return counts
 
+
+
+def matroid_signature(H):
+    p = H.p
+    ring = sage.GF(p)
+    H = SMatrix(ring, H)
+    #print(H)
+    m, n = H.shape
+
+    counts = []
+    for idxs in get_idxs(n):
+        A = numpy.zeros((len(idxs), n))
+        for i,ii in enumerate(idxs):
+            A[i,ii] = 1
+        A = SMatrix(ring, A)
+        A = A.intersect_rowspace(H)
+        A = A.to_numpy().astype(int)
+        #print(A, idxs, A.sum(1), end=' ')
+        for rank, i in enumerate(A.sum(1)):
+            if i==0:
+                break
+        else:
+            rank += 1
+        #print(rank)
+        #print(A, A.shape, A.sum(1))
+        counts.append(rank)
+        #print()
+    sig = tuple(counts)
+    return sig
+
+
+def test_classical():
+
+    n = argv.get("n", 6)
+    m = argv.get("m", 2)
+    q = argv.get("q", 3)
+    #orbits = classical_orbits(n, m, q)
+    #print("orbits:", len(orbits))
+
+    #space = [Matrix(H,q) for H in qchoose(n, m, q)]
+    #print("space:", len(space))
+
+    #sigs = set(matroid_signature(H) for H in space)
+    sigs = set()
+    for H in qchoose(n, m, q):
+        H = Matrix(H, q)
+        sig = matroid_signature(H)
+        if sig not in sigs:
+            sigs.add(sig)
+            print("[%d]"%len(sigs), end='', flush=True)
+    print()
+    print("sigs:", len(sigs))
+
+    return
+
+    for n in range(1, 5):
+      for m in range(1, n):
+        orbits = classical_orbits(n, m, q)
+        print("%4d"%len(orbits), end=' ', flush=True)
+      print()
+
+
+def classical_orbits(n, m, q):
+    # local group
+    L = Algebraic.GL(1, q)
+    #for g in L:
+    #    print(g)
+    I = L.I
+    gen = []
+    for a in L.gen:
+        for i in range(n):
+            ops = [I]*n
+            ops[i] = a
+            op = reduce(lshift, ops)
+            #assert op in Cliff
+            gen.append(op)
+    G = mulclose(gen)
+    assert len(G) == len(L)**n
+    print("G:", len(L) ** n)
+
+    f_42 = lambda q : 1+q+2*q**2+q**3+q**4
+
+    space = [Matrix(H,q) for H in qchoose(n, m, q)]
+    #for H in space:
+    #    assert H.normal_form() == H
+
+    if n==4 and m==2:
+        assert len(space) == f_42(q)
+
+    print("space:", len(space))
+
+    orbits = []
+    while space:
+        H = space.pop()
+        orbit = [H]
+        bdy = list(orbit)
+        while bdy:
+            _bdy = []
+            for H in bdy:
+              for g in gen:
+                J = H*g.t
+                J = J.normal_form()
+                if J in space:
+                    space.remove(J)
+                    orbit.append(J)
+                    _bdy.append(J)
+            bdy = _bdy
+        orbits.append(orbit)
+    return orbits
 
 
 
