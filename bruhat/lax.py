@@ -116,6 +116,8 @@ def test_classical():
     n = argv.get("n", 6)
     m = argv.get("m", 2)
     q = argv.get("q", 3)
+    print("[%d,%d]_%d"%(n,m,q))
+
     #orbits = classical_orbits(n, m, q)
     #print("orbits:", len(orbits))
 
@@ -133,16 +135,19 @@ def test_classical():
     print()
     print("sigs:", len(sigs))
 
-    return
 
-    for n in range(1, 5):
-      for m in range(1, n):
+def test_classical_orbits():
+
+    q = argv.get("q", 3)
+
+    #for (n,m) in [(4,2), (5,2), (6,2), (6,3)]:
+    for (n,m) in [(6,2), (6,3)]:
+    #for (n,m) in [(4,2), (5,2)]:
         orbits = classical_orbits(n, m, q)
-        print("%4d"%len(orbits), end=' ', flush=True)
-      print()
 
 
 def classical_orbits(n, m, q):
+    print("[%d,%d]_%d"%(n,m,q), end=" ")
     # local group
     L = Algebraic.GL(1, q)
     #for g in L:
@@ -158,22 +163,20 @@ def classical_orbits(n, m, q):
             gen.append(op)
     G = mulclose(gen)
     assert len(G) == len(L)**n
-    print("G:", len(L) ** n)
+    #print("G:", len(L) ** n)
 
     f_42 = lambda q : 1+q+2*q**2+q**3+q**4
 
     space = [Matrix(H,q) for H in qchoose(n, m, q)]
-    #for H in space:
-    #    assert H.normal_form() == H
-
     if n==4 and m==2:
         assert len(space) == f_42(q)
 
-    print("space:", len(space))
+    #print("space:", len(space))
+    remain = set(space)
 
     orbits = []
-    while space:
-        H = space.pop()
+    while remain:
+        H = remain.pop()
         orbit = [H]
         bdy = list(orbit)
         while bdy:
@@ -182,12 +185,35 @@ def classical_orbits(n, m, q):
               for g in gen:
                 J = H*g.t
                 J = J.normal_form()
-                if J in space:
-                    space.remove(J)
+                if J in remain:
+                    remain.remove(J)
                     orbit.append(J)
                     _bdy.append(J)
             bdy = _bdy
         orbits.append(orbit)
+    counts = [len(o) for o in orbits]
+    keys = list(set(counts))
+    keys.sort()
+    print(' + '.join(["%d*%d"%(counts.count(key),key) for key in keys]), "=", sum(counts))
+
+    send = {}
+    #for H in space:
+    for orbit in orbits:
+        H = orbit[0]
+        sig = matroid_signature(H)
+        if sig not in send:
+            send[sig] = list(orbit)
+        else:
+            send[sig] += orbit
+    keys = list(send.keys())
+    keys.sort()
+    #print("\t\tsigs:", len({matroid_signature(list(orbit)[0]) for orbit in orbits}))
+    counts = [len(send[key]) for key in keys]
+    keys = list(set(counts))
+    keys.sort()
+    print("       ", ' + '.join(["%d*%d"%(counts.count(key),key) for key in keys]),
+        "=", sum(counts))
+    
     return orbits
 
 
