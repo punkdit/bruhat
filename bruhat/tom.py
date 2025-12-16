@@ -353,8 +353,35 @@ def test_M24():
     N = len(tom)
 
     tom.dump_maximal()
+    """
+    B 24   point 
+    C 276
+    E 759
+    F 1288
+    G 1771
+    H 2024
+    K 3795
+    k 40320
+    s_8 1457280
+    """
 
-    rows = tom.rows
+    if 0:
+        size = 244823040
+        rows = tom.rows
+        found = []
+        for i,row in enumerate(rows):
+            if row[-1] == size//1440:
+                name = tom.names[i]
+                found.append(name)
+                print(name)
+        print()
+        maximal = "B C E F G H K k s_8".split()
+        name = "F_2" # 1440 subgroup for [[24,8,4]] code
+        for m in maximal:
+                desc = tom.get_desc(tom[m]*tom[name])
+                if name in desc:
+                    print(m, name, desc)
+        return
 
     octad = tom.rows[4]
     desc = tom.get_desc(octad*octad)
