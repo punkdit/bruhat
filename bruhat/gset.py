@@ -380,7 +380,7 @@ class Group(object):
 
     @classmethod
     def generate(cls, gens, verbose=False):
-        return cls(None, gens)
+        return cls(None, gens, verbose=verbose)
 
     @cache
     def get_gens(self):

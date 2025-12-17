@@ -366,11 +366,8 @@ def m24_gen():
     return gen
 
 
-def main():
+def get_octads():
     gen = m24_gen()
-    #print(gen)
-    return
-
     #M24 = mulclose([g,h], verbose=True) # nah
 
     octad = Vec(infty,19,15,5,11,1,22,2)
@@ -390,6 +387,12 @@ def main():
     octads.sort()
     #for octad in octads[:10]:
         #print(octad)
+    return octads
+
+
+def main():
+    gen = m24_gen()
+    octads = get_octads()
 
     def find(*items):
         o = None
@@ -726,6 +729,82 @@ def main_maximal():
     print(len(found))
 
 
+def test_sextet():
+#    maximal = get_maximal()
+#
+#    line = """
+#    (1,4)(2,7)(3,8)(5,6)(9,13)(10,16)(11,19)(12,21)(14,20)(15,24)(17,22)(18,23), 
+#    (1,2,22,8,10,23)(3,20,14,6,24,15,18,13,9,7,19,11)(4,12,17,16)(5,21)"""
+#    gen = line.strip().split(", ")
+#    gen = [from_gapstr(s, 24) for s in gen]
+#
+#    #sextet = Group.generate(maximal["e3s6"], verbose=True)
+#    sextet = Group.generate(gen, verbose=True)
+#    print(len(sextet))
+
+    gens = []
+    for line in open("sextet.out").readlines():
+        line = line.strip()
+        line = line.replace("Group( [", "")
+        line = line.replace("] )", "")
+        line = line.replace(" ", "")
+        assert line.count("),(") == 1
+        idx = line.index("),(")
+        l, r = line[:idx+1], line[idx+2:]
+        gen = [from_gapstr(l, 24), from_gapstr(r, 24)]
+        gens.append(gen)
+
+    cols = [
+        [3,6,9,23],
+        [0,19,15,5],
+        [11,4,16,13],
+        [1,20,14,21],
+        [22,18,8,12],
+        [2,10,17,7],
+    ]
+    for c in cols:
+        c.sort()
+    cols = [tuple(c) for c in cols]
+    cols.sort()
+    print(cols)
+    #found = set()
+    def action(g):
+        dols = [[g[i] for i in c] for c in cols]
+        for d in dols:
+            d.sort()
+        dols = [tuple(d) for d in dols]
+        dols.sort()
+        return dols
+
+    sextet = None
+    for gen in gens:
+        for g in gen:
+            if action(g) != cols:
+                break
+        else:
+            print(gen)
+            assert sextet is None
+            sextet = gen
+
+    sextet = Group.generate(sextet, verbose=True)
+
+    octads = get_octads()
+    print("octads:", len(octads))
+    octad = octads[0]
+
+    bits = cols[0]
+    H = []
+    for g in sextet:
+        for i in bits:
+            if g[i] not in bits:
+                break
+            #if g[i] != i:
+            j = g[i]
+            if octad.v[i] != octad.v[j]:
+                break
+        else:
+            H.append(g)
+    print(len(H), len(sextet)//len(H))
 
     
 
