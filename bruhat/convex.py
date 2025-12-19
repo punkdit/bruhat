@@ -498,6 +498,67 @@ def get_clifford_hull(n, local=False, verbose=False):
     return space
 
 
+def test_clifford_states():
+    n = 1
+
+    local = False
+    verbose = False
+    orbit, perms, pauli, cliff_gen = get_clifford_states(n, local, verbose)
+
+    orbit = list(orbit)
+
+    M = (2**n)**2
+    zero = Matrix([0]*M)
+    verts = []
+    for rho in orbit:
+        print(rho)
+
+
+def test_coxeter():
+
+    print("test_orbit")
+    n = argv.get("n", 2)
+    local = argv.get("local", False)
+    space = get_clifford_hull(n, local=local)
+    print(space)
+    
+    assert n < 3, "too big.."
+    p = space.get_polyhedron()
+
+    print(p)
+    #print(" ".join(dir(p)))
+
+    D = 2*((2**n)**2)
+    I = identity(D)
+
+    faces = p.faces(1)
+    N = len(faces)
+    print("dim %d, N=%d" % (1, N))
+    gen = set()
+    items = []
+    for face in faces:
+        idxs = space.get_idxs(face)
+        vs = face.ambient_Vrepresentation()
+        ms = [Matrix(v._vector) for v in vs]
+        d = ms[1] - ms[0]
+        r = (d*d.t).M[0,0]
+        #print(str(d).replace(" ",""), r)
+        #if r != 1:
+        #    continue
+        #assert r == 1
+        #print(d, d*d.t)
+        P = I - (2/r)*d.t*d
+        assert P*P == I
+        gen.add(P)
+    print("gen:", len(gen))
+
+    maxsize = argv.get("maxsize", 100000)
+    G = mulclose(gen, maxsize=maxsize, verbose=True)
+
+    print("\n|G| =", len(G))
+
+
+
 def test_gap():
     n = 2
 
@@ -1633,11 +1694,12 @@ def test_orbit():
         items = []
         for face in faces:
             idxs = space.get_idxs(face)
+            #print(face.ambient_Vrepresentation())
             #idxs = set(idxs)
             idxs.sort()
             idxs = tuple(idxs)
             items.append(idxs)
-        print("6's:", len([item for item in items if len(item)==6]))
+        #print("6's:", len([item for item in items if len(item)==6]))
         lookup = {item:idx for (idx,item) in enumerate(items)}
         perms = []
         for g in space.perms:
