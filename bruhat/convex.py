@@ -552,10 +552,25 @@ def test_coxeter():
         gen.add(P)
     print("gen:", len(gen))
 
-    maxsize = argv.get("maxsize", 100000)
-    G = mulclose(gen, maxsize=maxsize, verbose=True)
+    #maxsize = argv.get("maxsize", 100000)
+    #G = mulclose(gen, maxsize=maxsize, verbose=True)
 
-    print("\n|G| =", len(G))
+    #print("\n|G| =", len(G))
+
+    found = set()
+    for a in gen:
+        for b in gen:
+            if a*b == b*a:
+                continue
+            G = mulclose([a,b], maxsize=100)
+            assert len(G) < 100, "not a coxeter group"
+            m = len(G)
+            if m not in found:
+                print("order:", m)
+                found.add(m)
+
+    return gen
+
 
 
 
