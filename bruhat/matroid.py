@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 """
+Use z3 sat solver to find all matroids (and symplectic matroids)
+on an n-element set.
 
 """
 
@@ -29,13 +31,27 @@ def le(n, a, b):
     return True
 
 
+#@cache
+#def all_sp_masks(nn): # uturn order
+#    n = nn//2
+#    masks = []
+#    for mask in numpy.ndindex((2,)*nn):
+#        for i in range(n):
+#            if mask[i] and mask[nn-i-1]:
+#                #print("\tskip", mask)
+#                break
+#        else:
+#            masks.append(mask)
+#    return masks
+
+
 @cache
-def all_sp_masks(nn): # uturn order
+def all_sp_masks(nn): # zip order
     n = nn//2
     masks = []
     for mask in numpy.ndindex((2,)*nn):
         for i in range(n):
-            if mask[i] and mask[nn-i-1]:
+            if mask[2*i] and mask[2*i+1]:
                 #print("\tskip", mask)
                 break
         else:
@@ -86,28 +102,6 @@ class Matroid:
         #M.check()
         return M
     
-    
-    @classmethod
-    def from_sp(cls, H, q): # uturn order
-        m, nn = H.shape
-        assert nn%2 == 0
-        n = nn//2
-    
-        masks = []
-        for mask in all_sp_masks(nn):
-            #print("\t", mask)
-            idxs = [i for i in range(nn) if mask[i]]
-            #H1 = H[:, idxs].transpose()
-            H1 = H[:, idxs].t
-            #H1 = row_reduce_p(H1, q, True)
-            H1 = H1.row_reduce()
-            if len(H1) == len(idxs):
-            #if cls(H1,q).t.rank() == len(idxs):
-                masks.append(mask)
-        #print(masks)
-        M = cls(nn, masks)
-        #M.check()
-        return M
     
     #def mul(self, a, b):
     #    return tuple(ai
@@ -209,6 +203,49 @@ class SpMatroid(Matroid):
 
     def get_dual(self):
         assert 0, "SpMatroid"
+    
+    def check(self):
+        # check the symplectic matroid axioms
+        Matroid.check(self)
+        nn = self.n
+        items = self.items
+
+        masks = set(all_sp_masks(nn))
+        for mask in items:
+            assert mask in masks, mask
+
+        # TODO: add symplectic exchange condition:
+        r"""
+        A subset-closed family I of admissible subsets of {0,...,nn-1} is
+        the collection of independent sets of a symplectic matroid
+        if and only if it has the following property:
+            If X and Y are members of I such that |X| < |Y|, then either
+            1. there exists y in Y-X such that XU{y} in I, or
+            2. X U Y is inadmissible, and there exists x not in XUY such that both
+                X U {x} in I and (X-Y*) U {x*} in I.
+        """
+
+    @classmethod
+    def from_sp(cls, H, q): # zip-order
+        m, nn = H.shape
+        assert nn%2 == 0
+        n = nn//2
+    
+        masks = []
+        for mask in all_sp_masks(nn):
+            #print("\t", mask)
+            idxs = [i for i in range(nn) if mask[i]]
+            #H1 = H[:, idxs].transpose()
+            H1 = H[:, idxs].t
+            #H1 = row_reduce_p(H1, q, True)
+            H1 = H1.row_reduce()
+            if len(H1) == len(idxs):
+            #if cls(H1,q).t.rank() == len(idxs):
+                masks.append(mask)
+        #print(masks)
+        M = cls(nn, masks)
+        #M.check()
+        return M
 
 
 
@@ -564,7 +601,7 @@ def test_repr():
     print(count, len(found))
 
     
-def test_repr_sp(nn=4, m=2, q=2):
+def test_repr_sp(nn=6, m=3, q=3):
     "representable (linear) symplectic matroids"
 
     q = argv.get("q", q)
@@ -584,15 +621,18 @@ def test_repr_sp(nn=4, m=2, q=2):
         perm.append(i)
         perm.append(nn-i-1)
     perm = Perm(perm)
-    print(perm)
+    #print(perm)
 
     count = 0
     found = set()
     #for H in qchoose(n, m, q):
     for H in G.qchoose(m): # qchoose is bottleneck here...
-        M = Matroid.from_sp(H, q)
+        A = H.A[:, perm.perm]
+        H = Matrix(A, q)
+        M = SpMatroid.from_sp(H, q)
+        M.check()
         #print(H, M)
-        M = perm*M # convert uturn to zip-order
+        #M = perm*M # convert uturn to zip-order
         found.add(M)
         if M in remain:
             remain.remove(M)
