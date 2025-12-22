@@ -83,6 +83,12 @@ items = list(choose_rev(range(4), 3))
 assert items == [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)]
 
 
+def binomial(m,n):
+    top = factorial(m)
+    bot = factorial(n) * factorial(m-n)
+    assert top%bot == 0
+    return top // bot
+
 
 
 def allperms(items):

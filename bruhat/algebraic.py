@@ -426,6 +426,10 @@ class Matrix(object):
         A = solve(self.A, other.A)
         return Matrix(A, self.p)
 
+    def row_reduce(self, truncate=True):
+        A = row_reduce_p(self.A, self.p, truncate=truncate)
+        return Matrix(A, self.p)
+
     def get_pivots(M):
         A = M.A
         m, n = A.shape

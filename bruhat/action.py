@@ -116,6 +116,36 @@ def mulclose_hom(gen1, gen2, verbose=False, maxsize=None):
     return hom 
 
 
+def get_orbits(gen, found, verbose=False):
+    remain = set(found)
+    orbits = []
+    while remain:
+        c = remain.pop()
+        orbit = [c]
+        bdy = list(orbit)
+        while bdy:
+            _bdy = []
+            for g in gen:
+                for c in bdy:
+                    d = g*c
+                    if d in remain:
+                        orbit.append(d)
+                        remain.remove(d)
+                        _bdy.append(d)
+            bdy = _bdy
+        orbits.append(orbit)
+        if verbose:
+            print("[%d]"%len(orbit), end='', flush=True)
+    if verbose:
+        print()
+    counts = [len(o) for o in orbits]
+    #print(counts, sum(counts))
+    assert sum(counts) == len(found)
+    return orbits
+
+
+
+
 def identity(items):
     return dict((i, i) for i in items)
 

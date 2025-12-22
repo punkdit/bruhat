@@ -14,6 +14,10 @@ import numpy
 
 from z3 import Bool, And, Or, Xor, Not, Implies, Sum, If, Solver
 
+from bruhat.action import get_orbits
+from bruhat.gset import Group, Perm
+from bruhat.algebraic import qchoose, Matrix, row_reduce_p, Algebraic
+from bruhat.util import all_subsets
 from bruhat.argv import argv
 
 
@@ -23,6 +27,20 @@ def le(n, a, b):
         if a[i]>b[i]:
             return False
     return True
+
+
+@cache
+def all_sp_masks(nn): # uturn order
+    n = nn//2
+    masks = []
+    for mask in numpy.ndindex((2,)*nn):
+        for i in range(n):
+            if mask[i] and mask[nn-i-1]:
+                #print("\tskip", mask)
+                break
+        else:
+            masks.append(mask)
+    return masks
 
 
 
@@ -46,9 +64,51 @@ class Matroid:
                 if le(n, mask, b):
                     masks.append(mask)
                     break
-        M = Matroid(n, masks)
+        M = cls(n, masks)
         return M
 
+    @classmethod
+    def from_lin(cls, H, q):
+        m, n = H.shape
+    
+        masks = []
+        #for idxs in all_subsets(n):
+        for mask in numpy.ndindex((2,)*n):
+            idxs = [i for i in range(n) if mask[i]]
+            #H1 = H[:, idxs].transpose()
+            H1 = H[:, idxs].t
+            #H1 = row_reduce_p(H1, q, True)
+            H1 = H1.row_reduce()
+            if len(H1) == len(idxs):
+            #if Matrix(H1,q).t.rank() == len(idxs):
+                masks.append(mask)
+        M = cls(n, masks)
+        #M.check()
+        return M
+    
+    
+    @classmethod
+    def from_sp(cls, H, q): # uturn order
+        m, nn = H.shape
+        assert nn%2 == 0
+        n = nn//2
+    
+        masks = []
+        for mask in all_sp_masks(nn):
+            #print("\t", mask)
+            idxs = [i for i in range(nn) if mask[i]]
+            #H1 = H[:, idxs].transpose()
+            H1 = H[:, idxs].t
+            #H1 = row_reduce_p(H1, q, True)
+            H1 = H1.row_reduce()
+            if len(H1) == len(idxs):
+            #if cls(H1,q).t.rank() == len(idxs):
+                masks.append(mask)
+        #print(masks)
+        M = cls(nn, masks)
+        #M.check()
+        return M
+    
     #def mul(self, a, b):
     #    return tuple(ai
 
@@ -65,7 +125,7 @@ class Matroid:
         n = self.n
         for b in self.get_basis():
             basis.append(tuple(1-i for i in b))
-        M = Matroid.from_basis(n, basis)
+        M = self.__class__.from_basis(n, basis)
         return M
 
     def le(self, mask, nask):
@@ -74,7 +134,7 @@ class Matroid:
     def restrict(self, mask):
         assert len(mask) == self.n
         masks = {m for m in self.masks if self.le(m, mask)}
-        return Matroid(self.n, masks)
+        return self.__class__(self.n, masks)
 
     def all_masks(self):
         return list(numpy.ndindex((2,)*self.n))
@@ -85,14 +145,14 @@ class Matroid:
         return func
 
     def __str__(self):
-        masks = [{i for (i,ii) in enumerate(mask) if ii} for mask in self.masks]
-        return "Matroid(%d, %s)"%(self.n, masks)
+        masks = [{i for (i,ii) in enumerate(mask) if ii} for mask in self.get_basis()]
+        return "%s(%d, %s)"%(self.__class__.__name__, self.n, masks)
     __repr__ = __str__
 
     def __rmul__(self, g):
         #print("__rmul__")
         masks = [tuple(m[g[i]] for i in range(self.n)) for m in self.masks]
-        return Matroid(self.n, masks)
+        return self.__class__(self.n, masks)
 
     def check(self):
         # check the Matroid axioms
@@ -130,6 +190,27 @@ class Matroid:
     def __le__(self, other):
         assert self.n == other.n
         return self.items.issubset(other.items)
+
+
+class SpMatroid(Matroid):
+    def all_masks(self):
+        # all admissable sets as bitvectors on 2*n elements
+        nn = self.n
+        assert nn%2 == 0
+        n = nn//2
+        masks = []
+        for vec in numpy.ndindex((3,)*n):
+            mask = [0]*nn
+            for i in range(n):
+                mask[2*i:2*i+2] = [[0,0], [0,1], [1,0]][vec[i]]
+            mask = tuple(mask)
+            masks.append(mask)
+        return masks
+
+    def get_dual(self):
+        assert 0, "SpMatroid"
+
+
 
 
 def all_matroids(n):
@@ -208,11 +289,29 @@ def all_matroids(n):
     #print("all_matroids(%d) = %d" % (n, count))
 
 
+def coxeter_bc(n):
+    # We use ziporder: (2*i,2*i+1) are the symplectic pairs
+    nn = 2*n
+    gen = []
+    for i in range(n):
+        perm = list(range(nn))
+        perm[2*i:2*i+2] = 2*i+1, 2*i # coin flip
+        gen.append(Perm(perm))
+    if n > 1:
+        perm = [(i+2)%nn for i in range(nn)] # rotate
+        gen.append(Perm(perm))
+    if n > 2:
+        perm = [2,3,0,1] + list(range(4, nn))
+        gen.append(Perm(perm))
+
+    return gen
+
+
 def all_sp_matroids(n, rank=None):
+    # We use ziporder: (2*i,2*i+1) are the symplectic pairs
     # See: Theorem 3.8.1 in [Borovik,Gelfand,White]
 
     nn = 2*n
-    # We use ziporder: (2*i,2*i+1) are the symplectic pairs
 
     # all admissable sets as bitvectors on 2*n elements
     bits = []
@@ -330,7 +429,7 @@ def all_sp_matroids(n, rank=None):
         for (k,v) in sol.items():
             if v:
                 found.append(k)
-        M = Matroid(nn, found)
+        M = SpMatroid(nn, found)
         M.check()
         assert M not in matroids
         matroids.add(M)
@@ -350,7 +449,6 @@ def all_sp_matroids(n, rank=None):
 
 def all_orbits(n):
 
-    from bruhat.gset import Group, Perm
 
     G = Group.symmetric(n)
 
@@ -385,6 +483,19 @@ def test_lag():
 
 
 def test_sp():
+
+    for n in range(4):
+      gen = coxeter_bc(n)
+      print("n=%d:"%n, end=' ', flush=True)
+      for rank in range(0, n+1):
+        count = 0
+        items = list(all_sp_matroids(n, rank))
+        orbits = get_orbits(gen, items)
+        print(len(orbits), end=' ', flush=True)
+      print()
+
+    
+def test_sp_labelled():
 
     for n in range(4):
       print("n=%d:"%n, end=' ', flush=True)
@@ -430,6 +541,75 @@ def test_matroids():
     #assert len(list(all_matroids(6))) == 3807
     #assert len(list(all_matroids(7))) == 75164
 
+    
+
+def test_repr():
+    "representable (linear) matroids"
+
+    q = argv.get("q", 2)
+
+    n = argv.get("n", 3)
+    m = argv.get("m", 2)
+
+    #G = Algebraic.GL(n, p=q)
+
+    count = 0
+    found = set()
+    for H in qchoose(n, m, q):
+        H = Matrix(H, q) # <--- XXX Expensive constructor
+        M = Matroid.from_lin(H, q)
+        #print(H, M)
+        found.add(M)
+        count += 1
+    print(count, len(found))
+
+    
+def test_repr_sp(nn=4, m=2, q=2):
+    "representable (linear) symplectic matroids"
+
+    q = argv.get("q", q)
+
+    nn = argv.get("nn", nn)
+    assert nn%2 == 0
+    n = nn//2
+    m = argv.get("m", m)
+
+    remain = set( all_sp_matroids(n, m) )
+    print("remain:", len(remain))
+
+    G = Algebraic.Sp(nn, p=q)
+
+    perm = []
+    for i in range(n):
+        perm.append(i)
+        perm.append(nn-i-1)
+    perm = Perm(perm)
+    print(perm)
+
+    count = 0
+    found = set()
+    #for H in qchoose(n, m, q):
+    for H in G.qchoose(m): # qchoose is bottleneck here...
+        M = Matroid.from_sp(H, q)
+        #print(H, M)
+        M = perm*M # convert uturn to zip-order
+        found.add(M)
+        if M in remain:
+            remain.remove(M)
+        count += 1
+    print(count, len(found))
+
+    print("remain:")
+    for M in remain:
+        print(M)
+    print(len(remain))
+    #print("found:")
+    #for M in found:
+    #    print(M)
+    #print(len(found))
+
+    return remain
+    
     
 
 
