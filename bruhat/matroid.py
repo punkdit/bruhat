@@ -14,12 +14,12 @@ from operator import add
 
 import numpy
 
-from z3 import Bool, And, Or, Xor, Not, Implies, Sum, If, Solver
+from z3 import Int, Bool, And, Or, Xor, Not, Implies, Sum, If, Solver
 
 from bruhat.action import get_orbits
 from bruhat.gset import Group, Perm
 from bruhat.algebraic import qchoose, Matrix, row_reduce_p, Algebraic
-from bruhat.util import all_subsets
+from bruhat.util import all_subsets, determinant, choose, cross
 from bruhat.argv import argv
 
 
@@ -74,6 +74,14 @@ class Matroid:
 
     @classmethod
     def from_basis(cls, n, basis):
+        if len(basis) and type(iter(basis).__next__()) is set:
+            bs = []
+            for idxs in basis:
+                idxs = list(idxs)
+                mask = numpy.array([0]*n)
+                mask[idxs] = 1
+                bs.append(mask)
+            basis = bs
         masks = []
         for mask in numpy.ndindex((2,)*n):
             for b in basis:
@@ -501,6 +509,97 @@ def all_orbits(n):
     return orbits
 
 
+def find_lin(M, q=2):
+    solver = Solver()
+    Add = solver.add
+
+    n = M.n
+    m = M.rank
+
+    ijs = [(i,j) for i in range(m) for j in range(n)]
+
+    A = numpy.empty((m,n), dtype=object)
+    for (i,j) in ijs:
+        name = "a%d%d"%(i,j)
+        if q==2 and 0:
+            v = Bool(name)
+        else:
+            v = Int(name)
+            Add(0<=v)
+            Add(v<q)
+        A[i,j] = v
+    
+    #print(A)
+
+    basis = M.get_basis()
+    assert len(basis), "um.."
+    basis = list(basis)
+    basis.sort(reverse=True)
+    u = basis[0]
+    pivots = [i for i in range(n) if u[i]]
+    #print("pivots", pivots)
+    for (row,col) in enumerate(pivots):
+        for i in range(m):
+            Add(A[i,col] == int(i==row))
+        for j in range(col):
+            Add(A[row,j] == 0)
+
+    basis = set(basis)
+
+    for idxs in choose(list(range(n)), m):
+        assert len(idxs) == m
+        mask = tuple(int(i in idxs) for i in range(n))
+        #print(idxs, mask, mask in basis)
+        B = A[:, idxs]
+        #print(B)
+        lhs = determinant(B)
+        if mask in basis:
+            Add(lhs%q != 0)
+            #print(lhs%q != 0)
+        else:
+            Add(lhs%q == 0)
+            #print(lhs%q == 0)
+
+
+
+    #print("solver.check:")
+    while 1:
+        result = solver.check()
+        if str(result) != "sat":
+            break
+
+        model = solver.model()
+        #print(str(result), model)
+    
+        #vx = model.get_interp(x)
+        #print("x =", vx)
+        #print(model.num_consts())
+        #print(dir(model))
+
+        term = []
+        H = numpy.empty((m,n), dtype=int)
+        for (i,j) in ijs:
+            a = model.get_interp(A[i,j])
+            if a is None:
+                assert 0
+                break
+            assert a is not None, A[i,j]
+            #print(a, type(a))
+            a = eval(str(a))
+            H[i,j] = a
+            term.append(A[i,j] != a)
+        
+        else:
+            H = Matrix(H,q)
+            yield H 
+
+            M1 = Matroid.from_lin(H, q)
+            assert M==M1
+    
+            Add(Or(*term))
+
+    
+
 def show_sp():
     for rank in [2]:
         print("rank:", rank)
@@ -591,14 +690,18 @@ def test_repr():
     #G = Algebraic.GL(n, p=q)
 
     count = 0
-    found = set()
+    found = {}
     for H in qchoose(n, m, q):
         H = Matrix(H, q) # <--- XXX Expensive constructor
         M = Matroid.from_lin(H, q)
         #print(H, M)
-        found.add(M)
+        if M not in found:
+            found[M] = []
+        found[M].append(H)
         count += 1
     print(count, len(found))
+    for M in found:
+        print(len(found[M]), M)
 
     
 def test_repr_sp(nn=6, m=3, q=3):
@@ -651,6 +754,204 @@ def test_repr_sp(nn=6, m=3, q=3):
     return remain
     
     
+def fano():
+    # https://ocw.mit.edu/courses/18-997-topics-in-combinatorial-optimization-spring-2004/6faef8afbcaec34e49dd0dab12611e0f_co_lec10.pdf
+    """
+    The Fano matroid is the matroid with ground set 
+    S = {A, B, C, D, E, F, G} whose bases are all subsets of S of size 3 
+    except 
+    {A, D, B}, {B, E, C}, {A, F, C}, {A, G, E}, {D, G, C}, {B, G, F }, and {D, E, F }
+    """
+
+    A,B,C,D,E,F,G = "ABCDEFG"
+    exclude = [{A, D, B}, {B, E, C}, {A, F, C}, {A, G, E}, {D, G, C}, {B, G, F }, {D, E, F }]
+
+    basis = []
+    for items in choose(list("ABCDEFG"), 3):
+        #print(items)
+        items = set(items)
+        if items in exclude:
+            continue
+        items = set("ABCDEFG".index(c) for c in items)
+        basis.append(items)
+    #print(basis)
+    M = Matroid.from_basis(7, basis)
+    return M
+
+
+def test_fano():
+    M = fano()
+    M.check()
+
+    q = argv.get("q", 3)
+    count = 0
+    found = set()
+    for H in find_lin(M, q):
+        H = H.normal_form()
+        if H not in found:
+            print(H)
+            found.add(H)
+    print("found:", len(found))
+
+
+def test_find_lin():
+
+    #M = Matroid.from_basis(4, [{2, 3}, {1, 3}, {1, 2}, {0, 3}, {0, 2}, {0, 1}])
+    #M = Matroid.from_basis(4, [{2, 3}, {1, 2}, {0, 3}, {0, 1}])
+    #M = Matroid.from_basis(4, [{2, 3}, {1, 3}, {1, 2}, {0, 3}, {0, 2}])
+    #print(M)
+
+    q = argv.get("q", 3)
+    n = argv.get("n", 4)
+    m = argv.get("m", 2)
+
+    total = 0
+    for M in all_matroids(n):
+        if M.rank != m:
+            continue
+        print(M)
+        count = 0
+        found = set()
+        for H in find_lin(M, q):
+            H = H.normal_form()
+            if H not in found:
+                print(H)
+                found.add(H)
+        print("found:", len(found))
+        total += len(found)
+    print("total:", total)
+
+    return
+
+
+def matroid_variety():
+
+    from bruhat.element import Q
+    from bruhat.poly import Poly
+    from bruhat.frobenius_galois import GF
+
+    #M = Matroid.from_basis(4, [{2, 3}, {1, 2}, {0, 3}, {0, 1}])
+
+    M = fano()
+    n = M.n
+    m = M.rank
+    print(M)
+
+    q = argv.get("q", 4)
+    ring = GF(q)
+    elements = ring.elements
+    for u in elements:
+        print(u)
+    #return
+
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+    x = Poly("x", ring)
+
+    A = numpy.empty((m,n), dtype=object)
+    for i in range(m):
+      for j in range(n):
+        if j<m:
+            A[i,j] = int(i==j)
+        else:
+            A[i,j] = Poly("a%d%d"%(i,j), ring)
+
+    print(A)
+
+    basis = M.get_basis()
+    basis = set(basis)
+
+    eqs = []
+    inv = [] 
+    for idxs in choose(list(range(n)), m):
+        assert len(idxs) == m
+        mask = tuple(int(i in idxs) for i in range(n))
+        #print(idxs, mask, mask in basis)
+        B = A[:, idxs]
+        #print(B)
+        lhs = determinant(B)
+        if type(lhs) is int:
+            continue
+        if mask in basis:
+            print(lhs, "invert")
+            inv.append(lhs)
+        else:
+            print(lhs, "=0")
+            eqs.append(lhs)
+
+
+    names = set()
+    sols = []
+    for eq in eqs:
+        vs = eq.get_vars()
+        names.update(vs)
+        print(vs)
+        k = len(vs)
+
+        #if k>4:
+        #    continue
+
+        sol = []
+        for vals in cross([elements]*k):
+            send = tuple(zip(vs, vals))
+            poly = eq.substitute(send)
+            if poly!=0:
+                continue
+            for poly in inv:
+                #print("inv:", poly)
+                r = poly.substitute(send)
+                if r==0: # not invertible
+                    break
+            else:
+                send = dict(send)
+                #print(' '.join(["%s->%s"%(k,v) for k,v in send.items()]))
+                sol.append(send)
+        print(len(sol))
+        sols.append(sol)
+
+    #return
+
+    sols.sort(key = len)
+    names = list(names)
+    names.sort()
+    print(names)
+
+    found = 0
+    for values in solve(sols):
+        #print(values)
+        H = A.copy()
+        #print("solve:")
+        for (k,v) in values.items():
+            #print("\t", k, v)
+            i = int(k[1])
+            j = int(k[2])
+            H[i,j] = str(v)
+        print(str(H).replace("'", ""))
+        found += 1
+    print("found:", found)
+
+
+def solve(sols, ns={}):
+    
+    if not sols:
+        yield ns
+        return
+
+    sol = sols[0]
+    for send in sol:
+        ms = dict(ns)
+        for (k,v) in send.items():
+            #print("\t%s = %s"%(k,v))
+            if k in ns and ns[k] != v:
+                break
+            ms[k] = v
+        else:
+            for values in solve(sols[1:], ms):
+                yield values
+    
+
+
+
 
 
 

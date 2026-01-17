@@ -14,10 +14,7 @@ import numpy
 from bruhat.argv import argv
 from bruhat.util import cross, factorial, choose, determinant
 from bruhat.theta import divisors
-if argv.fast:
-    from bruhat._element import Fraction, Q, Ring
-else:
-    from bruhat.element import Fraction, Q, Ring
+from bruhat.element import Fraction, Q, Ring
 from bruhat import series
 #from bruhat.chain import Space, Lin
 

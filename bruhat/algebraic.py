@@ -58,10 +58,12 @@ qchoose_2 = qchoose # backwards compat
 def pdiv(i, j, p=DEFAULT_P):
     " i/j mod p "
     assert j!=0
+    assert 0<=i<p, i
+    assert 0<=j<p, j
     for k in range(1, p):
         if (j*k)%p == i:
             return k
-    assert 0
+    assert 0, "%d/%d mod %d"%(i,j,p)
 
 def pinv(i, p=DEFAULT_P):
     return pdiv(1, i, p)
@@ -154,7 +156,7 @@ def normal_form_p(A, p=DEFAULT_P, truncate=True):
     "reduced row-echelon form"
     #print("normal_form")
     #print(A)
-    A = row_reduce_p(A, truncate=truncate)
+    A = row_reduce_p(A, p, truncate=truncate)
     #print(A)
     m, n = A.shape
     j = 0
