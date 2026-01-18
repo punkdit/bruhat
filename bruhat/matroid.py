@@ -20,6 +20,9 @@ from bruhat.action import get_orbits
 from bruhat.gset import Group, Perm
 from bruhat.algebraic import qchoose, Matrix, row_reduce_p, Algebraic
 from bruhat.util import all_subsets, determinant, choose, cross
+from bruhat.poly import Poly
+from bruhat import element
+from bruhat.frobenius_galois import GF
 from bruhat.argv import argv
 
 
@@ -92,35 +95,143 @@ class Matroid:
         return M
 
     @classmethod
-    def from_lin(cls, H, q):
+    def from_lin(cls, H):
         m, n = H.shape
-    
         masks = []
-        #for idxs in all_subsets(n):
         for mask in numpy.ndindex((2,)*n):
             idxs = [i for i in range(n) if mask[i]]
-            #H1 = H[:, idxs].transpose()
             H1 = H[:, idxs].t
-            #H1 = row_reduce_p(H1, q, True)
             H1 = H1.row_reduce()
             if len(H1) == len(idxs):
-            #if Matrix(H1,q).t.rank() == len(idxs):
                 masks.append(mask)
         M = cls(n, masks)
         #M.check()
         return M
+
+    @classmethod
+    def uniform(cls, n, r):
+        # A subset of the elements is independent if and only
+        # if it contains at most r elements.
+        masks = [mask for mask in numpy.ndindex((2,)*n) if sum(mask)<=r]
+        M = Matroid(n, masks)
+        M.check()
+        return M
+
+    def delete(self, i): # i not an coloop
+        assert 0<=i<self.n
+        masks = [mask for mask in self.masks if mask[i]==0]
+        masks = [mask[:i] + mask[i+1:] for mask in masks]
+        M = Matroid(self.n-1, masks)
+        M.check()
+        return M
+
+    def contract(self, i): # i not a loop
+        assert 0<=i<self.n
+        masks = [mask for mask in self.masks if mask[i]==1]
+        masks = [mask[:i] + mask[i+1:] for mask in masks]
+        M = Matroid(self.n-1, masks)
+        M.check()
+        return M
+
+    def _tutte(self, x, y):
+        if self.n == 0:
+            return 1
+        i = 0
+        if self.is_loop(i):
+            lhs = self.delete(i)
+            p = y*lhs._tutte(x, y)
+        elif self.is_coloop(i):
+            rhs = self.contract(i)
+            p = x*rhs._tutte(x, y)
+        else:
+            lhs = self.delete(i)
+            rhs = self.contract(i)
+            lhs = lhs._tutte(x, y)
+            rhs = rhs._tutte(x, y)
+            p = lhs+rhs
+        return p
+
+    @classmethod
+    def get_xy(self):
+        ring = element.Z
+        zero = Poly({}, ring)
+        one = Poly({():1}, ring)
+        x = Poly("x", ring)
+        y = Poly("y", ring)
+        return x, y
+
+    def get_tutte(self):
+        x, y = self.get_xy()
+        p = self._tutte(x, y)
+        return p
+
+    @classmethod
+    def fano(cls):
+        # https://ocw.mit.edu/courses/
+        #  18-997-topics-in-combinatorial-optimization-spring-2004/
+        #  6faef8afbcaec34e49dd0dab12611e0f_co_lec10.pdf
+        """
+        The Fano matroid is the matroid with ground set 
+        S = {A, B, C, D, E, F, G} whose bases are all subsets of S of size 3 
+        except 
+        {A, D, B}, {B, E, C}, {A, F, C}, {A, G, E}, {D, G, C}, {B, G, F }, and {D, E, F }
+        """
     
+        A,B,C,D,E,F,G = "ABCDEFG"
+        exclude = [{A, D, B}, {B, E, C}, {A, F, C}, 
+            {A, G, E}, {D, G, C}, {B, G, F }, {D, E, F }]
+        basis = []
+        for items in choose(list("ABCDEFG"), 3):
+            #print(items)
+            items = set(items)
+            if items in exclude:
+                continue
+            items = set("ABCDEFG".index(c) for c in items)
+            basis.append(items)
+        #print(basis)
+        M = Matroid.from_basis(7, basis)
+        M.check()
+        return M
+
+    
+    def __add__(self, other):
+        n = self.n + other.n
+        m0 = (0,)*self.n
+        m1 = (0,)*other.n
+        masks = []
+        for mask in self.masks:
+            masks.append(mask+m1)
+        for mask in other.masks:
+            masks.append(m0+mask)
+        M = Matroid(n, masks)
+        M.check()
+        return M
+
+    def is_loop(self, i):
+        assert 0<=i<self.n
+        for mask in self.get_basis():
+            if mask[i]:
+                return False
+        return True
+
+    def is_coloop(self, i):
+        assert 0<=i<self.n
+        for mask in self.get_basis():
+            if mask[i]==0:
+                return False
+        return True
     
     #def mul(self, a, b):
     #    return tuple(ai
 
+    @cache
     def get_basis(self):
         rank = self.rank
         items = []
         for a in self.masks:
             if sum(a)==rank:
                 items.append(a)
-        return items
+        return tuple(items)
 
     def get_dual(self):
         basis = []
@@ -593,12 +704,178 @@ def find_lin(M, q=2):
             H = Matrix(H,q)
             yield H 
 
-            M1 = Matroid.from_lin(H, q)
+            M1 = Matroid.from_lin(H)
             assert M==M1
     
             Add(Or(*term))
 
+
+# ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# testing
+
     
+def test_matroids():
+
+    M = Matroid.from_basis(3, [{0,1}])
+    M.check()
+
+    M = M+M
+    M.check()
+
+    M = Matroid.uniform(5, 2) # 5 point line
+    assert M.delete(0) == Matroid.uniform(4, 2)
+    assert M.contract(0) == Matroid.uniform(4, 1)
+
+    M = Matroid.uniform(4, 3)
+    N = M.get_dual()
+    assert N == Matroid.uniform(4, 1)
+
+    x, y = Matroid.get_xy()
+    M = Matroid.uniform(2,2)
+    assert M.is_coloop(0)
+    p = M.get_tutte()
+    assert p == x**2
+
+    M = Matroid.uniform(1,1) + Matroid.uniform(1,0)
+    M.check()
+    p = M.get_tutte()
+    assert p == x*y
+
+    M = Matroid.uniform(2,1)
+    M.check()
+    p = M.get_tutte()
+    assert p == x+y
+    
+    M = Matroid.uniform(2,0)
+    M.check()
+    p = M.get_tutte()
+    assert p == y**2
+    
+    M = Matroid.uniform(3,2)
+    M.check()
+    p = M.get_tutte()
+    assert p == x**2 + x + y
+
+    for n in range(0, 5):
+      for m in range(n,-1,-1):
+        M = Matroid.uniform(n, m)
+        p = M.get_tutte()
+        s = str(p).replace(" ", "")
+        s = s.rjust(10)
+        print(s, end=' ')
+      print()
+    
+    for M in all_matroids(4):
+        p = M.get_tutte()
+        assert p(x=1, y=1) == len(M.get_basis())
+        assert p(x=2, y=1) == len(M.masks)
+        #print( p(x=1, y=2), end=' ') # number of spanning sets (these contain a basis)
+        assert p(x=2, y=2) == 2**M.n
+        N = M.get_dual()
+        q = N.get_tutte()
+        assert p(x=y, y=x) == q
+
+    return
+
+    n = 4
+    for M in all_matroids(n):
+        N = M.from_basis(n, M.get_basis())
+        N.check()
+        #print(M, M.get_basis())
+        #print(N, N.get_basis())
+        assert M == N
+        K = M.get_dual()
+        K.check()
+    #return
+    
+    # https://oeis.org/A058669
+    for n in range(6):
+        found = {i:[] for i in range(n+1)}
+        for M in all_matroids(n):
+            #print(M, M.rank)
+            found[M.rank].append(M)
+        print(n, [len(found[i]) for i in range(n+1)])
+
+
+    # https://oeis.org/A058673
+    assert len(list(all_matroids(0))) == 1
+    assert len(list(all_matroids(1))) == 2
+    assert len(list(all_matroids(2))) == 5
+    assert len(list(all_matroids(3))) == 16
+    assert len(list(all_matroids(4))) == 68
+    assert len(list(all_matroids(5))) == 406
+    #assert len(list(all_matroids(6))) == 3807
+    #assert len(list(all_matroids(7))) == 75164
+
+
+def get_wenum(H):
+    p = H.p
+    m, n = H.shape
+    wenum = [0]*(n+1)
+    A = H.A
+    for bits in numpy.ndindex((p,)*m):
+        v = numpy.dot(bits, A)%p
+        w = numpy.count_nonzero(v)
+        wenum[w] += 1
+    return tuple(wenum)
+
+
+def interpolate(vals, qs=None):
+    from sage.all_cmdline import PolynomialRing, ZZ, factor
+    from sage import all_cmdline as sage
+
+    R = sage.PolynomialRing(sage.QQ, 'q')
+    q = R.gens()[0]
+
+    qs = qs or [2, 3, 5, 7, 11, 13]
+    qs = qs[:len(vals)]
+
+    points = list(zip(qs, vals))
+    #print(points)
+    p = R.lagrange_polynomial(points)
+    #print(p, "=", sage.factor(p))
+    #return sage.factor(p)
+    return p, sage.factor(p)
+
+
+def test_wenum():
+
+    #M = Matroid.uniform(4,2)
+
+    H = numpy.zeros((5, 6), dtype=int)
+    for i in range(5):
+        H[i,i] = 1
+        H[i,5] = 1
+    H = Matrix(H)
+    M = Matroid.from_lin(H)
+
+    M = Matroid.uniform(5,4)
+    n = M.n
+    m = M.rank
+    print(M)
+    
+    qs = [2, 3, 5, 7, 11, 13]
+    W = numpy.zeros((len(qs), n+1), dtype=int)
+    for i,q in enumerate(qs):
+        H = iter(find_lin(M, q)).__next__()
+        wenum = get_wenum(H)
+        print(wenum)
+        W[i] = wenum
+
+    #print(W)
+    for i in range(n+1):
+        vals = list(W[:, i])
+        if vals == [vals[0]]*len(qs):
+            print("i=%d:"%i, vals[0])
+            continue
+        #print(vals)
+        p0, p1 = interpolate(vals, qs)
+        print("i=%d:"%i, p0, "=", p1)
+
+    
+
 
 def show_sp():
     for rank in [2]:
@@ -645,40 +922,6 @@ def test_sp_labelled():
       print()
 
     
-def test_matroids():
-
-    n = 4
-    for M in all_matroids(n):
-        N = M.from_basis(n, M.get_basis())
-        N.check()
-        #print(M, M.get_basis())
-        #print(N, N.get_basis())
-        assert M == N
-        K = M.get_dual()
-        K.check()
-    #return
-    
-    # https://oeis.org/A058669
-    for n in range(6):
-        found = {i:[] for i in range(n+1)}
-        for M in all_matroids(n):
-            #print(M, M.rank)
-            found[M.rank].append(M)
-        print(n, [len(found[i]) for i in range(n+1)])
-
-
-    # https://oeis.org/A058673
-    assert len(list(all_matroids(0))) == 1
-    assert len(list(all_matroids(1))) == 2
-    assert len(list(all_matroids(2))) == 5
-    assert len(list(all_matroids(3))) == 16
-    assert len(list(all_matroids(4))) == 68
-    assert len(list(all_matroids(5))) == 406
-    #assert len(list(all_matroids(6))) == 3807
-    #assert len(list(all_matroids(7))) == 75164
-
-    
-
 def test_repr():
     "representable (linear) matroids"
 
@@ -693,7 +936,7 @@ def test_repr():
     found = {}
     for H in qchoose(n, m, q):
         H = Matrix(H, q) # <--- XXX Expensive constructor
-        M = Matroid.from_lin(H, q)
+        M = Matroid.from_lin(H)
         #print(H, M)
         if M not in found:
             found[M] = []
@@ -754,36 +997,11 @@ def test_repr_sp(nn=6, m=3, q=3):
     return remain
     
     
-def fano():
-    # https://ocw.mit.edu/courses/18-997-topics-in-combinatorial-optimization-spring-2004/6faef8afbcaec34e49dd0dab12611e0f_co_lec10.pdf
-    """
-    The Fano matroid is the matroid with ground set 
-    S = {A, B, C, D, E, F, G} whose bases are all subsets of S of size 3 
-    except 
-    {A, D, B}, {B, E, C}, {A, F, C}, {A, G, E}, {D, G, C}, {B, G, F }, and {D, E, F }
-    """
-
-    A,B,C,D,E,F,G = "ABCDEFG"
-    exclude = [{A, D, B}, {B, E, C}, {A, F, C}, {A, G, E}, {D, G, C}, {B, G, F }, {D, E, F }]
-
-    basis = []
-    for items in choose(list("ABCDEFG"), 3):
-        #print(items)
-        items = set(items)
-        if items in exclude:
-            continue
-        items = set("ABCDEFG".index(c) for c in items)
-        basis.append(items)
-    #print(basis)
-    M = Matroid.from_basis(7, basis)
-    return M
-
-
 def test_fano():
-    M = fano()
+    M = Matroid.fano()
     M.check()
 
-    q = argv.get("q", 3)
+    q = argv.get("q", 2)
     count = 0
     found = set()
     for H in find_lin(M, q):
@@ -826,13 +1044,9 @@ def test_find_lin():
 
 def matroid_variety():
 
-    from bruhat.element import Q
-    from bruhat.poly import Poly
-    from bruhat.frobenius_galois import GF
-
     #M = Matroid.from_basis(4, [{2, 3}, {1, 2}, {0, 3}, {0, 1}])
 
-    M = fano()
+    M = Matroid.fano()
     n = M.n
     m = M.rank
     print(M)

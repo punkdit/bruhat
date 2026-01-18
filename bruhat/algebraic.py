@@ -356,11 +356,19 @@ class Matrix(object):
         if isinstance(other, Matrix):
             A = numpy.dot(self.A, other.A)
             return Matrix(A, self.p, name=self.name+other.name)
+        elif type(other) is tuple:
+            other = numpy.array(other, dtype=scalar)
+            A = numpy.dot(self.A, other)
+            return Matrix(A, self.p)
         else:
             return NotImplemented
 
     def __rmul__(self, r):
-        A = r*self.A
+        if type(r) is tuple:
+            r = numpy.array(r, dtype=scalar)
+            A = numpy.dot(r, self.A)
+        else:
+            A = r*self.A
         return Matrix(A, self.p)
 
     def hadamard(self, other):
