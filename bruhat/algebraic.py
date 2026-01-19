@@ -289,6 +289,14 @@ class Matrix(object):
             A[i, n-1] = (p-coeffs[i]) % p
         return Matrix(A, p)
 
+    @classmethod
+    def random(cls, m, n, p=DEFAULT_P):
+        A = numpy.zeros((m, n))
+        for idx in numpy.ndindex(A.shape):
+            A[idx] = random.randint(0, p-1)
+        M = cls(A, p)
+        return M
+
     def get_bitkey(self):
         assert self.p == 2
         A = numpy.packbits(self.A)
@@ -400,6 +408,10 @@ class Matrix(object):
 
     def max(self, *arg, **kw):
         return self.A.max(*arg, **kw)
+
+    def concatenate(self, other, axis=0):
+        A = numpy.concatenate((self.A, other.A), axis)
+        return Matrix(A, self.p)
 
     def normal_form(self, cols=None):
         A = self.A

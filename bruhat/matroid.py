@@ -822,6 +822,20 @@ def get_wenum(H):
     return tuple(wenum)
 
 
+def get_poly(wenum):
+    from sage.all_cmdline import PolynomialRing, ZZ
+    from sage import all_cmdline as sage
+
+    R = sage.PolynomialRing(sage.QQ, 'x,y')
+    x,y = R.gens()
+
+    n = len(wenum) - 1
+    p = 0
+    for (i,w) in enumerate(wenum):
+        p += w * (x ** (n-i)) * (y**i)
+    return p
+
+
 def interpolate(vals, qs=None):
     from sage.all_cmdline import PolynomialRing, ZZ, factor
     from sage import all_cmdline as sage
@@ -874,7 +888,69 @@ def test_wenum():
         p0, p1 = interpolate(vals, qs)
         print("i=%d:"%i, p0, "=", p1)
 
+
+def puncture(H, j):
+    #print("puncture", j)
+    m, n = H.shape
+    idxs = [i for i in range(m) if H[i,j]]
+    assert len(idxs) == 1
+    i = idxs[0]
+    H0 = H[:, :j]
+    H1 = H[:, j+1:]
+    H = H0.concatenate(H1, 1)
+    return H
     
+
+def shorten(H, j):
+    #print("shorten", j)
+    m, n = H.shape
+    idxs = [i for i in range(m) if H[i,j]]
+    assert len(idxs) == 1
+    i = idxs[0]
+    H0 = H[:, :j]
+    H1 = H[:, j+1:]
+    H = H0.concatenate(H1, 1)
+    H0 = H[:i, :]
+    H1 = H[i+1:, :]
+    H = H0.concatenate(H1, 0)
+    return H
+    
+
+def test_pascal():
+    from sage.all_cmdline import PolynomialRing, ZZ
+    from sage import all_cmdline as sage
+
+    R = sage.PolynomialRing(sage.QQ, 'x,y')
+    x,y = R.gens()
+
+    p = argv.get("p", 3)
+    n = 10
+    m = 3
+    
+    for trial in range(10):
+        while 1:
+            H = Matrix.random(m, n, p)
+            H = H.normal_form()
+            if len(H) == m:
+                break
+
+        if H[0,0]!=1:
+            continue
+        wenum = get_wenum(H)
+        w = get_poly(wenum)
+        print(H, w)
+        H0 = puncture(H, 0)
+        w0 = get_wenum(H0)
+        w0 = get_poly(w0)
+        print(H0, w0)
+        H1 = shorten(H, 0)
+        w1 = get_wenum(H1)
+        w1 = get_poly(w1)
+        print(H1, w1)
+
+        assert (x-y)*w1 + y*w0 == w
+
+        print()
 
 
 def show_sp():
