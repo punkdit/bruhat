@@ -856,21 +856,29 @@ def interpolate(vals, qs=None):
 
 def test_wenum():
 
-    #M = Matroid.uniform(4,2)
+    qs = [2, 3, 5, 7, 11, 13]
 
-    H = numpy.zeros((5, 6), dtype=int)
-    for i in range(5):
-        H[i,i] = 1
-        H[i,5] = 1
-    H = Matrix(H)
-    M = Matroid.from_lin(H)
+    if 0:
+        M = Matroid.uniform(4,2)
+        qs.pop(0)
+    
+    elif 0:
+        H = numpy.zeros((5, 6), dtype=int)
+        for i in range(5):
+            H[i,i] = 1
+            H[i,5] = 1
+        H = Matrix(H)
+        M = Matroid.from_lin(H)
+    
+    elif 1:
+        M = Matroid.uniform(5,3)
+        qs.pop(0)
+        qs.pop(0)
 
-    M = Matroid.uniform(5,4)
     n = M.n
     m = M.rank
     print(M)
     
-    qs = [2, 3, 5, 7, 11, 13]
     W = numpy.zeros((len(qs), n+1), dtype=int)
     for i,q in enumerate(qs):
         H = iter(find_lin(M, q)).__next__()
