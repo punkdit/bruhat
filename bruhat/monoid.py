@@ -2,7 +2,7 @@
 
 import sys, os
 
-from bruhat.util import choose
+from bruhat.util import choose, cross
 from bruhat.argv import argv
 
 
@@ -67,19 +67,59 @@ class Func(object):
     def __hash__(self):
         return hash(self.__repr__())
 
+    def __lt__(self, other):
+        keys = self.src
+        lhs = [self.send[k] for k in keys]
+        rhs = [other.send[k] for k in keys]
+        return lhs < rhs
+
+    @classmethod
+    def all_funcs(cls, tgt, src=None):
+        if src is None:
+            src = tgt
+        n = len(src)
+        #tgt = tuple(tgt)
+        for items in cross([tgt]*n):
+            send = dict(zip(src, items))
+            yield cls(tgt, src, send)
+
+    @classmethod
+    def identity(cls, items):
+        return cls(items, items, dict(zip(items, items)))
+
+
 
 class Monoid(object):
-    "concrete monoid"
+    "_concrete monoid"
     def __init__(self, funcs):
-        self.funcs = list(funcs)
-        for func in funcs:
-            assert isinstance(func, Func)
+        funcs = list(funcs)
+        funcs.sort()
+        self.funcs = tuple(funcs)
+
+    def __str__(self):
+        return "Monoid(%s)"%(self.funcs,)
 
     def __len__(self):
         return len(self.funcs)
 
     def __getitem__(self, i):
         return self.funcs[i]
+
+    def __eq__(self, other):
+        return self.funcs == other.funcs
+
+    def __hash__(self):
+        return hash(self.funcs)
+
+    def check(self):
+        funcs = set(self.funcs)
+        assert funcs
+        for f in funcs:
+          for g in funcs:
+            assert f*g in funcs
+        items = f.src
+        I = Func.identity(items) 
+        assert I in funcs
 
     @classmethod
     def generate(cls, funcs, *args, **kw):
@@ -215,16 +255,149 @@ def show_table(M, gens):
 
 
 
+def all_submonoids(M):
+
+    funcs = list(M)
+    f = funcs[0]
+    items = f.src
+
+    I = Func.identity(items)
+    funcs.remove(I)
+
+    #print(len(funcs))
+
+    M = Monoid([I])
+    yield M
+    bdy = [M]
+    found = set(bdy)
+    while bdy:
+        _bdy = []
+        for M0 in bdy:
+            avoid = set(M0)
+            gen = list(M0)
+            for f in funcs:
+                if f in avoid:
+                    continue
+                M = Monoid.generate(gen+[f])
+                if M in found:
+                    continue
+                yield M
+                found.add(M)
+                _bdy.append(M)
+                #print(len(M), end=' ', flush=True)
+        bdy = _bdy
+        #print("%d:%d"%(len(found), len(bdy)))
+    #print("found:", len(found))
+
+
+
+
+def test_submonoids():
+
+    # https://oeis.org/A343140
+    # Number of submonoids of the monoid of maps from an n-element set to itself.
+
+    for n in [2,3]:
+        items = list(range(n))
+    
+        funcs = []
+        for f in Func.all_funcs(items, items):
+            funcs.append(f)
+
+        M = Monoid(funcs)
+
+        count = 0
+        for M1 in all_submonoids(M):
+            count += 1
+        assert count == [1,6,699][n-1]
+
+
+def test_endo():
+
+    # The image of M in End(M)
+    # is characterised as the functions M->M
+    # that commute with all right translations.
+
+    n = 3
+    items = list(range(n))
+
+    funcs = []
+    for f in Func.all_funcs(items, items):
+        funcs.append(f)
+
+    M1 = Monoid(funcs)
+
+    for M in all_submonoids(M1):
+        M.check()
+        if len(M) == 6:
+            print(M)
+            test_regular(M)
+
+
+def test_regular(M):
+    X = M.funcs
+
+    left = []
+    right = []
+    for m in M:
+        send = dict((i, m*i) for i in X)
+        f = Func(X, X, send)
+        left.append(f)
+        send = dict((i, i*m) for i in X)
+        f = Func(X, X, send)
+        right.append(f)
+    L = Monoid(left)
+    L.check()
+    assert len(L) == len(M)
+    R = Monoid(right)
+    R.check()
+    assert len(R) == len(M)
+
+    #print(L == R)
+
+    found = []
+    for f in Func.all_funcs(X):
+        for g in right:
+            if f*g != g*f:
+                break
+        else:
+            found.append(f)
+    #print(len(found))
+
+    M = Monoid(found)
+    M.check()
+    assert M == L
+    
+        
 
 
 
 if __name__ == "__main__":
+    from time import time
+    start_time = time()
 
-    #test_sequence()
-    #test()
-    test_cayley()
+    _seed = argv.get("seed")
+    if _seed is not None:
+        print("seed(%s)"%_seed)
+        seed(_seed)
 
-    print("OK\n")
+    profile = argv.profile
+    fn = argv.next() or "test"
+
+    print("%s()"%fn)
+
+    if profile:
+        import cProfile as profile
+        profile.run("%s()"%fn)
+
+    else:
+        fn = eval(fn)
+        fn()
+
+    print("OK: finished in %.3f seconds"%(time() - start_time))
+    print()
+
+
 
 
 
