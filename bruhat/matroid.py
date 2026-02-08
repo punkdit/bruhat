@@ -767,6 +767,7 @@ def test_matroids():
         print(s, end=' ')
       print()
     
+    print()
     for M in all_matroids(4):
         p = M.get_tutte()
         assert p(x=1, y=1) == len(M.get_basis())
@@ -810,6 +811,43 @@ def test_matroids():
     #assert len(list(all_matroids(7))) == 75164
 
 
+def test_tutte():
+    from sage.all_cmdline import PolynomialRing, ZZ
+    from sage import all_cmdline as sage
+    R = sage.PolynomialRing(ZZ, list("xyz"))
+    x,y,z = R.gens()
+
+    M = Matroid.uniform(4,3)
+    p = M.get_tutte()
+    print(M)
+    print(p)
+    cs = get_matroid_wenum(M)
+    print(cs)
+
+    s = str(p).replace("^", "**")
+    p = eval(s, locals())
+    print(p)
+
+    homfly = ((y/z)**3)*((-z/x)**5)*p(x=(-x/y), y=(-(x*y + y**2)/(z**2)))
+    print(homfly)
+
+    #return
+
+    found = set()
+    for M in all_matroids(6):
+        if M.rank!=3:
+            continue
+        p = M.get_tutte()
+        cs = get_matroid_wenum(M)
+        if str(cs) in found:
+            continue
+        found.add(str(cs))
+        print(M)
+        print(p)
+        print(cs)
+        print()
+
+
 def get_wenum(H):
     p = H.p
     m, n = H.shape
@@ -843,7 +881,6 @@ def interpolate(vals, qs=None):
     R = sage.PolynomialRing(sage.QQ, 'q')
     q = R.gens()[0]
 
-    qs = qs or [2, 3, 5, 7, 11, 13]
     qs = qs[:len(vals)]
 
     points = list(zip(qs, vals))
@@ -851,50 +888,76 @@ def interpolate(vals, qs=None):
     p = R.lagrange_polynomial(points)
     #print(p, "=", sage.factor(p))
     #return sage.factor(p)
+    assert p.degree()+1 < len(vals), "warning: matroid may be too big"
     return p, sage.factor(p)
+
+
+def get_matroid_wenum(M):
+
+    # XXX this is assuming that the q-polynomial's are
+    # independant of the prime p for q=p^l. XXX
+    # See: Weil theorems.. (?)
+
+    n = M.n
+    m = M.rank
+    
+    qs = [2, 3, 5, 7, 11, 13, 17, 19]
+    Hs = []
+    i = 0
+    while i < len(qs):
+        q = qs[i]
+        for H in find_lin(M, q):
+            Hs.append(H)
+            i += 1
+            break
+        else:
+            qs.pop(i)
+
+    W = numpy.zeros((len(qs), n+1), dtype=int)
+    for i,q in enumerate(qs):
+        H = Hs[i]
+        wenum = get_wenum(H)
+        #print(wenum)
+        W[i] = wenum
+
+    coeffs = []
+    for i in range(n+1):
+        vals = list(W[:, i])
+        if vals == [vals[0]]*len(qs):
+            #print("i=%d:"%i, vals[0])
+            coeffs.append(vals[0])
+            continue
+        #print(vals)
+        p0, p1 = interpolate(vals, qs)
+        #print("i=%d:"%i, p0, "=", p1)
+        coeffs.append(p1)
+
+    return tuple(coeffs)
+
 
 
 def test_wenum():
 
-    qs = [2, 3, 5, 7, 11, 13]
 
-    if 0:
-        M = Matroid.uniform(4,2)
-        qs.pop(0)
-    
-    elif 0:
-        H = numpy.zeros((5, 6), dtype=int)
-        for i in range(5):
-            H[i,i] = 1
-            H[i,5] = 1
-        H = Matrix(H)
-        M = Matroid.from_lin(H)
-    
-    elif 1:
-        M = Matroid.uniform(5,3)
-        qs.pop(0)
-        qs.pop(0)
-
-    n = M.n
-    m = M.rank
+    M = Matroid.uniform(4,2)
     print(M)
-    
-    W = numpy.zeros((len(qs), n+1), dtype=int)
-    for i,q in enumerate(qs):
-        H = iter(find_lin(M, q)).__next__()
-        wenum = get_wenum(H)
-        print(wenum)
-        W[i] = wenum
+    coeffs = get_matroid_wenum(M)
+    print(coeffs)
 
-    #print(W)
-    for i in range(n+1):
-        vals = list(W[:, i])
-        if vals == [vals[0]]*len(qs):
-            print("i=%d:"%i, vals[0])
-            continue
-        #print(vals)
-        p0, p1 = interpolate(vals, qs)
-        print("i=%d:"%i, p0, "=", p1)
+    H = numpy.zeros((5, 6), dtype=int)
+    for i in range(5):
+        H[i,i] = 1
+        H[i,5] = 1
+    H = Matrix(H)
+    M = Matroid.from_lin(H)
+    print(M)
+    coeffs = get_matroid_wenum(M)
+    print(coeffs)
+
+    M = Matroid.uniform(5,3)
+    print(M)
+    coeffs = get_matroid_wenum(M)
+    print(coeffs)
 
 
 def puncture(H, j):

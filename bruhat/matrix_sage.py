@@ -15,7 +15,7 @@ import numpy
 
 from sage.all_cmdline import (FiniteField, CyclotomicField, latex, block_diagonal_matrix,
     PolynomialRing)
-from sage import all_cmdline 
+from sage import all_cmdline as sage
 
 from bruhat.action import mulclose, mulclose_names, mulclose_find
 from bruhat.argv import argv
@@ -31,7 +31,7 @@ def unify(R, S):
 
 class Matrix(object):
     def __init__(self, ring, rows, name=()):
-        M = all_cmdline.Matrix(ring, rows)
+        M = sage.Matrix(ring, rows)
         M.set_immutable()
         self.M = M
         self.ring = ring
@@ -290,7 +290,7 @@ class Matrix(object):
         evs = self.M.eigenvectors_right()
         spaces = []
         for val,vecs,dim in evs:
-            vecs = all_cmdline.Matrix(self.ring, vecs)
+            vecs = sage.Matrix(self.ring, vecs)
             vecs = vecs.transpose() 
             vecs = Matrix(self.ring, vecs)
             assert vecs.shape[1] == dim
@@ -312,7 +312,7 @@ class Matrix(object):
         return Matrix(self.ring, M)
 
     def cokernel(self):
-        K = all_cmdline.kernel(self.M)
+        K = sage.kernel(self.M)
         B = K.basis()
         #print(K, type(K))
         M = Matrix(self.ring, B)
@@ -391,6 +391,20 @@ def test():
     print()
     #for g in G:
     #    print(g)
+
+
+def test_linear():
+
+    R = sage.QQ
+    M = Matrix(R, [
+        [1,1,1,1,0],
+        [1,2,3,4,0],
+    ])
+
+    K = M.kernel()
+    print(K.t)
+
+    print(M*K)
 
 
 
