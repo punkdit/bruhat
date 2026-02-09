@@ -140,8 +140,11 @@ class Perm(object):
             result = Perm(perm)
         elif isinstance(other, (int, scalar)):
             result = self.perm[other]
+        elif isinstance(other, tuple):
+            result = tuple(other[i] for i in self.perm)
         else:
             result = NotImplemented
+        #print("__mul__", self, result)
         return result
 
     def __pow__(self, n):
@@ -229,6 +232,7 @@ class Perm(object):
                 item1 = self[item1]
                 assert len(orbit) <= self.rank
             assert orbit
+            orbit = [int(i) for i in orbit]
             cycles.append(orbit)
             n = len(remain)
             for item in orbit:

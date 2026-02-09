@@ -31,6 +31,7 @@ from bruhat.dev import geometry
 from bruhat.util import cross, allperms, choose
 from bruhat.smap import SMap
 from bruhat.qcode import Geometry, get_adj
+from bruhat.gset import Perm
 
 EPSILON = 1e-8
 
@@ -128,7 +129,10 @@ class Matrix(object):
             return NotImplemented
 
     def __rmul__(self, r):
-        A = r*self.A
+        if isinstance(r, Perm):
+            A = self.A[:, r.perm]
+        else:
+            A = r*self.A
         return Matrix(A, self.p)
 
     def __getitem__(self, idx):

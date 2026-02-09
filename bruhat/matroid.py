@@ -11,6 +11,8 @@ from random import shuffle
 from math import sin, cos, pi
 from functools import cache, reduce
 from operator import add
+import string 
+letters = string.ascii_lowercase + string.ascii_uppercase
 
 import numpy
 
@@ -27,11 +29,21 @@ from bruhat.argv import argv
 
 
 
-def le(n, a, b):
+def mask_le(n, a, b):
     for i in range(n):
         if a[i]>b[i]:
             return False
     return True
+
+def mask_meet(n, a, b):
+    return tuple(min(a[i], b[i]) for i in range(n))
+
+def mask_join(n, a, b):
+    return tuple(max(a[i], b[i]) for i in range(n))
+
+@cache
+def all_masks(n):
+    return list(numpy.ndindex((2,)*n))
 
 
 #@cache
@@ -88,7 +100,7 @@ class Matroid:
         masks = []
         for mask in numpy.ndindex((2,)*n):
             for b in basis:
-                if le(n, mask, b):
+                if mask_le(n, mask, b):
                     masks.append(mask)
                     break
         M = cls(n, masks)
@@ -167,9 +179,6 @@ class Matroid:
 
     @classmethod
     def fano(cls):
-        # https://ocw.mit.edu/courses/
-        #  18-997-topics-in-combinatorial-optimization-spring-2004/
-        #  6faef8afbcaec34e49dd0dab12611e0f_co_lec10.pdf
         """
         The Fano matroid is the matroid with ground set 
         S = {A, B, C, D, E, F, G} whose bases are all subsets of S of size 3 
@@ -242,7 +251,7 @@ class Matroid:
         return M
 
     def le(self, mask, nask):
-        return le(self.n, mask, nask)
+        return mask_le(self.n, mask, nask)
 
     def restrict(self, mask):
         assert len(mask) == self.n
@@ -262,6 +271,14 @@ class Matroid:
         return "%s(%d, %s)"%(self.__class__.__name__, self.n, masks)
     __repr__ = __str__
 
+    def latex(self):
+        basis = self.get_basis()
+        masks = [[letters[i] for (i,ii) in enumerate(mask) if ii]
+            for mask in basis]
+        items = [r"\{%s\}"%(','.join(mask)) for mask in masks]
+        items.sort()
+        return r"\{%s\}"%(','.join(items))
+
     def __rmul__(self, g):
         #print("__rmul__")
         masks = [tuple(m[g[i]] for i in range(self.n)) for m in self.masks]
@@ -279,7 +296,8 @@ class Matroid:
         for a in self.all_masks():
             for b in items:
                 if self.le(a, b):
-                    assert a in items
+                    assert a in items, (
+                        "%s is independent but %s is not"%(b, a))
 
         # (3) independent set exchange 
         for a in items:
@@ -1311,6 +1329,39 @@ def solve(sols, ns={}):
                 yield values
     
 
+
+def test_rank():
+
+    #test_matroids()
+
+    n = 4
+
+    masks = all_masks(n)
+
+    count = 0
+    for M in all_matroids(n):
+        count += 1
+        rank = M.rankfunc()
+        for a in masks:
+          for b in masks:
+            ab0 = mask_meet(n, a, b)
+            ab1 = mask_join(n, a, b)
+            rhs = rank[a] + rank[b] 
+            lhs = rank[ab0] + rank[ab1]
+            assert lhs <= rhs # submodular function
+            print(rhs-lhs, end='')
+        print()
+        for a in masks:
+            for i in range(n):
+                if a[i]:
+                    continue
+                b = list(a)
+                b[i] = 1
+                b = tuple(b)
+                assert rank[a] <= rank[b] <= rank[a]+1
+
+
+    print(count)
 
 
 

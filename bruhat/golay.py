@@ -21,13 +21,14 @@ from bruhat.argv import argv
 from bruhat.solve import parse, dot2, enum2, array2, solve, zeros2, shortstr
 from bruhat.gset import Perm, Group, Coset, mulclose, GL
 from bruhat.smap import SMap
+from bruhat.matrix import Matrix
 
 from huygens import config
 config(text="pdflatex", latex_header=r"""
 \usepackage{amsmath}
 \usepackage{amssymb}
 """)
-from huygens.namespace import *
+#from huygens.namespace import * # nooo!
 
 class Set: # copied from species.py
     def __init__(self, items=[]):
@@ -364,6 +365,39 @@ def m24_gen():
     h = Perm(idxs)
     gen = [g,h]
     return gen
+
+
+def m24_orbits():
+    gen = m24_gen()
+
+    n = 24
+
+    space = []
+    for bits in numpy.ndindex((2,)*24):
+        space.append(bits)
+    print(len(space))
+
+    space = set(space)
+    orbits = []
+    while space:
+        v = space.pop()
+        orbit = [v]
+        bdy = [v]
+        while bdy:
+            _bdy = []
+            for v in bdy:
+              for g in gen:
+                u = g*v
+                if u not in space:
+                    continue
+                _bdy.append(u)
+                space.remove(u)
+            orbit += _bdy
+            bdy = _bdy
+        orbits.append(orbit)
+        print(sum(v),len(orbit), )
+
+
 
 
 def get_octads():
