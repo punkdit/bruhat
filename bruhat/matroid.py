@@ -150,6 +150,18 @@ class Matroid:
         M.check()
         return M
 
+    def trace(self, i, j):
+        assert 0<=i<self.n
+        assert 0<=j<self.n
+        assert i!=j
+        if i>j:
+            i,j = j,i
+        masks = [mask for mask in self.masks if mask[i]==mask[j]]
+        masks = [mask[:i] + mask[i+1:j] + mask[j+1:] for mask in masks]
+        M = Matroid(self.n-2, masks)
+        M.check()
+        return M
+
     def _tutte(self, x, y):
         if self.n == 0:
             return 1
@@ -209,15 +221,14 @@ class Matroid:
 
     
     def __add__(self, other):
-        assert 0, "broken"
+        #print("__add__", self, other)
         n = self.n + other.n
         m0 = (0,)*self.n
         m1 = (0,)*other.n
         masks = []
         for mask in self.masks:
-            masks.append(mask+m1)
-        for mask in other.masks:
-            masks.append(m0+mask)
+          for nask in other.masks:
+            masks.append(mask+nask)
         M = Matroid(n, masks)
         M.check()
         return M
@@ -750,8 +761,8 @@ def test_matroids():
     M = Matroid.from_basis(3, [{0,1}])
     M.check()
 
-    #M = M+M
-    #M.check()
+    M = M+M
+    M.check()
 
     M = Matroid.uniform(5, 2) # 5 point line
     assert M.delete(0) == Matroid.uniform(4, 2)
@@ -767,10 +778,10 @@ def test_matroids():
     p = M.get_tutte()
     assert p == x**2
 
-    #M = Matroid.uniform(1,1) + Matroid.uniform(1,0)
-    #M.check()
-    #p = M.get_tutte()
-    #assert p == x*y
+    M = Matroid.uniform(1,1) + Matroid.uniform(1,0)
+    M.check()
+    p = M.get_tutte()
+    assert p == x*y
 
     M = Matroid.uniform(2,1)
     M.check()
@@ -806,6 +817,24 @@ def test_matroids():
         N = M.get_dual()
         q = N.get_tutte()
         assert p(x=y, y=x) == q
+
+    glom = lambda M,N,i=0,j=0 : (M+N).trace(i, M.n+j)
+
+
+    n = 3
+    items = list(all_matroids(n))
+    lookup = {(i,j):set() for i in range(2*n+2) for j in range(2*n+2)}
+    for M in items:
+      for N in items:
+        MN = glom(M, N)
+        #print("%d*%d=%d"%(M.rank, N.rank, MN.rank), end=" ")
+        #print(M.get_tutte(), ",", N.get_tutte(), ",", MN.get_tutte())
+        lookup[M.rank, N.rank].add(MN.rank)
+
+    for i in range(n+1):
+      for j in range(n+1):
+        print("%12s"%lookup[i,j], end=' ')
+      print()
 
     return
 
