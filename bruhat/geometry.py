@@ -298,13 +298,22 @@ def dump_transverse(Hx, Lx, t=3, show_all=False):
     SX,LX,SZ,LZ = CSSLO.CSSCode(Hx, Lx)
     N = 1<<t
     zList, qList, V, K_M = CSSLO.comm_method(SX, LX, SZ, t, compact=True, debug=False)
+    print(" --> ", end='', flush=True)
     for z,q in zip(zList,qList):
         #print(z, q)
         lhs, rhs = CSSLO.CP2Str(2*q,V,N), CSSLO.z2Str(z,N)
-        if "CCZ" in lhs or "T" in lhs or show_all:
+        if show_all:
             print(lhs, "=>", rhs)
-        else:
-            print(".", end='', flush=True)
+#        if "CCZ" in lhs or "T" in lhs or show_all:
+#            print(lhs, "=>", rhs)
+#        else:
+#            print(".", end='', flush=True)
+        elif "CCZ" in lhs or "CS" in lhs or "T" in lhs:
+            print("<<3>>", end='', flush=True)
+        elif "CZ" in lhs or "S" in lhs:
+            print("2", end='', flush=True)
+        elif "Z" in lhs:
+            print("1", end='', flush=True)
     print()
     return zList
 
@@ -359,6 +368,8 @@ def main_4d(key, index):
     words = total.get_words()
     n = len(total)
     print("idx = %d, |G| = %d"%(index, n))
+    if n < 20:
+        return
 
     gens = [(i,) for i in range(N)]
     a, b, c, d, e = gens
@@ -382,7 +393,7 @@ def main_4d(key, index):
     names = letters[:k] 
     for g,name in zip(graphs, names):
         g.name = name
-        print(name, len(g), g.fig)
+        #print(name, len(g), g.fig)
     
     As = {}
     for i in range(k):
@@ -419,40 +430,23 @@ def main_4d(key, index):
 
     #from bruhat.qcode import QCode
     from qumba.csscode import CSSCode, distance_z3_css, distance_lower_bound_z3
+    from qumba.triorthogonal import is_morthogonal, strong_morthogonal
 
     items = []
     for fig in figs:
         if sum(fig)==N-1:
             items.append(fig)
 
-    #print([As[item, base] for item in items][0])
     Hx = numpy.concatenate([As[fig, base] for fig in figs if sum(fig)==N-1])
-    #print(shortstr(Hx))
-    #return
-    print(Hx.shape)
-    #print(Hx.sum(0))
-    #print(Hx.sum(1))
-
     mx, n = Hx.shape
-    Hz = numpy.concatenate([As[fig, base] for fig in figs if sum(fig)==N-2])
-    print(Hz.shape)
-    #print(Hz.sum(0))
-    #print(Hz.sum(1))
 
-    #print("bodis:", Hx.shape)
-    #print("faces:", Hz.shape)
+    zcodim = argv.get("zcodim", 2)
+
+    #Hz = numpy.concatenate([As[fig, base] for fig in figs if sum(fig)==N-3]) # too many?
+    Hz = numpy.concatenate([As[fig, base] for fig in figs if sum(fig)==N-zcodim])
+
     Hx = linear_independent(Hx)
     Hz = linear_independent(Hz)
-    #print("bodis:", Hx.shape)
-    #print("faces:", Hz.shape)
-    #code = QCode.build_css(Hx, Hz, check=True)
-
-    if 0:
-        assert Hx[:, n-1].sum() == 0
-        assert Hz[:, n-1].sum() == 0
-    
-        Hx = Hx[:, :n-1]
-        Hz = Hz[:, :n-1]
 
     C = dot2(Hx, Hz.transpose())
     if C.sum():
@@ -460,24 +454,37 @@ def main_4d(key, index):
         return
 
     code = CSSCode(Hx=Hx, Hz=Hz, check=True)
-    #print(code.longstr())
-    #print(shortstr(code.Lx))
-    #print("-"*code.n)
-    #print(shortstr(code.Lz))
-    #print()
-    #code.bz_distance()
     print(code)
-    print(code.Hx.shape)
-    print(code.Lx.shape)
 
     if code.k==0:
         return
 
-    print("dump_transverse")
+    if code.n < 50:
+        print("distance:", code.bz_distance())
 
-    dump_transverse(code.Hx, code.Lx, 3, argv.show_all)
+    xop = distance_lower_bound_z3(code.Hz, code.Lz, 2)
+    if xop is not None:
+        print("d_x = 2")
+    else:
+        print("d_x > 2")
 
-    print("done")
+    d_z = 2
+    zop = distance_lower_bound_z3(code.Hx, code.Lx, d_z)
+    if zop is not None:
+        print("d_z =", d_z)
+        return 
+    else:
+        print("d_z >", d_z)
+
+    print("is_morthogonal(2):", is_morthogonal(code.Hx, 2), strong_morthogonal(code.Hx, 2))
+    print("is_morthogonal(3):", is_morthogonal(code.Hx, 3), strong_morthogonal(code.Hx, 3))
+    print("is_morthogonal(4):", is_morthogonal(code.Hx, 4), strong_morthogonal(code.Hx, 4))
+    print("is_morthogonal(5):", is_morthogonal(code.Hx, 5), strong_morthogonal(code.Hx, 5))
+
+    if argv.dump_transverse:
+        print("dump_transverse")
+        dump_transverse(code.Hx, code.Lx, 3, argv.show_all)
+
 
 
 def test_colour():
