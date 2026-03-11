@@ -303,6 +303,8 @@ def dump_transverse(Hx, Lx, t=3, show_all=False):
         lhs, rhs = CSSLO.CP2Str(2*q,V,N), CSSLO.z2Str(z,N)
         if "CCZ" in lhs or "T" in lhs or show_all:
             print(lhs, "=>", rhs)
+        else:
+            print(".", end='', flush=True)
     print()
     return zList
 
@@ -329,7 +331,153 @@ def dump_transverse(Hx, Lx, t=3, show_all=False):
 #
     
 
+def test_4d():
+    start_idx = argv.get("start_idx", 1)
+    stop_idx = argv.get("stop_idx", None)
+    key = argv.get("key", (4,3,4))
+    index = argv.get("index", 1000)
+    if key not in lins_db.db:
+        print("lins_db.build_db...", end='', flush=True)
+        lins_db.build_db(key, index)
+        print(" done")
+    if argv.idx:
+        main_4d(key, argv.idx)
+        return
+    print("key =", key)
+    n = len(lins_db.db[key])
+    idx = start_idx
+    while idx < n and (stop_idx is None or idx < stop_idx):
+        main_4d(key, idx)
+        idx += 1
 
+
+def main_4d(key, index):
+    N = len(key)+1
+    geometry = Geometry(key, index, False)
+    total = geometry.build_graph()
+    #total = total.compress()
+    words = total.get_words()
+    n = len(total)
+    print("idx = %d, |G| = %d"%(index, n))
+
+    gens = [(i,) for i in range(N)]
+    a, b, c, d, e = gens
+
+    figs = list(numpy.ndindex((2,)*N))
+
+    graphs = []
+    for fig in figs:
+        hgens = [gens[i] for i in range(N) if fig[i]==1]
+        graph = geometry.build_graph(hgens=hgens).compress()
+        #graph.dump()
+        assert n % len(graph) == 0, len(graph)
+        graph.fig = fig
+        #if len(graph) > 1:
+        graphs.append(graph)
+
+    graphs.sort(key = len)
+    k = len(graphs)
+    letters = ascii_lowercase + ascii_lowercase.upper()
+    assert k < len(letters)
+    names = letters[:k] 
+    for g,name in zip(graphs, names):
+        g.name = name
+        print(name, len(g), g.fig)
+    
+    As = {}
+    for i in range(k):
+      g = graphs[i]
+      for j in range(k):
+        h = graphs[j]
+        A = zeros2(len(g), len(h))
+        for w in words:
+            idx = g.follow_path(0,w)
+            jdx = h.follow_path(0,w)
+            A[idx,jdx] = 1
+        key = (g.name, h.name)
+        #print("%s.%s(%d,%d)"%(g.name, h.name, A.sum(0)[0], A.sum(1)[0]), end=" ")
+        #print(g.fig, h.fig)
+        #print(shortstr(A), A.shape)
+        As[g.fig, h.fig] = A
+      #print()
+
+    base = (0,)*N
+    if argv.show_incidence:
+        for fig in figs:
+          for gig in figs:
+            B = dot2(As[fig, base], As[gig, base].transpose())
+            print(fig, gig, end=" ")
+            if B.sum() == 0: # very interesting !
+                #print(".", end="")
+                pass
+            else:
+                print("X", end="")
+            print()
+        print()
+        #return
+
+
+    #from bruhat.qcode import QCode
+    from qumba.csscode import CSSCode, distance_z3_css, distance_lower_bound_z3
+
+    items = []
+    for fig in figs:
+        if sum(fig)==N-1:
+            items.append(fig)
+
+    #print([As[item, base] for item in items][0])
+    Hx = numpy.concatenate([As[fig, base] for fig in figs if sum(fig)==N-1])
+    #print(shortstr(Hx))
+    #return
+    print(Hx.shape)
+    #print(Hx.sum(0))
+    #print(Hx.sum(1))
+
+    mx, n = Hx.shape
+    Hz = numpy.concatenate([As[fig, base] for fig in figs if sum(fig)==N-2])
+    print(Hz.shape)
+    #print(Hz.sum(0))
+    #print(Hz.sum(1))
+
+    #print("bodis:", Hx.shape)
+    #print("faces:", Hz.shape)
+    Hx = linear_independent(Hx)
+    Hz = linear_independent(Hz)
+    #print("bodis:", Hx.shape)
+    #print("faces:", Hz.shape)
+    #code = QCode.build_css(Hx, Hz, check=True)
+
+    if 0:
+        assert Hx[:, n-1].sum() == 0
+        assert Hz[:, n-1].sum() == 0
+    
+        Hx = Hx[:, :n-1]
+        Hz = Hz[:, :n-1]
+
+    C = dot2(Hx, Hz.transpose())
+    if C.sum():
+        print("NC")
+        return
+
+    code = CSSCode(Hx=Hx, Hz=Hz, check=True)
+    #print(code.longstr())
+    #print(shortstr(code.Lx))
+    #print("-"*code.n)
+    #print(shortstr(code.Lz))
+    #print()
+    #code.bz_distance()
+    print(code)
+    print(code.Hx.shape)
+    print(code.Lx.shape)
+
+    if code.k==0:
+        return
+
+    print("dump_transverse")
+
+    dump_transverse(code.Hx, code.Lx, 3, argv.show_all)
+
+    print("done")
 
 
 def test_colour():
