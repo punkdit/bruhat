@@ -334,6 +334,20 @@ class Matroid:
             else:
                 assert 0, "not independent: %s>%s"%(a, b)
 
+    def is_polymatroid(self):
+        f = self.rankfunc()
+        masks = self.all_masks()
+        n = self.n
+        for a in masks:
+          for b in masks:
+            join = mask_join(n, a, b)
+            meet = mask_meet(n, a, b)
+            lhs = f[join] + f[meet]
+            rhs = f[a] + f[b]
+            if lhs > rhs:
+                return False
+        return True
+
     def __hash__(self):
         return hash(self.key)
 
@@ -867,6 +881,43 @@ def test_matroids():
     assert len(list(all_matroids(5))) == 406
     #assert len(list(all_matroids(6))) == 3807
     #assert len(list(all_matroids(7))) == 75164
+
+
+def test_charpoly():
+    """
+    the characteristic polynomial counts things  &
+    is a specialization of the Tutte polynomial
+    """
+
+    n = 4
+    masks = all_masks(n)
+
+    #from sage import all_cmdline as sage
+    #R = sage.PolynomialRing(sage.ZZ, "q")
+    #q, = R.gens()
+
+    ring = element.Z
+    zero = Poly({}, ring)
+    one = Poly({():1}, ring)
+    q = Poly("q", ring)
+
+    for M in all_matroids(n):
+        print(M)
+        r = M.rank
+        f = M.rankfunc()
+        char = 0
+        for mask in masks:
+            assert f[mask]<=r
+            term = (-1)**sum(mask) * q**(r - f[mask])
+            #print("\t", mask, f[mask], term)
+            char += term
+        print(char, ":", char(q=-1))
+        t = M.get_tutte()
+        print(t)
+        rhs = (-1)**M.rank * (t(x=1-q, y=0))
+        assert char == rhs
+
+
 
 
 def test_tutte():
