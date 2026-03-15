@@ -69,7 +69,8 @@ class Gap:
         self.buf = ""
         self.pos = 0
         self.debug = open("gap_debug.dump", "w")
-        self.expect()
+        self.expect() # load intro to the first gap> prompt
+        #print("Gap.init(): ready")
 
     def read_nb(self, raw=False):
         proc = self.proc
