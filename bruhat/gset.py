@@ -76,7 +76,7 @@ class Cone(object):
 class Perm(object):
 
     def __init__(self, perm):
-        assert isinstance(perm, list) or isinstance(perm, numpy.ndarray)
+        assert isinstance(perm, (list, tuple, numpy.ndarray))
         perm = numpy.array(perm, dtype=scalar)
         self.perm = perm.copy()
         self.rank = len(perm)
