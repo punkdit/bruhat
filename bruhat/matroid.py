@@ -283,6 +283,19 @@ class Matroid:
         func = {mask:self.restrict(mask).rank for mask in self.all_masks()}
         return func
 
+    def closed(self):
+        f = self.rankfunc()
+        masks = list(f.keys())
+        le = self.le
+        tops = set(masks)
+        for mask in masks:
+          for nask in masks:
+            if nask==mask:
+                continue
+            if le(nask, mask) and f[nask] == f[mask] and nask in tops:
+                tops.remove(nask)
+        return tops
+
     def __str__(self):
         masks = [{i for (i,ii) in enumerate(mask) if ii} for mask in self.get_basis()]
         return "%s(%d, %s)"%(self.__class__.__name__, self.n, masks)
@@ -850,8 +863,6 @@ def test_matroids():
         print("%12s"%lookup[i,j], end=' ')
       print()
 
-    return
-
     n = 4
     for M in all_matroids(n):
         N = M.from_basis(n, M.get_basis())
@@ -881,6 +892,50 @@ def test_matroids():
     assert len(list(all_matroids(5))) == 406
     #assert len(list(all_matroids(6))) == 3807
     #assert len(list(all_matroids(7))) == 75164
+
+
+def test_lattice():
+
+    n = 3
+    matroids = list(all_matroids(n))
+    print(len(matroids))
+
+    up = {m:[] for m in matroids}
+    for L in matroids:
+      for R in matroids:
+        if L.less_equal(R):
+            up[L].append(R)
+    print([len(up[L]) for L in matroids])
+
+    N = len(matroids)
+    for i in range(N):
+      for j in range(i+1, N):
+        mi = matroids[i]
+        mj = matroids[j]
+        left = up[mi]
+        right = up[mj]
+        above = [M for M in left if M in right]
+        k = 0
+        while k < len(above):
+            l = k+1
+            while l < len(above):
+                if above[k].less_equal(above[l]):
+                    above.pop(l)
+                elif above[l].less_equal(above[k]):
+                    above.pop(k)
+                    break
+                else:
+                    l += 1
+            else:
+                k += 1
+        assert len(above)
+        if len(above)==1:
+            continue
+        print("non-unique sup:")
+        print(mi, "join", mj)
+        for u in above:
+            print("\t==", u, "?")
+        return 
 
 
 def test_charpoly():
