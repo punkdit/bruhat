@@ -901,17 +901,21 @@ def test_lattice():
     print(len(matroids))
 
     up = {m:[] for m in matroids}
+    down = {m:[] for m in matroids}
     for L in matroids:
       for R in matroids:
         if L.less_equal(R):
             up[L].append(R)
+            down[R].append(L)
     print([len(up[L]) for L in matroids])
+    print([len(down[L]) for L in matroids])
 
     N = len(matroids)
-    for i in range(N):
-      for j in range(i+1, N):
+    pairs = [(i,j) for i in range(N) for j in range(i+1, N)]
+    for (i,j) in pairs:
         mi = matroids[i]
         mj = matroids[j]
+
         left = up[mi]
         right = up[mj]
         above = [M for M in left if M in right]
@@ -932,10 +936,43 @@ def test_lattice():
         if len(above)==1:
             continue
         print("non-unique sup:")
-        print(mi, "join", mj)
+        print(mi, "sup", mj)
         for u in above:
             print("\t==", u, "?")
-        return 
+        break
+
+    # inf
+    for (i,j) in pairs:
+        mi = matroids[i]
+        mj = matroids[j]
+
+        left = down[mi]
+        right = down[mj]
+        below = [M for M in left if M in right]
+        k = 0
+        while k < len(below):
+            l = k+1
+            while l < len(below):
+                if below[l].less_equal(below[k]):
+                    below.pop(l)
+                elif below[k].less_equal(below[l]):
+                    below.pop(k)
+                    break
+                else:
+                    l += 1
+            else:
+                k += 1
+        assert len(below)
+        if len(below)==1:
+            continue
+        print("non-unique inf:")
+        print(mi, "inf", mj)
+        for u in below:
+            print("\t==", u, "?")
+        break
+
+
+
 
 
 def test_charpoly():
