@@ -1547,13 +1547,40 @@ def test_rank():
     print(count)
 
 
+def compose(M, N, idxs, jdxs):
+    left = [i for i in range(M.n) if i not in idxs]
+    right = [j for j in range(N.n) if j not in jdxs]
+    n = len(left) + len(right)
+    masks = []
+    for mask in M.masks:
+        for nask in N.masks:
+            if [mask[i] for i in idxs] == [nask[j] for j in jdxs]:
+                mask = tuple(mask[i] for i in left) + tuple(nask[j] for j in right)
+                masks.append(mask)
+    masks = set(masks)
+    M = Matroid(n, masks)
+    try:
+        M.check()
+    except AssertionError:
+        return None
+    return M
+
 
 def test_compose():
 
+    # compose only works sometimes !
 
     n = 4
     items = list(all_matroids(n))
     print(len(items))
+
+    idxs = [0,1]
+    jdxs = [0,1]
+    for a in items:
+      for b in items:
+        c = compose(a, b, idxs, jdxs)
+        print(int(c is None), end='')
+      print()
     
 
 
