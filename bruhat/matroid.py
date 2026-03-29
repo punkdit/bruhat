@@ -1548,6 +1548,14 @@ def test_rank():
 
 
 
+def test_compose():
+
+
+    n = 4
+    items = list(all_matroids(n))
+    print(len(items))
+    
+
 
 
 
