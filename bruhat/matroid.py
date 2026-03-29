@@ -137,6 +137,8 @@ class Matroid:
     def delete(self, i): # i not an coloop
         assert 0<=i<self.n
         masks = [mask for mask in self.masks if mask[i]==0]
+        if not len(masks):
+            return None
         masks = [mask[:i] + mask[i+1:] for mask in masks]
         M = Matroid(self.n-1, masks)
         M.check()
@@ -145,6 +147,8 @@ class Matroid:
     def contract(self, i): # i not a loop
         assert 0<=i<self.n
         masks = [mask for mask in self.masks if mask[i]==1]
+        if not len(masks):
+            return None
         masks = [mask[:i] + mask[i+1:] for mask in masks]
         M = Matroid(self.n-1, masks)
         M.check()
