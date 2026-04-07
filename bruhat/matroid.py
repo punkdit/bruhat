@@ -134,7 +134,7 @@ class Matroid:
         assert self.n == other.n
         return self.items.issubset(other.items)
 
-    def delete(self, i): # i not an coloop
+    def delete(self, i): # i not an coloop / isthmus
         assert 0<=i<self.n
         masks = [mask for mask in self.masks if mask[i]==0]
         if not len(masks):
@@ -896,6 +896,44 @@ def test_matroids():
     assert len(list(all_matroids(5))) == 406
     #assert len(list(all_matroids(6))) == 3807
     #assert len(list(all_matroids(7))) == 75164
+
+
+def test_brylawski():
+    # See Brylawski 1972
+    bs = "abc abd abe abf abg ace acf acg ade adf adg".split()
+    els = list("abcdefg")
+
+    bs = "abd acd bcd".split()
+    els = list("abcd")
+
+
+    n = len(els)
+    items = [set(els.index(x) for x in b) for b in bs]
+    print(items)
+    M = Matroid.from_basis(n, items)
+    M.check()
+    print(M, M.rank)
+
+    M0 = M.contract(0)
+    M1 = M.delete(0)
+    print(M0, M0.rank)
+    print(M0==M1)
+    
+
+    #return
+
+    p = M.get_tutte()
+
+    s = p.python_str()
+
+    from sage import all_cmdline as sage
+    R = sage.PolynomialRing(sage.ZZ, 'x,y')
+    x,y = R.gens()
+
+    p = eval(s)
+    print(p)
+    #print(p(x=x-1, y=y-1))
+    
 
 
 def test_lattice():
