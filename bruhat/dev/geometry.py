@@ -167,7 +167,21 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    from time import time
+    start_time = time()
+    fn = argv.next() or "main"
+
+    if argv.profile:
+        import cProfile as profile
+        profile.run("%s()"%fn)
+    else:
+        fn = eval(fn)
+        fn()
+
+    print("finished in %.3f seconds.\n"%(time() - start_time))
+
+
+
 
 
 

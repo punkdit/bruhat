@@ -19,6 +19,7 @@ from sage import all_cmdline as sage
 
 from bruhat.action import mulclose, mulclose_names, mulclose_find
 from bruhat.argv import argv
+from bruhat.smap import SMap
 
 
 def unify(R, S):
@@ -66,8 +67,14 @@ def simplify_latex(self):
 
 
 class Matrix(object):
-    def __init__(self, ring, rows, name=()):
-        M = sage.Matrix(ring, rows)
+    def __init__(self, ring, rows, name=(), shape=None):
+        if shape is not None:
+            m, n = shape
+            M = sage.Matrix(ring, m, n, rows)
+            assert M.nrows() == m
+            assert M.ncols() == n
+        else:
+            M = sage.Matrix(ring, rows)
         M.set_immutable()
         self.M = M
         self.ring = ring
@@ -269,7 +276,8 @@ class Matrix(object):
 
     def transpose(self):
         M = self.M.transpose()
-        return Matrix(self.ring, M)
+        n, m = self.shape
+        return Matrix(self.ring, M, shape=(m,n))
 
     def trace(self):
         return self.M.trace()
@@ -348,11 +356,16 @@ class Matrix(object):
         return Matrix(self.ring, M)
 
     def cokernel(self):
+        #print("cokernel")
+        #print(self, self.shape)
         K = sage.kernel(self.M)
         B = K.basis()
-        #print(K, type(K))
-        M = Matrix(self.ring, B)
-        # XXX fix empty M shape
+        #print(K)
+        #print(K.degree(), type(K))
+        n = K.degree()
+        m = len(B)
+        M = Matrix(self.ring, B, shape=(m,n))
+        assert M.shape == (m,n), M.shape
         return M
 
     def kernel(self):
@@ -383,6 +396,128 @@ class Matrix(object):
         #assert u is not None
         ##print("solve:", u.shape)
         return W
+
+    def puncture(A, i):
+        m, n = A.shape
+        assert 0<=i<n
+        A0 = A[:, :i]
+        A1 = A[:, i+1:]
+        return A0.augment(A1)
+    delete = puncture
+
+    def contract(A, i):
+        m, n = A.shape
+        assert 0<=i<n
+        B = A.t.cokernel()
+        Bi = B.puncture(i)
+        C = Bi.kernel().t
+        return C
+
+    def is_loop(self, i):
+        m, n = self.shape
+        assert 0<=i<n
+        #print(self, "is_loop", i, self.shape)
+        #print(self[:,i])
+        #result = self[:, i].sum() == 0
+        #print(result)
+        for j in range(m):
+            if self.M[j,i] != 0:
+                return False
+        return True
+
+    def is_coloop(self, i):
+        m, n = self.shape
+        assert 0<=i<n
+        #print(self, "is_coloop", i)
+        H = self.t.cokernel()
+        #print("H =")
+        #print(H, H.shape)
+        return H.is_loop(i)
+
+    def _tutte(self, x, y, depth=0):
+        m, n = self.shape
+        if n == 0:
+            return 1
+        i = 0
+        #print(" "*depth+ "_tutte", i)
+        #smap = SMap()
+        #smap[0,depth] = str(self)
+        #print(smap)
+        if self.is_loop(i) and self.is_coloop(i):
+            print("FAIL")
+            print(self)
+            assert 0
+        if self.is_loop(i):
+            assert not self.is_coloop(i)
+            #print(" "*depth+ "is_loop")
+            lhs = self.delete(i)
+            p = y*lhs._tutte(x, y, depth+1)
+        elif self.is_coloop(i):
+            assert not self.is_loop(i)
+            #print(" "*depth+ "is_coloop")
+            rhs = self.contract(i)
+            p = x*rhs._tutte(x, y, depth+1)
+        else:
+            #print(" "*depth+ "else")
+            lhs = self.delete(i)
+            rhs = self.contract(i)
+            lhs = lhs._tutte(x, y, depth+1)
+            rhs = rhs._tutte(x, y, depth+1)
+            p = lhs+rhs
+        return p
+
+    def get_tutte(self):
+        R = sage.PolynomialRing(sage.ZZ, list("xy"))
+        x, y, = R.gens()
+        p = self._tutte(x, y)
+        return p
+
+
+def test_tutte():
+    R = sage.PolynomialRing(sage.ZZ, list("xy"))
+    x, y, = R.gens()
+
+    from bruhat.dev.geometry import all_codes
+
+    F = sage.FiniteField(2)
+    u = Matrix(F, [[1]])
+    assert u.is_coloop(0)
+    assert not u.is_loop(0)
+
+    M = Matrix(F, [[1,0,1],[0,1,1]])
+    assert not M.is_coloop(0)
+    assert not M.is_loop(0)
+
+    M1 = M.contract(0)
+    assert M1 == Matrix(F, [[1,1]])
+
+    p = M.get_tutte()
+    assert p == x**2 + x + y
+
+    # --------------------------
+
+    q = argv.get("q", 3)
+    #m = argv.get("m", 2)
+    n = argv.get("n", 6)
+
+    F = sage.FiniteField(q)
+
+    row = 0
+    for m in range((n+2)//2):
+        count = 0
+        found = set()
+        for Gt in all_codes(m, n, q):
+            Gt = Matrix(F, Gt)
+            #print(Gt, type(Gt))
+            p = Gt.get_tutte()
+            found.add(p)
+            count += 1
+        print(m, count, len(found))
+        #row += len(found)
+    #print("row =", row)
+
+
+
 
     
 
@@ -441,7 +576,6 @@ def test_linear():
     print(K.t)
 
     print(M*K)
-
 
 
 if __name__ == "__main__":
