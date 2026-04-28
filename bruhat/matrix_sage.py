@@ -517,6 +517,94 @@ def test_tutte():
     #print("row =", row)
 
 
+def get_orbits(F, n, found):
+    gen = []
+    for i in range(n-1):
+        idxs = list(range(n))
+        idxs[i:i+2] = [i+1, i]
+        rows = [[0]*n for i in range(n)]
+        for i,j in enumerate(idxs):
+            rows[i][j] = 1
+        #g = lambda M,idxs=idxs : M[:, idxs]
+        g = Matrix(F, rows)
+        gen.append(g)
+
+    for i in range(n):
+        rows = [[0]*n for i in range(n)]
+        for j in range(n):
+            if i==j:
+                rows[j][j] = 2
+            else:
+                rows[j][j] = 1
+        #print(rows)
+        g = Matrix(F, rows)
+        #print(g)
+        gen.append(g)
+
+
+    orbits = []
+    remain = set(found)
+    while remain:
+        M = remain.pop()
+        orbit = {M}
+        bdy = list(orbit)
+        while bdy:
+            _bdy = []
+            for M1 in bdy:
+              #print("="*n)
+              #print(M1)
+              for g in gen:
+                #print(idxs)
+                #M2 = M1[:, idxs]
+                #M2 = g(M1)
+                M2 = M1 * g
+                #print(M2)
+                M2 = M2.row_reduce()
+                #print(M2)
+                if M2 in orbit:
+                    #print()
+                    continue
+                #print("new!")
+                orbit.add(M2)
+                _bdy.append(M2)
+                remain.remove(M2)
+            bdy = _bdy
+        orbits.append(orbit)
+    return orbits
+
+
+def test_enum():
+    from bruhat.dev.geometry import all_codes
+    from bruhat.util import allperms
+
+    q = argv.get("q", 3)
+    #m = argv.get("m", 2)
+    n = argv.get("n", 6)
+
+    #idxs = list(range(n))
+    #perms = list(allperms(idxs))
+    #print(len(perms))
+
+    F = sage.FiniteField(q)
+
+    row = 0
+    for m in range((n+2)//2):
+        count = 0
+        found = []
+        for Gt in all_codes(m, n, q):
+            Gt = Matrix(F, Gt)
+            found.append(Gt)
+        print(m, len(found), end=" ", flush=True)
+
+        orbits = get_orbits(F, n, found)
+        print(len(orbits))
+        #for o in orbits:
+        #    print(list(o)[0], len(o))
+
+
+
+
+
 
 
     
