@@ -578,23 +578,24 @@ def test_enum():
     from bruhat.util import allperms
 
     q = argv.get("q", 3)
-    #m = argv.get("m", 2)
+    m = argv.get("m")
     n = argv.get("n", 6)
-
-    #idxs = list(range(n))
-    #perms = list(allperms(idxs))
-    #print(len(perms))
 
     F = sage.FiniteField(q)
 
+    if m is None:
+        ms = list(range((n+2)//2))
+    else:
+        ms = [m]
+
     row = 0
-    for m in range((n+2)//2):
+    for m in ms:
         count = 0
         found = []
         for Gt in all_codes(m, n, q):
             Gt = Matrix(F, Gt)
             found.append(Gt)
-        print(m, len(found), end=" ", flush=True)
+        print("m=%d"%m, len(found), end=" ", flush=True)
 
         orbits = get_orbits(F, n, found)
         print(len(orbits))
