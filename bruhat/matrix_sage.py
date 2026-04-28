@@ -479,22 +479,30 @@ def test_tutte():
 
     from bruhat.dev.geometry import all_codes
 
-    F = sage.FiniteField(2)
-    u = Matrix(F, [[1]])
-    assert u.is_coloop(0)
-    assert not u.is_loop(0)
+    for q in [2, 3]:
+        F = sage.FiniteField(q)
+        u = Matrix(F, [[1]])
+        assert u.is_coloop(0)
+        assert not u.is_loop(0)
+    
+        M = Matrix(F, [[1,0,1],[0,1,1]])
+        assert not M.is_coloop(0)
+        assert not M.is_loop(0)
+    
+        M1 = M.contract(0)
+        assert M1 == Matrix(F, [[1,1]])
+    
+        p = M.get_tutte()
+        assert p == x**2 + x + y
 
-    M = Matrix(F, [[1,0,1],[0,1,1]])
-    assert not M.is_coloop(0)
-    assert not M.is_loop(0)
+    F = sage.FiniteField(3)
+    M = Matrix(F, [[2,1,0],[2,0,1]])
+    M2 = M.contract(0)
+    M22 = M2.contract(0)
+    print(M22.shape)
 
-    M1 = M.contract(0)
-    assert M1 == Matrix(F, [[1,1]])
 
-    p = M.get_tutte()
-    assert p == x**2 + x + y
-
-    # --------------------------
+def find_tutte():
 
     q = argv.get("q", 3)
     #m = argv.get("m", 2)
