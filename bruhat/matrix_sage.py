@@ -525,7 +525,7 @@ def find_tutte():
     #print("row =", row)
 
 
-def get_orbits(F, n, found):
+def get_orbits(F, n, q, found):
     gen = []
     for i in range(n-1):
         idxs = list(range(n))
@@ -537,17 +537,20 @@ def get_orbits(F, n, found):
         g = Matrix(F, rows)
         gen.append(g)
 
-    for i in range(n):
-        rows = [[0]*n for i in range(n)]
-        for j in range(n):
-            if i==j:
-                rows[j][j] = 2
-            else:
-                rows[j][j] = 1
-        #print(rows)
-        g = Matrix(F, rows)
-        #print(g)
-        gen.append(g)
+    if q!=2:
+        # torus action
+        r = F.multiplicative_generator()
+        for i in range(n):
+            rows = [[0]*n for i in range(n)]
+            for j in range(n):
+                if i==j:
+                    rows[j][j] = r
+                else:
+                    rows[j][j] = 1
+            #print(rows)
+            g = Matrix(F, rows)
+            #print(g)
+            gen.append(g)
 
 
     orbits = []
@@ -606,17 +609,17 @@ def test_enum():
         print("m=%d"%m, len(found), end=" ", flush=True)
 
         lookup = {}
-        orbits = get_orbits(F, n, found)
-        print(len(orbits))
+        orbits = get_orbits(F, n, q, found)
         for i,o in enumerate(orbits):
             M = list(o)[0]
             p = M.get_tutte()
             print("\ni =", i)
             print(M, M.get_tutte(), "size=%d"%len(o))
             if p in lookup:
-                print("collision with i=%d" % lookup[p])
+                print("COLLISION with i=%d\n!!!!!!!!\n" % lookup[p])
             lookup[p] = i
 
+        print("orbits:", len(orbits))
 
 
 
