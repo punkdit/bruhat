@@ -605,10 +605,17 @@ def test_enum():
             found.append(Gt)
         print("m=%d"%m, len(found), end=" ", flush=True)
 
+        lookup = {}
         orbits = get_orbits(F, n, found)
         print(len(orbits))
-        #for o in orbits:
-        #    print(list(o)[0], len(o))
+        for i,o in enumerate(orbits):
+            M = list(o)[0]
+            p = M.get_tutte()
+            print("\ni =", i)
+            print(M, M.get_tutte(), "size=%d"%len(o))
+            if p in lookup:
+                print("collision with i=%d" % lookup[p])
+            lookup[p] = i
 
 
 
