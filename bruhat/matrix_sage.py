@@ -511,6 +511,7 @@ def test_tutte():
 
 
 def find_tutte():
+    from bruhat.dev.geometry import all_codes
 
     q = argv.get("q", 3)
     #m = argv.get("m", 2)
@@ -690,6 +691,7 @@ def test_enum():
             print(M, M.get_tutte(), "size=%d"%len(o))
             if p in lookup:
                 print("COLLISION with i=%d\n!!!!!!!!\n" % lookup[p])
+                #return
             lookup[p] = i
 
         print("orbits:", len(orbits))
