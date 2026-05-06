@@ -18,6 +18,8 @@ from sage.all_cmdline import (FiniteField, CyclotomicField, latex, block_diagona
 from sage import all_cmdline as sage
 
 from bruhat.action import mulclose, mulclose_names, mulclose_find
+from bruhat.dev.geometry import all_codes
+from bruhat.util import allperms
 from bruhat.argv import argv
 from bruhat.smap import SMap
 
@@ -354,6 +356,7 @@ class Matrix(object):
         M = self.M.echelon_form()
         #print(self.M.echelon_form.__doc__)
         return Matrix(self.ring, M)
+    normal_form = row_reduce
 
     def cokernel(self):
         #print("cokernel")
@@ -472,12 +475,17 @@ class Matrix(object):
         p = self._tutte(x, y)
         return p
 
+    def get_wenum(self):
+        R = sage.PolynomialRing(sage.ZZ, list("xy"))
+        x, y, = R.gens()
+        p = 0
+        return p
+
+
 
 def test_tutte():
     R = sage.PolynomialRing(sage.ZZ, list("xy"))
     x, y, = R.gens()
-
-    from bruhat.dev.geometry import all_codes
 
     for q in [2, 3]:
         F = sage.FiniteField(q)
@@ -506,7 +514,7 @@ def find_tutte():
 
     q = argv.get("q", 3)
     #m = argv.get("m", 2)
-    n = argv.get("n", 6)
+    n = argv.get("n", 5)
 
     F = sage.FiniteField(q)
 
@@ -523,6 +531,73 @@ def find_tutte():
         print(m, count, len(found))
         #row += len(found)
     #print("row =", row)
+
+
+def test_wenum():
+
+    q = argv.get("q", 2)
+    m = argv.get("m", 2)
+    n = argv.get("n", 4)
+
+    ms = [m]
+
+    F = sage.FiniteField(q)
+
+    R = sage.PolynomialRing(sage.ZZ, list("xy"))
+    x, y, = R.gens()
+    #print(dir(sage.codes))
+    #return
+
+    count = 0
+    found = set()
+    for Gt in all_codes(m, n, q):
+        Gt = Matrix(F, Gt)
+        H = Gt.kernel().t
+
+        print("Gt =")
+        print(Gt)
+        print("H =")
+        print(H)
+        assert (H * Gt.t).sum() == 0
+
+        p = 0
+        for bits in numpy.ndindex((2,)*n):
+            idxs = [i for i in range(n) if bits[i]]
+            #u = Matrix(F, bits)
+            #v = u*Gt
+            #print("\t", v)
+            _Gt = Gt[:, idxs]
+            m1 = _Gt.rank()
+            #print(Ft, m1)
+            _H = H[:, idxs]
+            m2 = _H.rank()
+            print(bits, "\t", m-m1, len(idxs)-m1, m2)
+            p += x**(m - m1) * y**(len(idxs) - m1)
+        p = (p(x=x-1, y=y-1))
+        print(p)
+            
+        #t = H.get_tutte()
+        t = Gt.get_tutte()
+        print(t)
+        assert p==t
+        
+        #r = t(x=x/y, y=(x+(q-1)*y)/(x-y)) * (x-y)**m * y**(n-m)
+        r = t(x=(x+(q-1)*y)/(x-y), y=x/y) * (x-y)**m * y**(n-m)
+        print(r)
+        #return
+
+        code = sage.codes.LinearCode(Gt.M)
+        #code = code.dual_code()
+        #print(code)
+        #wd = code.weight_distribution()
+        w = code.weight_enumerator()
+        w = w(x=y, y=x)
+        print("weight_enumerator:", w)
+
+        #assert r==w, (r, w)
+        if r != w:
+            print("FAIL\n")
+            break
 
 
 def get_orbits(F, n, q, found):
@@ -585,8 +660,6 @@ def get_orbits(F, n, q, found):
 
 
 def test_enum():
-    from bruhat.dev.geometry import all_codes
-    from bruhat.util import allperms
 
     q = argv.get("q", 3)
     m = argv.get("m")
