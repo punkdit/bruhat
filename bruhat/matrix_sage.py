@@ -517,16 +517,22 @@ def find_tutte():
     #m = argv.get("m", 2)
     n = argv.get("n", 5)
 
+    top = (n+2)//2
+    if argv.full:
+        top = n
+
     F = sage.FiniteField(q)
 
     row = 0
-    for m in range((n+2)//2):
+    for m in range(top):
         count = 0
         found = set()
         for Gt in all_codes(m, n, q):
             Gt = Matrix(F, Gt)
             #print(Gt, type(Gt))
             p = Gt.get_tutte()
+            if p not in found:
+                print(Gt, p)
             found.add(p)
             count += 1
         print(m, count, len(found))
