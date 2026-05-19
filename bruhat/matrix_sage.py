@@ -514,17 +514,21 @@ def find_tutte():
     from bruhat.dev.geometry import all_codes
 
     q = argv.get("q", 3)
-    #m = argv.get("m", 2)
+    m = argv.get("m", None)
     n = argv.get("n", 5)
 
     top = (n+2)//2
     if argv.full:
         top = n
 
+    ms = list(range(top))
+    if m is not None:
+        ms = [m]
+
     F = sage.FiniteField(q)
 
     row = 0
-    for m in range(top):
+    for m in ms:
         count = 0
         found = set()
         for Gt in all_codes(m, n, q):
