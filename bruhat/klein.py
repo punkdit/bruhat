@@ -30,79 +30,25 @@ config(text="pdflatex", latex_header=r"""
 """)
 
 
+def make_gap():
+    """
+    gap> LoadPackage("recog");
+    true
+    gap> LoadPackage("LINS");
+    gap> F := FreeGroup("a","b","c");;
+    gap> AssignGeneratorVariables(F);;
+    #I  Assigned the global variables [ a, b, c ]
+    gap> G := F/[a^8,b^2,c^3,(a*c)^2,c*a*b];;
+    gap> gr := LowIndexNormalSubgroupsSearchForAll(G, 1000);;
+    gap> L := List(gr);;
+    gap> Length(L);
+    gap> StructureDescription(FactorGroup(G,Grp(L[7])));
+    "((C4 x C2) : C4) : S3"
+    """
+
+
+
 I = Mobius()
-
-def main_render(words, name=None):
-
-    (l, m, n, maxsize) = (7,2,3,800)
-
-    # build the rotation group generators
-    ga, gb = [g.todisc() for g in mktriangle(l, m, n)]
-    gc = ~(ga*gb)
-
-    assert ga.order() == 14
-    assert gb.order() == 4
-    assert gc.order() == 3, c.order()
-    assert gc*ga*gb == I
-
-    parse = lambda w : reduce(mul, [{"a":ga, "b":gb, "c":gc}[wi] for wi in w], I)
-
-    cvs = Canvas()
-    cvs.append(Scale(2.))
-    disc = Disc(cvs)
-
-    z_face = 0j
-    z_vert = (ga*gb).inner_fixed()
-
-    gamma = Geodesic.construct(z_vert, (~ga)(z_vert))
-    z_edge = gamma.z2 # midpoint
-    g_face = gamma.get_refl()
-    gamma = Geodesic.construct(z_face, z_vert)
-    g_edge = gamma.get_refl()
-    g_vert = Mobius.conjugate()
-
-    #z0 = (z_face + z_vert + z_edge) / 3
-    z0 = (z_face + 2*z_edge) / 3
-
-    gens = [g_face, g_edge, g_vert]
-    gens = gens + [~g for g in gens]
-    G = mulclose(gens, verbose=True, maxsize=maxsize)
-
-    faces, edges, verts = [], [], []
-    for g in G:
-        faces.append(g(z_face))
-        edges.append(g(z_edge))
-        verts.append(g(z_vert))
-
-    for g in G:
-        disc.show_geodesic(g(z_face), g(z_vert), attrs=st_round+[grey.alpha(0.1)])
-    #for g in G:
-    #    disc.show_geodesic(g(z_face), g(z_edge), attrs=st_round+[grey])
-    for g in G:
-        disc.show_geodesic(g(z_vert), g(z_edge), attrs=st_round)
-
-
-    for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
-    #for [cl, zs] in ([red, verts],):
-        for z in zs:
-            disc.show_point(z, [cl], radius=0.02)
-
-    scale = 0.1
-    #disc.show_label(z0, r"$\star$", scale)
-
-    for word in words:
-        g = parse(word)
-        #disc.show_label(g(z0), r"$%s$"%(word or r"\star"), scale)
-        g = ~g
-        disc.show_point(g(z0), [black], radius=0.02)
-
-    disc.fini()
-    if name is None:
-        name = ("poincare-rotation-%d%d%d"%(l,m,n))
-    #disc.save(name)
-    print("writePDFfile", name)
-    disc.cvs.writePDFfile("i"+"mages/"+name+".pdf")
-
 
 def render(l, m, n, c_words, f_words, e_words, v_words, h_words=[]):
 
@@ -246,6 +192,78 @@ def test_render():
     name = "images/klein.pdf"
     print("writePDFfile", name)
     cvs.writePDFfile(name)
+
+
+def main_render(words, name=None):
+
+    (l, m, n, maxsize) = (7,2,3,800)
+
+    # build the rotation group generators
+    ga, gb = [g.todisc() for g in mktriangle(l, m, n)]
+    gc = ~(ga*gb)
+
+    assert ga.order() == 14
+    assert gb.order() == 4
+    assert gc.order() == 3, c.order()
+    assert gc*ga*gb == I
+
+    parse = lambda w : reduce(mul, [{"a":ga, "b":gb, "c":gc}[wi] for wi in w], I)
+
+    cvs = Canvas()
+    cvs.append(Scale(2.))
+    disc = Disc(cvs)
+
+    z_face = 0j
+    z_vert = (ga*gb).inner_fixed()
+
+    gamma = Geodesic.construct(z_vert, (~ga)(z_vert))
+    z_edge = gamma.z2 # midpoint
+    g_face = gamma.get_refl()
+    gamma = Geodesic.construct(z_face, z_vert)
+    g_edge = gamma.get_refl()
+    g_vert = Mobius.conjugate()
+
+    #z0 = (z_face + z_vert + z_edge) / 3
+    z0 = (z_face + 2*z_edge) / 3
+
+    gens = [g_face, g_edge, g_vert]
+    gens = gens + [~g for g in gens]
+    G = mulclose(gens, verbose=True, maxsize=maxsize)
+
+    faces, edges, verts = [], [], []
+    for g in G:
+        faces.append(g(z_face))
+        edges.append(g(z_edge))
+        verts.append(g(z_vert))
+
+    for g in G:
+        disc.show_geodesic(g(z_face), g(z_vert), attrs=st_round+[grey.alpha(0.1)])
+    #for g in G:
+    #    disc.show_geodesic(g(z_face), g(z_edge), attrs=st_round+[grey])
+    for g in G:
+        disc.show_geodesic(g(z_vert), g(z_edge), attrs=st_round)
+
+
+    for [cl, zs] in ([green, faces], [blue, edges], [red, verts]):
+    #for [cl, zs] in ([red, verts],):
+        for z in zs:
+            disc.show_point(z, [cl], radius=0.02)
+
+    scale = 0.1
+    #disc.show_label(z0, r"$\star$", scale)
+
+    for word in words:
+        g = parse(word)
+        #disc.show_label(g(z0), r"$%s$"%(word or r"\star"), scale)
+        g = ~g
+        disc.show_point(g(z0), [black], radius=0.02)
+
+    disc.fini()
+    if name is None:
+        name = ("poincare-rotation-%d%d%d"%(l,m,n))
+    #disc.save(name)
+    print("writePDFfile", name)
+    disc.cvs.writePDFfile("i"+"mages/"+name+".pdf")
 
 
 def main():
