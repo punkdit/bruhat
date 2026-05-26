@@ -228,7 +228,8 @@ class Disc(object):
             self.cvs.fill(p, st_fill)
         r = 2./d_poincare(z)
         #if isinstance(p[0], path.line):
-        cvs.stroke(p, st_stroke+[r*normal])
+        if st_stroke is not None:
+            cvs.stroke(p, st_stroke+[r*normal])
 
     def show_geodesic(self, z0, z1, attrs=[]):
         "show_geodesic between two points"

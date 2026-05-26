@@ -210,6 +210,23 @@ class Schreier(object):
         for jdx in reversed(word):
             idx = self.follow_step(idx, jdx)
         return idx
+
+    def search_step(self, c, d):
+        labels = self.labels
+        neighbors = self.neighbors
+        c = self.get_label(c)
+        ns = neighbors[c]
+        if ns[d] == SENTINEL:
+            return None
+        return self.get_label(ns[d])
+    
+    def search_path(self, idx, word):
+        idx = self.get_label(idx)
+        for jdx in reversed(word):
+            if idx is None:
+                break
+            idx = self.search_step(idx, jdx)
+        return idx
     
     #    The first takes a vertex and finds the neighbor in the
     #    d direction, creating a new vertex in that direction
@@ -387,18 +404,29 @@ class Schreier(object):
             bdy = _bdy
         return words
 
-    #def get_inverse(self, word):
+    def search_words(self, gens=None):
+        ngens = self.ngens
+        if gens is None:
+            gens = [(i,) for i in range(ngens)]
+        words = [()]
+        found = set([0])
+        bdy = list(words)
+        while bdy:
+            _bdy = []
+            for word in bdy:
+              for gen in gens:
+                w = gen + word # left-multiply 
+                idx = self.search_path(0, w)
+                if idx is None:
+                    continue
+                if idx not in found:
+                    found.add(idx)
+                    _bdy.append(w)
+                    words.append(w)
+            bdy = _bdy
+        return words
 
-    def get_poincare(self, ring, q):
-        "the poincare polynomial"
-        dists = [len(w) for w in self.get_words()]
-        N = max(dists)
-        p = ring.zero
-        for i in range(N+1):
-            p += dists.count(i) * q**i
-        return p
-
-    def mulclose(self, words):
+    def mulclose(self, words, maxsize=None):
         bdy = [0]
         lookup = {0:()}
         while bdy:
@@ -412,6 +440,17 @@ class Schreier(object):
                         lookup[jdx] = left + right
             bdy = _bdy
         return lookup
+
+    #def get_inverse(self, word):
+
+    def get_poincare(self, ring, q):
+        "the poincare polynomial"
+        dists = [len(w) for w in self.get_words()]
+        N = max(dists)
+        p = ring.zero
+        for i in range(N+1):
+            p += dists.count(i) * q**i
+        return p
 
     def find_words(self):
         bdy = [0]

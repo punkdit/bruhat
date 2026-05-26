@@ -390,6 +390,9 @@ class Perm(object):
         return self.perm[item]
     __getitem__ = __call__
 
+    def __len__(self):
+        return len(self.perm)
+
     def __pow__(self, n):
         assert int(n)==n
         if n==0:
