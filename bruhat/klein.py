@@ -86,17 +86,36 @@ def render(l, m, n, c_words, f_words, e_words, v_words, h_words=[], stem="klein"
 
     # ------------------------------------------
 
-    if stem=="bolza":
-        a, b, c = 0, 1, 2
+    a, b, c = 0, 1, 2
+    if stem == "bolza":
         w = (b, a, a, b)
         z1 = act(w, z_face)
         zs = [z1]
-        for i in range(7):
+        N = 8
+        for i in range(N-1):
             zs.append(ga(zs[-1]))
-        for i in range(8):
+        for i in range(N):
             z1 = zs[i]
-            z2 = zs[(i+1)%8]
+            z2 = zs[(i+1)%N]
             disc.show_geodesic(z1, z2, attrs=st_thin+[orange.alpha(0.5)]+st_round)
+
+    elif stem == "klein":
+
+        w = (c,c,a,a,a,c,c,a,a,c,)
+        z1 = act(w, z_face)
+        #disc.show_point(z1, [black], radius=0.05)
+
+        zs = [z1]
+        N = 14
+        ha, hb = [g.todisc() for g in mktriangle(N, 2, 3)]
+        for i in range(N-1):
+            zs.append(ha(zs[-1]))
+        for i in range(N):
+            z1 = zs[i]
+            z2 = zs[(i+1)%N]
+            disc.show_geodesic(z1, z2, attrs=st_thin+[orange.alpha(0.5)]+st_round)
+
+
 
     st = st_round+[grey.alpha(0.4)]
     for word in c_words:
@@ -185,8 +204,6 @@ def test_render():
 
     fg = render(l, m, n, c_words, f_words, e_words, v_words, stem=stem)
     fg.writePDFfile("images/%s.pdf"%stem)
-
-    #return
 
     print("conjugacy_subgroups:")
     Hs = G.conjugacy_subgroups()
