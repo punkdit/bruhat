@@ -10,8 +10,8 @@ from random import randint, seed, choice
 from functools import reduce
 from operator import mul
 
-#from bruhat.gset import Perm, Group, Coset, mulclose # FAIL
-#from bruhat.action import Perm, Group, Coset, mulclose, close_hom
+import numpy
+
 from bruhat.action import mulclose_hom, mulclose_names
 from bruhat.util import cross
 from bruhat.smap import SMap
@@ -50,7 +50,7 @@ def make_gap():
 
 I = Mobius()
 
-def render(l, m, n, c_words, f_words, e_words, v_words, h_words=[]):
+def render(l, m, n, c_words, f_words, e_words, v_words, h_words=[], stem="klein"):
 
     # build the rotation group generators
     ga, gb = [g.todisc() for g in mktriangle(l, m, n)]
@@ -86,16 +86,17 @@ def render(l, m, n, c_words, f_words, e_words, v_words, h_words=[]):
 
     # ------------------------------------------
 
-    a, b, c = 0, 1, 2
-    w = (b, a, a, b)
-    z1 = act(w, z_face)
-    zs = [z1]
-    for i in range(7):
-        zs.append(ga(zs[-1]))
-    for i in range(8):
-        z1 = zs[i]
-        z2 = zs[(i+1)%8]
-        disc.show_geodesic(z1, z2, attrs=st_thin+[orange.alpha(0.5)]+st_round)
+    if stem=="bolza":
+        a, b, c = 0, 1, 2
+        w = (b, a, a, b)
+        z1 = act(w, z_face)
+        zs = [z1]
+        for i in range(7):
+            zs.append(ga(zs[-1]))
+        for i in range(8):
+            z1 = zs[i]
+            z2 = zs[(i+1)%8]
+            disc.show_geodesic(z1, z2, attrs=st_thin+[orange.alpha(0.5)]+st_round)
 
     st = st_round+[grey.alpha(0.4)]
     for word in c_words:
@@ -131,23 +132,33 @@ def test_render():
 
     maxsize = 10000
 
-    l, m, n = 7, 2, 3
-    l, m, n = 8, 2, 3
+    stem = argv.get("stem", "klein")
+    assert stem in "klein bolza".split(), stem
+
+    print(stem, "curve")
+
+    if stem=="bolza":
+        l, m, n = 8, 2, 3
+    else:
+        l, m, n = 7, 2, 3 # klein
 
     ngens = 3
     a, b, c = range(ngens)
     rels = [ (a,)*l, (b,)*m, (c,)*n, (a, c)*2, (c,a,b) ]
-    #klein = [(c,a,a,a,a,a)*4] # Klein quartic
-    bolza = [((c,c)+(a,)*3)*2]
-    print(bolza)
 
-    graph = Schreier(ngens, rels+bolza)
+    if stem=="bolza":
+        extra = [((c,c)+(a,)*3)*2]
+    else:
+        extra = [(c,a,a,a,a,a)*4] # Klein quartic
+
+    graph = Schreier(ngens, rels+extra)
     graph.build(maxsize=maxsize)
     print("graph:", len(graph))
     G = graph.get_gset()
     assert len(graph) == len(G)
     #print(G.structure_description()) # GL(2,3) != Octahedral group
     #return
+
     ga, gb, gc = G.gens
     names = mulclose_names([ga, gb, gc], "abc")
     assert len(names) == len(G)
@@ -169,29 +180,76 @@ def test_render():
     e_words = get(edges)
     v_words = get(verts)
 
-    Hs = [H for H in G.subgroups()]
-    Hs.sort(key = len)
+    #Hs = [H for H in G.subgroups()]
+    #Hs.sort(key = len)
+
+    fg = render(l, m, n, c_words, f_words, e_words, v_words, stem=stem)
+    fg.writePDFfile("images/%s.pdf"%stem)
+
+    #return
+
+    print("conjugacy_subgroups:")
+    Hs = G.conjugacy_subgroups()
     for H in Hs:
-        print(len(H), H.structure_description())
+        print(len(H), len(H.conjugates), H.structure_description())
     print()
 
-    cvs = Canvas()
+    count = 0
     for H in Hs:
-        #print(len(H), end=" ", flush=True)
-        if len(H) != 16:
-            continue
 
-        h_words = [lookup[h] for h in H]
-        print(h_words)
-        h_words = graph.search_words(h_words)
+        cvs = Canvas()
+        for J in H.conjugates:
+            h_words = [lookup[h] for h in J]
+            h_words = graph.search_words(h_words)
+    
+            fg = render(l, m, n, c_words, f_words, e_words, v_words, h_words)
+            cvs.append(fg)
+            cvs.show_page()
+        name = "images/%s_%.2d_%d.pdf"%(stem, count, len(H))
+        print(name, "%d pages"%len(H.conjugates))
+        cvs.writePDFfile(name)
+        count += 1
 
-        fg = render(l, m, n, c_words, f_words, e_words, v_words, h_words)
-        cvs.append(fg)
-        cvs.show_page()
+    #name = "images/klein.pdf"
+    #print("writePDFfile", name)
+    #cvs.writePDFfile(name)
 
-    name = "images/klein.pdf"
-    print("writePDFfile", name)
-    cvs.writePDFfile(name)
+
+def test_bolza():
+    from bruhat.tom import load_tom
+    from bruhat.poset import Poset
+
+    tom = load_tom(gapstr="GL(2,3)")
+    print(tom)
+
+    poset = tom.get_poset()
+    poset.check()
+    #print(poset)
+
+    poset.get_dot("bolza.dot")
+
+    return
+
+    l, m, n = 8, 2, 3
+
+    ngens = 3
+    a, b, c = range(ngens)
+    rels = [ (a,)*l, (b,)*m, (c,)*n, (a, c)*2, (c,a,b) ]
+    bolza = [((c,c)+(a,)*3)*2]
+
+    graph = Schreier(ngens, rels+bolza)
+    graph.build(maxsize=10000)
+    print("graph:", len(graph))
+    G = graph.get_gset()
+    assert len(graph) == len(G)
+    print(G.structure_description()) # GL(2,3) != Octahedral group
+
+    Hs = G.conjugacy_subgroups()
+    for H in Hs:
+        print(len(G)//len(H), end=' ')
+    print()
+    # 1 2 2 3 4 4 6 6 6 8 8 8 12 16 24 48 
+
 
 
 def main_render(words, name=None):

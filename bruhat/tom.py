@@ -321,6 +321,31 @@ class Tom:
         e = gap.to_group(N, e)
         return e
 
+    def get_poset(tom):
+        "poset of subgroups"
+        from bruhat.poset import Poset
+        n = len(tom)
+        names = tom.names
+        pairs = []
+        for i in range(n):
+          #print(names[i], end=':')
+          for j in range(i,n):
+            row = tom[i]*tom[j]
+            #print(tom.get_desc(row), end=' ')
+            found = numpy.all(row>=tom[j])
+            #print("\t", tom[j])
+            #print("\t", row >= tom[j])
+            if found:
+                #print(names[j], end=' ')
+                pairs.append((names[i], names[j]))
+          #print()
+        
+        poset = Poset(names, pairs)
+        #poset.check()
+        #print(poset)
+        return poset
+    
+
 
 
 
