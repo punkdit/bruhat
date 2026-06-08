@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Klein Quartic
+Klein Quartic, Bolza curve, ...
 
 """
 
@@ -50,7 +50,7 @@ def make_gap():
 
 I = Mobius()
 
-def render(l, m, n, c_words, f_words, e_words, v_words, h_words=[], stem="klein"):
+def render(l, m, n, c_words, f_words, e_words, v_words, h_words=[], stem=None):
 
     # build the rotation group generators
     ga, gb = [g.todisc() for g in mktriangle(l, m, n)]
@@ -94,6 +94,7 @@ def render(l, m, n, c_words, f_words, e_words, v_words, h_words=[], stem="klein"
         N = 8
         for i in range(N-1):
             zs.append(ga(zs[-1]))
+        #print(zs, len(zs))
         for i in range(N):
             z1 = zs[i]
             z2 = zs[(i+1)%N]
@@ -219,7 +220,7 @@ def test_render():
             h_words = [lookup[h] for h in J]
             h_words = graph.search_words(h_words)
     
-            fg = render(l, m, n, c_words, f_words, e_words, v_words, h_words)
+            fg = render(l, m, n, c_words, f_words, e_words, v_words, h_words, stem=stem)
             cvs.append(fg)
             cvs.show_page()
         name = "images/%s_%.2d_%d.pdf"%(stem, count, len(H))
