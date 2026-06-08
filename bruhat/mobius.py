@@ -50,7 +50,7 @@ def d_poincare(z):
     return ds
 
 
-class Mobius(object):
+class Mobius:
     """ 
     Warning: these matrices are in GL(2) not PGL(2) so they
     act projectively on the Disc, etc.
@@ -91,6 +91,8 @@ class Mobius(object):
         [[a b]  * [[a b]
          [c d]]    [c d]]
         """
+        if not isinstance(h, Mobius):
+            return NotImplemented
         # See ref. [3], page 45
         conjugate = (g.conjugate != h.conjugate)
         if g.conjugate == False:
@@ -212,11 +214,23 @@ class Mobius(object):
         a, b, c, d = (self.a, self.b, self.c, self.d)
         return abs(self.det - 1.) < EPSILON and not self.conjugate
 
-    def is_su(self):
+    def dump_su(self):
         a, b, c, d = (self.a, self.b, self.c, self.d)
         # u, v, v*, u*
-        return abs(complex(d).conjugate() - a) < EPSILON and \
-            abs(complex(c).conjugate() - b) < EPSILON and not self.conjugate
+        print("dump_su")
+        print(not self.conjugate)
+        print(abs(complex(d).conjugate() - a) ,"<", EPSILON)
+        print(abs(complex(c).conjugate() - b) ,"<", EPSILON)
+        print(abs(abs(a)**2 - abs(b)**2 - 1) ,"<", EPSILON)
+
+    def is_su(self):
+        "this SU(2) is the group that preserves the unit disc"
+        a, b, c, d = (self.a, self.b, self.c, self.d)
+        # u, v, v*, u*
+        return (not self.conjugate and 
+            abs(complex(d).conjugate() - a) < EPSILON and 
+            abs(complex(c).conjugate() - b) < EPSILON and 
+            abs(abs(a)**2 - abs(b)**2 - 1) < EPSILON)
 
     @classmethod
     def _send(cls, p, q, r):
@@ -349,7 +363,7 @@ def mktriangle(a, b, c):
     return [ga, gb]
 
 
-class Generator(object):
+class Generator:
     def __init__(self, gen, verbose=False, maxsize=None):
         tree = kdtree.create(dimensions=Mobius.REAL_DIMS)
         self.tree = tree
