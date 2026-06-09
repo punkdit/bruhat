@@ -2,13 +2,18 @@
 
 """
 
+See:
+"An Introduction to the McKay Correspondence
+Master Thesis in Physics"
+Max Lindh
+
 """
 
 import sys
 from random import randint, seed, choice, random
 from functools import reduce, cache
 from operator import mul
-from math import pi
+from cmath import pi, exp
 
 import numpy
 
@@ -39,41 +44,62 @@ eq = lambda z0, z1: abs(complex(z0-z1)) < EPSILON
 infty = None
 I = Mobius()
 
-class Circle:
-    """ A circle (or line) in the complex plane defined by three points.
-    """ 
+def zpromote(z):
+    return complex(z) if z is not None else z
+
+def zeq(z0, z1):
+    if z0==z1:
+        return True
+    if z0 is None or z1 is None:
+        return False
+    return abs(z0-z1)<EPSILON
+
+
+class Feature:
+    RADIUS = 4.0 
+
     def __init__(self, zs):
-        assert len(zs) == 3
-        zs = [complex(z) for z in zs]
-        a, b, c = zs
-        assert abs(a-b) > EPSILON, zs
-        assert abs(a-c) > EPSILON, zs
-        assert abs(b-c) > EPSILON, zs
+        if zs is None or isinstance(zs, (float, complex, int)):
+            zs = [zs]
+        zs = [zpromote(z) for z in zs]
         self.zs = zs
 
     def __str__(self):
-        return "Circle(%s)"%(self.zs,)
+        return "%s(%s)"%(self.__class__.__name__, self.zs,)
 
     def __rmul__(self, g):
         assert isinstance(g, Mobius)
         zs = [g(z) for z in self.zs]
-        return Circle(zs)
+        return self.__class__(zs)
 
-#    def gop(self, other):
-#        assert isinstance(other, Circle)
-#        m = Mobius.send(*self.zs, *other.zs)
-#        a = Mobius.send(*self.zs, 1, 1j, -1)
-#        g = a*m*(~a)
-#        return g
 
-    def failed_eq(self, other):
-        assert isinstance(other, Circle)
-        m = Mobius.send(*self.zs, *other.zs)
-        a = Mobius.send(*self.zs, 1, 1j, -1)
-        g = a*m*(~a)
-        return g.is_su() # nope
+class Point(Feature):
+    def __eq__(self, other):
+        assert isinstance(other, Point)
+        z0, z1 = self.zs[0], other.zs[0]
+        return zeq(z0, z1)
+        
+    def render(self, cvs, radius, st):
+        z = self.zs[0]
+        if z is None:
+            pass # ?
+        else:
+            cvs.fill(path.circle(z.real, z.imag, radius), st)
+
+
+class Circle(Feature):
+    """ A circle (or line) in the complex plane defined by three points.
+    """ 
+    def __init__(self, zs):
+        assert len(zs) == 3
+        Feature.__init__(self, zs)
+        a, b, c = self.zs
+        assert not zeq(a, b)
+        assert not zeq(a, c)
+        assert not zeq(b, c)
 
     def __eq__(self, other):
+        assert isinstance(other, Circle)
         l, r = self.is_colinear(), other.is_colinear()
         if l and r:
             a, b, c = self.zs
@@ -128,7 +154,9 @@ class Circle:
             a, b, c = self.zs
             dz = b-a
             dz = dz/metric(dz)
-            z0, z1 = a-100*dz, a+100*dz
+            #z0, z1 = a-100*dz, a+100*dz
+            # XXX check we go through zero XXX
+            z0, z1 = -self.RADIUS*dz, self.RADIUS*dz
             p = path.line(z0.real, z0.imag, z1.real, z1.imag)
         
         else:
@@ -141,7 +169,71 @@ class Circle:
             cvs.stroke(p, st_stroke)
 
 
+def get_BT():
+    # Binary tetrahedral group (see Lindh p32)
+    r2 = 2**0.5
+    r3 = 3**0.5
+    i = 1j
+    a = Mobius((1+i*r3)/2, 0, 0, (1-i*r3)/2)
+    assert a.order() == 6
+    s = 2*r3
+    b = Mobius((r3-i)/s, (-i*2*r2)/s, (-i*2*r2)/s, (r3+i)/s)
+    assert b.order() == 6
 
+    G = mulclose([a,b])
+    assert len(G) == 24
+    print("get_BT:", len(G))
+    return G
+
+
+def get_BO():
+    # Binary octahedral group (Lindh p34)
+    r2 = 2**0.5
+    i = 1j
+    a = Mobius((1+i)/r2, 0, 0, (1-i)/r2)
+    b = Mobius(1/r2, -i/r2, -i/r2, 1/r2)
+    G = mulclose([a,b])
+    assert len(G) == 48
+    print("get_BO:", len(G))
+    return G
+
+
+def get_BD():
+    # Binary dodecahedral group
+    i = 1j
+    e = exp(i*pi/5)
+    r5 = 5**0.5
+
+    a = Mobius(e, 0, 0, e**9)
+    b = Mobius(
+        (5*(e-e**4)-r5*(e+e**4))/10,
+        -2*r5*(e+e**4)/10, 
+        -2*r5*(e+e**4)/10, 
+        (5*(e-e**4)+r5*(e+e**4))/10,
+    )
+
+    G = mulclose([a,b])
+    assert len(G) == 120
+    print("get_BD:", len(G))
+    return G
+
+
+def get_orbit(G, item):
+    found = []
+    for g in G:
+        gtem = g*item
+        if gtem not in found:
+            found.append(gtem)
+    return found
+
+def unique(items):
+    found = []
+    for item in items:
+        if item not in found:
+            found.append(item)
+    return found
+
+    
 def test():
 
     a = Mobius.rotate(2*pi/6)
@@ -175,55 +267,29 @@ def test():
             r1 = metric(z, z0)
             assert r is None or abs(r-r1) < EPSILON
 
-    # Binary octahedral group (see Lindh p32)
-    r2 = 2**0.5
-    r3 = 3**0.5
-    i = 1j
-    a = Mobius((1+i*r3)/2, 0, 0, (1-i*r3)/2)
-    assert a.order() == 6
-    s = 2*r3
-    b = Mobius((r3-i)/s, (-i*2*r2)/s, (-i*2*r2)/s, (r3+i)/s)
-    assert b.order() == 6
 
-    G = mulclose([a,b])
-    assert len(G) == 24
+def render():
 
-    R = 4.
-    cvs = Canvas()
+    scale = 3.0
+    radius = 0.06
+
+    G = get_BT()
+
+    R = Feature.RADIUS
+    cvs = Canvas().scale(scale)
     p = path.circle(0, 0, R)
     cvs.stroke(p, [green])
+    cvs.stroke(path.circle(0,0,1.1*R), [white])
     cvs.clip(p)
     
+    cl = 0.6*white
     #c = Circle([rnd() for i in range(3)])
     c = Circle([0, 1, 2])
-    found = []
-    for g in G:
-        pts = g.fixed()
-        gc = g*c
-        if gc in found:
-            continue
-        #d = Circle([z+0.04*random() for z in gc.zs])
-        gc.render(cvs, [black.alpha(0.2)]+st_THick)
-        if not gc.is_colinear():
-            z0 = gc.get_center()
-            r0 = gc.get_radius()
-            for other in found:
-                if other.is_colinear():
-                    continue
-                z1 = other.get_center()
-                r1 = other.get_radius()
-                if abs(z0-z1)<EPSILON and abs(r0-r1)<EPSILON:
-                    print(gc)
-                    print(other)
-                    gop = gc.gop(other)
-                    print(gop, gop.is_su())
-                    gop.dump_su()
-                    assert 0
-            
-        found.append(gc)
-    print(len(found), len(G))
+    orbit = get_orbit(G, c)
+    for item in orbit:
+        item.render(cvs, [cl]+st_THick)
 
-    for c in found:
+    for c in orbit:
         if c.is_colinear():
             continue
         z0 = c.get_center()
@@ -231,16 +297,120 @@ def test():
             r = c.get_radius()
             z_blue = z0+r
 
-    for z0,cl in [(infty,green), (0, red), (z_blue, blue)]:
-        for g in G:
-            z = g(z0)
-            if z is not infty:
-                cvs.fill(path.circle(z.real, z.imag, 0.05), [cl])
-    print()
+    for point,cl in [(Point(infty),green), (Point(0), red), (Point(z_blue), blue)]:
+        orbit = get_orbit(G, point)
+        print("orbit:", len(orbit))
+        for point in orbit:
+            point.render(cvs, radius, [cl])
 
     #for g in G:
     #    z = g(0.2 + 0.1j)
     #    cvs.text(z.real, z.imag, r"$\star$", st_center)
+
+    # -----------------------------------------------------
+
+    cvs = Canvas([cvs]).show_page().scale(scale)
+
+    G = get_BO()
+    p = path.circle(0, 0, R)
+    cvs.stroke(p, [green])
+    cvs.stroke(path.circle(0,0,1.1*R), [white])
+    cvs.clip(p)
+    
+    diag = lambda x:x+x*1j
+
+    c0 = Circle([diag(x) for x in [0.5, 1.1, 2]])
+    c1 = Circle([0.5, 1.1, 2])
+
+    orbit = get_orbit(G, c0) + get_orbit(G, c1)
+    print("orbit:", len(orbit))
+    cl = 0.6*white
+    for item in orbit:
+        item.render(cvs, [cl]+st_THick)
+        if item.is_colinear():
+            continue
+        z = item.get_center()
+        if abs(z.imag) < EPSILON and z.real < -EPSILON:
+            r = item.get_radius()
+            z_blue = z-r
+        #if abs(z.real) < EPSILON and z.imag > EPSILON:
+        #    item.render(cvs, [red]+st_THick)
+
+    for g in G:
+        pts = g.fixed()
+        a, b = pts
+        if abs(a.real-a.imag) < EPSILON and EPSILON<a.real<0.5:
+            #Point([a]).render(cvs, radius, [red])
+            z_red = a
+
+    orbit = get_orbit(G, Point([0]))
+    for item in orbit:
+        item.render(cvs, radius, [green])
+
+    orbit = get_orbit(G, Point([z_blue]))
+    for item in orbit:
+        item.render(cvs, radius, [blue])
+
+    orbit = get_orbit(G, Point([z_red]))
+    for item in orbit:
+        item.render(cvs, radius, [red])
+
+    # -----------------------------------------------------
+    # -----------------------------------------------------
+
+    cvs = Canvas([cvs]).show_page().scale(scale)
+
+    G = get_BD()
+    p = path.circle(0, 0, R)
+    cvs.stroke(p, [green])
+    cvs.stroke(path.circle(0,0,1.1*R), [white])
+    cvs.clip(p)
+    
+    diag = lambda x:x+x*1j
+
+    c = Circle([0.5, 1.1, 2])
+
+    orbit = get_orbit(G, c)
+    print("orbit:", len(orbit))
+    cl = 0.6*white
+    for item in orbit:
+        item.render(cvs, [cl]+st_THick)
+
+    items = []
+    for g in G:
+        #(g*p).render(cvs, radius, [black])
+        pts = g.fixed()
+        a, b = pts
+        items.append(Point([a]))
+        items.append(Point([b]))
+        #Point([a]).render(cvs, radius, [green])
+        #Point([b]).render(cvs, radius, [green])
+
+    found = unique(items)
+
+    orbit = get_orbit(G, Point([0]))
+    for item in orbit:
+        item.render(cvs, radius, [green])
+        if item in found:
+            found.remove(item)
+
+    print(len(found))
+    for item in found:
+        z = item.zs[0]
+        if z.real>2 and abs(z.imag)<EPSILON:
+            #item.render(cvs, radius, [red])
+            z_blue = z
+        if z.real< -2 and abs(z.imag)<EPSILON:
+            #item.render(cvs, radius, [red])
+            z_red = z
+
+    orbit = get_orbit(G, Point([z_blue]))
+    for item in orbit:
+        item.render(cvs, radius, [blue])
+
+    orbit = get_orbit(G, Point([z_red]))
+    for item in orbit:
+        item.render(cvs, radius, [red])
 
     cvs.writePDFfile("Circles.pdf")
 
