@@ -23,11 +23,11 @@ from bruhat.mobius import Mobius, mulclose, EPSILON
 try:
     from huygens.namespace import *
     
-    #from huygens import config
-    #config(text="pdflatex", latex_header=r"""
-    #\usepackage{amsmath}
-    #\usepackage{amssymb}
-    #""")
+    from huygens import config
+    config(text="pdflatex", latex_header=r"""
+    \usepackage{amsmath}
+    \usepackage{amssymb}
+    """)
 except:
     print("huygens not found")
 
@@ -237,6 +237,10 @@ def test():
             if z is not infty:
                 cvs.fill(path.circle(z.real, z.imag, 0.05), [cl])
     print()
+
+    #for g in G:
+    #    z = g(0.2 + 0.1j)
+    #    cvs.text(z.real, z.imag, r"$\star$", st_center)
 
     cvs.writePDFfile("Circles.pdf")
 
