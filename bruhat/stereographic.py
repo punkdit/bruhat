@@ -2,10 +2,15 @@
 
 """
 
+Render circles and lines under Mobius group actions.
+
 See:
 "An Introduction to the McKay Correspondence
 Master Thesis in Physics"
 Max Lindh
+
+TODO: 
+shade regions bounded by arc and lines.
 
 """
 
