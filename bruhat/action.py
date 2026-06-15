@@ -1886,6 +1886,7 @@ def main():
 
     elif argv.alternating or argv.alt:
         G = Group.alternating(items, check=True)
+        print(G)
         assert len(G.components()) == 1
 
     elif argv.A_2:

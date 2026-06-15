@@ -56,7 +56,7 @@ else:
 debug = argv.get("debug", False)
 
 
-class Cone(object):
+class Cone:
     def __init__(self, apex, legs, contra=False):
         self.apex = apex
         self.legs = list(legs)
@@ -73,7 +73,7 @@ class Cone(object):
 
 
 
-class Perm(object):
+class Perm:
 
     def __init__(self, perm):
         assert isinstance(perm, (list, tuple, numpy.ndarray))
@@ -278,7 +278,7 @@ def compose(f, g):
     return [f[gi] for gi in g]
 
 
-class Coset(object):
+class Coset:
     def __init__(self, perms):
         perms = list(perms)
         perms.sort() # yes !
@@ -316,6 +316,7 @@ class Coset(object):
         assert g.rank == self.rank
         perms = [g*h for h in self]
         return Coset(perms)
+    __rmul__ = left_mul
 
     def left_mul_perm(self, g):
         assert g.rank == self.rank
@@ -327,13 +328,14 @@ class Coset(object):
         assert g.rank == self.rank
         perms = [h*g for h in self]
         return Coset(perms)
+    __mul__ = right_mul
 
     def intersect(self, other):
         perms = set(self.perms).intersection(set(other.perms))
         return Coset(perms)
 
 
-class Group(object):
+class Group:
     """
         A concrete group of permutations masquerading as an abstract group.
         This gets confusing once we start constructing GSet's below as
@@ -1174,7 +1176,7 @@ def cayley(elements):
 
 
 
-class GSet(object):
+class GSet:
     """
         A morphism of concrete groups.
         This is (also) a GSet, where the src is G.
@@ -1436,7 +1438,7 @@ class GSet(object):
 
 
 
-class Hom(object):
+class Hom:
     """
         A morphism of GSet's.
     """
@@ -1507,7 +1509,7 @@ class Hom(object):
 
 
 
-class Simplicial(object):
+class Simplicial:
     """
         A simplicial object in some category
     """
