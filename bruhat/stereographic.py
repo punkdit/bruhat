@@ -15,7 +15,7 @@ shade regions bounded by arc and lines.
 """
 
 import sys
-from random import randint, seed, choice, random
+from random import randint, seed, choice, random, shuffle
 from functools import reduce, cache
 from operator import mul
 from cmath import pi, exp
@@ -29,13 +29,14 @@ from bruhat.argv import argv
 
 from bruhat.todd_coxeter import Schreier
 from bruhat.mobius import Mobius, mulclose, EPSILON
-from bruhat.disc import get_pos_angle
+from bruhat.disc import get_pos_angle, get_angle
 
 
 try:
     from huygens.namespace import (
-        Canvas, red, green, blue, grey, black, white, path,
-        st_THick, st_center, 
+        Canvas, Scale, MoveTo,
+        red, green, blue, grey, black, white, orange,
+        path, st_THick, st_center, 
         arc_to_bezier,)
     
     from huygens import config
@@ -81,6 +82,12 @@ class Feature:
         assert isinstance(g, Mobius)
         zs = [g(z) for z in self.zs]
         return self.__class__(zs)
+
+    def __eq__(self, other):
+        for z,w in zip(self.zs, other.zs):
+            if not zeq(z,w):
+                return False
+        return True
 
 
 class Point(Feature):
@@ -193,8 +200,16 @@ class Arc(Circle):
         # FIX FIX TODO TODO FIX FIX
         return (zeq(self.zs[0], other.zs[0]) and zeq(self.zs[2], other.zs[2])
         or zeq(self.zs[0], other.zs[2]) and zeq(self.zs[2], other.zs[0])) # no ...
-        
-    def render(self, cvs, st_stroke=[], st_fill=None, debug=False):
+
+    @property
+    def src(self):
+        return self.zs[0]
+
+    @property
+    def tgt(self):
+        return self.zs[2]
+
+    def get_path(self):
         zs = self.zs
         if None in zs:
             # arc to infty
@@ -203,39 +218,100 @@ class Arc(Circle):
             z0 = zs[0] if zs[0] is not None else zs[2] # start here
             z1 = z0*Feature.RADIUS/abs(z0) # infty is here
             p = path.line(z0.real, z0.imag, z1.real, z1.imag)
-            cvs.stroke(p, st_stroke)
-            return # <---------------- return
 
-        if self.is_colinear():
+        elif self.is_colinear():
             z0, _, z1 = self.zs
             p = path.line(z0.real, z0.imag, z1.real, z1.imag)
-            cvs.stroke(p, st_stroke)
-            return # <---------------- return
 
-        zc = self.get_center()
-        r = self.get_radius()
-        assert r>EPSILON
-        xc, yc = zc.real, zc.imag
-        z0, z1, z2 = self.zs
-        dz0, dz1, dz2 = [z-zc for z in self.zs]
-        dz0, dz1, dz2 = [1, dz1/dz0, dz2/dz0]
-        if get_pos_angle(dz1) > get_pos_angle(dz2):
-            #print("swap")
-            z0, z2 = z2, z0
-        theta0 = get_pos_angle(z0-zc)
-        theta1 = get_pos_angle(z1-zc)
-        theta2 = get_pos_angle(z2-zc)
-        #print(theta0, theta1, theta2)
-        p = arc_to_bezier(xc, yc, r, theta0, theta2)
+        else:
+            zc = self.get_center()
+            r = self.get_radius()
+            assert r>EPSILON
+            xc, yc = zc.real, zc.imag
+            z0, z1, z2 = self.zs
+            dz0, dz1, dz2 = [z-zc for z in self.zs]
+            dz0, dz1, dz2 = [1, dz1/dz0, dz2/dz0]
+            swap = get_pos_angle(dz1) > get_pos_angle(dz2)
+            if swap:
+                z0, z2 = z2, z0
+            theta0 = get_pos_angle(z0-zc)
+            theta1 = get_pos_angle(z1-zc)
+            theta2 = get_pos_angle(z2-zc)
+            #print(theta0, theta1, theta2)
+            p = arc_to_bezier(xc, yc, r, theta0, theta2, relative=False)
+            if swap:
+                p = p.backwards()
+
+        return p
+        
+    def render(self, cvs, st_stroke=[], st_fill=None, debug=False):
+        p = self.get_path()
         cvs.stroke(p, st_stroke)
 
         if debug:
             for z,c in zip(self.zs, [red, blue, green]):
                 cvs.fill(path.circle(z.real, z.imag, 0.05), [c])
 
+class Triangle(Feature):
+    def __init__(self, zs):
+        Feature.__init__(self, zs)
+        assert len(zs) == 6
+        p0, m0, p1, m1, p2, m2 = zs
+        arcs = [
+            Arc([p0, m0, p1]),
+            Arc([p1, m1, p2]),
+            Arc([p2, m2, p0])]
+        self.arcs = arcs
+
+    def get_center(self):
+        assert None not in self.zs, "TODO"
+        p0, m0, p1, m1, p2, m2 = self.zs
+        z = (p0+p1+p2)/3
+        return z
+
+    def is_clockwise(self): # or is it anti-clockwise ?
+        assert None not in self.zs, "TODO"
+        zc = self.get_center()
+        z0, z1 = self.zs[:2]
+        return get_angle((z1-zc)/(z0-zc)) > 0.
+
+    def render(self, cvs, st_stroke=None, st_fill=None, lbl=None, err=0.00, debug=False):
+        if None in self.zs:
+            assert self.zs.count(None)==1
+            assert self.zs[4] is None
+            print("skip")
+        #    return
+
+        ps = [arc.get_path() for arc in self.arcs]
+        p0, p1, p2 = ps
+        #p = p0 + p1 + p2
+
+        items = list(p0.items)
+        for p in [p1, p2]:
+            jtems = list(p.items)
+            if isinstance(jtems[0], MoveTo):
+                jtems.pop(0)
+            items += jtems
+        p = path.path(items)
+        #print(items)
+
+        #print("is_clockwise", self.is_clockwise())
+        if lbl is not None:
+            zc = self.get_center()
+            cvs.text(zc.real+err*random(), zc.imag+err*random(), lbl, [Scale(0.5)]+st_center)
+        #if not self.is_clockwise():
+        #    #return
+        #if self.is_clockwise():
+        #    return
+
+        if st_fill is not None:
+            cvs.fill(p, st_fill)
+        if st_stroke is not None:
+            cvs.stroke(p, st_stroke)
 
 
-def get_BT():
+
+def get_BT(refl=False):
     # Binary tetrahedral group (see Lindh p32)
     r2 = 2**0.5
     r3 = 3**0.5
@@ -246,8 +322,13 @@ def get_BT():
     b = Mobius((r3-i)/s, (-i*2*r2)/s, (-i*2*r2)/s, (r3+i)/s)
     assert b.order() == 6
 
-    G = mulclose([a,b])
-    assert len(G) == 24
+    gen = [a,b]
+    if refl:
+        c = Mobius(1, 0, 0, 1, True) # conjugate
+        gen = [a, b, c]
+
+    G = mulclose(gen)
+    assert len(G) == 48 if refl else 24
     print("get_BT:", len(G))
     return G
 
@@ -521,13 +602,49 @@ def test_arc():
     z_blue = z_green - (z_blue-z_green)
     bg_item = Arc([z_blue, 2*z_blue, infty])
 
-    G = get_BT()
+    G = get_BT(True)
 
-    for item in [rb_item, rg_item, bg_item]:
-        found = unique([g*item for g in G])
-        print("found:", len(found))
-        for item in found:
-            item.render(cvs, [grey]+st_THick, debug=False)
+#    for item in [rb_item, rg_item, bg_item]:
+#        found = unique([g*item for g in G])
+#        print("found:", len(found))
+#        for item in found:
+#            item.render(cvs, [grey]+st_THick, debug=False)
+
+    st = [grey]+st_THick
+
+    for g in G:
+        item = g*bg_item
+        if zeq(item.src, rb_item.tgt) and item.tgt.imag > 0:
+            bg_item = item
+            break
+
+    z_green = bg_item.tgt
+    rg_item = Arc([z_red, z_green/2, z_green])
+
+    #rb_item.render(cvs, st)
+    #bg_item.render(cvs, st)
+    #rg_item.render(cvs, st)
+
+    item = Triangle([
+        rb_item.zs[0], rb_item.zs[1], 
+        bg_item.zs[0], bg_item.zs[1], 
+        rg_item.zs[2], rg_item.zs[1], 
+    ])
+    assert item == item
+    g = Mobius(-1, 0, 0, -1)
+    gtem = g*item
+    assert gtem == item
+
+
+    found = unique([g*item for g in G])
+    #shuffle(found)
+    for item in found:
+        item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
+        #for arc in item.arcs[0:]:
+        #    print(arc.get_path())
+        #    #arc.render(cvs, st)
+        #break
+    print("found:", len(found))
 
     cvs.writePDFfile("test_arc.pdf")
 
