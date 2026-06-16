@@ -631,6 +631,73 @@ def get_hecke():
 
     # 
 
+def leech_orbits():
+    gen = m24_gen()
+
+    print(table)
+    print(coords)
+
+    def convert(u):
+        # switch from MOG coordinates to M24 coordinates
+        v = [None]*24
+        for ii,i in enumerate(table):
+            v[i] = u[ii]
+        v = tuple(v)
+        return v
+
+    def get_orbit(v):
+        orbit = {v}
+        bdy = [v]
+        while bdy:
+            _bdy = []
+            for v in bdy:
+              for g in gen:
+                u = g*v
+                if u in orbit:
+                    continue
+                _bdy.append(u)
+                orbit.add(u)
+            bdy = _bdy
+            print("%s:%s "%(len(orbit), len(bdy)), end="", flush=True)
+        print()
+        return orbit
+
+    N = 244823040 # order of M24
+
+    # Conway & Sloane p487
+    u = (
+        -2, 2, 4, 0, 0, 0,
+         2, 2, 0, 0, 0, 0,
+         2, 2, 0, 0, 0, 0,
+         2, 2, 0, 0, 0, 0)
+
+    orbit = get_orbit(convert(u))
+    assert N%len(orbit) == 0
+    assert len(orbit) == 97152 # stabilizer == A7
+
+    if 0:
+        # A_3^8 hole
+        c = (
+            -1, 1, 2, 0, 2, 0,
+             1, 1, 0, 0, 0, 0,
+             1, 1, 0, 0, 0, 0,
+             1, 1, 0, 0, 0, 0)
+        orbit = get_orbit(convert(c))
+        assert N%len(orbit) == 0
+        print(len(orbit), N//len(orbit)) # 2.GL(3,F_2)
+
+        # A_4^6 hole
+        c = (
+            4, 4, 2, 6, 6, 6,
+            8, 4, 2, 2, 2, 2,
+            4, 4, 6, 2, 2, 2,
+            4, 4, 6, 2, 2, 2)
+        orbit = get_orbit(convert(c))
+        assert N%len(orbit) == 0
+        print(len(orbit), N//len(orbit)) # 12241152 20
+    
+
+
 def from_gapstr(s, n):
     items = list(range(n))
     flds = s.replace("(", " ").replace(")", "")
