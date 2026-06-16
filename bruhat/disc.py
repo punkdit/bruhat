@@ -19,12 +19,24 @@ from huygens.namespace import *
 from bruhat.mobius import Mobius, mktriangle, mulclose, d_poincare
 
 def get_angle(z):
+    "-pi<=theta<=pi with branch cut along z=-1"
     z = complex(z)
     r = (z*z.conjugate())**0.5
     assert abs(r) > EPSILON
     z /= r
     theta = cmath.log(z).imag
     return theta
+
+
+def get_pos_angle(z):
+    "0<=theta<=2*pi with branch cut along z=+1"
+    theta = get_angle(z)
+    if theta < 0.:
+        theta += 2*pi
+    return theta
+
+
+
 
 
 class Geodesic(object):

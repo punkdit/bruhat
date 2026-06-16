@@ -19,6 +19,7 @@ from random import randint, seed, choice, random
 from functools import reduce, cache
 from operator import mul
 from cmath import pi, exp
+from math import atan
 
 import numpy
 
@@ -28,10 +29,14 @@ from bruhat.argv import argv
 
 from bruhat.todd_coxeter import Schreier
 from bruhat.mobius import Mobius, mulclose, EPSILON
+from bruhat.disc import get_pos_angle
 
 
 try:
-    from huygens.namespace import *
+    from huygens.namespace import (
+        Canvas, red, green, blue, grey, black, white, path,
+        st_THick, st_center, 
+        arc_to_bezier,)
     
     from huygens import config
     config(text="pdflatex", latex_header=r"""
@@ -39,7 +44,7 @@ try:
     \usepackage{amssymb}
     """)
 except:
-    print("huygens not found")
+    print("\n\nWARNING: huygens not found\n\n")
 
 
 rnd = lambda r=1: (1-2*random())*r + (1-2*random())*r*1j
@@ -130,6 +135,8 @@ class Circle(Feature):
             return False
 
     def is_colinear(self):
+        if None in self.zs:
+            return True
         a, b, c = self.zs
         a, b = a-c, b-c
         ab = a/b
@@ -172,6 +179,60 @@ class Circle(Feature):
             cvs.fill(p, st_fill)
         if st_stroke is not None:
             cvs.stroke(p, st_stroke)
+
+
+_det = lambda a,b,c,d:a*d-b*c
+det = lambda z,w:_det(z.real, z.imag, w.real, w.imag)
+
+class Arc(Circle):
+    "directed arc of a circle defined by three points: start, (random) middle, end"
+    def __eq__(self, other):
+        assert isinstance(other, Arc)
+        if not Circle.__eq__(self, other):
+            return False
+        # FIX FIX TODO TODO FIX FIX
+        return (zeq(self.zs[0], other.zs[0]) and zeq(self.zs[2], other.zs[2])
+        or zeq(self.zs[0], other.zs[2]) and zeq(self.zs[2], other.zs[0])) # no ...
+        
+    def render(self, cvs, st_stroke=[], st_fill=None, debug=False):
+        zs = self.zs
+        if None in zs:
+            # arc to infty
+            assert zs.count(None)==1, zs
+            assert zs[1] is not None, zs # ouch: "middle" should not be infty !?!
+            z0 = zs[0] if zs[0] is not None else zs[2] # start here
+            z1 = z0*Feature.RADIUS/abs(z0) # infty is here
+            p = path.line(z0.real, z0.imag, z1.real, z1.imag)
+            cvs.stroke(p, st_stroke)
+            return # <---------------- return
+
+        if self.is_colinear():
+            z0, _, z1 = self.zs
+            p = path.line(z0.real, z0.imag, z1.real, z1.imag)
+            cvs.stroke(p, st_stroke)
+            return # <---------------- return
+
+        zc = self.get_center()
+        r = self.get_radius()
+        assert r>EPSILON
+        xc, yc = zc.real, zc.imag
+        z0, z1, z2 = self.zs
+        dz0, dz1, dz2 = [z-zc for z in self.zs]
+        dz0, dz1, dz2 = [1, dz1/dz0, dz2/dz0]
+        if get_pos_angle(dz1) > get_pos_angle(dz2):
+            #print("swap")
+            z0, z2 = z2, z0
+        theta0 = get_pos_angle(z0-zc)
+        theta1 = get_pos_angle(z1-zc)
+        theta2 = get_pos_angle(z2-zc)
+        #print(theta0, theta1, theta2)
+        p = arc_to_bezier(xc, yc, r, theta0, theta2)
+        cvs.stroke(p, st_stroke)
+
+        if debug:
+            for z,c in zip(self.zs, [red, blue, green]):
+                cvs.fill(path.circle(z.real, z.imag, 0.05), [c])
+
 
 
 def get_BT():
@@ -302,6 +363,18 @@ def render():
             r = c.get_radius()
             z_blue = z0+r
 
+    #print("z_blue:", z_blue.real)
+    #return
+
+#    z = Point(infty)
+#    for g in G:
+#        z1 = (g*z).zs[0]
+#        if z1 is None:
+#            continue
+#        if abs(z1.imag) < EPSILON and z1.real < 0:
+#            print("green:", z1.real**2)
+#    return
+
     for point,cl in [(Point(infty),green), (Point(0), red), (Point(z_blue), blue)]:
         orbit = get_orbit(G, point)
         print("orbit:", len(orbit))
@@ -420,6 +493,43 @@ def render():
     cvs.writePDFfile("Circles.pdf")
 
 
+def test_arc():
+
+    scale = 3.0
+    radius = 0.06
+
+    R = Feature.RADIUS
+    cvs = Canvas().scale(scale)
+    p = path.circle(0, 0, R)
+    cvs.stroke(p, [green])
+    cvs.stroke(path.circle(0,0,1.1*R), [white])
+    cvs.clip(p)
+
+    i = 1j
+    item = Arc([0, i, 1+i])
+    #item = Arc([i+1, i, 0])
+    #item = Arc([1, -1, -i])
+    #item.render(cvs, [black], debug=True)
+
+    z_red = 0.0
+    z_blue = 0.5176380902050413
+    #z_green = (-1/2**0.5)*exp(4*pi*i/3)
+    z_green = (-1/2**0.5)
+
+    rb_item = Arc([z_red, z_blue/2, z_blue])
+    rg_item = Arc([z_red, z_green/2, z_green])
+    z_blue = z_green - (z_blue-z_green)
+    bg_item = Arc([z_blue, 2*z_blue, infty])
+
+    G = get_BT()
+
+    for item in [rb_item, rg_item, bg_item]:
+        found = unique([g*item for g in G])
+        print("found:", len(found))
+        for item in found:
+            item.render(cvs, [grey]+st_THick, debug=False)
+
+    cvs.writePDFfile("test_arc.pdf")
 
     
 
