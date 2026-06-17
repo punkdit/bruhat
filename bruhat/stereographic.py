@@ -32,20 +32,17 @@ from bruhat.mobius import Mobius, mulclose, EPSILON
 from bruhat.disc import get_pos_angle, get_angle
 
 
-try:
-    from huygens.namespace import (
-        Canvas, Scale, MoveTo,
-        red, green, blue, grey, black, white, orange,
-        path, st_THick, st_center, 
-        arc_to_bezier,)
-    
-    from huygens import config
-    config(text="pdflatex", latex_header=r"""
-    \usepackage{amsmath}
-    \usepackage{amssymb}
-    """)
-except:
-    print("\n\nWARNING: huygens not found\n\n")
+from huygens.namespace import (
+    Canvas, Scale, MoveTo, LineTo,
+    red, green, blue, grey, black, white, orange,
+    path, st_THick, st_center, )
+from huygens.back import arc_to_bezier, _arc_to_bezier
+
+from huygens import config
+config(text="pdflatex", latex_header=r"""
+\usepackage{amsmath}
+\usepackage{amssymb}
+""")
 
 
 rnd = lambda r=1: (1-2*random())*r + (1-2*random())*r*1j
@@ -215,12 +212,15 @@ class Arc(Circle):
             # arc to infty
             assert zs.count(None)==1, zs
             assert zs[1] is not None, zs # ouch: "middle" should not be infty !?!
-            z0 = zs[0] if zs[0] is not None else zs[2] # start here
-            z1 = z0*Feature.RADIUS/abs(z0) # infty is here
-            p = path.line(z0.real, z0.imag, z1.real, z1.imag)
+            z0, z1, z2 = zs
+            z1 = z1*Feature.RADIUS/abs(z1)
+            if z0 is None:
+                p = path.line(z1.real, z1.imag, z2.real, z2.imag)
+            elif z2 is None:
+                p = path.line(z0.real, z0.imag, z1.real, z1.imag)
 
         elif self.is_colinear():
-            z0, _, z1 = self.zs
+            z0, _, z1 = zs
             p = path.line(z0.real, z0.imag, z1.real, z1.imag)
 
         else:
@@ -228,7 +228,7 @@ class Arc(Circle):
             r = self.get_radius()
             assert r>EPSILON
             xc, yc = zc.real, zc.imag
-            z0, z1, z2 = self.zs
+            z0, z1, z2 = zs
             dz0, dz1, dz2 = [z-zc for z in self.zs]
             dz0, dz1, dz2 = [1, dz1/dz0, dz2/dz0]
             swap = get_pos_angle(dz1) > get_pos_angle(dz2)
@@ -239,8 +239,14 @@ class Arc(Circle):
             theta2 = get_pos_angle(z2-zc)
             #print(theta0, theta1, theta2)
             p = arc_to_bezier(xc, yc, r, theta0, theta2, relative=False)
+            #items = _arc_to_bezier(xc, yc, r, theta0, theta2, relative=False)
+            #p = path.path(items)
+            # HACK THIS ?!?
+            #items = [item for item in p.items if not isinstance(item, LineTo)]
+            #p = path.path(items)
             if swap:
                 p = p.backwards()
+                #print("backwards")
 
         return p
         
@@ -276,33 +282,34 @@ class Triangle(Feature):
         return get_angle((z1-zc)/(z0-zc)) > 0.
 
     def render(self, cvs, st_stroke=None, st_fill=None, lbl=None, err=0.00, debug=False):
-        if None in self.zs:
-            assert self.zs.count(None)==1
-            assert self.zs[4] is None
-            print("skip")
-        #    return
+        zs = self.zs
+        arcs = list(self.arcs)
+        skip = None in zs
+        if skip:
+            assert zs.count(None)==1
+            assert zs[4] is None, "i'm expecting the green here"
+            a, b, c = arcs
+            x0, y0 = b.get_path().getat(1)
+            x2, y2 = c.get_path().getat(0)
+            r = (x0**2 + y0**2)**0.5
+            x1, y1 = (x0+x2)*0.5, (y0+y2)*0.5
+            r1 = (x1**2 + y1**2)**0.5
+            x1 = r*x1/r1
+            y1 = r*y1/r1
+            arc = Arc([x0+y0*1j, x1+y1*1j, x2+y2*1j])
+            arcs.insert(2, arc)
 
-        ps = [arc.get_path() for arc in self.arcs]
-        p0, p1, p2 = ps
-        #p = p0 + p1 + p2
-
-        items = list(p0.items)
-        for p in [p1, p2]:
+        ps = [arc.get_path() for arc in arcs]
+        items = list(ps[0].items)
+        for p in ps[1:]:
             jtems = list(p.items)
             if isinstance(jtems[0], MoveTo):
                 jtems.pop(0)
             items += jtems
         p = path.path(items)
-        #print(items)
-
-        #print("is_clockwise", self.is_clockwise())
         if lbl is not None:
             zc = self.get_center()
             cvs.text(zc.real+err*random(), zc.imag+err*random(), lbl, [Scale(0.5)]+st_center)
-        #if not self.is_clockwise():
-        #    #return
-        #if self.is_clockwise():
-        #    return
 
         if st_fill is not None:
             cvs.fill(p, st_fill)
@@ -584,7 +591,7 @@ def test_arc():
     p = path.circle(0, 0, R)
     cvs.stroke(p, [green])
     cvs.stroke(path.circle(0,0,1.1*R), [white])
-    cvs.clip(p)
+#    cvs.clip(p)
 
     i = 1j
     item = Arc([0, i, 1+i])
@@ -635,15 +642,12 @@ def test_arc():
     gtem = g*item
     assert gtem == item
 
+    #item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
 
     found = unique([g*item for g in G])
     #shuffle(found)
     for item in found:
         item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
-        #for arc in item.arcs[0:]:
-        #    print(arc.get_path())
-        #    #arc.render(cvs, st)
-        #break
     print("found:", len(found))
 
     cvs.writePDFfile("test_arc.pdf")
