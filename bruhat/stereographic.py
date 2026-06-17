@@ -422,7 +422,7 @@ def test():
             assert r is None or abs(r-r1) < EPSILON
 
 
-def render():
+def render_stereo():
 
     scale = 3.0
     radius = 0.06
@@ -432,9 +432,9 @@ def render():
     R = Feature.RADIUS
     cvs = Canvas().scale(scale)
     p = path.circle(0, 0, R)
-    cvs.stroke(p, [green])
+    #cvs.stroke(p, [green])
     cvs.stroke(path.circle(0,0,1.1*R), [white])
-    cvs.clip(p)
+    #cvs.clip(p)
     
     cl = 0.6*white
     #c = Circle([rnd() for i in range(3)])
@@ -479,9 +479,9 @@ def render():
 
     G = get_BO()
     p = path.circle(0, 0, R)
-    cvs.stroke(p, [green])
+    #cvs.stroke(p, [green])
     cvs.stroke(path.circle(0,0,1.1*R), [white])
-    cvs.clip(p)
+    #cvs.clip(p)
     
     diag = lambda x:x+x*1j
 
@@ -528,9 +528,9 @@ def render():
 
     G = get_BD()
     p = path.circle(0, 0, R)
-    cvs.stroke(p, [green])
+    #cvs.stroke(p, [green])
     cvs.stroke(path.circle(0,0,1.1*R), [white])
-    cvs.clip(p)
+    #cvs.clip(p)
     
     diag = lambda x:x+x*1j
 
@@ -578,10 +578,10 @@ def render():
     for item in orbit:
         item.render(cvs, radius, [red])
 
-    cvs.writePDFfile("Circles.pdf")
+    cvs.writePDFfile("images/stereo_circles.pdf")
 
 
-def test_arc():
+def test_stereo():
 
     scale = 3.0
     radius = 0.06
@@ -635,7 +635,7 @@ def test_arc():
     item = Triangle([
         rb_item.zs[0], rb_item.zs[1], 
         bg_item.zs[0], bg_item.zs[1], 
-        rg_item.zs[2], rg_item.zs[1], 
+        rg_item.zs[2], rg_item.zs[1],  # reverse idx's
     ])
     assert item == item
     g = Mobius(-1, 0, 0, -1)
@@ -657,7 +657,7 @@ def test_arc():
             item.render(cvs, radius, [cl]+st_THick)
         print("found:", len(found))
 
-    cvs.writePDFfile("test_arc.pdf")
+    cvs.writePDFfile("images/stereo.pdf")
 
     
 
