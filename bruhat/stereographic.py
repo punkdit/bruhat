@@ -96,7 +96,7 @@ class Point(Feature):
     def render(self, cvs, radius, st):
         z = self.zs[0]
         if z is None:
-            pass # ?
+            cvs.stroke(path.circle(0, 0, Feature.RADIUS), st)
         else:
             cvs.fill(path.circle(z.real, z.imag, radius), st)
 
@@ -589,9 +589,9 @@ def test_arc():
     R = Feature.RADIUS
     cvs = Canvas().scale(scale)
     p = path.circle(0, 0, R)
-    cvs.stroke(p, [green])
+    #cvs.stroke(p, [green])
     cvs.stroke(path.circle(0,0,1.1*R), [white])
-#    cvs.clip(p)
+    cvs.clip(p)
 
     i = 1j
     item = Arc([0, i, 1+i])
@@ -609,7 +609,7 @@ def test_arc():
     z_blue = z_green - (z_blue-z_green)
     bg_item = Arc([z_blue, 2*z_blue, infty])
 
-    G = get_BT(True)
+    G = get_BT(False)
 
 #    for item in [rb_item, rg_item, bg_item]:
 #        found = unique([g*item for g in G])
@@ -649,6 +649,13 @@ def test_arc():
     for item in found:
         item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
     print("found:", len(found))
+
+    for z,cl in zip([z_green, z_blue, z_red], [green, blue, red]):
+        item = Point([z])
+        found = unique([g*item for g in G])
+        for item in found:
+            item.render(cvs, radius, [cl]+st_THick)
+        print("found:", len(found))
 
     cvs.writePDFfile("test_arc.pdf")
 
