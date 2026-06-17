@@ -74,6 +74,7 @@ class Feature:
 
     def __str__(self):
         return "%s(%s)"%(self.__class__.__name__, self.zs,)
+    __repr__ = __str__
 
     def __rmul__(self, g):
         assert isinstance(g, Mobius)
@@ -340,19 +341,23 @@ def get_BT(refl=False):
     return G
 
 
-def get_BO():
+def get_BO(refl=False):
     # Binary octahedral group (Lindh p34)
     r2 = 2**0.5
     i = 1j
     a = Mobius((1+i)/r2, 0, 0, (1-i)/r2)
     b = Mobius(1/r2, -i/r2, -i/r2, 1/r2)
-    G = mulclose([a,b])
-    assert len(G) == 48
+    gen = [a,b]
+    if refl:
+        c = Mobius(1, 0, 0, 1, True) # conjugate
+        gen = [a, b, c]
+    G = mulclose(gen)
+    assert len(G) == 96 if refl else 48 
     print("get_BO:", len(G))
     return G
 
 
-def get_BD():
+def get_BD(refl=False):
     # Binary dodecahedral group
     i = 1j
     e = exp(i*pi/5)
@@ -366,8 +371,12 @@ def get_BD():
         (5*(e-e**4)+r5*(e+e**4))/10,
     )
 
-    G = mulclose([a,b])
-    assert len(G) == 120
+    gen = [a,b]
+    if refl:
+        c = Mobius(1, 0, 0, 1, True) # conjugate
+        gen = [a, b, c]
+    G = mulclose(gen)
+    assert len(G) == 240 if refl else 120
     print("get_BD:", len(G))
     return G
 
@@ -570,6 +579,11 @@ def render_stereo():
             #item.render(cvs, radius, [red])
             z_red = z
 
+    #print("z_blue", z_blue)
+    #print("z_red", z_red)
+    #for z in [z_blue, z_red]:
+    #    cvs.stroke(path.circle(z.real, z.imag, 0.1))
+
     orbit = get_orbit(G, Point([z_blue]))
     for item in orbit:
         item.render(cvs, radius, [blue])
@@ -581,83 +595,172 @@ def render_stereo():
     cvs.writePDFfile("images/stereo_circles.pdf")
 
 
+#class Geometry:
+#    def __init__(self, G, z_red, z_blue, z_green):
+#        self.G = G
+#        self.z_red = z_red
+#        self.z_blue = z_blue
+#        self.z_green = z_green
+
+class Geometry:
+    def __init__(self, G, rb_arc, bg_arc, gr_arc):
+        #assert rb_arc.is_colinear()
+        #assert bg_arc.is_colinear()
+        #assert gr_arc.is_colinear()
+        z_red = rb_arc.src
+        z_blue = rb_arc.tgt
+        # make a Triangle:
+        for g in G:
+            item = g*bg_arc
+            if zeq(item.src, z_blue):
+                bg_arc = item
+                break
+        else:
+            assert 0
+        z_green = bg_arc.tgt
+        for g in G:
+            item = g*gr_arc
+            if zeq(item.src, z_green) and zeq(item.tgt, z_red):
+                gr_arc = item
+                break
+        else:
+            assert 0
+        assert zeq(gr_arc.tgt, z_red), (gr_arc, z_red)
+        self.G = G
+        self.rb_arc = rb_arc 
+        self.bg_arc = bg_arc
+        self.gr_arc = gr_arc
+        self.z_red = z_red
+        self.z_blue = z_blue
+        self.z_green = z_green
+
+    def get_cvs(self):
+        scale = 3.0
+
+        R = Feature.RADIUS
+        cvs = Canvas().scale(scale)
+        p = path.circle(0, 0, R)
+        #cvs.stroke(p, [green])
+        cvs.stroke(path.circle(0,0,1.1*R), [white])
+        cvs.clip(p)
+        return cvs
+
+    def render(self):
+        cvs = self.get_cvs()
+        G = self.G
+        rb_arc = self.rb_arc 
+        bg_arc = self.bg_arc
+        gr_arc = self.gr_arc
+        z_red = self.z_red
+        z_blue = self.z_blue
+        z_green = self.z_green
+        item = Triangle([
+            rb_arc.zs[0], rb_arc.zs[1], 
+            bg_arc.zs[0], bg_arc.zs[1], 
+            gr_arc.zs[0], gr_arc.zs[1],
+        ])
+    
+        found = unique([g*item for g in G if g.conjugate==False])
+        #shuffle(found)
+        for item in found:
+            item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
+        print("found:", len(found))
+    
+        radius = 0.06
+        for z,cl in zip([z_green, z_blue, z_red], [green, blue, red]):
+            item = Point([z])
+            found = unique([g*item for g in G])
+            for item in found:
+                item.render(cvs, radius, [cl]+st_THick)
+            print("found:", len(found))
+        return cvs
+
+
 def test_stereo():
 
-    scale = 3.0
-    radius = 0.06
+    render_stereo()
 
-    R = Feature.RADIUS
-    cvs = Canvas().scale(scale)
-    p = path.circle(0, 0, R)
-    #cvs.stroke(p, [green])
-    cvs.stroke(path.circle(0,0,1.1*R), [white])
-    cvs.clip(p)
+    cvs = Canvas()
 
-    i = 1j
-    item = Arc([0, i, 1+i])
-    #item = Arc([i+1, i, 0])
-    #item = Arc([1, -1, -i])
-    #item.render(cvs, [black], debug=True)
+    # ------------------------------------------------
+    # BT
 
     z_red = 0.0
-    z_blue = 0.5176380902050413
-    #z_green = (-1/2**0.5)*exp(4*pi*i/3)
+    z_blue = (2-3**0.5)**0.5
     z_green = (-1/2**0.5)
 
-    rb_item = Arc([z_red, z_blue/2, z_blue])
-    rg_item = Arc([z_red, z_green/2, z_green])
+    rb_arc = Arc([z_red, z_blue/2, z_blue])
+    gr_arc = Arc([z_green, z_green/2, z_red])
     z_blue = z_green - (z_blue-z_green)
-    bg_item = Arc([z_blue, 2*z_blue, infty])
+    bg_arc = Arc([z_blue, 2*z_blue, infty])
 
-    G = get_BT(False)
+    G = get_BT(True)
 
-#    for item in [rb_item, rg_item, bg_item]:
-#        found = unique([g*item for g in G])
-#        print("found:", len(found))
-#        for item in found:
-#            item.render(cvs, [grey]+st_THick, debug=False)
+    geometry = Geometry(G, rb_arc, bg_arc, gr_arc)
+    fg = geometry.render()
+    cvs.append(fg)
+    cvs.show_page()
 
-    st = [grey]+st_THick
+    # ------------------------------------------------
+    # BO
+
+    G = get_BO(True)
+
+    z_green = 0.0
+    z_red = 0.3660254037844387+0.3660254037844386j
+    z_blue = 2.4142135623730
+    bg_arc = Arc([z_blue, 2*z_blue, infty])
+    gr_arc = Arc([z_green, (z_red+z_green)/2, z_red])
 
     for g in G:
-        item = g*bg_item
-        if zeq(item.src, rb_item.tgt) and item.tgt.imag > 0:
-            bg_item = item
+        p = g*Point([z_blue])
+        z = p.zs[0] # arghhh...
+        if z.real > EPSILON and z.imag > EPSILON:
+            z_blue = z
             break
+    else:
+        assert 0
 
-    z_green = bg_item.tgt
-    rg_item = Arc([z_red, z_green/2, z_green])
+    rb_arc = Arc([z_red, (z_red+z_blue)/2, z_blue])
 
-    #rb_item.render(cvs, st)
-    #bg_item.render(cvs, st)
-    #rg_item.render(cvs, st)
+    geometry = Geometry(G, rb_arc, bg_arc, gr_arc)
+    fg = geometry.render()
+    cvs.append(fg)
+    cvs.show_page()
 
-    item = Triangle([
-        rb_item.zs[0], rb_item.zs[1], 
-        bg_item.zs[0], bg_item.zs[1], 
-        rg_item.zs[2], rg_item.zs[1],  # reverse idx's
-    ])
-    assert item == item
-    g = Mobius(-1, 0, 0, -1)
-    gtem = g*item
-    assert gtem == item
+    # ------------------------------------------------
+    # BD
 
-    #item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
+    G = get_BD(True)
 
-    found = unique([g*item for g in G])
-    #shuffle(found)
-    for item in found:
-        item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
-    print("found:", len(found))
+    #z_green = 0.0
+    z_red = -2.956295201467611
+    z_blue = 3.52014702134020
+    bg_arc = Arc([z_blue, 2*z_blue, infty])
+    gr_arc = Arc([infty, 2*z_red, z_red])
 
-    for z,cl in zip([z_green, z_blue, z_red], [green, blue, red]):
-        item = Point([z])
-        found = unique([g*item for g in G])
-        for item in found:
-            item.render(cvs, radius, [cl]+st_THick)
-        print("found:", len(found))
+    for g in G:
+        p = g*Point([z_blue])
+        z = p.zs[0] # arghhh...
+        if abs(z.imag) < EPSILON and z.real < -1.:
+            z_blue = z
+            break
+    else:
+        assert 0
+
+    print(z_blue)
+
+    rb_arc = Arc([z_red, (z_red+z_blue)/2, z_blue])
+
+    geometry = Geometry(G, rb_arc, bg_arc, gr_arc)
+    fg = geometry.render()
+    cvs.append(fg)
+    cvs.show_page()
+
+    # ------------------------------------------------
 
     cvs.writePDFfile("images/stereo.pdf")
+
 
     
 
