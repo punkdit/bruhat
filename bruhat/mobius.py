@@ -86,6 +86,14 @@ class Mobius:
         return s
     __repr__ = __str__
 
+#    def act(self, z):
+#        a, b, c, d = (self.a, self.b, self.c, self.d)
+#        assert z is not None, "TODO"*10
+#        bot = c*z+d
+#        if abs(bot) < EPSILON:
+#            return None # infty
+#        return (a*z+b)/bot
+
     def __mul__(g, h):
         """
         [[a b]  * [[a b]
@@ -106,6 +114,21 @@ class Mobius:
             c = g.c*h.a.conjugate() + g.d*h.c.conjugate() 
             d = g.c*h.b.conjugate() + g.d*h.d.conjugate() 
         return Mobius(a, b, c, d, conjugate)
+
+    def __call__(self, z):
+        a, b, c, d = (self.a, self.b, self.c, self.d)
+        if z is None: # infinity
+            top, bot = a, c
+            if abs(bot) < EPSILON:
+                return None # infinity
+            return top / bot
+        if self.conjugate:
+            z = z.conjugate()
+        top, bot = (a*z + b), (c*z + d)
+        if abs(bot) < EPSILON:
+            return None # infinity
+        w = top / bot
+        return w
 
     def __getitem__(self, idx):
         #return (self.a, self.b, self.c, self.d)[idx] # used by kdtree
@@ -188,21 +211,6 @@ class Mobius:
     @classmethod
     def conjugate(cls):
         return Mobius(1, 0, 0, 1, True)
-
-    def __call__(self, z):
-        a, b, c, d = (self.a, self.b, self.c, self.d)
-        if z is None: # infinity
-            top, bot = a, c
-            if abs(bot) < EPSILON:
-                return None # infinity
-            return top / bot
-        if self.conjugate:
-            z = z.conjugate()
-        top, bot = (a*z + b), (c*z + d)
-        if abs(bot) < EPSILON:
-            return None # infinity
-        w = top / bot
-        return w
 
     def trafo(self, x, y):
         z = x + 1.j*y
@@ -319,7 +327,7 @@ I = Mobius()
 
 
 # does not need hashable operators
-def mulclose(gen, g0=I, verbose=False, maxsize=None):
+def mulclose(gen, g0=I, verbose=False, maxsize=None, accept=lambda g:True):
     ops = list(gen)
     bdy = gen
     while bdy:
@@ -327,7 +335,7 @@ def mulclose(gen, g0=I, verbose=False, maxsize=None):
         for g in bdy:
             for h in gen:
                 k = g*h
-                if k not in ops:
+                if k not in ops and accept(k):
                     ops.append(k)
                     _bdy.append(k)
             #if maxsize and len(ops) >= maxsize:

@@ -52,6 +52,13 @@ eq = lambda z0, z1: abs(complex(z0-z1)) < EPSILON
 infty = None
 I = Mobius()
 
+rotate = lambda theta : Mobius.rotate(theta/2) # double cover .... ?!?
+translate = lambda x : Mobius(1, x, 0, 1)
+
+#_det = lambda a,b,c,d:a*d-b*c
+#det = lambda z,w:_det(z.real, z.imag, w.real, w.imag)
+
+
 def zpromote(z):
     return complex(z) if z is not None else z
 
@@ -100,6 +107,12 @@ class Point(Feature):
             cvs.stroke(path.circle(0, 0, Feature.RADIUS), st)
         else:
             cvs.fill(path.circle(z.real, z.imag, radius), st)
+
+    def line(self, other):
+        z0 = self.zs[0]
+        z2 = other.zs[0]
+        z1 = (z0+z2)/2
+        return Arc([z0, z1, z2])
 
 
 class Circle(Feature):
@@ -185,9 +198,6 @@ class Circle(Feature):
         if st_stroke is not None:
             cvs.stroke(p, st_stroke)
 
-
-_det = lambda a,b,c,d:a*d-b*c
-det = lambda z,w:_det(z.real, z.imag, w.real, w.imag)
 
 class Arc(Circle):
     "directed arc of a circle defined by three points: start, (random) middle, end"
@@ -397,6 +407,181 @@ def unique(items):
     return found
 
     
+class Geometry:
+    def __init__(self, G, rb_arc, bg_arc, gr_arc):
+        #assert rb_arc.is_colinear()
+        #assert bg_arc.is_colinear()
+        #assert gr_arc.is_colinear()
+        z_red = rb_arc.src
+        z_blue = rb_arc.tgt
+
+        # make a Triangle:
+        for g in G:
+            item = g*bg_arc
+            if zeq(item.src, z_blue):
+                bg_arc = item
+                break
+        else:
+            assert 0
+        z_green = bg_arc.tgt
+
+        for g in G:
+            item = g*gr_arc
+            if zeq(item.src, z_green) and zeq(item.tgt, z_red):
+                gr_arc = item
+                break
+        else:
+            assert 0
+        assert zeq(gr_arc.tgt, z_red), (gr_arc, z_red)
+        self.G = G
+        self.rb_arc = rb_arc 
+        self.bg_arc = bg_arc
+        self.gr_arc = gr_arc
+        self.z_red = z_red
+        self.z_blue = z_blue
+        self.z_green = z_green
+        self.triangle = Triangle([
+            rb_arc.zs[0], rb_arc.zs[1], 
+            bg_arc.zs[0], bg_arc.zs[1], 
+            gr_arc.zs[0], gr_arc.zs[1],
+        ])
+
+    def render_bw(self):
+        G = self.G
+        z_red = self.z_red
+        z_blue = self.z_blue
+        z_green = self.z_green
+    
+        triangle = self.triangle
+        cvs = self.get_cvs()
+        found = unique([g*triangle for g in G if g.conjugate==False])
+        #shuffle(found)
+        for item in found:
+            item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
+        #print("found:", len(found))
+    
+        radius = 0.06
+        for z,cl in zip([z_green, z_blue, z_red], [green, blue, red]):
+            item = Point([z])
+            found = unique([g*item for g in G])
+            for item in found:
+                z = item.zs[0]
+                if z is None:
+                    item.render(cvs, radius, [cl]+st_THick)
+                else:
+                    p = path.circle(z.real, z.imag, radius)
+                    cvs.fill(p, [white])
+                    cvs.stroke(p)
+            #print("found:", len(found))
+        return cvs
+    
+    def render(self):
+        G = self.G
+        z_red = self.z_red
+        z_blue = self.z_blue
+        z_green = self.z_green
+    
+        triangle = self.triangle
+        cvs = self.get_cvs()
+        found = unique([g*triangle for g in G if g.conjugate==False])
+        #shuffle(found)
+        for item in found:
+            item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
+        #print("found:", len(found))
+    
+        radius = 0.06
+        for z,cl in zip([z_green, z_blue, z_red], [green, blue, red]):
+            item = Point([z])
+            found = unique([g*item for g in G])
+            for item in found:
+                item.render(cvs, radius, [cl]+st_THick)
+            #print("found:", len(found))
+        return cvs
+    
+    @staticmethod
+    def get_BT():
+        z_red = 0.0
+        z_blue = (2-3**0.5)**0.5
+        z_green = (-1/2**0.5)
+    
+        rb_arc = Arc([z_red, z_blue/2, z_blue])
+        gr_arc = Arc([z_green, z_green/2, z_red])
+        z_blue = z_green - (z_blue-z_green)
+        bg_arc = Arc([z_blue, 2*z_blue, infty])
+    
+        G = get_BT(True)
+    
+        geometry = Spherical(G, rb_arc, bg_arc, gr_arc)
+        return geometry
+    
+    @staticmethod
+    def get_BO():
+        G = get_BO(True)
+    
+        z_green = 0.0
+        z_red = 0.3660254037844387+0.3660254037844386j
+        z_blue = 2.4142135623730
+        bg_arc = Arc([z_blue, 2*z_blue, infty])
+        gr_arc = Arc([z_green, (z_red+z_green)/2, z_red])
+    
+        for g in G:
+            p = g*Point([z_blue])
+            z = p.zs[0] # arghhh...
+            if z.real > EPSILON and z.imag > EPSILON:
+                z_blue = z
+                break
+        else:
+            assert 0
+    
+        rb_arc = Arc([z_red, (z_red+z_blue)/2, z_blue])
+    
+        geometry = Spherical(G, rb_arc, bg_arc, gr_arc)
+        return geometry
+    
+    @staticmethod
+    def get_BD():
+        G = get_BD(True)
+    
+        #z_green = 0.0
+        z_red = -2.956295201467611
+        z_blue = 3.52014702134020
+        bg_arc = Arc([z_blue, 2*z_blue, infty])
+        gr_arc = Arc([infty, 2*z_red, z_red])
+    
+        for g in G:
+            p = g*Point([z_blue])
+            z = p.zs[0] # arghhh...
+            if abs(z.imag) < EPSILON and z.real < -1.:
+                z_blue = z
+                break
+        else:
+            assert 0
+    
+        rb_arc = Arc([z_red, (z_red+z_blue)/2, z_blue])
+    
+        geometry = Spherical(G, rb_arc, bg_arc, gr_arc)
+        return geometry
+
+
+class Spherical(Geometry):
+    def get_cvs(self):
+        scale = 3.0
+
+        R = Feature.RADIUS
+        cvs = Canvas().scale(scale)
+        p = path.circle(0, 0, R)
+        #cvs.stroke(p, [green])
+        cvs.stroke(path.circle(0,0,1.1*R), [white])
+        cvs.clip(p)
+        return cvs
+
+# ----------------------------------------------------------------------------
+#
+#     drivers
+#
+# ----------------------------------------------------------------------------
+
+
 def test():
 
     a = Mobius.rotate(2*pi/6)
@@ -420,7 +605,7 @@ def test():
     z = 1+2.3j
     assert Circle([0+z, 1+z, 2+z]).is_colinear()
 
-    for trial in range(10):
+    for _ in range(10):
         c = Circle([rnd() for i in range(3)])
 
         z0 = c.get_center()
@@ -595,173 +780,147 @@ def render_stereo():
     cvs.writePDFfile("images/stereo_circles.pdf")
 
 
-#class Geometry:
-#    def __init__(self, G, z_red, z_blue, z_green):
-#        self.G = G
-#        self.z_red = z_red
-#        self.z_blue = z_blue
-#        self.z_green = z_green
-
-class Geometry:
-    def __init__(self, G, rb_arc, bg_arc, gr_arc):
-        #assert rb_arc.is_colinear()
-        #assert bg_arc.is_colinear()
-        #assert gr_arc.is_colinear()
-        z_red = rb_arc.src
-        z_blue = rb_arc.tgt
-        # make a Triangle:
-        for g in G:
-            item = g*bg_arc
-            if zeq(item.src, z_blue):
-                bg_arc = item
-                break
-        else:
-            assert 0
-        z_green = bg_arc.tgt
-        for g in G:
-            item = g*gr_arc
-            if zeq(item.src, z_green) and zeq(item.tgt, z_red):
-                gr_arc = item
-                break
-        else:
-            assert 0
-        assert zeq(gr_arc.tgt, z_red), (gr_arc, z_red)
-        self.G = G
-        self.rb_arc = rb_arc 
-        self.bg_arc = bg_arc
-        self.gr_arc = gr_arc
-        self.z_red = z_red
-        self.z_blue = z_blue
-        self.z_green = z_green
-
-    def get_cvs(self):
-        scale = 3.0
-
-        R = Feature.RADIUS
-        cvs = Canvas().scale(scale)
-        p = path.circle(0, 0, R)
-        #cvs.stroke(p, [green])
-        cvs.stroke(path.circle(0,0,1.1*R), [white])
-        cvs.clip(p)
-        return cvs
-
-    def render(self):
-        cvs = self.get_cvs()
-        G = self.G
-        rb_arc = self.rb_arc 
-        bg_arc = self.bg_arc
-        gr_arc = self.gr_arc
-        z_red = self.z_red
-        z_blue = self.z_blue
-        z_green = self.z_green
-        item = Triangle([
-            rb_arc.zs[0], rb_arc.zs[1], 
-            bg_arc.zs[0], bg_arc.zs[1], 
-            gr_arc.zs[0], gr_arc.zs[1],
-        ])
-    
-        found = unique([g*item for g in G if g.conjugate==False])
-        #shuffle(found)
-        for item in found:
-            item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
-        print("found:", len(found))
-    
-        radius = 0.06
-        for z,cl in zip([z_green, z_blue, z_red], [green, blue, red]):
-            item = Point([z])
-            found = unique([g*item for g in G])
-            for item in found:
-                item.render(cvs, radius, [cl]+st_THick)
-            print("found:", len(found))
-        return cvs
-
-
 def test_stereo():
 
-    render_stereo()
-
     cvs = Canvas()
-
-    # ------------------------------------------------
-    # BT
-
-    z_red = 0.0
-    z_blue = (2-3**0.5)**0.5
-    z_green = (-1/2**0.5)
-
-    rb_arc = Arc([z_red, z_blue/2, z_blue])
-    gr_arc = Arc([z_green, z_green/2, z_red])
-    z_blue = z_green - (z_blue-z_green)
-    bg_arc = Arc([z_blue, 2*z_blue, infty])
-
-    G = get_BT(True)
-
-    geometry = Geometry(G, rb_arc, bg_arc, gr_arc)
-    fg = geometry.render()
-    cvs.append(fg)
-    cvs.show_page()
-
-    # ------------------------------------------------
-    # BO
-
-    G = get_BO(True)
-
-    z_green = 0.0
-    z_red = 0.3660254037844387+0.3660254037844386j
-    z_blue = 2.4142135623730
-    bg_arc = Arc([z_blue, 2*z_blue, infty])
-    gr_arc = Arc([z_green, (z_red+z_green)/2, z_red])
-
-    for g in G:
-        p = g*Point([z_blue])
-        z = p.zs[0] # arghhh...
-        if z.real > EPSILON and z.imag > EPSILON:
-            z_blue = z
-            break
-    else:
-        assert 0
-
-    rb_arc = Arc([z_red, (z_red+z_blue)/2, z_blue])
-
-    geometry = Geometry(G, rb_arc, bg_arc, gr_arc)
-    fg = geometry.render()
-    cvs.append(fg)
-    cvs.show_page()
-
-    # ------------------------------------------------
-    # BD
-
-    G = get_BD(True)
-
-    #z_green = 0.0
-    z_red = -2.956295201467611
-    z_blue = 3.52014702134020
-    bg_arc = Arc([z_blue, 2*z_blue, infty])
-    gr_arc = Arc([infty, 2*z_red, z_red])
-
-    for g in G:
-        p = g*Point([z_blue])
-        z = p.zs[0] # arghhh...
-        if abs(z.imag) < EPSILON and z.real < -1.:
-            z_blue = z
-            break
-    else:
-        assert 0
-
-    print(z_blue)
-
-    rb_arc = Arc([z_red, (z_red+z_blue)/2, z_blue])
-
-    geometry = Geometry(G, rb_arc, bg_arc, gr_arc)
-    fg = geometry.render()
-    cvs.append(fg)
-    cvs.show_page()
-
-    # ------------------------------------------------
-
+    
+    for geometry in [
+        Geometry.get_BT(), Geometry.get_BO(), Geometry.get_BD()]:
+        fg = geometry.render()
+        cvs.append(fg)
+        cvs.show_page()
+    
     cvs.writePDFfile("images/stereo.pdf")
 
 
+def test_worksheet():
+
+    cvs = Canvas()
+
+    geometry = Geometry.get_BT()
+    fg = geometry.render()
+    cvs.insert(0, 0, fg)
+    #bb = fg.get_bound_box()
+    #cvs.insert(0, -bb.height, fg)
+
+    cvs.writePDFfile("images/stereo_worksheet.pdf")
+
+
+def test_wallpaper():
+
+    R = 1.7
+    scale = 8.0
+    radius = 0.04
+
+    def clip(items):
+        jtems = []
+        for item in items:
+            for z in item.zs:
+                if z.real > -R and z.real < +R and z.imag > -R and z.imag < +R:
+                    jtems.append(item)
+                    break
+        return jtems
+
+    z_red = 0.
+    z_blue = 0.5
+    z_green = (0 + 1 + exp(2*1j*pi/6))/3.
+
+    r_rot = rotate(2*pi/6)
+    b = translate(1)
+    g_refl = Mobius.conjugate()
+    assert zeq(g_refl(z_blue), z_blue)
+
+    def accept(g):
+        z = g(0) * 0.7
+        return z.real > -R and z.real < +R and z.imag > -R and z.imag < +R
+
+    #G = mulclose([r_rot, g_refl, b, rotate(-pi/2)*g_refl*rotate(pi/2)], maxsize=200)
+    G = mulclose([r_rot, b], maxsize=2000, accept=accept)
+    print(len(G))
+
+    G = [g_refl*g for g in G]
+
+#    for g in G:
+#        if g.conjugate and zeq(g(z_blue), z_blue) and zeq(g(z_green), z_green):
+#            break
+#    else:
+#        assert 0
+#
+#    return
+#
+#    g = translate(-z_blue)*rotate(pi/2)
+#    r_refl = ~g*g_refl*g
+#    print(r_refl)
+#    for z in [z_red, z_blue, z_green]:
+#        print(z, "->", r_refl(z))
+#        #assert zeq(r_refl(z), z)
+#
+#    return
+#
+#    g = rotate(2*pi/12)
+#    b_refl = ~g*g_refl*g
+#    print(b_refl)
+#    for z in [z_red, z_green]:
+#        print(z, "->", b_refl(z))
+#        assert zeq(b_refl(z), z), z
+#
+#    G = mulclose([r_refl, b_refl, g_refl], maxsize=200)
+
+    p_red = Point([z_red])
+    p_blue = Point([z_blue])
+    p_green = Point([z_green])
+
+    rb_arc = p_red.line(p_blue)
+    gr_arc = p_green.line(p_red)
+    bg_arc = p_blue.line(p_green)
+
+    cvs = Canvas([Scale(scale)])
+    RR = 1.1*R
+    p = path.rect(-RR, -RR, 2*RR, 2*RR)
+    cvs.stroke(p, [white])
+    p = path.rect(-R, -R, 2*R, 2*R)
+    cvs.stroke(p, [grey]+st_THick)
+    cvs.fill(p, [white])
+    cvs.clip(p)
+
+    triangle = Triangle([
+            rb_arc.zs[0], rb_arc.zs[1], 
+            bg_arc.zs[0], bg_arc.zs[1], 
+            gr_arc.zs[0], gr_arc.zs[1]])
+    found = get_orbit(G, triangle)
+    found = clip(found)
+    for item in found:
+        item.render(cvs, None, [orange.alpha(0.5)])
+
+    for item in [rb_arc, gr_arc, bg_arc]:
+        found = get_orbit(G, item)
+        found = clip(found)
+        for item in found:
+            item.render(cvs)
+
+#    found = get_orbit(G, p_red)
+#    found = clip(found)
+#    for item in found:
+#        item.render(cvs, radius, [red])
+
+    found = get_orbit(G, p_blue)
+    found = clip(found)
+    for item in found:
+        item.render(cvs, radius, [blue])
+
+    found = get_orbit(G, p_green)
+    found = clip(found)
+    for item in found:
+        item.render(cvs, radius, [green])
+
+    #cvs.stroke(path.circle(0, 0, 2*radius))
+
+    cvs.writePDFfile("images/stereo_wallpaper.pdf")
+
+
+def test_render():
+    test_worksheet()
+    test_wallpaper()
     
 
 if __name__ == "__main__":
