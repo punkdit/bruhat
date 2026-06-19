@@ -203,7 +203,7 @@ class Mobius:
     __invert__ = inv
 
     @classmethod
-    def rotate(cls, theta):
+    def rotate(cls, theta): # CAREFUL: this theta may be out by a factor of 2.
         a = cmath.exp(1j*theta)
         d = cmath.exp(-1j*theta)
         return Mobius(a, 0., 0., d)
@@ -326,8 +326,11 @@ SL = lambda a, b, c : Mobius(a, b, c, (b*c+1)/a)
 I = Mobius()
 
 
-# does not need hashable operators
 def mulclose(gen, g0=I, verbose=False, maxsize=None, accept=lambda g:True):
+    """
+    Find the closure of the operators in gen, by acting (mul) on the *right*.
+    Does not need hashable operators.
+    """
     ops = list(gen)
     bdy = gen
     while bdy:
