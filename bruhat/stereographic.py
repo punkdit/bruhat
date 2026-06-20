@@ -34,6 +34,10 @@ if __name__=="__main__":
     config(text="pdflatex", latex_header=r"\usepackage{amsmath}\usepackage{amssymb}")
 
 
+def save(cvs, name):
+    print("save", name)
+    cvs.writePDFfile(name)
+
 from bruhat.util import cross
 from bruhat.smap import SMap
 from bruhat.todd_coxeter import Schreier
@@ -95,6 +99,9 @@ class Feature:
                 return False
         return True
 
+    def render(self, cvs):
+        pass
+
 
 class Point(Feature):
 
@@ -125,13 +132,14 @@ class Point(Feature):
 class Circle(Feature):
     """ A circle (or line) in the complex plane defined by three points.
     """ 
-    def __init__(self, zs):
-        assert len(zs) == 3
-        Feature.__init__(self, zs)
+    def __init__(self, zs, **kw):
+        assert len(zs) == 3, zs
+        assert zs.count(None) <= 1, zs
+        Feature.__init__(self, zs, **kw)
         a, b, c = self.zs
-        assert not zeq(a, b)
-        assert not zeq(a, c)
-        assert not zeq(b, c)
+        assert not zeq(a, b), zs
+        assert not zeq(a, c), zs
+        assert not zeq(b, c), zs
 
     def __eq__(self, other):
         assert isinstance(other, Circle)
@@ -139,6 +147,10 @@ class Circle(Feature):
         if l and r:
             a, b, c = self.zs
             d, e, f = other.zs
+            if a is None:
+                a, b, c = b, c, a # rotate points
+            if d is None:
+                d, e, f = e, f, d # rotate points
             ab = a-b
             de = d-e
             if abs((ab/de).imag) > EPSILON:
@@ -186,7 +198,11 @@ class Circle(Feature):
         z0 = self.get_center()
         return metric(z0, self.zs[0])
 
-    def render(self, cvs, st_stroke=[], st_fill=None):
+    st_fill = None
+    st_stroke = []
+
+    #def render(self, cvs, st_stroke=[], st_fill=None):
+    def render(self, cvs):
         if self.is_colinear():
             a, b, c = self.zs
             dz = b-a
@@ -200,10 +216,10 @@ class Circle(Feature):
             z0 = self.get_center()
             r = self.get_radius()
             p = path.circle(z0.real, z0.imag, r)
-        if st_fill is not None:
-            cvs.fill(p, st_fill)
-        if st_stroke is not None:
-            cvs.stroke(p, st_stroke)
+        if self.st_fill is not None:
+            cvs.fill(p, self.st_fill)
+        if self.st_stroke is not None:
+            cvs.stroke(p, self.st_stroke)
 
 
 class Arc(Circle):
@@ -277,8 +293,8 @@ class Arc(Circle):
                 cvs.fill(path.circle(z.real, z.imag, 0.05), [c])
 
 class Triangle(Feature):
-    def __init__(self, zs):
-        Feature.__init__(self, zs)
+    def __init__(self, zs, **kw):
+        Feature.__init__(self, zs, **kw)
         assert len(zs) == 6
         p0, m0, p1, m1, p2, m2 = zs
         arcs = [
@@ -299,11 +315,16 @@ class Triangle(Feature):
         z0, z1 = self.zs[:2]
         return get_angle((z1-zc)/(z0-zc)) > 0.
 
-    def render(self, cvs, st_stroke=None, st_fill=None, lbl=None, err=0.00, debug=False):
+    #def render(self, cvs, st_stroke=None, st_fill=None, lbl=None, err=0.00, debug=False):
+    st_stroke = None
+    st_fill = [orange.alpha(0.5)]
+    lbl = None
+    err = 0.00
+    def render(self, cvs):
         zs = self.zs
         arcs = list(self.arcs)
-        skip = None in zs
-        if skip:
+        if None in zs:
+            # this is an unbounded triangle, add an extra Arc at the RADIUS
             assert zs.count(None)==1
             assert zs[4] is None, "i'm expecting the green here"
             a, b, c = arcs
@@ -325,14 +346,15 @@ class Triangle(Feature):
                 jtems.pop(0)
             items += jtems
         p = path.path(items)
-        if lbl is not None:
+        if self.lbl is not None:
             zc = self.get_center()
-            cvs.text(zc.real+err*random(), zc.imag+err*random(), lbl, [Scale(0.5)]+st_center)
+            cvs.text(zc.real+self.err*random(), zc.imag+self.err*random(), 
+                self.lbl, [Scale(0.5)]+st_center)
 
-        if st_fill is not None:
-            cvs.fill(p, st_fill)
-        if st_stroke is not None:
-            cvs.stroke(p, st_stroke)
+        if self.st_fill is not None:
+            cvs.fill(p, self.st_fill)
+        if self.st_stroke is not None:
+            cvs.stroke(p, self.st_stroke)
 
 
 
@@ -354,7 +376,7 @@ def get_BT(refl=False):
 
     G = mulclose(gen)
     assert len(G) == 48 if refl else 24
-    print("get_BT:", len(G))
+    #print("get_BT:", len(G))
     return G
 
 
@@ -370,7 +392,7 @@ def get_BO(refl=False):
         gen = [a, b, c]
     G = mulclose(gen)
     assert len(G) == 96 if refl else 48 
-    print("get_BO:", len(G))
+    #print("get_BO:", len(G))
     return G
 
 
@@ -394,7 +416,7 @@ def get_BD(refl=False):
         gen = [a, b, c]
     G = mulclose(gen)
     assert len(G) == 240 if refl else 120
-    print("get_BD:", len(G))
+    #print("get_BD:", len(G))
     return G
 
 
@@ -415,10 +437,13 @@ def unique(items):
 
     
 class Geometry:
-    def __init__(self, G, rb_arc, bg_arc, gr_arc):
-        #assert rb_arc.is_colinear()
-        #assert bg_arc.is_colinear()
-        #assert gr_arc.is_colinear()
+
+    def __init__(self, G, features):
+        self.G = G
+        self.features = list(features)
+
+    @classmethod
+    def from_arcs(cls, G, rb_arc, bg_arc, gr_arc):
         z_red = rb_arc.src
         z_blue = rb_arc.tgt
 
@@ -440,66 +465,50 @@ class Geometry:
         else:
             assert 0
         assert zeq(gr_arc.tgt, z_red), (gr_arc, z_red)
-        self.G = G
-        self.rb_arc = rb_arc 
-        self.bg_arc = bg_arc
-        self.gr_arc = gr_arc
-        self.z_red = z_red
-        self.z_blue = z_blue
-        self.z_green = z_green
-        self.p_red = Point([z_red], st=[red])
-        self.p_blue = Point([z_blue], st=[blue])
-        self.p_green = Point([z_green], st=[green])
-        self.triangle = Triangle([
+#        self.G = G
+#        self.rb_arc = rb_arc 
+#        self.bg_arc = bg_arc
+#        self.gr_arc = gr_arc
+#        self.z_red = z_red
+#        self.z_blue = z_blue
+#        self.z_green = z_green
+        p_red = Point([z_red], st=[red])
+        p_blue = Point([z_blue], st=[blue])
+        p_green = Point([z_green], st=[green])
+        triangle = Triangle([
             rb_arc.zs[0], rb_arc.zs[1], 
             bg_arc.zs[0], bg_arc.zs[1], 
             gr_arc.zs[0], gr_arc.zs[1],
-        ])
+        ], st_fill=[orange.alpha(0.5)])
 
-#    def render_bw(self):
-#        G = self.G
+        features = [triangle, rb_arc, bg_arc, gr_arc, p_red, p_blue, p_green]
+        geometry = cls(G, features)
+        return geometry
+
+    def get_oriented(self):
+        G = [g for g in self.G if not g.conjugate]
+        return self.__class__(G, self.features)
+
+    def render(self, cvs=None):
+        G = self.G
 #        z_red = self.z_red
 #        z_blue = self.z_blue
 #        z_green = self.z_green
-#    
+    
+        cvs = cvs if cvs is not None else self.get_cvs()
 #        triangle = self.triangle
-#        cvs = self.get_cvs()
 #        found = unique([g*triangle for g in G if g.conjugate==False])
 #        #shuffle(found)
 #        for item in found:
 #            item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
 #        #print("found:", len(found))
 #    
-#        radius = 0.06
-#        for z,cl in zip([z_green, z_blue, z_red], [green, blue, red]):
-#            item = Point([z])
+#        for item in [self.p_green, self.p_blue, self.p_red]:
 #            found = unique([g*item for g in G])
 #            for item in found:
-#                z = item.zs[0]
-#                if z is None:
-#                    item.render(cvs, radius, [cl]+st_THick)
-#                else:
-#                    p = path.circle(z.real, z.imag, radius)
-#                    cvs.fill(p, [white])
-#                    cvs.stroke(p)
-#            #print("found:", len(found))
-#        return cvs
-    
-    def render(self):
-        G = self.G
-        z_red = self.z_red
-        z_blue = self.z_blue
-        z_green = self.z_green
-    
-        triangle = self.triangle
-        cvs = self.get_cvs()
-        found = unique([g*triangle for g in G if g.conjugate==False])
-        #shuffle(found)
-        for item in found:
-            item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
-        #print("found:", len(found))
-    
-        for item in [self.p_green, self.p_blue, self.p_red]:
+#                item.render(cvs)
+
+        for item in self.features:
             found = unique([g*item for g in G])
             for item in found:
                 item.render(cvs)
@@ -518,7 +527,7 @@ class Geometry:
     
         G = get_BT(True)
     
-        geometry = Spherical(G, rb_arc, bg_arc, gr_arc)
+        geometry = Spherical.from_arcs(G, rb_arc, bg_arc, gr_arc)
         return geometry
     
     @staticmethod
@@ -542,7 +551,7 @@ class Geometry:
     
         rb_arc = Arc([z_red, (z_red+z_blue)/2, z_blue])
     
-        geometry = Spherical(G, rb_arc, bg_arc, gr_arc)
+        geometry = Spherical.from_arcs(G, rb_arc, bg_arc, gr_arc)
         return geometry
     
     @staticmethod
@@ -566,7 +575,7 @@ class Geometry:
     
         rb_arc = Arc([z_red, (z_red+z_blue)/2, z_blue])
     
-        geometry = Spherical(G, rb_arc, bg_arc, gr_arc)
+        geometry = Spherical.from_arcs(G, rb_arc, bg_arc, gr_arc)
         return geometry
 
 
@@ -625,40 +634,40 @@ class Affine(Geometry):
         cvs.clip(p)
         return cvs
 
-    def render(self):
-        G = self.G
-        rb_arc = self.rb_arc 
-        bg_arc = self.bg_arc
-        gr_arc = self.gr_arc
-        z_red = self.z_red
-        z_blue = self.z_blue
-        z_green = self.z_green
-        p_red = self.p_red
-        p_blue = self.p_blue
-        p_green = self.p_green
-        triangle = self.triangle
-        radius = self.radius
-        clip = self.clip
-
-        cvs = self.get_cvs()
-        found = get_orbit(G, triangle)
-        found = clip(found)
-        for item in found:
-            item.render(cvs, None, [orange.alpha(0.5)])
-    
-        for item in [rb_arc, gr_arc, bg_arc]:
-            found = get_orbit(G, item)
-            found = clip(found)
-            for item in found:
-                item.render(cvs)
-    
-        for item in [p_blue, p_green]:
-            found = get_orbit(G, item)
-            found = clip(found)
-            for item in found:
-                item.render(cvs)
-    
-        return cvs
+#    def _X_render(self):
+#        G = self.G
+#        rb_arc = self.rb_arc 
+#        bg_arc = self.bg_arc
+#        gr_arc = self.gr_arc
+##        z_red = self.z_red
+##        z_blue = self.z_blue
+##        z_green = self.z_green
+#        p_red = self.p_red
+#        p_blue = self.p_blue
+#        p_green = self.p_green
+#        triangle = self.triangle
+#        radius = self.radius
+#        clip = self.clip
+#
+#        cvs = self.get_cvs()
+#        found = get_orbit(G, triangle)
+#        found = clip(found)
+#        for item in found:
+#            item.render(cvs, None, [orange.alpha(0.5)])
+#    
+#        for item in [rb_arc, gr_arc, bg_arc]:
+#            found = get_orbit(G, item)
+#            found = clip(found)
+#            for item in found:
+#                item.render(cvs)
+#    
+#        for item in [p_blue, p_green]:
+#            found = get_orbit(G, item)
+#            found = clip(found)
+#            for item in found:
+#                item.render(cvs)
+#    
+#        return cvs
     
 
 # ----------------------------------------------------------------------------
@@ -707,6 +716,9 @@ def test_circles():
     scale = 3.0
     radius = 0.06
 
+    cl = 0.6*white
+    Circle.st_stroke = [cl]+st_THick
+
     G = get_BT()
 
     R = Spherical.RADIUS
@@ -716,12 +728,11 @@ def test_circles():
     cvs.stroke(path.circle(0,0,1.1*R), [white])
     #cvs.clip(p)
     
-    cl = 0.6*white
     #c = Circle([rnd() for i in range(3)])
     c = Circle([0, 1, 2])
     orbit = get_orbit(G, c)
     for item in orbit:
-        item.render(cvs, [cl]+st_THick)
+        item.render(cvs)
 
     for c in orbit:
         if c.is_colinear():
@@ -735,7 +746,7 @@ def test_circles():
 
     for point in [Point(z_green, st=[green]), Point(z_red, st=[red]), Point(z_blue, st=[blue])]:
         orbit = get_orbit(G, point)
-        print("orbit:", len(orbit))
+        #print("orbit:", len(orbit))
         for point in orbit:
             point.render(cvs)
 
@@ -759,10 +770,10 @@ def test_circles():
     c1 = Circle([0.5, 1.1, 2])
 
     orbit = get_orbit(G, c0) + get_orbit(G, c1)
-    print("orbit:", len(orbit))
+    #print("orbit:", len(orbit))
     cl = 0.6*white
     for item in orbit:
-        item.render(cvs, [cl]+st_THick)
+        item.render(cvs)
         if item.is_colinear():
             continue
         z = item.get_center()
@@ -770,13 +781,13 @@ def test_circles():
             r = item.get_radius()
             z_blue = z-r
         #if abs(z.real) < EPSILON and z.imag > EPSILON:
-        #    item.render(cvs, [red]+st_THick)
+        #    item.render(cvs)
 
     for g in G:
         pts = g.fixed()
         a, b = pts
         if abs(a.real-a.imag) < EPSILON and EPSILON<a.real<0.5:
-            #Point([a]).render(cvs, radius, [red])
+            #Point([a]).render(cvs)
             z_red = a
     z_green = 0.
 
@@ -784,18 +795,6 @@ def test_circles():
         orbit = get_orbit(G, point)
         for point in orbit:
             point.render(cvs)
-
-#    orbit = get_orbit(G, Point([0]))
-#    for item in orbit:
-#        item.render(cvs, radius, [green])
-#
-#    orbit = get_orbit(G, Point([z_blue]))
-#    for item in orbit:
-#        item.render(cvs, radius, [blue])
-#
-#    orbit = get_orbit(G, Point([z_red]))
-#    for item in orbit:
-#        item.render(cvs, radius, [red])
 
     # -----------------------------------------------------
     # -----------------------------------------------------
@@ -813,10 +812,10 @@ def test_circles():
     c = Circle([0.5, 1.1, 2])
 
     orbit = get_orbit(G, c)
-    print("orbit:", len(orbit))
+    #print("orbit:", len(orbit))
     cl = 0.6*white
     for item in orbit:
-        item.render(cvs, [cl]+st_THick)
+        item.render(cvs)
 
     items = []
     for g in G:
@@ -837,7 +836,7 @@ def test_circles():
         if item in found:
             found.remove(item)
 
-    print(len(found))
+    #print(len(found))
     for item in found:
         z = item.zs[0]
         if z.real>2 and abs(z.imag)<EPSILON:
@@ -852,33 +851,20 @@ def test_circles():
         for point in orbit:
             point.render(cvs)
 
-    #print("z_blue", z_blue)
-    #print("z_red", z_red)
-    #for z in [z_blue, z_red]:
-    #    cvs.stroke(path.circle(z.real, z.imag, 0.1))
-
-#    orbit = get_orbit(G, Point([z_blue]))
-#    for item in orbit:
-#        item.render(cvs, radius, [blue])
-#
-#    orbit = get_orbit(G, Point([z_red]))
-#    for item in orbit:
-#        item.render(cvs, radius, [red])
-
-    cvs.writePDFfile("images/stereo_circles.pdf")
+    save(cvs, "images/stereo_circles.pdf")
 
 
 def test_stereo():
 
     cvs = Canvas()
     
-    for geometry in [
-        Geometry.get_BT(), Geometry.get_BO(), Geometry.get_BD()]:
+    for geometry in [Geometry.get_BT(), Geometry.get_BO(), Geometry.get_BD()]:
+        geometry = geometry.get_oriented()
         fg = geometry.render()
         cvs.append(fg)
         cvs.show_page()
     
-    cvs.writePDFfile("images/stereo.pdf")
+    save(cvs, "images/stereo.pdf")
 
 
 def test_worksheet():
@@ -891,7 +877,7 @@ def test_worksheet():
     #bb = fg.get_bound_box()
     #cvs.insert(0, -bb.height, fg)
 
-    cvs.writePDFfile("images/stereo_worksheet.pdf")
+    save(cvs, "images/stereo_worksheet.pdf")
 
 
 
@@ -920,13 +906,14 @@ def test_wallpaper():
     gr_arc = p_green.line(p_red)
     bg_arc = p_blue.line(p_green)
     
-    geometry = Affine(G, rb_arc, bg_arc, gr_arc)
+    geometry = Affine.from_arcs(G, rb_arc, bg_arc, gr_arc)
     cvs = geometry.render()
 
-    cvs.writePDFfile("images/stereo_wallpaper.pdf")
+    save(cvs, "images/stereo_wallpaper.pdf")
 
 
 def test_render():
+    print("\ntest_render:")
     test()
     test_circles()
     test_stereo()
