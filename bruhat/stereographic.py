@@ -26,7 +26,7 @@ import numpy
 from huygens.namespace import (
     Canvas, Scale, MoveTo, LineTo,
     red, green, blue, grey, black, white, orange,
-    path, st_THick, st_center, )
+    path, st_THick, st_center, thin)
 from huygens.back import arc_to_bezier, _arc_to_bezier
 
 if __name__=="__main__":
@@ -36,12 +36,14 @@ if __name__=="__main__":
 
 def save(cvs, name):
     print("save", name)
+    assert "images" not in name
+    name = "images/"+name
     cvs.writePDFfile(name)
 
 from bruhat.util import cross
 from bruhat.smap import SMap
 from bruhat.todd_coxeter import Schreier
-from bruhat.mobius import Mobius, mulclose, EPSILON
+from bruhat.mobius import Mobius, mulclose, EPSILON, d_poincare
 from bruhat.disc import get_pos_angle, get_angle
 from bruhat.argv import argv
 
@@ -72,9 +74,112 @@ def zeq(z0, z1):
     return abs(z0-z1)<EPSILON
 
 
+def get_BT(refl=False):
+    # Binary tetrahedral group (see Lindh p32)
+    r2 = 2**0.5
+    r3 = 3**0.5
+    i = 1j
+    a = Mobius((1+i*r3)/2, 0, 0, (1-i*r3)/2)
+    assert a.order() == 6
+    s = 2*r3
+    b = Mobius((r3-i)/s, (-i*2*r2)/s, (-i*2*r2)/s, (r3+i)/s)
+    assert b.order() == 6
+
+    gen = [a,b]
+    if refl:
+        c = Mobius(1, 0, 0, 1, True) # conjugate
+        gen = [a, b, c]
+
+    G = mulclose(gen)
+    assert len(G) == 48 if refl else 24
+    #print("get_BT:", len(G))
+    return G
+
+
+def get_BO(refl=False):
+    # Binary octahedral group (Lindh p34)
+    r2 = 2**0.5
+    i = 1j
+    a = Mobius((1+i)/r2, 0, 0, (1-i)/r2)
+    b = Mobius(1/r2, -i/r2, -i/r2, 1/r2)
+    gen = [a,b]
+    if refl:
+        c = Mobius(1, 0, 0, 1, True) # conjugate
+        gen = [a, b, c]
+    G = mulclose(gen)
+    assert len(G) == 96 if refl else 48 
+    #print("get_BO:", len(G))
+    return G
+
+
+def get_BD(refl=False):
+    # Binary dodecahedral group
+    i = 1j
+    e = exp(i*pi/5)
+    r5 = 5**0.5
+
+    a = Mobius(e, 0, 0, e**9)
+    b = Mobius(
+        (5*(e-e**4)-r5*(e+e**4))/10,
+        -2*r5*(e+e**4)/10, 
+        -2*r5*(e+e**4)/10, 
+        (5*(e-e**4)+r5*(e+e**4))/10,
+    )
+
+    gen = [a,b]
+    if refl:
+        c = Mobius(1, 0, 0, 1, True) # conjugate
+        gen = [a, b, c]
+    G = mulclose(gen)
+    assert len(G) == 240 if refl else 120
+    #print("get_BD:", len(G))
+    return G
+
+
+def get_orbit(G, item):
+    found = []
+    for g in G:
+        gtem = g*item
+        if gtem not in found:
+            found.append(gtem)
+    return found
+
+def unique(items):
+    found = []
+    for item in items:
+        if item not in found:
+            found.append(item)
+    return found
+
+
+stack = []
+def push(): # campaign to save globals from extinction
+    #print("push")
+    save = {}
+    for name,cls in globals().items():
+        if (isinstance(cls, object.__class__) 
+            and issubclass(cls, (Feature,Geometry))):
+            ns = cls.__dict__
+            for (attr, value) in ns.items():
+                #print(k, list(ns.keys()))
+                if attr.startswith("_"):
+                    continue
+                if isinstance(value, (list,tuple,type(None),int,float,complex)):
+                    #print("\t", name, attr, value)
+                    save[(cls, attr)] = value
+    stack.append(save)
+
+def pop():
+    #print("pop")
+    save = stack.pop()
+    for key,value in save.items():
+        cls, attr = key
+        #print("\t", cls.__name__, attr, value)
+        setattr(cls, attr, value)
+
+    
 class Feature:
-    #st_fill = None
-    #st_stroke = None
+    scale = 1.0
 
     def __init__(self, zs, **kw):
         if zs is None or isinstance(zs, (float, complex, int)):
@@ -105,6 +210,7 @@ class Feature:
 
 class Point(Feature):
 
+    scale = 1.0
     radius = 0.06
     st = [black]
 
@@ -120,7 +226,7 @@ class Point(Feature):
         if z is None:
             cvs.stroke(path.circle(0, 0, Spherical.RADIUS), st+st_THick)
         else:
-            cvs.fill(path.circle(z.real, z.imag, radius), st)
+            cvs.fill(path.circle(z.real, z.imag, self.scale*radius), st)
 
     def line(self, other):
         z0 = self.zs[0]
@@ -186,7 +292,8 @@ class Circle(Feature):
         bx, by = b.real, b.imag
         cx, cy = c.real, c.imag
         d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by))
-        assert abs(d)>EPSILON, "is_colinear"
+        #assert abs(d)>EPSILON, "is_colinear"
+        assert abs(d)>1e-14, "yikes"
     
         ux = ((ax**2 + ay**2) * (by - cy) + (bx**2 + by**2) * (cy - ay) + (cx**2 + cy**2) * (ay - by)) / d
         uy = ((ax**2 + ay**2) * (cx - bx) + (bx**2 + by**2) * (ax - cx) + (cx**2 + cy**2) * (bx - ax)) / d
@@ -284,13 +391,14 @@ class Arc(Circle):
 
         return p
         
-    def render(self, cvs, st_stroke=[], st_fill=None, debug=False):
-        p = self.get_path()
-        cvs.stroke(p, st_stroke)
+    st_fill = None
+    st_stroke = []
 
-        if debug:
-            for z,c in zip(self.zs, [red, blue, green]):
-                cvs.fill(path.circle(z.real, z.imag, 0.05), [c])
+    def render(self, cvs):
+        p = self.get_path()
+        st = [self.scale * thin] + self.st_stroke
+        cvs.stroke(p, st)
+
 
 class Triangle(Feature):
     def __init__(self, zs, **kw):
@@ -358,89 +466,14 @@ class Triangle(Feature):
 
 
 
-def get_BT(refl=False):
-    # Binary tetrahedral group (see Lindh p32)
-    r2 = 2**0.5
-    r3 = 3**0.5
-    i = 1j
-    a = Mobius((1+i*r3)/2, 0, 0, (1-i*r3)/2)
-    assert a.order() == 6
-    s = 2*r3
-    b = Mobius((r3-i)/s, (-i*2*r2)/s, (-i*2*r2)/s, (r3+i)/s)
-    assert b.order() == 6
-
-    gen = [a,b]
-    if refl:
-        c = Mobius(1, 0, 0, 1, True) # conjugate
-        gen = [a, b, c]
-
-    G = mulclose(gen)
-    assert len(G) == 48 if refl else 24
-    #print("get_BT:", len(G))
-    return G
-
-
-def get_BO(refl=False):
-    # Binary octahedral group (Lindh p34)
-    r2 = 2**0.5
-    i = 1j
-    a = Mobius((1+i)/r2, 0, 0, (1-i)/r2)
-    b = Mobius(1/r2, -i/r2, -i/r2, 1/r2)
-    gen = [a,b]
-    if refl:
-        c = Mobius(1, 0, 0, 1, True) # conjugate
-        gen = [a, b, c]
-    G = mulclose(gen)
-    assert len(G) == 96 if refl else 48 
-    #print("get_BO:", len(G))
-    return G
-
-
-def get_BD(refl=False):
-    # Binary dodecahedral group
-    i = 1j
-    e = exp(i*pi/5)
-    r5 = 5**0.5
-
-    a = Mobius(e, 0, 0, e**9)
-    b = Mobius(
-        (5*(e-e**4)-r5*(e+e**4))/10,
-        -2*r5*(e+e**4)/10, 
-        -2*r5*(e+e**4)/10, 
-        (5*(e-e**4)+r5*(e+e**4))/10,
-    )
-
-    gen = [a,b]
-    if refl:
-        c = Mobius(1, 0, 0, 1, True) # conjugate
-        gen = [a, b, c]
-    G = mulclose(gen)
-    assert len(G) == 240 if refl else 120
-    #print("get_BD:", len(G))
-    return G
-
-
-def get_orbit(G, item):
-    found = []
-    for g in G:
-        gtem = g*item
-        if gtem not in found:
-            found.append(gtem)
-    return found
-
-def unique(items):
-    found = []
-    for item in items:
-        if item not in found:
-            found.append(item)
-    return found
-
-    
 class Geometry:
+    scale = 3.0
 
-    def __init__(self, G, features):
+    def __init__(self, G, features, **kw):
         self.G = G
         self.features = list(features)
+        self.__dict__.update(kw)
+        self.kw = kw
 
     @classmethod
     def from_arcs(cls, G, rb_arc, bg_arc, gr_arc):
@@ -465,13 +498,6 @@ class Geometry:
         else:
             assert 0
         assert zeq(gr_arc.tgt, z_red), (gr_arc, z_red)
-#        self.G = G
-#        self.rb_arc = rb_arc 
-#        self.bg_arc = bg_arc
-#        self.gr_arc = gr_arc
-#        self.z_red = z_red
-#        self.z_blue = z_blue
-#        self.z_green = z_green
         p_red = Point([z_red], st=[red])
         p_blue = Point([z_blue], st=[blue])
         p_green = Point([z_green], st=[green])
@@ -487,29 +513,26 @@ class Geometry:
 
     def get_oriented(self):
         G = [g for g in self.G if not g.conjugate]
-        return self.__class__(G, self.features)
+        return self.__class__(G, self.features, **self.kw)
+
+    def get_orbit(self, item):
+        G = self.G
+        found = []
+        for g in G:
+            gtem = g*item
+            if gtem not in found:
+                found.append(gtem)
+        return found
+
+    def get_cvs(self):
+        return Canvas([Scale(self.scale)])
 
     def render(self, cvs=None):
         G = self.G
-#        z_red = self.z_red
-#        z_blue = self.z_blue
-#        z_green = self.z_green
-    
         cvs = cvs if cvs is not None else self.get_cvs()
-#        triangle = self.triangle
-#        found = unique([g*triangle for g in G if g.conjugate==False])
-#        #shuffle(found)
-#        for item in found:
-#            item.render(cvs, [black], [orange.alpha(0.5)]) #, debug=True)
-#        #print("found:", len(found))
-#    
-#        for item in [self.p_green, self.p_blue, self.p_red]:
-#            found = unique([g*item for g in G])
-#            for item in found:
-#                item.render(cvs)
-
         for item in self.features:
-            found = unique([g*item for g in G])
+            #found = unique([g*item for g in G])
+            found = self.get_orbit(item)
             for item in found:
                 item.render(cvs)
         return cvs
@@ -580,12 +603,12 @@ class Geometry:
 
 
 class Spherical(Geometry):
+    scale = 3.0
     RADIUS = 4.0 
     def get_cvs(self):
-        scale = 3.0
 
         R = Spherical.RADIUS
-        cvs = Canvas().scale(scale)
+        cvs = Canvas().scale(self.scale)
         p = path.circle(0, 0, R)
         #cvs.stroke(p, [green])
         cvs.stroke(path.circle(0,0,1.1*R), [white])
@@ -595,7 +618,7 @@ class Spherical(Geometry):
 
 class Affine(Geometry):
     R = 1.7
-    scale = 8.0
+    scale = 10.0
     radius = 0.04
 
     @classmethod
@@ -634,41 +657,20 @@ class Affine(Geometry):
         cvs.clip(p)
         return cvs
 
-#    def _X_render(self):
-#        G = self.G
-#        rb_arc = self.rb_arc 
-#        bg_arc = self.bg_arc
-#        gr_arc = self.gr_arc
-##        z_red = self.z_red
-##        z_blue = self.z_blue
-##        z_green = self.z_green
-#        p_red = self.p_red
-#        p_blue = self.p_blue
-#        p_green = self.p_green
-#        triangle = self.triangle
-#        radius = self.radius
-#        clip = self.clip
-#
-#        cvs = self.get_cvs()
-#        found = get_orbit(G, triangle)
-#        found = clip(found)
-#        for item in found:
-#            item.render(cvs, None, [orange.alpha(0.5)])
-#    
-#        for item in [rb_arc, gr_arc, bg_arc]:
-#            found = get_orbit(G, item)
-#            found = clip(found)
-#            for item in found:
-#                item.render(cvs)
-#    
-#        for item in [p_blue, p_green]:
-#            found = get_orbit(G, item)
-#            found = clip(found)
-#            for item in found:
-#                item.render(cvs)
-#    
-#        return cvs
-    
+
+
+class Hyperbolic(Geometry):
+
+    def get_orbit(self, item):
+        orbit = []
+        for item in Geometry.get_orbit(self, item):
+            z = item.zs[0]
+            item.scale = 3/d_poincare(z)
+            orbit.append(item)
+        return orbit
+        
+        
+
 
 # ----------------------------------------------------------------------------
 #
@@ -851,7 +853,7 @@ def test_circles():
         for point in orbit:
             point.render(cvs)
 
-    save(cvs, "images/stereo_circles.pdf")
+    save(cvs, "stereo_circles.pdf")
 
 
 def test_stereo():
@@ -864,7 +866,7 @@ def test_stereo():
         cvs.append(fg)
         cvs.show_page()
     
-    save(cvs, "images/stereo.pdf")
+    save(cvs, "stereo.pdf")
 
 
 def test_worksheet():
@@ -877,12 +879,13 @@ def test_worksheet():
     #bb = fg.get_bound_box()
     #cvs.insert(0, -bb.height, fg)
 
-    save(cvs, "images/stereo_worksheet.pdf")
+    save(cvs, "stereo_worksheet.pdf")
 
 
 
 def test_wallpaper():
 
+    push() # because we love globals don't we
     z_red = 0.
     z_blue = 0.5
     z_green = (0 + 1 + exp(2*1j*pi/6))/3.
@@ -893,14 +896,13 @@ def test_wallpaper():
     assert zeq(g_refl(z_blue), z_blue)
 
     G = Affine.generate([r_rot, b])
-    G = [g_refl*g for g in G]
 
 #    G = mulclose([r_refl, b_refl, g_refl], maxsize=200)
 
-    radius = 0.02
-    p_red = Point([z_red], radius=radius)
-    p_blue = Point([z_blue], radius=radius)
-    p_green = Point([z_green], radius=radius)
+    Point.radius = 0.04
+    p_red = Point([z_red])
+    p_blue = Point([z_blue])
+    p_green = Point([z_green])
     
     rb_arc = p_red.line(p_blue)
     gr_arc = p_green.line(p_red)
@@ -909,7 +911,62 @@ def test_wallpaper():
     geometry = Affine.from_arcs(G, rb_arc, bg_arc, gr_arc)
     cvs = geometry.render()
 
-    save(cvs, "images/stereo_wallpaper.pdf")
+    save(cvs, "stereo_wallpaper.pdf")
+
+    pop()
+
+
+def test_hyperbolic():
+    push()
+    Point.radius = 0.02
+    Geometry.scale = 4.0
+
+    from bruhat.disc import mktriangle
+    (l, m, n, maxsize) = (7,2,3,400)
+
+    # build the rotation group generators
+    a, b = [g.todisc() for g in mktriangle(l, m, n)]
+
+    print(a)
+
+    def accept(g):
+        z = g(0.)
+        return abs(z) < 0.90
+
+    G = mulclose([a, b], accept=accept)
+    print(len(G))
+
+    cvs = Canvas()
+
+    z_red = 0.
+    p_red = Point([z_red], st=[red])
+
+    #for item in get_orbit(G, p_red):
+    #    print(item)
+
+#    for g in G:
+#        z,w = g.fixed()
+#        #if EPSILON < abs(z) < 0.5 and abs(z.imag)<EPSILON: # z_blue
+#        if z.imag > EPSILON and z.real > EPSILON and abs(z) < 0.5:
+#            print(z)
+
+    z_green = 0.270959736741934+0.13048733193368528j
+    p_green = Point([z_green], st=[green])
+
+    z_blue = 0.2660772452600881
+    p_blue = Point([z_blue], st=[blue])
+
+    rb_arc = p_red.line(p_blue)
+
+    geometry = Hyperbolic(G, [rb_arc, p_red, p_blue, p_green])
+
+    cvs = geometry.render()
+
+    cvs.stroke(path.circle(0,0,1.), [grey])
+
+    save(cvs, "stereo_hyperbolic.pdf")
+
+    pop()
 
 
 def test_render():
@@ -919,6 +976,8 @@ def test_render():
     test_stereo()
     test_worksheet()
     test_wallpaper()
+
+    test_hyperbolic()
     
 
 if __name__ == "__main__":
