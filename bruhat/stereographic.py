@@ -9,8 +9,6 @@ See:
 Master Thesis in Physics"
 Max Lindh
 
-TODO: 
-shade regions bounded by arc and lines.
 
 """
 
@@ -178,6 +176,12 @@ def pop():
         setattr(cls, attr, value)
 
     
+# ----------------------------------------------------------------------------
+#
+#     Feature's live in Geometry's
+#
+# ----------------------------------------------------------------------------
+
 class Feature:
     scale = 1.0
 
@@ -236,7 +240,8 @@ class Point(Feature):
 
 
 class Circle(Feature):
-    """ A circle (or line) in the complex plane defined by three points.
+    """ A circle (or line) in the complex plane 
+        defined by (passing through) three given points.
     """ 
     def __init__(self, zs, **kw):
         assert len(zs) == 3, zs
@@ -400,6 +405,32 @@ class Arc(Circle):
         cvs.stroke(p, st)
 
 
+class Bigon(Arc):
+
+    line_width = 0.01
+    def render(self, cvs):
+
+        assert None not in self.zs, "not implemented"
+        a, b, c = self.zs
+        if self.is_colinear():
+            dz = (c-a)*1j
+
+        else:
+            z0 = self.get_center()
+            r = self.get_radius()
+            dz = b-z0
+
+        dz = dz / abs(dz)
+        line_width = self.line_width * self.scale
+        b0 = b - line_width*dz
+        b1 = b + line_width*dz
+        larc = Arc([a, b0, c])
+        rarc = Arc([c, b1, a])
+        p = larc.get_path() + rarc.get_path()
+        cvs.fill(p)
+
+
+
 class Triangle(Feature):
     def __init__(self, zs, **kw):
         Feature.__init__(self, zs, **kw)
@@ -463,6 +494,13 @@ class Triangle(Feature):
             cvs.fill(p, self.st_fill)
         if self.st_stroke is not None:
             cvs.stroke(p, self.st_stroke)
+
+
+# ----------------------------------------------------------------------------
+#
+#     Geometry's
+#
+# ----------------------------------------------------------------------------
 
 
 
@@ -664,8 +702,9 @@ class Hyperbolic(Geometry):
     def get_orbit(self, item):
         orbit = []
         for item in Geometry.get_orbit(self, item):
-            z = item.zs[0]
-            item.scale = 3/d_poincare(z)
+            zs = [z for z in item.zs if z is not None]
+            z = sum(zs)/len(zs)
+            item.scale = 1/d_poincare(z)
             orbit.append(item)
         return orbit
         
@@ -918,7 +957,7 @@ def test_wallpaper():
 
 def test_hyperbolic():
     push()
-    Point.radius = 0.02
+    Point.radius = 0.04
     Geometry.scale = 4.0
 
     from bruhat.disc import mktriangle
@@ -931,7 +970,7 @@ def test_hyperbolic():
 
     def accept(g):
         z = g(0.)
-        return abs(z) < 0.90
+        return abs(z) < 0.99
 
     G = mulclose([a, b], accept=accept)
     print(len(G))
@@ -958,11 +997,18 @@ def test_hyperbolic():
 
     rb_arc = p_red.line(p_blue)
 
-    geometry = Hyperbolic(G, [rb_arc, p_red, p_blue, p_green])
+    #arc = Arc([-1, 0, 1], st_stroke=[0.5*thin])
+    arc = Bigon([-1, 0, 1])
+    #G = list(G)[:100]
+
+    #geometry = Hyperbolic(G, [rb_arc, p_red, p_blue, p_green])
+    geometry = Hyperbolic(G, [arc, p_red, p_blue, p_green])
 
     cvs = geometry.render()
 
-    cvs.stroke(path.circle(0,0,1.), [grey])
+    cvs.stroke(path.circle(0,0,1.2), [white])
+    cvs.clip(path.circle(0,0,1.))
+    cvs.stroke(path.circle(0,0,1.), [grey,0.3*thin])
 
     save(cvs, "stereo_hyperbolic.pdf")
 
