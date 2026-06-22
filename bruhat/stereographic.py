@@ -958,7 +958,7 @@ def test_wallpaper():
 def test_hyperbolic():
     push()
     Point.radius = 0.04
-    Geometry.scale = 4.0
+    #Geometry.scale = 4.0
 
     from bruhat.disc import mktriangle
     (l, m, n, maxsize) = (7,2,3,400)
@@ -1004,11 +1004,12 @@ def test_hyperbolic():
     #geometry = Hyperbolic(G, [rb_arc, p_red, p_blue, p_green])
     geometry = Hyperbolic(G, [arc, p_red, p_blue, p_green])
 
-    cvs = geometry.render()
-
+    cvs = Canvas([Scale(10.0)])
     cvs.stroke(path.circle(0,0,1.2), [white])
     cvs.clip(path.circle(0,0,1.))
-    cvs.stroke(path.circle(0,0,1.), [grey,0.3*thin])
+    cvs.stroke(path.circle(0,0,1.), [0.95*white,2*thin])
+
+    geometry.render(cvs)
 
     save(cvs, "stereo_hyperbolic.pdf")
 
