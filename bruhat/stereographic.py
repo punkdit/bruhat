@@ -22,7 +22,7 @@ from math import atan
 import numpy
 
 from huygens.namespace import (
-    Canvas, Scale, MoveTo, LineTo,
+    Canvas, Scale, Rotate, MoveTo, LineTo,
     red, green, blue, grey, black, white, orange,
     path, st_THick, st_center, thin)
 from huygens.back import arc_to_bezier, _arc_to_bezier
@@ -408,6 +408,7 @@ class Arc(Circle):
 class Bigon(Arc):
 
     line_width = 0.01
+    st = []
     def render(self, cvs):
 
         assert None not in self.zs, "not implemented"
@@ -427,7 +428,7 @@ class Bigon(Arc):
         larc = Arc([a, b0, c])
         rarc = Arc([c, b1, a])
         p = larc.get_path() + rarc.get_path()
-        cvs.fill(p)
+        cvs.fill(p, self.st)
 
 
 
@@ -543,7 +544,7 @@ class Geometry:
             rb_arc.zs[0], rb_arc.zs[1], 
             bg_arc.zs[0], bg_arc.zs[1], 
             gr_arc.zs[0], gr_arc.zs[1],
-        ], st_fill=[orange.alpha(0.5)])
+        ], st_fill=[orange.alpha(0.3)])
 
         features = [triangle, rb_arc, bg_arc, gr_arc, p_red, p_blue, p_green]
         geometry = cls(G, features)
@@ -939,13 +940,17 @@ def test_wallpaper():
 #    G = mulclose([r_refl, b_refl, g_refl], maxsize=200)
 
     Point.radius = 0.04
-    p_red = Point([z_red])
-    p_blue = Point([z_blue])
-    p_green = Point([z_green])
+    p_red = Point([z_red], st=[red])
+    p_blue = Point([z_blue], st=[blue])
+    p_green = Point([z_green], st=[green])
     
     rb_arc = p_red.line(p_blue)
     gr_arc = p_green.line(p_red)
     bg_arc = p_blue.line(p_green)
+
+    geometry = Affine(G, [rb_arc, bg_arc, gr_arc, p_red, p_blue, p_green])
+    cvs = geometry.render()
+    save(cvs, "stereo_wallpaper_refl.pdf")
     
     geometry = Affine.from_arcs(G, rb_arc, bg_arc, gr_arc)
     cvs = geometry.render()
@@ -1013,6 +1018,68 @@ def test_hyperbolic():
 
     save(cvs, "stereo_hyperbolic.pdf")
 
+    pop()
+
+
+def test_logo():
+    push()
+
+    Point.radius = 0.04
+    #Geometry.scale = 4.0
+
+    from bruhat.disc import mktriangle
+    (l, m, n, maxsize) = (7,2,3,400)
+
+    # build the rotation group generators
+    a, b = [g.todisc() for g in mktriangle(l, m, n)]
+
+    print(a)
+
+    def accept(g):
+        z = g(0.)
+        return abs(z) < 0.95
+
+    G = mulclose([a, b], accept=accept)
+    print(len(G))
+    G = list(G)
+    a, b = [g.todisc() for g in mktriangle(8, 2, 4)]
+    g = a*b*a*Mobius(1,1,0,1).todisc()
+    G = [g*h for h in G]
+    G1 = G[:100]
+
+    cvs = Canvas()
+
+    z_red = 0.
+    p_red = Point([z_red], st=[red])
+
+    z_green = 0.270959736741934+0.13048733193368528j
+    p_green = Point([z_green], st=[green])
+
+    z_blue = 0.2660772452600881
+    p_blue = Point([z_blue], st=[blue])
+
+    rb_arc = p_red.line(p_blue)
+
+    #arc = Arc([-1, 0, 1], st_stroke=[0.5*thin])
+    arc = Bigon([-1, 0, 1], st=[0.5*white+0.1*blue])
+    arc0 = Bigon([-1, 0, 1], st=[white], line_width=0.003)
+    #G = list(G)[:100]
+
+
+    cvs = Canvas([Scale(10.0)])
+    r = 1.5
+    p = path.rect(-r, -r, 2*r, 2*r)
+    cvs.fill(p, [black])
+    cvs.clip(path.circle(0,0,1.))
+    p = path.circle(0,0,1)
+    cvs.fill(p, [0.1*white])
+    cvs.stroke(p, [0.55*white+0.2*blue,1*thin])
+
+    cvs.rotate(1.2*2*pi/4)
+    geometry = Hyperbolic(G1, [arc, arc0]).render(cvs)
+    geometry = Hyperbolic(G, [p_red, p_blue, p_green]).render(cvs)
+
+    save(cvs, "stereo_logo.pdf")
     pop()
 
 
