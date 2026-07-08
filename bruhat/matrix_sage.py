@@ -545,6 +545,7 @@ def find_tutte():
 
 
 def test_wenum():
+    # test the formula for the wenum from the tutte
 
     q = argv.get("q", 2)
     m = argv.get("m", 2)
