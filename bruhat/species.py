@@ -257,7 +257,7 @@ class Set(object): # copied from bruhat.rel
 
     def __le__(a, b):
         assert isinstance(b, Set), repr(b)
-        return a.items < b.items
+        return a.items <= b.items
 
     def __hash__(self):
         return hash(self.items)
