@@ -313,12 +313,14 @@ class Tom:
         smap[0,2] = "|"
         return str(smap)
 
-    def get_stabilizer(tom, N, name):
+    #def get_stabilizer(tom, N, name):
+    def get_stabilizer(tom, name):
         from bruhat.gap import Gap
         gap = Gap()
         idx = len(tom) - tom.names.index(name)
         e = gap.RepresentativeTom(tom, idx)
-        e = gap.to_group(N, e)
+        #e = gap.to_group(N, e)
+        e = gap.to_group(e)
         return e
 
     def get_poset(tom):

@@ -39,19 +39,25 @@ class Ref:
             ref = "v%d"%Ref.idx
             Ref.idx += 1
         self.ref = ref
+
     def __str__(self):
         return self.ref
     gapstr = __str__
 
-    def to_group(self):
-        gap = Gap.the_gap
-        
+    def __getitem__(self, idx):
+        s = "%s[%d]" % (self, idx+1) # <<---- idx+1 
+        ref = Gap.the_gap.define(s)
+        return ref
+
+    def __len__(self):
+        n = Gap.the_gap.Length(self, get=True)
+        return n
         
 
 
 class Gap:
     the_gap = None # Singleton
-    DEBUG = False
+    DEBUG = argv.get("DEBUG", False)
 
     def __new__(cls):
         if cls.the_gap is not None:
@@ -140,21 +146,35 @@ class Gap:
         tom.gapref = ref
         return tom
 
-    def to_group(gap, N, ref):
+    def to_group(gap, ref, smaller=True, N=None):
         from bruhat.gset import Group, Perm
+        is_perm = gap.IsPermGroup(ref, get=True)
+        if not is_perm:
+            _iso = gap.IsomorphismPermGroup(ref)
+            ref = gap.Image(_iso)
+            if smaller:
+                _iso = gap.SmallerDegreePermutationRepresentation(ref)
+                ref = gap.Image(_iso)
         if N is None:
-            assert 0, "arggghh"
-            orbit = gap.OrbitPerms(ref, 1)
-            N = gap.Maximum(orbit, get=True)
+            N = gap.NrMovedPoints(ref, get=True);
             N = int(N)
-            print("N =", N)
+        #print("Gap.to_group: N =", N)
         gens = gap.GeneratorsOfGroup(ref)
-        perms = []
+        #print(gens, len(gens))
+        if len(gens) == 0 and N is not None:
+            perms = [Perm(list(range(N)))]
+        else:
+            perms = []
         for gapstr in gap.iterate(gens):
-            perm = Perm.from_gapstr(N, gapstr)
+            try:
+                perm = Perm.from_gapstr(N, gapstr)
+            except:
+                print("N = %d; gapstr = %r"%(N, gapstr))
+                raise
             perms.append(perm)
         #G = Group.generate(perms, verbose=True)
         G = Group(None, perms)
+        G.gapref = ref
         return G
 
 

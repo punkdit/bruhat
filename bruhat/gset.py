@@ -349,6 +349,9 @@ class Group:
         else:
             perms = list(perms)
         if gens is not None:
+            if len(gens) == 0:
+                gens = [Perm([0])]
+                perms = list(gens)
             assert isinstance(gens[0], Perm)
             self.gens = list(gens)
         else:
@@ -2121,6 +2124,39 @@ def test_orbits():
                 break
         print()
     print("done")
+
+
+def allgroups(n0, n1, smaller=True):
+
+    from bruhat.gap import Gap
+    gap = Gap()
+    for n in range(n0, n1):
+        k = gap.NumberSmallGroups(n, get=True)
+        for i in range(k):
+            _G = gap.SmallGroup(n, i+1)
+            G = gap.to_group(_G, smaller=smaller)
+            yield G
+    
+
+def findgap():
+    from bruhat.gap import Gap
+    gap = Gap()
+    for G in allgroups(8, 11):
+        print(G)
+        #print(G.perms)
+        N = G.rank
+        n = gap.Order(G, get=True)
+        assert len(G) == n
+        Hs = gap.AllSubgroups(G)
+        #print("\t", gap.Length(Hs, get=True))
+        for i in range(len(Hs)):
+            item = Hs[i]
+            assert gap.IsPermGroup(item, get=True)
+            H = gap.to_group(item, N=N)
+            #print("\t\t", H.longstr())
+            print("\t", H)
+            assert G.is_subgroup(H)
+    
 
 
 def test():

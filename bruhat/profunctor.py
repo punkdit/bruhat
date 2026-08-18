@@ -46,7 +46,7 @@ def mulclose(gen, verbose=False, maxsize=None):
 invert_send = lambda send: dict((v,k) for (k,v) in send.items())
 
 
-class Set(object):
+class Set:
     """
     These are the object's of our Category's and we don't use these for any
     other purpose (such as the Set of object's of a Category).
@@ -158,7 +158,7 @@ class MulSet(Set):
 
 # we use order (tgt, src) because __mul__ is right-to-left
 
-class Map(object):
+class Map:
     """
     A function on sets tgt<--src.
     These are the morphism's of our Category's and we don't use these for any
@@ -213,7 +213,7 @@ class Map(object):
         return Map(src, tgt, send)
 
 
-class Category(object):
+class Category:
     """
     These are _concrete Category's: objects are (finite!) Set's
     and morphisms are Map's of Set's.
@@ -452,7 +452,7 @@ class MulCategory(Category):
         pass
 
 
-class Functor(object):
+class Functor:
     def __init__(self, tgt, src, send_obs, send_homs, op=None, check=CHECK):
         assert isinstance(tgt, Category)
         assert isinstance(src, Category)
@@ -644,13 +644,13 @@ def all_functors(tgt, src): # warning: slow and stupid
                 yield Functor(tgt, src, send_obs, send_homs)
 
 
-class Nat(object):
-    """
+class Nat:
+    r"""
     A natural transform of Functor's: tgt<===src is
 
     lhs <---- rhs
          tgt
-          ^
+          /\ 
           ||
           ||
           ||
