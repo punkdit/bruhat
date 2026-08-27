@@ -23,6 +23,7 @@ from bruhat.util import all_subsets
 from bruhat.tom import Tom
 from bruhat.todd_coxeter import Schreier
 from bruhat.repr_sage import GL32
+from bruhat.smap import SMap
 
 from bruhat.matrix_sage import CyclotomicField, Matrix
 from bruhat.clifford_sage import Clifford, K, w4, get_pauli_gens, get_clifford_gens
@@ -1142,6 +1143,64 @@ def test_sp():
 #    J = cayley(parabolic)
 #
 #    #c = H.count_hecke(J)
+
+
+def get_equi(G):
+    from bruhat.gap import Gap
+
+    print(G, G.structure_description())
+
+    #print(G.perms)
+    N = G.rank
+    n = gap.Order(G, get=True)
+    assert len(G) == n
+    #_Hs = gap.AllSubgroups(G)
+    _Hs = gap.ConjugacyClassesSubgroups(G)
+    #print("\t", gap.Length(Hs, get=True))
+    Hs = []
+    for i in range(len(_Hs)):
+        item = _Hs[i]
+        item = gap.Representative(item)
+        assert gap.IsPermGroup(item, get=True)
+        H = gap.to_group(item, N=N)
+        #print("\t", H)
+        assert G.is_subgroup(H)
+        Hs.append(H)
+
+    print(len(Hs))
+    for i in range(len(Hs)):
+      for j in range(i, len(Hs)):
+
+        X = G.left_action(Hs[i])
+        Y = G.left_action(Hs[j])
+
+        ops = list(get_operators(X.gens, Y.gens))
+        #op = ops[0]
+        #print(op.shape, end=' ')
+        smap = SMap()
+        col = 0
+        for op in ops:
+            smap[0, col] = shortstr(op)
+            col += op.shape[1] + 1
+        #smap[op.shape[0], 0] = "-"*col
+        print(smap)
+        print()
+        
+
+
+def equivariant():
+
+    from bruhat.gset import allgroups
+    from bruhat.gap import Gap
+    gap = Gap()
+    n = 3*4
+    #for G in allgroups(n, n+1):
+
+    _G = gap.GL(3,2)
+    G = gap.to_group(_G, smaller=False)
+    get_equi(G)
+
+
 
 
 
