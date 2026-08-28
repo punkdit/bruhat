@@ -1146,7 +1146,10 @@ def test_sp():
 
 
 def get_equi(G):
+
+    from bruhat.matrix import Matrix
     from bruhat.gap import Gap
+    gap = Gap()
 
     print(G, G.structure_description())
 
@@ -1175,16 +1178,32 @@ def get_equi(G):
         Y = G.left_action(Hs[j])
 
         ops = list(get_operators(X.gens, Y.gens))
-        #op = ops[0]
-        #print(op.shape, end=' ')
-        smap = SMap()
-        col = 0
-        for op in ops:
-            smap[0, col] = shortstr(op)
-            col += op.shape[1] + 1
-        #smap[op.shape[0], 0] = "-"*col
-        print(smap)
-        print()
+        #print(ops[0].shape, end=' ')
+        ops = [Matrix(op) for op in ops]
+
+        m, n = ops[0].shape
+        #if m!=21 and n!=21:
+        #    continue
+
+        for H0 in ops:
+          for H in [H0, H0.t]:
+            HHt = H*H.t # overlap of the rows
+            if HHt.sum() == 0:
+                H = H.linear_independent()
+                #print(HHt.shape)
+                print(H.shortstr(), H.shape)
+                print()
+
+#        smap = SMap()
+#        col = 0
+#        for op in ops:
+#            smap[0, col] = op.shortstr()
+#            col += op.shape[1] + 1
+#        #smap[op.shape[0], 0] = "-"*col
+#        print(smap)
+#        print()
+#
+#      print()
         
 
 
@@ -1197,7 +1216,7 @@ def equivariant():
     #for G in allgroups(n, n+1):
 
     _G = gap.GL(3,2)
-    G = gap.to_group(_G, smaller=False)
+    G = gap.to_group(_G, smaller=False, N=8)
     get_equi(G)
 
 

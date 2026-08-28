@@ -24,7 +24,7 @@ scalar = numpy.int8 # CAREFUL !!
 from bruhat.action import mulclose, mulclose_hom
 from bruhat.spec import isprime
 from bruhat.argv import argv
-from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse, intersect
+from bruhat.solve import parse, enum2, row_reduce, span, shortstr, rank, shortstrx, pseudo_inverse, intersect, linear_independent
 from bruhat.solve import zeros2, identity2
 from bruhat import solve 
 from bruhat.dev import geometry
@@ -145,6 +145,17 @@ class Matrix(object):
     def transpose(self):
         A = self.A
         return Matrix(A.transpose(), self.p)
+
+    @property
+    def t(self):
+        A = self.A
+        return Matrix(A.transpose(), self.p)
+
+    def linear_independent(self):
+        assert self.p == 2
+        A = self.A
+        A = linear_independent(A) 
+        return Matrix(A, self.p)
 
     def sum(self):
         return self.A.sum()
