@@ -265,6 +265,38 @@ def test():
     
                 assert 0
 
+    # ------------------------------
+
+#    for rel in rels:
+#        if len(rel) == 1:
+#            break
+
+    pairs = [(a,b) for a in A for b in B]
+    #pairs.remove(("a0", "b0"))
+    #pairs.remove(("a0", "b1"))
+    pairs.remove(("a0", "b2"))
+    #pairs.remove(("a1", "b2"))
+    pairs.remove(("a2", "b0"))
+    pairs.remove(("a2", "b1"))
+
+    rel = Rel(A, B, pairs)
+
+    print(rel)
+    SEND = rel.send()
+    PULL = rel.pull()
+
+    X = Set(["a1"])
+    print("X:", X)
+    print("F(X) =", SEND[X])
+
+    print("PULL:")
+    for a,b in PULL.items():
+        print("\t", a, "-->", b)
+    Y = Set(["b1"])
+    print("Y:", Y)
+    print("G(Y) =", PULL[Y])
+    
+    
 
 
     
