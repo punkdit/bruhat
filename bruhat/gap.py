@@ -77,6 +77,7 @@ class Gap:
         self.debug = open("gap_debug.dump", "w")
         self.expect() # load intro to the first gap> prompt
         #print("Gap.init(): ready")
+        self.SizeScreen([10000,10000])
 
     def read_nb(self, raw=False):
         proc = self.proc
@@ -129,6 +130,15 @@ class Gap:
         value = self.Length(item, get=True)
         return int(value)
 
+    def get(self, expr):
+        if not expr.endswith(";"):
+            expr += ";"
+        expr = to_gap(expr)
+        self.send(expr)
+        rval = self.expect()
+        rval = from_gap(rval)
+        return rval
+
     def iterate(self, item):
         item = to_gap(item)
         n = self.length(item)
@@ -163,15 +173,35 @@ class Gap:
         #print(gens, len(gens))
         if len(gens) == 0 and N is not None:
             perms = [Perm(list(range(N)))]
+            G = Group(None, perms)
+            G.gapref = ref
+            return G # <------ return
+
+        perms = []
+
+        # only works when N is small enough...
+        if N < 100:
+            for gapstr in gap.iterate(gens):
+                try:
+                    perm = Perm.from_gapstr(N, gapstr)
+                except:
+                    print("\nN = %d; gapstr = %r"%(N, gapstr))
+                    raise
+                perms.append(perm)
         else:
-            perms = []
-        for gapstr in gap.iterate(gens):
-            try:
-                perm = Perm.from_gapstr(N, gapstr)
-            except:
-                print("N = %d; gapstr = %r"%(N, gapstr))
-                raise
-            perms.append(perm)
+            n = gap.length(gens)
+            #print("gens:", n)
+            for idx in range(n):
+                vgen = gap.define("%s[%d]" % (gens, idx+1))
+                vgen = gap.ListPerm(vgen, N)
+                #print(vgen)
+                idxs = [gap.get("%s[%d]"%(vgen, i+1))-1 for i in range(N)]
+                #print(idxs)
+                perms.append(Perm(idxs))
+    
+            #print(perms)
+
+
         #G = Group.generate(perms, verbose=True)
         G = Group(None, perms)
         G.gapref = ref
@@ -196,18 +226,22 @@ class Method:
         s = gap.expect(raw=raw)
         if not get:
             return ref
-        rval = s.strip()
-        if rval == "false":
-            return False
-        if rval == "true":
-            return True
-        try:
-            rval = int(rval)
-            return rval
-        except:
-            pass
+        rval = from_gap(s)
         return rval
-            
+
+
+def from_gap(rval):
+    rval = rval.strip()
+    if rval == "false":
+        return False
+    if rval == "true":
+        return True
+    try:
+        rval = int(rval)
+        return rval
+    except:
+        pass
+    return rval
 
 
 def to_gap(item):
