@@ -115,7 +115,9 @@ class Gap:
         return data
 
     def define(self, item, ref=None):
-        item = to_gap(item)
+        #print("define %r"%item)
+        if type(item) != str:
+            item = to_gap(item) # what is this here for?
         ref = Ref(ref)
         assert not item.endswith(";")
         s = "%s := %s;;"%(ref, item)
@@ -246,7 +248,7 @@ def from_gap(rval):
 
 def to_gap(item):
     if type(item) is str:
-        return item
+        return '"%s"'%item
     if type(item) is int:
         return str(item)
     if hasattr(item, "gapstr"):
